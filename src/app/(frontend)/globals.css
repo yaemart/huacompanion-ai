@@ -2164,3 +2164,5 @@ html[lang="zh-CN"] .form-intro h1 {
     animation: none !important;
   }
 }
+
+.form-body{border:0;padding:0;margin:0;min-width:0}.button:disabled,.back-button:disabled{opacity:.55;cursor:not-allowed;transform:none}

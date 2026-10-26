@@ -741,8 +741,8 @@ function Contact({ locale }: { locale: Locale }) {
           </h3>
           <p>
             {c(
-              "Verified company details, email and other contact channels will be added before launch. This preview does not accept messages, and no live human or AI chat is operating.",
-              "核实后的公司主体、邮箱及其他联系渠道将在上线前补齐。此预览暂不接收留言，尚未开通实时人工或 AI 客服。",
+              "Verified company details, email and other contact channels will be added before launch. Local test forms save fictional enquiries only. No live human or AI chat is operating.",
+              "核实后的公司主体、邮箱及其他联系渠道将在上线前补齐。本地表单仅用于保存虚构测试咨询，尚未开通实时人工或 AI 客服。",
             )}
           </p>
         </div>
@@ -850,8 +850,8 @@ function Legal({ locale, privacy }: { locale: Locale; privacy: boolean }) {
         <h2>{c("Current preview", "当前预览")}</h2>
         <p>
           {c(
-            "Forms in this local preview do not submit or save information. Please use fictional details when reviewing the form experience. Company identity and contact channels are not yet verified.",
-            "本地预览表单不会提交或保存信息。审核表单体验时请使用虚构测试资料。公司主体和联系方式尚待核实。",
+            "In local testing mode, submissions are saved in a PostgreSQL database on this computer for workflow testing. Only authorised staff can access them. Please use fictional details only. No email or model service receives the submission. The local administrator can remove test records; database backups may retain copies. Company identity and contact channels are not yet verified.",
+            "本地测试模式会将提交内容保存到本机 PostgreSQL 数据库，用于业务流程测试；仅授权员工可访问。请仅使用虚构资料。信息不会发送给邮件或模型服务。管理员可清理测试记录，数据库备份可能保留副本。公司主体和联系方式尚待核实。",
           )}
         </p>
         {privacy ? (

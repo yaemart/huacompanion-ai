@@ -107,3 +107,22 @@ export function visibleReviewValues(values: Values): Values {
     Object.entries(values).filter(([key]) => !hidden.has(key)),
   );
 }
+
+export function errorStep(
+  kind: FormKind,
+  errors: Record<string, string>,
+): number {
+  const keys = Object.keys(errors);
+  if (keys.some((k) => ["categories", "city", "organisation"].includes(k)))
+    return 0;
+  const contact = [
+    "name",
+    "email",
+    ...(kind === "apply"
+      ? ["phone", "website"]
+      : ["language", "contact", "channel"]),
+  ];
+  if (keys.some((k) => !contact.includes(k) && k !== "consent")) return 1;
+  if (keys.some((k) => contact.includes(k))) return 2;
+  return 3;
+}

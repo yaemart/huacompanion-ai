@@ -5,6 +5,7 @@ import { services, p } from "@/lib/content";
 import type { Locale } from "@/lib/routes";
 import {
   validateStep,
+  errorStep,
   visibleReviewValues,
   type Values,
   type FormKind,
@@ -20,6 +21,12 @@ export function InquiryForm({
   initialService?: string;
 }) {
   const en = locale === "en";
+  const localMode = process.env.NEXT_PUBLIC_FORM_MODE === 'local';
+  const [saving,setSaving] = useState(false);
+  const [receipt,setReceipt] = useState('');
+  const [saveError,setSaveError] = useState('');
+  const [attempted,setAttempted] = useState(false);
+  const request = useRef<{key:string;body:string}|null>(null);
   const c = (a: string, b: string) => (en ? a : b);
   const partner = kind === "apply";
   const [step, setStep] = useState(0),
@@ -114,7 +121,7 @@ export function InquiryForm({
           type={type}
           value={val(key)}
           onChange={(e) => set(key, e.target.value)}
-          maxLength={300}
+          maxLength={key === "email" ? 254 : 300}
           min={type === "number" ? 1 : undefined}
           step={type === "number" ? 1 : undefined}
           autoComplete={["name", "email"].includes(key) ? key : undefined}
@@ -149,7 +156,7 @@ export function InquiryForm({
     setChecked(false);
     setTimeout(() => heading.current?.focus(), 0);
   };
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const found = validateStep(kind, step, values, locale);
     setErrors(found);
@@ -162,7 +169,23 @@ export function InquiryForm({
       return;
     }
     if (step < 3) move(step + 1);
-    else setChecked(true);
+    else if(!localMode) setChecked(true);
+    else {
+      if(saving || receipt)return;
+      request.current ??= {key:crypto.randomUUID(),body:JSON.stringify({kind,locale,values})};
+      setSaving(true);setSaveError('');setAttempted(true);
+      try {
+        const response=await fetch('/api/intake',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':request.current.key},body:request.current.body});
+        const result=await response.json();
+        if(!response.ok){
+          if(response.status===400){request.current=null;setAttempted(false);setErrors(result.fields||{});setStep(errorStep(kind,result.fields||{}));setTimeout(()=>heading.current?.focus(),0);}
+          throw new Error(c('Saving could not be confirmed. Retry with the same information, or go back to correct highlighted fields.','暂时无法确认保存。可重试原提交，或返回修改提示字段。'));
+        }
+        if(typeof result.reference!=='string')throw new Error(c('No receipt received. Please retry.','未收到编号，请重试。'));
+        setReceipt(result.reference);
+      } catch(error){setSaveError(error instanceof Error?error.message:c('Unable to confirm saving. Please retry.','暂时无法确认保存，请重试。'));}
+      finally{setSaving(false);}
+    }
   };
   const section = (title: string, children: React.ReactNode) => (
     <fieldset className="form-section">
@@ -208,8 +231,8 @@ export function InquiryForm({
         </div>
         <div className="form-preview-note">
           {c(
-            "Preview only: please use fictional details. Nothing entered here is submitted or saved.",
-            "仅供预览：请使用虚构测试资料。这里填写的信息不会提交或保存。",
+            localMode ? "LOCAL TESTING: fictional details only. Submissions are saved in the local test database; no email is sent." : "Preview only: please use fictional details. Nothing entered here is submitted or saved.",
+            localMode ? "本地测试：请仅用虚构资料。提交后会保存到本地测试数据库，暂不发送邮件。" : "仅供预览：请使用虚构测试资料。这里填写的信息不会提交或保存。",
           )}
         </div>
         <Link
@@ -235,7 +258,7 @@ export function InquiryForm({
             </li>
           ))}
         </ol>
-        <form onSubmit={submit} noValidate>
+        <form onSubmit={submit} noValidate><fieldset className="form-body" disabled={saving || !!receipt || attempted}>
           <div className="form-heading">
             <span className="eyebrow">
               {c("STEP", "步骤")} {step + 1} / 4
@@ -516,8 +539,8 @@ export function InquiryForm({
                     {c("privacy notice", "隐私说明")}
                   </Link>
                   {c(
-                    " and understand this preview does not send or save my information.",
-                    "，并了解本预览不会发送或保存我的信息。",
+                    localMode ? " and agree to save this fictional submission in the local test database." : " and understand this preview does not send or save my information.",
+                    localMode ? "，并同意将本次虚构测试信息保存到本地测试数据库。" : "，并了解本预览不会发送或保存我的信息。",
                   )}
                 </span>
               </label>
@@ -552,10 +575,13 @@ export function InquiryForm({
               )}
             </p>
           )}
+          </fieldset>
+          {receipt && <div className="preview-result" role="status"><b>{c('Saved to the local test database.','已保存到本地测试数据库。')}</b><p>{c('Reference: ','编号：')}{receipt}</p><p>{c('Email is not configured. No confirmation email has been sent.','邮件服务尚未配置，未发送确认邮件。')}</p></div>}
+          {saveError && <p role="alert" className="error-summary">{saveError}</p>}
           <div className="form-navigation">
             {step > 0 ? (
               <button
-                className="back-button"
+                disabled={saving || !!receipt || attempted} className="back-button"
                 type="button"
                 onClick={() => move(step - 1)}
               >
@@ -564,9 +590,9 @@ export function InquiryForm({
             ) : (
               <span />
             )}
-            <button className="button" type="submit">
+            <button className="button" type="submit" disabled={saving || !!receipt}>
               {step === 3
-                ? c("Check preview", "检查预览")
+                ? (saving ? c("Saving…", "保存中…") : receipt ? c("Saved", "已保存") : localMode ? c("Submit test request", "提交测试信息") : c("Check preview", "检查预览"))
                 : c("Continue", "继续")}
               <Icon name="arrow" size={20} />
             </button>

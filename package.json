@@ -4,21 +4,46 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
-    "build": "next build",
+    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "local:db": "node scripts/local-db.mjs",
+    "local:init": "tsx scripts/init-local.ts",
+    "test:integration": "tsx tests/integration/backend.ts",
+    "backup:test": "node scripts/backup-test.mjs",
+    "payload": "payload",
+    "export:local": "tsx scripts/export-local.ts",
+    "test:http": "node scripts/check-backend-http.mjs",
+    "test:migrations": "node scripts/test-migrations.mjs",
+    "start:host": "next start --hostname 0.0.0.0"
   },
   "dependencies": {
-    "next": "15.5.25",
+    "@payloadcms/db-postgres": "^3.92.0",
+    "@payloadcms/next": "^3.92.0",
+    "@payloadcms/translations": "^3.92.0",
+    "dotenv": "^18.0.9",
+    "graphql": "^16.14.2",
+    "next": "^16.4.3",
+    "node": "^24.22.1",
+    "payload": "^3.92.0",
+    "pg": "^8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
     "@types/node": "24.10.9",
+    "@types/pg": "^8.23.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.3"
+    "@types/react-dom": "19.2.3",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "overrides": {
+    "dompurify": "3.4.17"
   }
 }

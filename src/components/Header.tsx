@@ -11,8 +11,8 @@ export function Header({ locale }: { locale: Locale }) {
     <>
       <div className="preview-bar">
         {locale === "en"
-          ? "DESIGN PREVIEW · Forms do not send or save information yet."
-          : "设计预览 · 表单暂不发送或保存信息。"}
+          ? (process.env.NEXT_PUBLIC_FORM_MODE === "local" ? "LOCAL TESTING · Submissions save locally. Use fictional details only." : "DESIGN PREVIEW · Forms do not send or save information yet.")
+          : (process.env.NEXT_PUBLIC_FORM_MODE === "local" ? "本地测试 · 表单真实保存到本地，请仅使用虚构资料。" : "设计预览 · 表单暂不发送或保存信息。")}
       </div>
       <header className="site-header">
         <Link className="brand" href={`/${locale}`} aria-label="Hua Companion">

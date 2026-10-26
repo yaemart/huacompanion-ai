@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateStep, visibleReviewValues } from "../src/lib/forms.ts";
+import {
+  errorStep,
+  validateStep,
+  visibleReviewValues,
+} from "../src/lib/forms.ts";
 const valid = {
   categories: ["business"],
   city: "Shanghai",
@@ -96,4 +100,11 @@ test("review omits unselected category fields without deleting recoverable input
   assert.equal(review.medicalHelp, undefined);
   assert.equal(review.checkIn, undefined);
   assert.equal(values.medicalHelp, "Appointment");
+});
+
+test("server field errors return to the correct step", () => {
+  assert.equal(errorStep("request", { email: "Invalid email" }), 2);
+  assert.equal(errorStep("request", { arrivalDate: "Invalid date" }), 1);
+  assert.equal(errorStep("apply", { organisation: "Required" }), 0);
+  assert.equal(errorStep("apply", { capabilities: "Required" }), 1);
 });
