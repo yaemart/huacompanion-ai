@@ -1,3 +1,4 @@
+import { parseCatalogSource, type CatalogSource } from "./catalog.ts";
 import {
   validateStep,
   visibleReviewValues,
@@ -55,6 +56,7 @@ export function parseIntake(input: unknown): {
   kind: FormKind;
   locale: "en" | "zh";
   values: Values;
+  source?: CatalogSource;
 } {
   if (!input || typeof input !== "object" || Array.isArray(input))
     throw new IntakeValidationError({ form: "Invalid payload" });
@@ -69,6 +71,13 @@ export function parseIntake(input: unknown): {
     Array.isArray(body.values)
   )
     throw new IntakeValidationError({ values: "Invalid values" });
+  let source: CatalogSource | undefined;
+  try {
+    source = parseCatalogSource(body.source);
+    if (source && body.kind !== "request") throw Error();
+  } catch {
+    throw new IntakeValidationError({ source: "Invalid service selection" });
+  }
   const raw = body.values as Record<string, unknown>;
   let values: Values = {};
   const errors: Record<string, string> = {};
@@ -126,5 +135,6 @@ export function parseIntake(input: unknown): {
     kind: body.kind,
     locale: body.locale,
     values: visibleReviewValues(values),
+    ...(source ? { source } : {}),
   };
 }

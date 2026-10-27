@@ -12,6 +12,10 @@ export function Dashboard() {
       <p>
         <a href="/content-center">打开内容工作台：编辑、审核发布与 AI 任务 →</a>
       </p>
+      <p>
+        <a href="/content-center?kind=provider-profile">服务商展示管理 →</a> ·{" "}
+        <a href="/content-center?kind=service-project">华伴服务项目管理 →</a>
+      </p>
       <p>当前节点：真实咨询与合作申请保存、员工权限、跟进与变更记录。</p>
       <p>
         新咨询由管理员分配负责人，客户运营只可读取分配给自己的咨询。内容编辑暂不开放业务数据。

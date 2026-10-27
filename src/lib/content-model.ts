@@ -1,3 +1,9 @@
+import {
+  type Catalog,
+  isCatalog,
+  validateCatalog,
+  publicCatalog,
+} from "./catalog.ts";
 export type ContentUser =
   { id?: number | string; role?: string } | null | undefined;
 export const canEditContent = (user: ContentUser) =>
@@ -16,13 +22,22 @@ export type Source = {
 };
 export type ContentBody = {
   contentKey: string;
-  kind: "service" | "guide" | "faq" | "page" | "partner";
+  kind:
+    | "service"
+    | "guide"
+    | "faq"
+    | "page"
+    | "partner"
+    | "provider-profile"
+    | "service-project";
   locale: "zh" | "en";
   slug: string;
   title: string;
   summary?: string;
   blocks: Block[];
   sources: Source[];
+  catalog?: Catalog;
+  acceptingInquiries?: boolean;
   category?: number;
   order?: number;
   author?: string;
@@ -63,7 +78,15 @@ export function validateContent(value: unknown): asserts value is ContentBody {
   const d = value as ContentBody;
   if (
     !d ||
-    !["service", "guide", "faq", "page", "partner"].includes(d.kind) ||
+    ![
+      "service",
+      "guide",
+      "faq",
+      "page",
+      "partner",
+      "provider-profile",
+      "service-project",
+    ].includes(d.kind) ||
     !["zh", "en"].includes(d.locale)
   )
     throw Error("内容类型或语言无效");
@@ -85,6 +108,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
     )
   )
     throw Error("网站页面仅支持 home/about/contact/partners/privacy/terms");
+  if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
   checkBlocks(d.blocks);
   if (!Array.isArray(d.sources) || d.sources.length > 30)
     throw Error("来源格式无效");
@@ -136,6 +160,9 @@ export function validateCandidate(
 }
 export function publicBody(d: ContentBody): ContentBody {
   return {
+    ...(isCatalog(d.kind) && d.catalog
+      ? { catalog: publicCatalog(d.catalog) }
+      : {}),
     contentKey: d.contentKey,
     kind: d.kind,
     locale: d.locale,

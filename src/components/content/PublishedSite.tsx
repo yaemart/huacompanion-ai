@@ -1,3 +1,4 @@
+import { isCatalog, catalogPath } from "@/lib/catalog";
 import Link from "next/link";
 import { contentSections, sectionFor } from "@/lib/content-sections";
 import { PublishedGuides } from "./PublishedGuides";
@@ -40,6 +41,18 @@ export function PublishedSite({
       </a>
       <Header locale={locale} />
       <main id="main">
+        <nav
+          className="section tight"
+          aria-label={zh ? "服务目录" : "Service directories"}
+        >
+          <Link href={`/${locale}/providers`}>
+            {zh ? "查找服务商" : "Find providers"}
+          </Link>{" "}
+          ·{" "}
+          <Link href={`/${locale}/services/projects`}>
+            {zh ? "华伴服务项目" : "Hua service projects"}
+          </Link>
+        </nav>
         {section === "home" ? (
           <>
             <section className="section">
@@ -126,6 +139,25 @@ export function PublishedSite({
               {detail && (
                 <>
                   <ContentBlocks blocks={detail.blocks} />
+                  {detail.kind === "guide" &&
+                    contents.some((d) =>
+                      d.catalog?.guideKeys.includes(detail.contentKey),
+                    ) && (
+                      <section>
+                        <h2>{zh ? "相关服务" : "Related services"}</h2>
+                        {contents
+                          .filter(
+                            (d) =>
+                              isCatalog(d.kind) &&
+                              d.catalog?.guideKeys.includes(detail.contentKey),
+                          )
+                          .map((d) => (
+                            <p key={d.contentKey}>
+                              <Link href={catalogPath(d)}>{d.title}</Link>
+                            </p>
+                          ))}
+                      </section>
+                    )}
                   {detail.publishedAt && (
                     <p>
                       {zh ? "发布／更新于：" : "Published / updated: "}

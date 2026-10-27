@@ -33,6 +33,12 @@ export const ContentDrafts: CollectionConfig = {
     ],
   },
   fields: [
+    {
+      name: "providerRef",
+      label: "内部服务商关联",
+      type: "number",
+      access: { read: ({ req }) => req.user?.role === "admin" },
+    },
     { name: "title", label: "标题", type: "text", required: true },
     {
       name: "sectionLabel",
@@ -90,6 +96,8 @@ export const ContentPublished: CollectionConfig = {
   admin: { group, useAsTitle: "routeKey" },
   access: { ...access, read: ({ req }) => req.user?.role === "admin" },
   fields: [
+    { name: "providerRef", type: "number" },
+    { name: "suspended", type: "checkbox", defaultValue: false },
     { name: "draftId", type: "number", unique: true, required: true },
     { name: "routeKey", type: "text", unique: true, required: true },
     { name: "active", type: "checkbox", defaultValue: true },

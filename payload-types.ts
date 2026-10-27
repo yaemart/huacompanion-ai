@@ -189,6 +189,15 @@ export interface Inquiry {
   privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
+  catalogSource?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   status: 'new' | 'needs-info' | 'processing' | 'quoted' | 'won' | 'closed';
   owner?: (number | null) | Staff;
   nextFollowUp?: string | null;
@@ -284,6 +293,7 @@ export interface IntakeLimit {
  */
 export interface ContentDraft {
   id: number;
+  providerRef?: number | null;
   title: string;
   sectionLabel?: string | null;
   contentKey: string;
@@ -316,6 +326,8 @@ export interface ContentDraft {
  */
 export interface ContentPublished {
   id: number;
+  providerRef?: number | null;
+  suspended?: boolean | null;
   draftId: number;
   routeKey: string;
   active?: boolean | null;
@@ -568,6 +580,7 @@ export interface InquiriesSelect<T extends boolean = true> {
   privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
+  catalogSource?: T;
   status?: T;
   owner?: T;
   nextFollowUp?: T;
@@ -646,6 +659,7 @@ export interface IntakeLimitsSelect<T extends boolean = true> {
  * via the `definition` "content-drafts_select".
  */
 export interface ContentDraftsSelect<T extends boolean = true> {
+  providerRef?: T;
   title?: T;
   sectionLabel?: T;
   contentKey?: T;
@@ -669,6 +683,8 @@ export interface ContentDraftsSelect<T extends boolean = true> {
  * via the `definition` "content-published_select".
  */
 export interface ContentPublishedSelect<T extends boolean = true> {
+  providerRef?: T;
+  suspended?: T;
   draftId?: T;
   routeKey?: T;
   active?: T;

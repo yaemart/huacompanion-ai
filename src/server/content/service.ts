@@ -1,3 +1,9 @@
+import { isCatalog, validateCatalog } from "../../lib/catalog";
+import {
+  eligibleProvider,
+  allSnapshots,
+  suspendProjectsForKey,
+} from "../catalog/eligibility";
 import type { Payload } from "payload";
 import {
   canEditContent,
@@ -40,43 +46,55 @@ export async function readPublished(
   locale: string,
   slug: string,
 ) {
-  const r = await p.find({
-    collection: "content-published",
-    where: {
-      and: [
-        { routeKey: { equals: `${kind}:${locale}:${slug}` } },
-        { active: { equals: true } },
-      ],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  });
-  return r.docs[0]
-    ? publicBody(r.docs[0].body as unknown as ContentBody)
-    : null;
+  return (
+    (await listPublished(p, locale)).find(
+      (d) => d.kind === kind && d.slug === slug,
+    ) || null
+  );
 }
-export async function listPublished(p: Payload, locale: string) {
-  const items: ContentBody[] = [];
-  let page = 1;
-  for (;;) {
-    const r = await p.find({
-      collection: "content-published",
-      where: { active: { equals: true } },
-      limit: 200,
-      page,
-      sort: "id",
-      depth: 0,
-      overrideAccess: true,
-    });
-    items.push(...r.docs.map((d) => ({
-      ...publicBody(d.body as unknown as ContentBody),
-      publishedAt: d.publishedAt,
-    })).filter((d) => d.locale === locale));
-    if (!r.hasNextPage) break;
-    page += 1;
-  }
-  return items.sort((a, b) => (a.order || 0) - (b.order || 0));
+export async function listPublished(p: Payload, locale: string, req?: any) {
+  const snapshots = await allSnapshots(p, req);
+  const eligible = new Map<number, boolean>();
+  for (const s of snapshots)
+    if (
+      (s.body as ContentBody).kind === "provider-profile" &&
+      !eligible.has(s.providerRef)
+    )
+      eligible.set(
+        s.providerRef,
+        await eligibleProvider(p, s.providerRef, req),
+      );
+  const available = snapshots.filter(
+    (s) =>
+      (s.body as ContentBody).kind !== "provider-profile" ||
+      eligible.get(s.providerRef),
+  );
+  const providerKeys = new Set(
+    available
+      .filter(
+        (s) =>
+          (s.body as ContentBody).kind === "provider-profile" &&
+          (s.body as ContentBody).locale === locale,
+      )
+      .map((s) => (s.body as ContentBody).contentKey),
+  );
+  return available
+    .filter((s) => (s.body as ContentBody).locale === locale)
+    .map((s) => {
+      const b = publicBody(s.body as ContentBody);
+      if (isCatalog(b.kind)) {
+        b.acceptingInquiries =
+          b.kind === "provider-profile" ||
+          (!s.suspended &&
+            (b.catalog!.fulfillment === "arranged" ||
+              b.catalog!.providerKeys.every((k) => providerKeys.has(k))));
+        b.catalog!.providerKeys = b.catalog!.providerKeys.filter((k) =>
+          providerKeys.has(k),
+        );
+      }
+      return { ...b, publishedAt: s.publishedAt };
+    })
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
 export async function mutateContent(p: Payload, user: ContentUser, input: any) {
@@ -86,7 +104,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
     user?.role !== "admin"
   )
     throw new ContentError("只有管理员可审核发布", 403);
-  return contentTransaction(p, async (req) => {
+  const result = await contentTransaction(p, async (req) => {
     const current = input.id
       ? await p.findByID({
           collection: "content-drafts",
@@ -135,7 +153,21 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             id: block.mediaId!,
             req,
           });
+      let providerRef = current?.providerRef;
+      if (body.kind === "provider-profile" && input.providerRef !== undefined) {
+        if (user?.role !== "admin")
+          throw new ContentError("只有管理员可关联内部服务商", 403);
+        if (
+          input.providerRef !== null &&
+          (!Number.isSafeInteger(input.providerRef) || input.providerRef < 1)
+        )
+          throw new ContentError("内部服务商编号无效");
+        if (current?.everPublished && current.providerRef !== input.providerRef)
+          throw new ContentError("已发布服务商的内部关联不能更改");
+        providerRef = input.providerRef;
+      }
       const data = {
+        ...(body.kind === "provider-profile" ? { providerRef } : {}),
         title: body.title,
         contentKey: body.contentKey,
         locale: body.locale,
@@ -148,7 +180,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         reviewState: "draft" as const,
         reviewNote: "",
       };
-      return current
+      const saved = current
         ? await p.update({
             collection: "content-drafts",
             id: current.id,
@@ -156,6 +188,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             req,
           })
         : await p.create({ collection: "content-drafts", data, req });
+      if (user?.role !== "admin") delete (saved as any).providerRef;
+      return saved;
     }
     if (!current) throw new ContentError("内容不存在", 404);
     if (input.action === "submit")
@@ -198,7 +232,37 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       if (!clean.blocks.length) throw new ContentError("正文不能为空");
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
+      if (isCatalog(clean.kind)) {
+        validateCatalog(clean.kind, clean.catalog, true);
+        if (input.catalogReviewed !== true)
+          throw new ContentError(
+            "请确认公开文字、图片与核验资料已检查，不含直联方式",
+          );
+        if (
+          clean.kind === "provider-profile" &&
+          !(await eligibleProvider(p, current.providerRef, req))
+        )
+          throw new ContentError("关联服务商必须已核实／签约并获准公开");
+        if (
+          clean.kind === "service-project" &&
+          clean.catalog!.fulfillment === "specified"
+        ) {
+          const live = await listPublished(p, clean.locale, req);
+          if (
+            clean.catalog!.providerKeys.some(
+              (k) =>
+                !live.some(
+                  (d) => d.kind === "provider-profile" && d.contentKey === k,
+                ),
+            )
+          )
+            throw new ContentError("指定服务商尚未发布或已暂停");
+        }
+      }
       const data = {
+        providerRef:
+          clean.kind === "provider-profile" ? current.providerRef : null,
+        suspended: false,
         draftId: current.id,
         routeKey: current.routeKey,
         active: true,
@@ -222,6 +286,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         data: { active: false },
         req,
       });
+    if (input.action === "unpublish" && clean.kind === "provider-profile")
+      await suspendProjectsForKey(p, clean.contentKey, clean.locale, req);
     await p.create({
       collection: "content-events",
       data: {
@@ -244,4 +310,6 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       req,
     });
   });
+  if (user?.role !== "admin") delete (result as any).providerRef;
+  return result;
 }

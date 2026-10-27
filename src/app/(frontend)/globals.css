@@ -2166,3 +2166,9 @@ html[lang="zh-CN"] .form-intro h1 {
 }
 
 .form-body{border:0;padding:0;margin:0;min-width:0}.button:disabled,.back-button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+.catalog-filters{display:flex;gap:16px;align-items:end;flex-wrap:wrap;margin:32px 0;padding:24px;background:var(--cream,#f4f5ef);border:1px solid #d5ddd5;border-radius:12px}
+.catalog-filters label{flex:1;min-width:140px}.catalog-filters input,.catalog-filters select{display:block;width:100%;padding:12px;margin-top:8px;background:white;border:1px solid #8ca595;border-radius:6px;font:inherit}
+.catalog-card{padding:24px}.catalog-card h2{font-size:25px;margin:16px 0}.catalog-card p{margin:12px 0}
+.catalog-details{margin:32px 0;border-top:1px solid #d5ddd5}.catalog-details>div{display:grid;grid-template-columns:180px 1fr;gap:24px;padding:18px 0;border-bottom:1px solid #d5ddd5}.catalog-details dt{font-weight:600}.catalog-details dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:760px){.catalog-details>div{grid-template-columns:1fr;gap:8px}.catalog-filters{padding:16px}.catalog-filters label{min-width:100%}}

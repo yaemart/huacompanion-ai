@@ -1,3 +1,5 @@
+import { resolveCatalogSource } from "./catalog/source";
+import { catalogLock } from "./catalog/eligibility";
 import { createHash, randomUUID } from "node:crypto";
 import { getPayload } from "payload";
 import config from "@/payload.config";
@@ -41,6 +43,13 @@ export async function saveIntake(input: unknown, key: string) {
   const req = { transactionID };
   const reference = `HC-${kind === "request" ? "Q" : "P"}-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${randomUUID().slice(0, 8).toUpperCase()}`;
   try {
+    await catalogLock({ ...req, payload });
+    const catalogSource = await resolveCatalogSource(
+      payload,
+      locale,
+      parsed.source,
+      req,
+    );
     const common = {
       reference,
       name: String(values.name),
@@ -68,7 +77,11 @@ export async function saveIntake(input: unknown, key: string) {
         collection: "inquiries",
         overrideAccess: true,
         req,
-        data: { ...common, status: "new" },
+        data: {
+          ...common,
+          status: "new",
+          ...(catalogSource ? { catalogSource } : {}),
+        },
       });
     else
       await payload.create({

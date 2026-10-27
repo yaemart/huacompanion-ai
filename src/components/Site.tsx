@@ -903,10 +903,12 @@ export function Site({
   locale,
   slug = [],
   initialService,
+  catalogSelection,
 }: {
   locale: Locale;
   slug?: string[];
   initialService?: string;
+  catalogSelection?: import("./InquiryForm").CatalogSelection;
 }) {
   let page: React.ReactNode;
   switch (slug[0]) {
@@ -932,6 +934,7 @@ export function Site({
           locale={locale}
           kind={slug[0]}
           initialService={initialService}
+          catalogSelection={catalogSelection}
         />
       );
       break;

@@ -11,22 +11,29 @@ import {
   type FormKind,
 } from "@/lib/forms";
 import { Icon } from "./Icon";
+export type CatalogSelection = {
+  source?: import("@/lib/catalog").CatalogSource;
+  summary?: string;
+  error?: string;
+};
 export function InquiryForm({
   locale,
   kind,
   initialService,
+  catalogSelection,
 }: {
   locale: Locale;
   kind: FormKind;
   initialService?: string;
+  catalogSelection?: CatalogSelection;
 }) {
   const en = locale === "en";
-  const localMode = process.env.NEXT_PUBLIC_FORM_MODE === 'local';
-  const [saving,setSaving] = useState(false);
-  const [receipt,setReceipt] = useState('');
-  const [saveError,setSaveError] = useState('');
-  const [attempted,setAttempted] = useState(false);
-  const request = useRef<{key:string;body:string}|null>(null);
+  const localMode = process.env.NEXT_PUBLIC_FORM_MODE === "local";
+  const [saving, setSaving] = useState(false);
+  const [receipt, setReceipt] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [attempted, setAttempted] = useState(false);
+  const request = useRef<{ key: string; body: string } | null>(null);
   const c = (a: string, b: string) => (en ? a : b);
   const partner = kind === "apply";
   const [step, setStep] = useState(0),
@@ -158,6 +165,10 @@ export function InquiryForm({
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (catalogSelection?.error) {
+      setSaveError(catalogSelection.error);
+      return;
+    }
     const found = validateStep(kind, step, values, locale);
     setErrors(found);
     if (Object.keys(found).length) {
@@ -169,22 +180,66 @@ export function InquiryForm({
       return;
     }
     if (step < 3) move(step + 1);
-    else if(!localMode) setChecked(true);
+    else if (!localMode) setChecked(true);
     else {
-      if(saving || receipt)return;
-      request.current ??= {key:crypto.randomUUID(),body:JSON.stringify({kind,locale,values})};
-      setSaving(true);setSaveError('');setAttempted(true);
+      if (saving || receipt) return;
+      request.current ??= {
+        key: crypto.randomUUID(),
+        body: JSON.stringify({
+          kind,
+          locale,
+          values,
+          ...(catalogSelection?.source
+            ? { source: catalogSelection.source }
+            : {}),
+        }),
+      };
+      setSaving(true);
+      setSaveError("");
+      setAttempted(true);
       try {
-        const response=await fetch('/api/intake',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':request.current.key},body:request.current.body});
-        const result=await response.json();
-        if(!response.ok){
-          if(response.status===400){request.current=null;setAttempted(false);setErrors(result.fields||{});setStep(errorStep(kind,result.fields||{}));setTimeout(()=>heading.current?.focus(),0);}
-          throw new Error(c('Saving could not be confirmed. Retry with the same information, or go back to correct highlighted fields.','暂时无法确认保存。可重试原提交，或返回修改提示字段。'));
+        const response = await fetch("/api/intake", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": request.current.key,
+          },
+          body: request.current.body,
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          if (response.status === 400) {
+            request.current = null;
+            setAttempted(false);
+            setErrors(result.fields || {});
+            setStep(errorStep(kind, result.fields || {}));
+            setTimeout(() => heading.current?.focus(), 0);
+          }
+          if (result.fields?.source) throw new Error(result.fields.source);
+          throw new Error(
+            c(
+              "Saving could not be confirmed. Retry with the same information, or go back to correct highlighted fields.",
+              "暂时无法确认保存。可重试原提交，或返回修改提示字段。",
+            ),
+          );
         }
-        if(typeof result.reference!=='string')throw new Error(c('No receipt received. Please retry.','未收到编号，请重试。'));
+        if (typeof result.reference !== "string")
+          throw new Error(
+            c("No receipt received. Please retry.", "未收到编号，请重试。"),
+          );
         setReceipt(result.reference);
-      } catch(error){setSaveError(error instanceof Error?error.message:c('Unable to confirm saving. Please retry.','暂时无法确认保存，请重试。'));}
-      finally{setSaving(false);}
+      } catch (error) {
+        setSaveError(
+          error instanceof Error
+            ? error.message
+            : c(
+                "Unable to confirm saving. Please retry.",
+                "暂时无法确认保存，请重试。",
+              ),
+        );
+      } finally {
+        setSaving(false);
+      }
     }
   };
   const section = (title: string, children: React.ReactNode) => (
@@ -231,8 +286,12 @@ export function InquiryForm({
         </div>
         <div className="form-preview-note">
           {c(
-            localMode ? "LOCAL TESTING: fictional details only. Submissions are saved in the local test database; no email is sent." : "Preview only: please use fictional details. Nothing entered here is submitted or saved.",
-            localMode ? "本地测试：请仅用虚构资料。提交后会保存到本地测试数据库，暂不发送邮件。" : "仅供预览：请使用虚构测试资料。这里填写的信息不会提交或保存。",
+            localMode
+              ? "LOCAL TESTING: fictional details only. Submissions are saved in the local test database; no email is sent."
+              : "Preview only: please use fictional details. Nothing entered here is submitted or saved.",
+            localMode
+              ? "本地测试：请仅用虚构资料。提交后会保存到本地测试数据库，暂不发送邮件。"
+              : "仅供预览：请使用虚构测试资料。这里填写的信息不会提交或保存。",
           )}
         </div>
         <Link
@@ -258,330 +317,394 @@ export function InquiryForm({
             </li>
           ))}
         </ol>
-        <form onSubmit={submit} noValidate><fieldset className="form-body" disabled={saving || !!receipt || attempted}>
-          <div className="form-heading">
-            <span className="eyebrow">
-              {c("STEP", "步骤")} {step + 1} / 4
-            </span>
-            <h2 ref={heading} tabIndex={-1}>
-              {steps[step][locale]}
-            </h2>
-            <p>{c("Fields marked * are required.", "标有 * 的为必填项。")}</p>
-          </div>
-          {step === 0 && (
-            <>
-              {partner && field("organisation", "text", true)}
-              <fieldset className="category-field">
-                <legend>
-                  {c(
-                    "How can we help? Select all that apply.",
-                    "服务类别（可多选）",
-                  )}{" "}
-                  *
-                </legend>
-                <div className="category-grid">
-                  {services.map((s) => (
-                    <label
-                      key={s.slug}
-                      className={categories.includes(s.slug) ? "chosen" : ""}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={categories.includes(s.slug)}
-                        onChange={() =>
-                          set(
-                            "categories",
-                            categories.includes(s.slug)
-                              ? categories.filter((x) => x !== s.slug)
-                              : [...categories, s.slug],
-                          )
-                        }
-                      />
-                      <Icon name={s.icon} size={22} />
-                      <span>{s.title[locale]}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.categories && (
-                  <p role="alert" className="field-error">
-                    {errors.categories}
-                  </p>
-                )}
-              </fieldset>
-              {field("city", "text", true)}
-              <p className="helper">
-                {partner
-                  ? c(
-                      "List the cities or regions where you can actually deliver services.",
-                      "请填写能够实际提供服务的城市或区域。",
-                    )
-                  : c(
-                      "Our initial base is Shanghai. Other cities depend on confirmed resources.",
-                      "初期以上海为基地，其他城市根据可确认资源安排。",
-                    )}
-              </p>
-            </>
-          )}
-          {step === 1 && !partner && (
-            <>
-              {section(
-                c("Travel basics", "基本行程"),
-                <>
-                  {field("people", "number", true)}
-                  <div className="field">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={!!values.datesUnknown}
-                        onChange={(e) => set("datesUnknown", e.target.checked)}
-                      />
-                      {c("Dates not decided yet", "日期尚未确定")}
-                    </label>
-                  </div>
-                  {!values.datesUnknown && field("arrivalDate", "date", true)}
-                  {field("budget")}
-                </>,
-              )}
-              {categories.includes("business") &&
-                section(
-                  c("Business visit", "商务访问"),
-                  <>
-                    {field("industry")}
-                    {field("purpose", "textarea")}
-                  </>,
-                )}
-              {categories.includes("transport") &&
-                section(
-                  c("Transport", "交通安排"),
-                  <>
-                    {field("flight")}
-                    {field("luggage")}
-                    {field("pickup")}
-                    {field("dropoff")}
-                  </>,
-                )}
-              {categories.includes("stays") &&
-                section(
-                  c("Accommodation", "住宿安排"),
-                  <>
-                    <div className="field full">
-                      <label htmlFor="stayType">
-                        {c("Stay type", "住宿类型")}
-                      </label>
-                      <select
-                        id="stayType"
-                        value={val("stayType")}
-                        onChange={(e) => set("stayType", e.target.value)}
-                      >
-                        <option value="short">
-                          {c("Hotel / short stay", "酒店／短住")}
-                        </option>
-                        <option value="long">
-                          {c("Long-term rental", "长期租赁")}
-                        </option>
-                      </select>
-                    </div>
-                    {values.stayType === "long" ? (
-                      <>
-                        {field("leaseLength", "text", true)}
-                        {field("rentalNeeds", "textarea")}
-                        <p className="helper full">
-                          {c(
-                            "Deposit, lease term, service fees and move-out conditions need separate confirmation.",
-                            "押金、租期、服务费及退租条件需单独确认。",
-                          )}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        {field("checkIn", "date")}
-                        {field("checkOut", "date")}
-                      </>
-                    )}
-                    {field("area")}
-                    {field("facilities")}
-                  </>,
-                )}
-              {categories.includes("travel") &&
-                section(
-                  c("Travel interests", "旅行偏好"),
-                  <>
-                    {field("destinations")}
-                    {field("interests", "textarea")}
-                  </>,
-                )}
-              {categories.includes("interpretation") &&
-                field("interpretation", "textarea")}
-              {categories.includes("arrival") &&
-                field("arrivalHelp", "textarea")}
-              {categories.includes("medical") && (
-                <div className="notice compact">
-                  {c(
-                    "Do not include detailed medical history, records or identification numbers. Only describe the type of coordination needed.",
-                    "请勿填写详细病史、病历或证件号码，仅说明所需协调类型。",
-                  )}
-                  {field("medicalHelp", "textarea")}
-                </div>
-              )}
-              {field("description", "textarea")}
-            </>
-          )}
-          {step === 1 && partner && (
-            <>
-              {field("languages", "text", true)}
-              {field("capabilities", "textarea", true)}
-              {field("hours")}
-              {field("cooperation", "textarea")}
-              {field("qualification")}
-              {field("notes", "textarea")}
-              <p className="helper">
-                {c(
-                  "Do not upload certificates here. Any required documents will be requested through a controlled follow-up process.",
-                  "此处不上传证件。所需材料将通过后续受控流程收集。",
-                )}
-              </p>
-            </>
-          )}
-          {step === 2 && (
-            <>
-              <div className="fields">
-                {field("name", "text", true)}
-                {field("email", "email", true)}
-                {partner ? (
-                  <>
-                    {field("phone", "tel", true)}
-                    {field("website", "url")}
-                  </>
-                ) : (
-                  <>
-                    {field("language", "text", true)}
-                    <div className="field">
-                      <label htmlFor="channel">
-                        {c("Preferred contact channel", "首选联系渠道")}
-                      </label>
-                      <select
-                        id="channel"
-                        value={val("channel")}
-                        onChange={(e) => set("channel", e.target.value)}
-                      >
-                        <option value="email">Email</option>
-                        <option value="phone">{c("Phone", "电话")}</option>
-                        <option value="wechat">WeChat</option>
-                        <option value="whatsapp">WhatsApp</option>
-                      </select>
-                    </div>
-                    {field("contact")}
-                  </>
-                )}
-              </div>
-              <p className="helper">
-                {c(
-                  "Please do not include passwords, verification codes or identity document numbers.",
-                  "请勿填写密码、验证码或证件号码。",
-                )}
-              </p>
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <div className="review-summary">
-                <h3>{c("Your information", "您填写的信息")}</h3>
-                <dl>
-                  <dt>{c("Services", "服务类别")}</dt>
-                  <dd>
-                    {categories
-                      .map(
-                        (s) =>
-                          services.find((x) => x.slug === s)?.title[locale],
-                      )
-                      .join(" · ")}
-                  </dd>
-                  {Object.entries(visibleReviewValues(values))
-                    .filter(
-                      ([k, v]) =>
-                        labels[k] &&
-                        typeof v === "string" &&
-                        v &&
-                        !(k === "arrivalDate" && values.datesUnknown) &&
-                        !(
-                          values.stayType === "long" &&
-                          ["checkIn", "checkOut"].includes(k)
-                        ) &&
-                        !(
-                          values.stayType === "short" &&
-                          ["leaseLength", "rentalNeeds"].includes(k)
-                        ),
-                    )
-                    .map(([k, v]) => (
-                      <div className="review-row" key={k}>
-                        <dt>{labels[k]}</dt>
-                        <dd>{String(v)}</dd>
-                      </div>
-                    ))}
-                  {values.datesUnknown && (
-                    <>
-                      <dt>{c("Arrival", "抵达日期")}</dt>
-                      <dd>{c("Not decided yet", "尚未确定")}</dd>
-                    </>
-                  )}
-                </dl>
-              </div>
-              <label className="checkbox-label consent">
-                <input
-                  type="checkbox"
-                  checked={!!values.consent}
-                  onChange={(e) => set("consent", e.target.checked)}
-                  aria-invalid={!!errors.consent}
-                />
-                <span>
-                  {c("I have read the ", "我已阅读")}
-                  <Link href={`/${locale}/privacy`} target="_blank">
-                    {c("privacy notice", "隐私说明")}
-                  </Link>
-                  {c(
-                    localMode ? " and agree to save this fictional submission in the local test database." : " and understand this preview does not send or save my information.",
-                    localMode ? "，并同意将本次虚构测试信息保存到本地测试数据库。" : "，并了解本预览不会发送或保存我的信息。",
-                  )}
-                </span>
-              </label>
-              {errors.consent && (
-                <p role="alert" className="field-error">
-                  {errors.consent}
-                </p>
-              )}
-              {checked && (
-                <div role="status" className="preview-result">
-                  <b>
-                    {c(
-                      "Preview check complete — nothing submitted.",
-                      "预览检查完成 — 未提交任何信息。",
-                    )}
-                  </b>
-                  <p>
-                    {c(
-                      "Your entries passed this preview’s checks. The database and notification service are not connected, so no enquiry or application has been created.",
-                      "填写内容已通过本预览的检查。数据库与通知服务尚未接通，没有生成咨询或合作申请。",
-                    )}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-          {Object.keys(errors).length > 0 && (
-            <p role="alert" className="error-summary">
+        {catalogSelection && (
+          <div
+            className="notice"
+            role={catalogSelection.error ? "alert" : "status"}
+            style={{
+              padding: 20,
+              border: "1px solid #9aafa5",
+              marginBottom: 20,
+            }}
+          >
+            <strong>{c("Selected service", "所选服务")}</strong>
+            <p>{catalogSelection.error || catalogSelection.summary}</p>
+            <p>
               {c(
-                "Please check the highlighted fields before continuing.",
-                "请检查提示的字段，再继续。",
+                "Hua handles the enquiry. Availability and price require confirmation.",
+                "由华伴统一承接咨询，档期和价格需另行确认。",
               )}
             </p>
-          )}
+            <Link href={`/${locale}/request`}>
+              {c(
+                "Remove selection and start a general enquiry",
+                "移除选择，重新填写一般咨询",
+              )}
+            </Link>
+          </div>
+        )}
+        <form onSubmit={submit} noValidate>
+          <fieldset
+            className="form-body"
+            disabled={
+              saving || !!receipt || attempted || !!catalogSelection?.error
+            }
+          >
+            <div className="form-heading">
+              <span className="eyebrow">
+                {c("STEP", "步骤")} {step + 1} / 4
+              </span>
+              <h2 ref={heading} tabIndex={-1}>
+                {steps[step][locale]}
+              </h2>
+              <p>{c("Fields marked * are required.", "标有 * 的为必填项。")}</p>
+            </div>
+            {step === 0 && (
+              <>
+                {partner && field("organisation", "text", true)}
+                <fieldset className="category-field">
+                  <legend>
+                    {c(
+                      "How can we help? Select all that apply.",
+                      "服务类别（可多选）",
+                    )}{" "}
+                    *
+                  </legend>
+                  <div className="category-grid">
+                    {services.map((s) => (
+                      <label
+                        key={s.slug}
+                        className={categories.includes(s.slug) ? "chosen" : ""}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={categories.includes(s.slug)}
+                          onChange={() =>
+                            set(
+                              "categories",
+                              categories.includes(s.slug)
+                                ? categories.filter((x) => x !== s.slug)
+                                : [...categories, s.slug],
+                            )
+                          }
+                        />
+                        <Icon name={s.icon} size={22} />
+                        <span>{s.title[locale]}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.categories && (
+                    <p role="alert" className="field-error">
+                      {errors.categories}
+                    </p>
+                  )}
+                </fieldset>
+                {field("city", "text", true)}
+                <p className="helper">
+                  {partner
+                    ? c(
+                        "List the cities or regions where you can actually deliver services.",
+                        "请填写能够实际提供服务的城市或区域。",
+                      )
+                    : c(
+                        "Our initial base is Shanghai. Other cities depend on confirmed resources.",
+                        "初期以上海为基地，其他城市根据可确认资源安排。",
+                      )}
+                </p>
+              </>
+            )}
+            {step === 1 && !partner && (
+              <>
+                {section(
+                  c("Travel basics", "基本行程"),
+                  <>
+                    {field("people", "number", true)}
+                    <div className="field">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={!!values.datesUnknown}
+                          onChange={(e) =>
+                            set("datesUnknown", e.target.checked)
+                          }
+                        />
+                        {c("Dates not decided yet", "日期尚未确定")}
+                      </label>
+                    </div>
+                    {!values.datesUnknown && field("arrivalDate", "date", true)}
+                    {field("budget")}
+                  </>,
+                )}
+                {categories.includes("business") &&
+                  section(
+                    c("Business visit", "商务访问"),
+                    <>
+                      {field("industry")}
+                      {field("purpose", "textarea")}
+                    </>,
+                  )}
+                {categories.includes("transport") &&
+                  section(
+                    c("Transport", "交通安排"),
+                    <>
+                      {field("flight")}
+                      {field("luggage")}
+                      {field("pickup")}
+                      {field("dropoff")}
+                    </>,
+                  )}
+                {categories.includes("stays") &&
+                  section(
+                    c("Accommodation", "住宿安排"),
+                    <>
+                      <div className="field full">
+                        <label htmlFor="stayType">
+                          {c("Stay type", "住宿类型")}
+                        </label>
+                        <select
+                          id="stayType"
+                          value={val("stayType")}
+                          onChange={(e) => set("stayType", e.target.value)}
+                        >
+                          <option value="short">
+                            {c("Hotel / short stay", "酒店／短住")}
+                          </option>
+                          <option value="long">
+                            {c("Long-term rental", "长期租赁")}
+                          </option>
+                        </select>
+                      </div>
+                      {values.stayType === "long" ? (
+                        <>
+                          {field("leaseLength", "text", true)}
+                          {field("rentalNeeds", "textarea")}
+                          <p className="helper full">
+                            {c(
+                              "Deposit, lease term, service fees and move-out conditions need separate confirmation.",
+                              "押金、租期、服务费及退租条件需单独确认。",
+                            )}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {field("checkIn", "date")}
+                          {field("checkOut", "date")}
+                        </>
+                      )}
+                      {field("area")}
+                      {field("facilities")}
+                    </>,
+                  )}
+                {categories.includes("travel") &&
+                  section(
+                    c("Travel interests", "旅行偏好"),
+                    <>
+                      {field("destinations")}
+                      {field("interests", "textarea")}
+                    </>,
+                  )}
+                {categories.includes("interpretation") &&
+                  field("interpretation", "textarea")}
+                {categories.includes("arrival") &&
+                  field("arrivalHelp", "textarea")}
+                {categories.includes("medical") && (
+                  <div className="notice compact">
+                    {c(
+                      "Do not include detailed medical history, records or identification numbers. Only describe the type of coordination needed.",
+                      "请勿填写详细病史、病历或证件号码，仅说明所需协调类型。",
+                    )}
+                    {field("medicalHelp", "textarea")}
+                  </div>
+                )}
+                {field("description", "textarea")}
+              </>
+            )}
+            {step === 1 && partner && (
+              <>
+                {field("languages", "text", true)}
+                {field("capabilities", "textarea", true)}
+                {field("hours")}
+                {field("cooperation", "textarea")}
+                {field("qualification")}
+                {field("notes", "textarea")}
+                <p className="helper">
+                  {c(
+                    "Do not upload certificates here. Any required documents will be requested through a controlled follow-up process.",
+                    "此处不上传证件。所需材料将通过后续受控流程收集。",
+                  )}
+                </p>
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <div className="fields">
+                  {field("name", "text", true)}
+                  {field("email", "email", true)}
+                  {partner ? (
+                    <>
+                      {field("phone", "tel", true)}
+                      {field("website", "url")}
+                    </>
+                  ) : (
+                    <>
+                      {field("language", "text", true)}
+                      <div className="field">
+                        <label htmlFor="channel">
+                          {c("Preferred contact channel", "首选联系渠道")}
+                        </label>
+                        <select
+                          id="channel"
+                          value={val("channel")}
+                          onChange={(e) => set("channel", e.target.value)}
+                        >
+                          <option value="email">Email</option>
+                          <option value="phone">{c("Phone", "电话")}</option>
+                          <option value="wechat">WeChat</option>
+                          <option value="whatsapp">WhatsApp</option>
+                        </select>
+                      </div>
+                      {field("contact")}
+                    </>
+                  )}
+                </div>
+                <p className="helper">
+                  {c(
+                    "Please do not include passwords, verification codes or identity document numbers.",
+                    "请勿填写密码、验证码或证件号码。",
+                  )}
+                </p>
+              </>
+            )}
+            {step === 3 && (
+              <>
+                <div className="review-summary">
+                  <h3>{c("Your information", "您填写的信息")}</h3>
+                  <dl>
+                    <dt>{c("Services", "服务类别")}</dt>
+                    <dd>
+                      {categories
+                        .map(
+                          (s) =>
+                            services.find((x) => x.slug === s)?.title[locale],
+                        )
+                        .join(" · ")}
+                    </dd>
+                    {Object.entries(visibleReviewValues(values))
+                      .filter(
+                        ([k, v]) =>
+                          labels[k] &&
+                          typeof v === "string" &&
+                          v &&
+                          !(k === "arrivalDate" && values.datesUnknown) &&
+                          !(
+                            values.stayType === "long" &&
+                            ["checkIn", "checkOut"].includes(k)
+                          ) &&
+                          !(
+                            values.stayType === "short" &&
+                            ["leaseLength", "rentalNeeds"].includes(k)
+                          ),
+                      )
+                      .map(([k, v]) => (
+                        <div className="review-row" key={k}>
+                          <dt>{labels[k]}</dt>
+                          <dd>{String(v)}</dd>
+                        </div>
+                      ))}
+                    {values.datesUnknown && (
+                      <>
+                        <dt>{c("Arrival", "抵达日期")}</dt>
+                        <dd>{c("Not decided yet", "尚未确定")}</dd>
+                      </>
+                    )}
+                  </dl>
+                </div>
+                <label className="checkbox-label consent">
+                  <input
+                    type="checkbox"
+                    checked={!!values.consent}
+                    onChange={(e) => set("consent", e.target.checked)}
+                    aria-invalid={!!errors.consent}
+                  />
+                  <span>
+                    {c("I have read the ", "我已阅读")}
+                    <Link href={`/${locale}/privacy`} target="_blank">
+                      {c("privacy notice", "隐私说明")}
+                    </Link>
+                    {c(
+                      localMode
+                        ? " and agree to save this fictional submission in the local test database."
+                        : " and understand this preview does not send or save my information.",
+                      localMode
+                        ? "，并同意将本次虚构测试信息保存到本地测试数据库。"
+                        : "，并了解本预览不会发送或保存我的信息。",
+                    )}
+                  </span>
+                </label>
+                {errors.consent && (
+                  <p role="alert" className="field-error">
+                    {errors.consent}
+                  </p>
+                )}
+                {checked && (
+                  <div role="status" className="preview-result">
+                    <b>
+                      {c(
+                        "Preview check complete — nothing submitted.",
+                        "预览检查完成 — 未提交任何信息。",
+                      )}
+                    </b>
+                    <p>
+                      {c(
+                        "Your entries passed this preview’s checks. The database and notification service are not connected, so no enquiry or application has been created.",
+                        "填写内容已通过本预览的检查。数据库与通知服务尚未接通，没有生成咨询或合作申请。",
+                      )}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            {Object.keys(errors).length > 0 && (
+              <p role="alert" className="error-summary">
+                {c(
+                  "Please check the highlighted fields before continuing.",
+                  "请检查提示的字段，再继续。",
+                )}
+              </p>
+            )}
           </fieldset>
-          {receipt && <div className="preview-result" role="status"><b>{c('Saved to the local test database.','已保存到本地测试数据库。')}</b><p>{c('Reference: ','编号：')}{receipt}</p><p>{c('Email is not configured. No confirmation email has been sent.','邮件服务尚未配置，未发送确认邮件。')}</p></div>}
-          {saveError && <p role="alert" className="error-summary">{saveError}</p>}
+          {receipt && (
+            <div className="preview-result" role="status">
+              <b>
+                {c(
+                  "Saved to the local test database.",
+                  "已保存到本地测试数据库。",
+                )}
+              </b>
+              <p>
+                {c("Reference: ", "编号：")}
+                {receipt}
+              </p>
+              <p>
+                {c(
+                  "Email is not configured. No confirmation email has been sent.",
+                  "邮件服务尚未配置，未发送确认邮件。",
+                )}
+              </p>
+            </div>
+          )}
+          {saveError && (
+            <p role="alert" className="error-summary">
+              {saveError}
+            </p>
+          )}
           <div className="form-navigation">
             {step > 0 ? (
               <button
-                disabled={saving || !!receipt || attempted} className="back-button"
+                disabled={
+                  saving || !!receipt || attempted || !!catalogSelection?.error
+                }
+                className="back-button"
                 type="button"
                 onClick={() => move(step - 1)}
               >
@@ -590,9 +713,19 @@ export function InquiryForm({
             ) : (
               <span />
             )}
-            <button className="button" type="submit" disabled={saving || !!receipt}>
+            <button
+              className="button"
+              type="submit"
+              disabled={saving || !!receipt}
+            >
               {step === 3
-                ? (saving ? c("Saving…", "保存中…") : receipt ? c("Saved", "已保存") : localMode ? c("Submit test request", "提交测试信息") : c("Check preview", "检查预览"))
+                ? saving
+                  ? c("Saving…", "保存中…")
+                  : receipt
+                    ? c("Saved", "已保存")
+                    : localMode
+                      ? c("Submit test request", "提交测试信息")
+                      : c("Check preview", "检查预览")
                 : c("Continue", "继续")}
               <Icon name="arrow" size={20} />
             </button>

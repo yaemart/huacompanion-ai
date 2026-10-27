@@ -4,6 +4,8 @@ import {
   sectionFor,
   filterContent,
 } from "@/lib/content-sections";
+import { CatalogFields } from "./CatalogFields";
+import { isCatalog, emptyCatalog } from "@/lib/catalog";
 import { useEffect, useState } from "react";
 import type { ContentBody, Block } from "@/lib/content-model";
 const empty = (): ContentBody => ({
@@ -23,6 +25,8 @@ const kinds = {
   faq: "常见问题",
   page: "网站页面",
   partner: "公开伙伴",
+  "provider-profile": "服务商展示",
+  "service-project": "华伴服务项目",
 };
 const states: Record<string, string> = {
   draft: "草稿",
@@ -36,7 +40,7 @@ const states: Record<string, string> = {
   failed: "失败",
   cancelled: "已取消",
 };
-export function ContentCenter() {
+export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [data, setData] = useState<any>({
     drafts: [],
     published: [],
@@ -44,7 +48,17 @@ export function ContentCenter() {
     tasks: [],
   });
   const [selected, setSelected] = useState<any>(null);
-  const [body, setBody] = useState<ContentBody>(empty());
+  const [body, setBody] = useState<ContentBody>(() => ({
+    ...empty(),
+    ...(isCatalog(initialKind)
+      ? { kind: initialKind as ContentBody["kind"], catalog: emptyCatalog() }
+      : {}),
+  }));
+  const [kindFilter, setKindFilter] = useState(initialKind);
+  const [cityFilter, setCityFilter] = useState("");
+  const [publicationFilter,setPublicationFilter]=useState("");
+  const [providerRef, setProviderRef] = useState("");
+  const [catalogReviewed, setCatalogReviewed] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("content");
@@ -68,6 +82,8 @@ export function ContentCenter() {
   }, []);
   function select(d: any) {
     setSelected(d);
+    setProviderRef(d.providerRef ? String(d.providerRef) : "");
+    setCatalogReviewed(false);
     setBody({ ...d.body, category: sectionFor(d.body) });
     setVersions([]);
     setMessage("");
@@ -83,7 +99,15 @@ export function ContentCenter() {
           action,
           id: selected?.id,
           revision: selected?.revision,
-          ...(action === "save" ? { body } : {}),
+          ...(action === "save"
+            ? {
+                body,
+                ...(body.kind === "provider-profile" && data.role === "admin"
+                  ? { providerRef: providerRef ? Number(providerRef) : null }
+                  : {}),
+              }
+            : {}),
+          ...(action === "publish" ? { catalogReviewed } : {}),
           ...extra,
         }),
       });
@@ -105,7 +129,14 @@ export function ContentCenter() {
     }
   }
   function field(key: keyof ContentBody, value: any) {
-    setBody({ ...body, [key]: value });
+    setBody({
+      ...body,
+      [key]: value,
+      ...(key === "kind" && isCatalog(value) && !body.catalog
+        ? { catalog: emptyCatalog() }
+        : {}),
+    });
+    setCatalogReviewed(false);
   }
   function block(index: number, value: Partial<Block>) {
     field(
@@ -172,12 +203,45 @@ export function ContentCenter() {
             <button
               onClick={() => {
                 setSelected(null);
-                setBody(empty());
+                setBody({
+                  ...empty(),
+                  ...(isCatalog(kindFilter)
+                    ? {
+                        kind: kindFilter as ContentBody["kind"],
+                        catalog: emptyCatalog(),
+                      }
+                    : {}),
+                });
+                setProviderRef("");
+                setCatalogReviewed(false);
                 setVersions([]);
               }}
             >
               ＋ 新建内容
             </button>
+            <label>
+              内容库
+              <select
+                value={kindFilter}
+                onChange={(e) => setKindFilter(e.target.value)}
+              >
+                <option value="">全部类型</option>
+                {Object.entries(kinds).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>发布状态<select value={publicationFilter} onChange={e=>setPublicationFilter(e.target.value)}><option value="">全部</option><option value="live">公开可咨询</option><option value="paused">暂停／受限制</option><option value="offline">未发布／已下架</option></select></label>
+            <label>
+              城市代码
+              <input
+                placeholder="例如 shanghai"
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+              />
+            </label>
             <label>
               查找内容
               <input
@@ -233,12 +297,23 @@ export function ContentCenter() {
                 </select>
               </label>
             </div>
-            {filterContent(data.drafts, {
-              section,
-              locale: language,
-              state,
-              query: search,
-            }).map((d: any) => (
+            {filterContent(
+              data.drafts.filter(
+                (d: any) =>
+                  (!publicationFilter || (()=>{const pub=data.published.find((p:any)=>p.draftId===d.id);return publicationFilter==="live"?pub?.visible&&pub?.acceptingInquiries!==false:publicationFilter==="paused"?pub?.active&&(!pub?.visible||pub?.acceptingInquiries===false):!pub?.active;})()) &&
+                  (!kindFilter || d.kind === kindFilter) &&
+                  (!cityFilter ||
+                    d.body.catalog?.cities.some((c: any) =>
+                      c.code.includes(cityFilter),
+                    )),
+              ),
+              {
+                section,
+                locale: language,
+                state,
+                query: search,
+              },
+            ).map((d: any) => (
               <button className="item" key={d.id} onClick={() => select(d)}>
                 {d.title}
                 <small>
@@ -246,9 +321,9 @@ export function ContentCenter() {
                   · {d.locale} · {kinds[d.kind as keyof typeof kinds]} ·{" "}
                   {states[d.reviewState]}
                   {data.published.some(
-                    (p: any) => p.draftId === d.id && p.active,
+                    (p: any) => p.draftId === d.id && p.visible,
                   )
-                    ? " · 网站已发布"
+                    ? (data.published.find((p:any)=>p.draftId===d.id)?.acceptingInquiries===false?" · 已展示，暂停咨询":" · 网站已发布")
                     : ""}
                 </small>
               </button>
@@ -256,6 +331,7 @@ export function ContentCenter() {
           </aside>
           <section className="panel">
             <h2>{selected ? "编辑工作稿" : "新建工作稿"}</h2>
+            {selected&&data.published.some((p:any)=>p.draftId===selected.id&&p.active&&(!p.visible||p.acceptingInquiries===false))&&<p role="status" className="notice">当前公开展示或咨询受限：请检查服务商许可与履约关联。项目恢复需重新提交审核并发布。</p>}
             <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
               <div className="row">
                 <label>
@@ -371,6 +447,29 @@ export function ContentCenter() {
                   />
                 </label>
               </details>
+              {isCatalog(body.kind) && (
+                <>
+                  <CatalogFields
+                    kind={body.kind}
+                    value={body.catalog || emptyCatalog()}
+                    onChange={(v) => field("catalog", v)}
+                    choices={data.drafts.filter(
+                      (d: any) => d.locale === body.locale,
+                    )}
+                  />
+                  {body.kind === "provider-profile" && (data.role === "admin" ? (
+                    <label>关联内部服务商
+                      <select value={providerRef} onChange={e=>{setProviderRef(e.target.value);setCatalogReviewed(false);}}>
+                        <option value="">请选择已入驻的服务商</option>
+                        {(data.providers||[]).map((p:any)=><option value={p.id} key={p.id}>{p.name} · {p.publicApproved&&["verified","contracted"].includes(p.status)?"已获准展示":"尚未获准展示"}</option>)}
+                      </select>
+                      <small>需在业务后台完成核实／签约并取得公开展示许可；未获许可可以保存草稿，但不能发布。</small>
+                    </label>
+                  ):<p>内部服务商关联由管理员维护。</p>)}
+                  <label><input type="checkbox" style={{width:"auto"}} checked={catalogReviewed} onChange={e=>setCatalogReviewed(e.target.checked)}/> 我已检查公开文字、图片、核验事项与价格，不含直联联系方式、二维码或内部资料。</label>
+                  <p>先保存修改，再提交审核。管理员发布时需勾选以上检查。</p>
+                </>
+              )}
               <h2>正文</h2>
               {body.blocks.map((b, i) => (
                 <div className="block" key={i}>

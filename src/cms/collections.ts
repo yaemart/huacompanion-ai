@@ -1,3 +1,7 @@
+import {
+  catalogLock,
+  suspendProviderProjects,
+} from "../server/catalog/eligibility";
 import { Forbidden } from "payload";
 import type {
   CollectionConfig,
@@ -228,6 +232,13 @@ export const Inquiries: CollectionConfig = {
   fields: [
     ...intakeFields,
     {
+      name: "catalogSource",
+      label: "咨询来源（服务商／服务项目）",
+      type: "json",
+      admin: { readOnly: true },
+      access: { update: () => false },
+    },
+    {
       name: "status",
       label: "处理状态",
       type: "select",
@@ -324,6 +335,12 @@ export const Providers: CollectionConfig = {
     { name: "notes", label: "内部审核备注", type: "textarea" },
   ],
   hooks: {
+    beforeChange: [
+      async ({ req, data }) => {
+        await catalogLock(req);
+        return data;
+      },
+    ],
     beforeValidate: [
       ({ data, originalDoc }) => {
         if (
@@ -336,7 +353,7 @@ export const Providers: CollectionConfig = {
         return data;
       },
     ],
-    afterChange: [audit],
+    afterChange: [audit, suspendProviderProjects],
   },
 };
 export const Notifications: CollectionConfig = {
