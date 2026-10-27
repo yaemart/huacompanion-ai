@@ -161,7 +161,7 @@ export function validateCandidate(
 export function publicBody(d: ContentBody): ContentBody {
   return {
     ...(isCatalog(d.kind) && d.catalog
-      ? { catalog: publicCatalog(d.catalog) }
+      ? { catalog: publicCatalog(d.catalog, d.locale) }
       : {}),
     contentKey: d.contentKey,
     kind: d.kind,

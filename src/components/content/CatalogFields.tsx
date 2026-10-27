@@ -1,4 +1,5 @@
 "use client";
+import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import type { Catalog } from "@/lib/catalog";
 import { services } from "@/lib/content";
 const labels = {
@@ -51,65 +52,78 @@ export function CatalogFields({
           ))}
         </select>
       </label>
-      <label>
-        语言代码（每行一个，例如 en、zh）
-        <textarea
-          value={c.languages.join("\n")}
-          onChange={(e) => set("languages", e.target.value.split("\n"))}
-        />
-      </label>
-      <h3>服务城市</h3>
-      {c.cities.map((city, i) => (
-        <div className="row" key={i}>
-          <label>
-            城市代码
-            <input
-              value={city.code}
-              placeholder="shanghai"
-              onChange={(e) =>
-                set(
-                  "cities",
-                  c.cities.map((x, j) =>
-                    j === i ? { ...x, code: e.target.value } : x,
-                  ),
-                )
-              }
-            />
-          </label>
-          <label>
-            城市显示名称
-            <input
-              value={city.name}
-              placeholder="上海"
-              onChange={(e) =>
-                set(
-                  "cities",
-                  c.cities.map((x, j) =>
-                    j === i ? { ...x, name: e.target.value } : x,
-                  ),
-                )
-              }
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() =>
-              set(
-                "cities",
-                c.cities.filter((_, j) => j !== i),
-              )
-            }
-          >
-            移除城市
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => set("cities", [...c.cities, { code: "", name: "" }])}
+      <fieldset
+        style={{
+          margin: "20px 0",
+          padding: 16,
+          border: "1px solid #cbd8ce",
+          borderRadius: 8,
+        }}
       >
-        ＋ 城市
-      </button>
+        <legend>服务语言（可多选）</legend>
+        {catalogLanguages.map((l) => (
+          <label
+            key={l.code}
+            style={{
+              display: "inline-flex",
+              gap: 8,
+              margin: "8px 24px 8px 0",
+              alignItems: "center",
+            }}
+          >
+            <input
+              type="checkbox"
+              style={{ width: "auto" }}
+              checked={c.languages.includes(l.code)}
+              onChange={(e) =>
+                set(
+                  "languages",
+                  e.target.checked
+                    ? [...c.languages, l.code]
+                    : c.languages.filter((x) => x !== l.code),
+                )
+              }
+            />
+            {l.zh}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset
+        style={{
+          margin: "20px 0",
+          padding: 16,
+          border: "1px solid #cbd8ce",
+          borderRadius: 8,
+        }}
+      >
+        <legend>服务城市（可多选）</legend>
+        {catalogCities.map((city) => (
+          <label
+            key={city.code}
+            style={{
+              display: "inline-flex",
+              gap: 8,
+              margin: "8px 24px 8px 0",
+              alignItems: "center",
+            }}
+          >
+            <input
+              type="checkbox"
+              style={{ width: "auto" }}
+              checked={c.cities.some((x) => x.code === city.code)}
+              onChange={(e) =>
+                set(
+                  "cities",
+                  e.target.checked
+                    ? [...c.cities, { code: city.code, name: city.zh }]
+                    : c.cities.filter((x) => x.code !== city.code),
+                )
+              }
+            />
+            {city.zh}
+          </label>
+        ))}
+      </fieldset>
       {Object.entries(labels)
         .filter(([k]) => kind === "service-project" || k === "capabilities")
         .map(([k, label]) => (

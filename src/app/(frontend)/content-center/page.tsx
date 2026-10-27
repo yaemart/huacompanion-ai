@@ -17,5 +17,6 @@ export default async function Page({
   } catch {
     redirect("/admin/login");
   }
-  return <ContentCenter initialKind={(await searchParams).kind} />;
+  const kind = (await searchParams).kind;
+  return <ContentCenter key={kind || "all"} initialKind={kind} />;
 }

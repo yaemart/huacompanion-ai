@@ -1,3 +1,9 @@
+import {
+  catalogCities,
+  catalogLanguages,
+  cityLabel,
+  languageLabel,
+} from "@/lib/catalog-options";
 import Link from "next/link";
 import { Header } from "../Header";
 import { ContentBlocks } from "../content/ContentBlocks";
@@ -141,7 +147,9 @@ export function CatalogPage({
                   name: detail.title,
                   description: detail.summary,
                   url: catalogPath(detail),
-                  areaServed: detail.catalog?.cities.map((c) => c.name),
+                  areaServed: detail.catalog?.cities.map((c) =>
+                    cityLabel(c.code, locale),
+                  ),
                   ...(kind === "service-project"
                     ? { serviceType: detail.catalog?.categories }
                     : {}),
@@ -183,15 +191,9 @@ export function CatalogPage({
                 {zh ? "城市" : "City"}
                 <select name="city" defaultValue={query.city || ""}>
                   <option value="">{zh ? "全部城市" : "All cities"}</option>
-                  {Array.from(
-                    new Map(
-                      candidates.flatMap((d) =>
-                        d.catalog!.cities.map((c) => [c.code, c.name] as const),
-                      ),
-                    ),
-                  ).map(([code, name]) => (
-                    <option key={code} value={code}>
-                      {name}
+                  {catalogCities.map((city) => (
+                    <option key={city.code} value={city.code}>
+                      {city[locale]}
                     </option>
                   ))}
                 </select>
@@ -200,11 +202,9 @@ export function CatalogPage({
                 {zh ? "语言" : "Language"}
                 <select name="language" defaultValue={query.language || ""}>
                   <option value="">{zh ? "全部语言" : "All languages"}</option>
-                  {Array.from(
-                    new Set(candidates.flatMap((d) => d.catalog!.languages)),
-                  ).map((l) => (
-                    <option key={l} value={l}>
-                      {l}
+                  {catalogLanguages.map((language) => (
+                    <option key={language.code} value={language.code}>
+                      {language[locale]}
                     </option>
                   ))}
                 </select>
@@ -225,11 +225,17 @@ export function CatalogPage({
                   key={d.contentKey}
                 >
                   <span className="eyebrow">
-                    {d.catalog?.cities.map((c) => c.name).join(" · ")}
+                    {d.catalog?.cities
+                      .map((c) => cityLabel(c.code, locale))
+                      .join(" · ")}
                   </span>
                   <h2>{d.title}</h2>
                   <p>{d.summary}</p>
-                  <p>{d.catalog?.languages.join(" / ")}</p>
+                  <p>
+                    {d.catalog?.languages
+                      .map((l) => languageLabel(l, locale))
+                      .join(" / ")}
+                  </p>
                   <strong>{priceText(d.catalog!, locale)}</strong>
                   <p>
                     {d.acceptingInquiries
@@ -293,8 +299,14 @@ export function CatalogDetails({
   const c = d.catalog!;
   const zh = locale === "zh";
   const fields: [string, string][] = [
-    [zh ? "服务城市" : "Cities", c.cities.map((x) => x.name).join(" · ")],
-    [zh ? "支持语言" : "Languages", c.languages.join(" / ")],
+    [
+      zh ? "服务城市" : "Cities",
+      c.cities.map((x) => cityLabel(x.code, locale)).join(" · "),
+    ],
+    [
+      zh ? "支持语言" : "Languages",
+      c.languages.map((l) => languageLabel(l, locale)).join(" / "),
+    ],
     [zh ? "计价方式" : "Pricing", priceText(c, locale)],
     [zh ? "价格适用条件" : "Price conditions", c.price.conditions || ""],
   ];

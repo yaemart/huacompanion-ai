@@ -277,7 +277,7 @@ export const Inquiries: CollectionConfig = {
 };
 export const Providers: CollectionConfig = {
   slug: "providers",
-  labels: { singular: "服务商申请", plural: "服务商管理" },
+  labels: { singular: "服务商申请", plural: "服务商入驻与合作" },
   admin: {
     useAsTitle: "organisation",
     group: "业务运营",

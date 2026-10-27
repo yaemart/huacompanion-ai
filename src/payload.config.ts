@@ -19,7 +19,10 @@ export default buildConfig({
     user: "staff",
     meta: { titleSuffix: " · 华伴管理后台" },
     importMap: { baseDir: path.resolve("src") },
-    components: { beforeDashboard: ["/cms/Dashboard#Dashboard"] },
+    components: {
+      beforeDashboard: ["/cms/Dashboard#Dashboard"],
+      beforeNavLinks: ["/cms/ContentNav#ContentNav"],
+    },
   },
   i18n: { supportedLanguages: { zh, en }, fallbackLanguage: "zh" },
   db: postgresAdapter({

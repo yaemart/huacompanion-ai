@@ -4,6 +4,7 @@ import {
   sectionFor,
   filterContent,
 } from "@/lib/content-sections";
+import { catalogCities } from "@/lib/catalog-options";
 import { CatalogFields } from "./CatalogFields";
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
 import { useEffect, useState } from "react";
@@ -56,7 +57,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   }));
   const [kindFilter, setKindFilter] = useState(initialKind);
   const [cityFilter, setCityFilter] = useState("");
-  const [publicationFilter,setPublicationFilter]=useState("");
+  const [publicationFilter, setPublicationFilter] = useState("");
   const [providerRef, setProviderRef] = useState("");
   const [catalogReviewed, setCatalogReviewed] = useState(false);
   const [message, setMessage] = useState("");
@@ -176,7 +177,26 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     <main className="content-center">
       <style>{`.content-center{max-width:1250px;margin:auto;padding:32px 24px;color:#183e35}.content-center h1{font-size:36px}.content-center h2{font-size:24px}.content-center button,.content-center input,.content-center select,.content-center textarea{font:inherit;padding:10px;border:1px solid #9aafa5;border-radius:6px}.content-center button{cursor:pointer;background:#edf3ed;margin:4px}.content-center button:disabled{opacity:.5;cursor:wait}.content-center input,.content-center textarea,.content-center select{width:100%;background:white}.content-center label{display:block;margin:14px 0}.content-center textarea{min-height:100px}.content-center .workspace{display:grid;grid-template-columns:280px 1fr;gap:24px}.content-center .panel{padding:20px;border:1px solid #cbd8ce;border-radius:12px;background:#fafcf9}.content-center .row{display:flex;gap:12px}.content-center .row>*{flex:1}.content-center aside.panel{max-height:75vh;overflow-y:auto;overflow-x:hidden}.content-center .item{display:block;width:100%;margin:4px 0;text-align:left}.content-center .notice{padding:16px;background:#edf2dc;white-space:pre-wrap}.content-center small{display:block}.content-center .block{padding:10px;margin:12px 0;border:1px solid #d1dcd1}@media(max-width:750px){.content-center .workspace{grid-template-columns:1fr}.content-center .row{display:block}.content-center aside.panel{max-height:35vh}}`}</style>
       <a href="/admin">← 中文管理后台</a>
-      <h1>内容工作台</h1>
+      <h1>
+        {initialKind === "provider-profile"
+          ? "服务商展示内容管理"
+          : initialKind === "service-project"
+            ? "华伴服务项目管理"
+            : "知识与网站内容管理"}
+      </h1>
+      <nav
+        aria-label="内容管理栏目"
+        style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "20px 0" }}
+      >
+        <a href="/content-center">知识与网站内容</a>
+        <a href="/content-center?kind=provider-profile">服务商展示内容</a>
+        <a href="/content-center?kind=service-project">华伴服务项目</a>
+      </nav>
+      {isCatalog(initialKind) && (
+        <p>
+          在此新建、编辑、预览和审核发布展示内容。服务商入驻申请与合作许可仍在业务后台单独管理。
+        </p>
+      )}
       <p>
         编辑与 AI 生成的内容先进入草稿，只有管理员审核后才能发布。网站与未来 App
         共用正式内容。
@@ -217,7 +237,11 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 setVersions([]);
               }}
             >
-              ＋ 新建内容
+              {kindFilter === "provider-profile"
+                ? "＋ 新建服务商展示"
+                : kindFilter === "service-project"
+                  ? "＋ 新建服务项目"
+                  : "＋ 新建内容"}
             </button>
             <label>
               内容库
@@ -233,14 +257,31 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 ))}
               </select>
             </label>
-            <label>发布状态<select value={publicationFilter} onChange={e=>setPublicationFilter(e.target.value)}><option value="">全部</option><option value="live">公开可咨询</option><option value="paused">暂停／受限制</option><option value="offline">未发布／已下架</option></select></label>
             <label>
-              城市代码
-              <input
-                placeholder="例如 shanghai"
+              发布状态
+              <select
+                value={publicationFilter}
+                onChange={(e) => setPublicationFilter(e.target.value)}
+              >
+                <option value="">全部</option>
+                <option value="live">公开可咨询</option>
+                <option value="paused">暂停／受限制</option>
+                <option value="offline">未发布／已下架</option>
+              </select>
+            </label>
+            <label>
+              服务城市
+              <select
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
-              />
+              >
+                <option value="">全部城市</option>
+                {catalogCities.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.zh}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               查找内容
@@ -279,7 +320,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 >
                   <option value="">全部</option>
                   <option value="zh">中文</option>
-                  <option value="en">English</option>
+                  <option value="en">英文</option>
                 </select>
               </label>
               <label>
@@ -300,11 +341,22 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
             {filterContent(
               data.drafts.filter(
                 (d: any) =>
-                  (!publicationFilter || (()=>{const pub=data.published.find((p:any)=>p.draftId===d.id);return publicationFilter==="live"?pub?.visible&&pub?.acceptingInquiries!==false:publicationFilter==="paused"?pub?.active&&(!pub?.visible||pub?.acceptingInquiries===false):!pub?.active;})()) &&
+                  (!publicationFilter ||
+                    (() => {
+                      const pub = data.published.find(
+                        (p: any) => p.draftId === d.id,
+                      );
+                      return publicationFilter === "live"
+                        ? pub?.visible && pub?.acceptingInquiries !== false
+                        : publicationFilter === "paused"
+                          ? pub?.active &&
+                            (!pub?.visible || pub?.acceptingInquiries === false)
+                          : !pub?.active;
+                    })()) &&
                   (!kindFilter || d.kind === kindFilter) &&
                   (!cityFilter ||
-                    d.body.catalog?.cities.some((c: any) =>
-                      c.code.includes(cityFilter),
+                    d.body.catalog?.cities.some(
+                      (c: any) => c.code === cityFilter,
                     )),
               ),
               {
@@ -323,7 +375,10 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                   {data.published.some(
                     (p: any) => p.draftId === d.id && p.visible,
                   )
-                    ? (data.published.find((p:any)=>p.draftId===d.id)?.acceptingInquiries===false?" · 已展示，暂停咨询":" · 网站已发布")
+                    ? data.published.find((p: any) => p.draftId === d.id)
+                        ?.acceptingInquiries === false
+                      ? " · 已展示，暂停咨询"
+                      : " · 网站已发布"
                     : ""}
                 </small>
               </button>
@@ -331,7 +386,17 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
           </aside>
           <section className="panel">
             <h2>{selected ? "编辑工作稿" : "新建工作稿"}</h2>
-            {selected&&data.published.some((p:any)=>p.draftId===selected.id&&p.active&&(!p.visible||p.acceptingInquiries===false))&&<p role="status" className="notice">当前公开展示或咨询受限：请检查服务商许可与履约关联。项目恢复需重新提交审核并发布。</p>}
+            {selected &&
+              data.published.some(
+                (p: any) =>
+                  p.draftId === selected.id &&
+                  p.active &&
+                  (!p.visible || p.acceptingInquiries === false),
+              ) && (
+                <p role="status" className="notice">
+                  当前公开展示或咨询受限：请检查服务商许可与履约关联。项目恢复需重新提交审核并发布。
+                </p>
+              )}
             <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
               <div className="row">
                 <label>
@@ -356,7 +421,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     onChange={(e) => field("locale", e.target.value)}
                   >
                     <option value="zh">中文</option>
-                    <option value="en">English</option>
+                    <option value="en">英文</option>
                   </select>
                 </label>
               </div>
@@ -457,16 +522,44 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       (d: any) => d.locale === body.locale,
                     )}
                   />
-                  {body.kind === "provider-profile" && (data.role === "admin" ? (
-                    <label>关联内部服务商
-                      <select value={providerRef} onChange={e=>{setProviderRef(e.target.value);setCatalogReviewed(false);}}>
-                        <option value="">请选择已入驻的服务商</option>
-                        {(data.providers||[]).map((p:any)=><option value={p.id} key={p.id}>{p.name} · {p.publicApproved&&["verified","contracted"].includes(p.status)?"已获准展示":"尚未获准展示"}</option>)}
-                      </select>
-                      <small>需在业务后台完成核实／签约并取得公开展示许可；未获许可可以保存草稿，但不能发布。</small>
-                    </label>
-                  ):<p>内部服务商关联由管理员维护。</p>)}
-                  <label><input type="checkbox" style={{width:"auto"}} checked={catalogReviewed} onChange={e=>setCatalogReviewed(e.target.checked)}/> 我已检查公开文字、图片、核验事项与价格，不含直联联系方式、二维码或内部资料。</label>
+                  {body.kind === "provider-profile" &&
+                    (data.role === "admin" ? (
+                      <label>
+                        关联内部服务商
+                        <select
+                          value={providerRef}
+                          onChange={(e) => {
+                            setProviderRef(e.target.value);
+                            setCatalogReviewed(false);
+                          }}
+                        >
+                          <option value="">请选择已入驻的服务商</option>
+                          {(data.providers || []).map((p: any) => (
+                            <option value={p.id} key={p.id}>
+                              {p.name} ·{" "}
+                              {p.publicApproved &&
+                              ["verified", "contracted"].includes(p.status)
+                                ? "已获准展示"
+                                : "尚未获准展示"}
+                            </option>
+                          ))}
+                        </select>
+                        <small>
+                          需在业务后台完成核实／签约并取得公开展示许可；未获许可可以保存草稿，但不能发布。
+                        </small>
+                      </label>
+                    ) : (
+                      <p>内部服务商关联由管理员维护。</p>
+                    ))}
+                  <label>
+                    <input
+                      type="checkbox"
+                      style={{ width: "auto" }}
+                      checked={catalogReviewed}
+                      onChange={(e) => setCatalogReviewed(e.target.checked)}
+                    />{" "}
+                    我已检查公开文字、图片、核验事项与价格，不含直联联系方式、二维码或内部资料。
+                  </label>
                   <p>先保存修改，再提交审核。管理员发布时需勾选以上检查。</p>
                 </>
               )}

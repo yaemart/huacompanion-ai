@@ -1,3 +1,4 @@
+import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { serviceSlugs } from "@/lib/routes";
 export async function GET() {
   return Response.json(
@@ -15,8 +16,14 @@ export async function GET() {
         kind: { values: ["provider-profile", "service-project"] },
         key: "Stable public contentKey; combines with kind and locale for a single record",
         category: { values: serviceSlugs },
-        city: "Exact city code, such as shanghai",
-        language: "Exact service language code, such as en",
+        city: {
+          values: catalogCities.map((c) => c.code),
+          labels: catalogCities,
+        },
+        language: {
+          values: catalogLanguages.map((l) => l.code),
+          labels: catalogLanguages,
+        },
         q: "Title, summary or capabilities substring, max 200 characters",
         page: "Positive integer; 20 records per page",
       },

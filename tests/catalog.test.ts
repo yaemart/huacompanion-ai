@@ -1,3 +1,4 @@
+import { catalogCities, catalogLanguages } from "../src/lib/catalog-options.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -79,4 +80,30 @@ test("removing or changing a source starts a fresh inquiry session", () => {
     selected,
     inquiryFormKey("en", "business", { provider: "vendor" }),
   );
+});
+
+test("catalog only accepts the initial eight cities and two service languages", () => {
+  const c = emptyCatalog();
+  c.cities = [{ code: "paris", name: "Paris" }];
+  assert.throws(() => validateCatalog("provider-profile", c));
+  c.cities = [{ code: "shanghai", name: "Shanghai" }];
+  c.languages = ["fr"];
+  assert.throws(() => validateCatalog("provider-profile", c));
+  c.languages = ["zh", "en"];
+  assert.doesNotThrow(() => validateCatalog("provider-profile", c));
+});
+
+test("catalog option labels stay consistent across both website languages", () => {
+  assert.deepEqual(
+    catalogCities.map((c) => c.zh),
+    ["上海", "北京", "广州", "深圳", "重庆", "杭州", "武汉", "南京"],
+  );
+  assert.deepEqual(
+    catalogLanguages.map((l) => l.zh),
+    ["中文", "英文"],
+  );
+  const c = emptyCatalog();
+  c.cities = [{ code: "beijing", name: "Incorrect label" }];
+  assert.equal(publicCatalog(c, "en").cities[0].name, "Beijing");
+  assert.equal(publicCatalog(c, "zh").cities[0].name, "北京");
 });

@@ -1,3 +1,8 @@
+import {
+  catalogCities,
+  catalogLanguages,
+  cityLabel,
+} from "./catalog-options.ts";
 import { serviceSlugs } from "./routes.ts";
 export type CatalogSource = { provider?: string; project?: string };
 export type Catalog = {
@@ -80,25 +85,23 @@ export function validateCatalog(
     throw Error("请选择有效服务分类");
   if (
     !Array.isArray(c.cities) ||
-    c.cities.length > 100 ||
+    c.cities.length > catalogCities.length ||
     c.cities.some(
       (x) =>
         !x ||
-        !keyPattern.test(x.code) ||
+        !catalogCities.some((c) => c.code === x.code) ||
         typeof x.name !== "string" ||
         !x.name.trim() ||
         x.name.length > 100,
     )
   )
-    throw Error("城市需要代码与名称");
+    throw Error("请选择上海、北京、广州、深圳、重庆、杭州、武汉或南京");
   if (
     !Array.isArray(c.languages) ||
-    c.languages.length > 30 ||
-    c.languages.some(
-      (x) => typeof x !== "string" || !/^[a-z]{2,3}(-[A-Za-z]{2,8})?$/.test(x),
-    )
+    c.languages.length > catalogLanguages.length ||
+    c.languages.some((x) => !catalogLanguages.some((l) => l.code === x))
   )
-    throw Error("语言请使用 en、zh 等代码");
+    throw Error("服务语言目前仅支持中文和英文");
   for (const k of ["providerKeys", "guideKeys"] as const)
     if (
       !Array.isArray(c[k]) ||
@@ -181,7 +184,7 @@ export function validateCatalog(
     }
   }
 }
-export function publicCatalog(c: Catalog): Catalog {
+export function publicCatalog(c: Catalog, locale: "zh" | "en" = "zh"): Catalog {
   const out = emptyCatalog();
   for (const k of [
     "capabilities",
@@ -198,7 +201,10 @@ export function publicCatalog(c: Catalog): Catalog {
   ] as const)
     out[k] = c[k];
   out.categories = [...c.categories];
-  out.cities = c.cities.map((x) => ({ code: x.code, name: x.name }));
+  out.cities = c.cities.map((x) => ({
+    code: x.code,
+    name: cityLabel(x.code, locale),
+  }));
   out.languages = [...c.languages];
   out.verification = c.verification.map((x) => ({
     label: x.label,
