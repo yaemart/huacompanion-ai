@@ -26,6 +26,7 @@ export type ContentBody = {
   category?: number;
   order?: number;
   author?: string;
+  publishedAt?: string;
   expiresAt?: string;
   seoTitle?: string;
   seoDescription?: string;
@@ -95,7 +96,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
   }
   if (
     d.category !== undefined &&
-    (!Number.isInteger(d.category) || d.category < 0 || d.category > 6)
+    (!Number.isInteger(d.category) || d.category < 0 || d.category > 8)
   )
     throw Error("分类无效");
 }
@@ -156,8 +157,8 @@ export function publicBody(d: ContentBody): ContentBody {
     category: d.category || 0,
     order: d.order || 0,
     author: d.author || "",
-    seoTitle: (d.seoTitle||"").slice(0,200),
-    seoDescription:(d.seoDescription||"").slice(0,500),
+    seoTitle: (d.seoTitle || "").slice(0, 200),
+    seoDescription: (d.seoDescription || "").slice(0, 500),
     expiresAt: d.expiresAt || undefined,
   };
 }

@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props) {
   const detail=docs.find(d=>d.kind===(slug[0]==='services'?'service':slug[0]==='guides'?'guide':'page')&&d.slug===(slug[1]||slug[0]||'home'));
   const titles: Record<string, string[]> = {
     services: ["Our services", "来华服务"],
-    guides: ["China guide", "来华指南"],
+    guides: ["Knowledge centre", "知识中心"],
     partners: ["Partner with us", "合作伙伴"],
     about: ["About us", "关于华伴"],
     contact: ["Contact", "联系我们"],

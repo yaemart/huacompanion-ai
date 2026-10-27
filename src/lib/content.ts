@@ -514,7 +514,7 @@ export const faqs = [
 export const nav = [
   p("Home", "首页"),
   p("Services", "来华服务"),
-  p("China guide", "来华指南"),
+  p("Knowledge centre", "知识中心"),
   p("Partners", "合作伙伴"),
   p("About us", "关于华伴"),
   p("Contact", "联系我们"),

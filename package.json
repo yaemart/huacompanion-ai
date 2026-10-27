@@ -20,7 +20,8 @@
     "start:host": "next start --hostname 0.0.0.0",
     "test:content": "tsx tests/integration/content.ts",
     "seed:content": "tsx scripts/seed-content.ts",
-    "test:agent": "tsx tests/integration/content-agent.ts"
+    "test:agent": "tsx tests/integration/content-agent.ts",
+    "seed:knowledge": "tsx scripts/seed-knowledge.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

@@ -57,18 +57,28 @@ export async function readPublished(
     : null;
 }
 export async function listPublished(p: Payload, locale: string) {
-  const r = await p.find({
-    collection: "content-published",
-    where: { active: { equals: true } },
-    limit: 1000,
-    depth: 0,
-    overrideAccess: true,
-  });
-  return r.docs
-    .map((d) => publicBody(d.body as unknown as ContentBody))
-    .filter((d) => d.locale === locale)
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const items: ContentBody[] = [];
+  let page = 1;
+  for (;;) {
+    const r = await p.find({
+      collection: "content-published",
+      where: { active: { equals: true } },
+      limit: 200,
+      page,
+      sort: "id",
+      depth: 0,
+      overrideAccess: true,
+    });
+    items.push(...r.docs.map((d) => ({
+      ...publicBody(d.body as unknown as ContentBody),
+      publishedAt: d.publishedAt,
+    })).filter((d) => d.locale === locale));
+    if (!r.hasNextPage) break;
+    page += 1;
+  }
+  return items.sort((a, b) => (a.order || 0) - (b.order || 0));
 }
+
 export async function mutateContent(p: Payload, user: ContentUser, input: any) {
   if (!canEditContent(user)) throw new ContentError("无内容管理权限", 403);
   if (

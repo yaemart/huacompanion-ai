@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { canEditContent } from "../../lib/content-model";
+import { contentSections, sectionFor } from "../../lib/content-sections";
 const closed = () => false;
 const access = {
   create: closed,
@@ -16,12 +17,29 @@ export const ContentDrafts: CollectionConfig = {
     group,
     useAsTitle: "title",
     description: "通过「内容工作台」编辑、预览和审核发布。本列表只读。",
-    defaultColumns: ["title", "locale", "kind", "reviewState", "revision"],
+    defaultColumns: ["title", "sectionLabel", "locale", "kind", "reviewState"],
   },
   access,
   versions: { maxPerDoc: 30 },
+  hooks: {
+    beforeChange: [
+      ({ data, originalDoc }) => {
+        const body = data.body || originalDoc?.body || {};
+        data.sectionLabel = contentSections.find(
+          (s) => s.id === sectionFor(body),
+        )!.zh;
+        return data;
+      },
+    ],
+  },
   fields: [
     { name: "title", label: "标题", type: "text", required: true },
+    {
+      name: "sectionLabel",
+      label: "主板块",
+      type: "text",
+      admin: { readOnly: true },
+    },
     { name: "contentKey", type: "text", required: true },
     {
       name: "locale",

@@ -2,8 +2,17 @@ import "dotenv/config";
 import assert from "node:assert/strict";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
-import { mutateContent, readPublished } from "../../src/server/content/service";
+import { mutateContent, readPublished, listPublished } from "../../src/server/content/service";
 if (process.env.APP_ENV !== "local") throw Error("Local tests only");
+const seenPages: number[] = [];
+const paginated = await listPublished({
+  find: async ({ page }: { page: number }) => {
+    seenPages.push(page);
+    return { docs: [{ body: { contentKey: String(page), kind: "guide", locale: "en", slug: String(page), title: "Page", blocks: [], sources: [] }, publishedAt: "2026-10-27" }], hasNextPage: page < 2 };
+  },
+} as any, "en");
+assert.deepEqual(seenPages, [1, 2]);
+assert.equal(paginated.length, 2);
 const p = await getPayload({ config });
 const admin = (
   await p.find({

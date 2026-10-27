@@ -285,6 +285,7 @@ export interface IntakeLimit {
 export interface ContentDraft {
   id: number;
   title: string;
+  sectionLabel?: string | null;
   contentKey: string;
   locale: 'zh' | 'en';
   kind: string;
@@ -646,6 +647,7 @@ export interface IntakeLimitsSelect<T extends boolean = true> {
  */
 export interface ContentDraftsSelect<T extends boolean = true> {
   title?: T;
+  sectionLabel?: T;
   contentKey?: T;
   locale?: T;
   kind?: T;

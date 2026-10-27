@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contentSections, sectionFor } from "@/lib/content-sections";
 import { PublishedGuides } from "./PublishedGuides";
 import { Header } from "../Header";
 import { ContentBlocks } from "./ContentBlocks";
@@ -65,7 +66,7 @@ export function PublishedSite({
               <Cards items={services} locale={locale} />
             </section>
             <section className="section tight">
-              <h2>{zh ? "来华指南" : "China guide"}</h2>
+              <h2>{zh ? "知识中心" : "Knowledge centre"}</h2>
               <Cards items={guides.slice(0, 3)} locale={locale} />
             </section>
           </>
@@ -78,8 +79,8 @@ export function PublishedSite({
                   ? "来华服务"
                   : "Our services"
                 : zh
-                  ? "来华指南"
-                  : "China guide"}
+                  ? "知识中心"
+                  : "Knowledge centre"}
             </h1>
             {section === "guides" ? (
               <PublishedGuides items={guides} locale={locale} />
@@ -92,6 +93,24 @@ export function PublishedSite({
         ) : (
           <section className="section article-layout">
             <article className="article">
+              {detail?.kind === "guide" && (
+                <nav aria-label={zh ? "当前位置" : "Breadcrumb"}>
+                  <Link href={`/${locale}`}>{zh ? "首页" : "Home"}</Link> /{" "}
+                  <Link href={`/${locale}/guides`}>
+                    {zh ? "知识中心" : "Knowledge centre"}
+                  </Link>{" "}
+                  /{" "}
+                  <Link
+                    href={`/${locale}/guides?section=${contentSections.find((s) => s.id === sectionFor(detail))?.key}`}
+                  >
+                    {
+                      contentSections.find(
+                        (s) => s.id === sectionFor(detail),
+                      )?.[locale]
+                    }
+                  </Link>
+                </nav>
+              )}
               <h1>
                 {detail?.title ||
                   (
@@ -107,6 +126,12 @@ export function PublishedSite({
               {detail && (
                 <>
                   <ContentBlocks blocks={detail.blocks} />
+                  {detail.publishedAt && (
+                    <p>
+                      {zh ? "发布／更新于：" : "Published / updated: "}
+                      {detail.publishedAt.slice(0, 10)}
+                    </p>
+                  )}
                   {detail.author && (
                     <p>
                       {zh ? "作者：" : "Author: "}
@@ -139,6 +164,26 @@ export function PublishedSite({
                   </Link>
                 </>
               )}
+              {detail?.kind === "guide" && (
+                <aside>
+                  <h2>{zh ? "同板块延伸阅读" : "More in this section"}</h2>
+                  {contents
+                    .filter(
+                      (d) =>
+                        d.kind === "guide" &&
+                        d.contentKey !== detail.contentKey &&
+                        sectionFor(d) === sectionFor(detail),
+                    )
+                    .slice(0, 4)
+                    .map((d) => (
+                      <p key={d.contentKey}>
+                        <Link href={`/${locale}/guides/${d.slug}`}>
+                          {d.title}
+                        </Link>
+                      </p>
+                    ))}
+                </aside>
+              )}
             </article>
             <aside className="side-card">
               <h2>{zh ? "从您的计划说起" : "Tell us about your visit"}</h2>
@@ -152,7 +197,7 @@ export function PublishedSite({
           <section className="section">
             <h2>{zh ? "常见问题" : "Frequently asked questions"}</h2>
             {faqs.map((f) => (
-              <details key={f.contentKey}>
+              <details key={f.contentKey} id={`faq-${f.contentKey}`}>
                 <summary>{f.title}</summary>
                 <ContentBlocks blocks={f.blocks} />
               </details>
@@ -161,6 +206,13 @@ export function PublishedSite({
         )}
       </main>
       <footer className="section">
+        <p>
+          <a href={`/api/public/content?locale=${locale}`}>
+            {zh
+              ? "公开内容数据（供 Agent 读取）"
+              : "Published content data for agents"}
+          </a>
+        </p>
         <Link href={`/${locale}`}>华伴 · Hua Companion</Link>
         <p>© 2026 Hua Companion</p>
         <Link href={`/${locale}/privacy`}>

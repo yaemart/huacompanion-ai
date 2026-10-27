@@ -1,4 +1,9 @@
 "use client";
+import {
+  contentSections,
+  sectionFor,
+  filterContent,
+} from "@/lib/content-sections";
 import { useEffect, useState } from "react";
 import type { ContentBody, Block } from "@/lib/content-model";
 const empty = (): ContentBody => ({
@@ -43,6 +48,9 @@ export function ContentCenter() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("content");
+  const [section, setSection] = useState(0);
+  const [language, setLanguage] = useState("");
+  const [state, setState] = useState("");
   const [search, setSearch] = useState("");
   const [versions, setVersions] = useState<any[]>([]);
   const [taskText, setTaskText] = useState("");
@@ -60,7 +68,7 @@ export function ContentCenter() {
   }, []);
   function select(d: any) {
     setSelected(d);
-    setBody(d.body);
+    setBody({ ...d.body, category: sectionFor(d.body) });
     setVersions([]);
     setMessage("");
   }
@@ -170,12 +178,72 @@ export function ContentCenter() {
             >
               ＋ 新建内容
             </button>
-            <label>查找内容<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="标题、语言或网址" /></label>
-            {data.drafts.filter((d:any)=>`${d.title} ${d.locale} ${d.slug}`.toLowerCase().includes(search.toLowerCase())).map((d: any) => (
+            <label>
+              查找内容
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="标题、语言或网址"
+              />
+            </label>
+            <label>
+              板块
+              <select
+                value={section}
+                onChange={(e) => setSection(Number(e.target.value))}
+              >
+                <option value={0}>全部板块</option>
+                {contentSections.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.zh}（
+                    {
+                      data.drafts.filter(
+                        (d: any) => sectionFor(d.body) === s.id,
+                      ).length
+                    }
+                    ）
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="row">
+              <label>
+                语言
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  <option value="">全部</option>
+                  <option value="zh">中文</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
+              <label>
+                审核状态
+                <select
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                >
+                  <option value="">全部</option>
+                  {["draft", "review", "returned", "approved"].map((s) => (
+                    <option key={s} value={s}>
+                      {states[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {filterContent(data.drafts, {
+              section,
+              locale: language,
+              state,
+              query: search,
+            }).map((d: any) => (
               <button className="item" key={d.id} onClick={() => select(d)}>
                 {d.title}
                 <small>
-                  {d.locale} · {kinds[d.kind as keyof typeof kinds]} ·{" "}
+                  {contentSections.find((s) => s.id === sectionFor(d.body))?.zh}{" "}
+                  · {d.locale} · {kinds[d.kind as keyof typeof kinds]} ·{" "}
                   {states[d.reviewState]}
                   {data.published.some(
                     (p: any) => p.draftId === d.id && p.active,
@@ -263,27 +331,46 @@ export function ContentCenter() {
                   />
                 </label>
                 <label>
-                  指南分类
+                  主板块
                   <select
                     value={body.category || 1}
                     onChange={(e) => field("category", Number(e.target.value))}
                   >
-                    {[
-                      "行前准备",
-                      "商务参展",
-                      "就医流程",
-                      "交通",
-                      "住宿",
-                      "文化生活",
-                    ].map((c, i) => (
-                      <option key={c} value={i + 1}>
-                        {c}
+                    {contentSections.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.zh}
                       </option>
                     ))}
                   </select>
                 </label>
               </div>
-              <details><summary>搜索展示与适用日期</summary><label>搜索标题（可选）<input value={body.seoTitle||''} maxLength={200} onChange={e=>field('seoTitle',e.target.value)}/></label><label>搜索摘要（可选）<textarea value={body.seoDescription||''} maxLength={500} onChange={e=>field('seoDescription',e.target.value)}/></label><label>信息适用截止日（可选，不会自动下架）<input type="date" value={body.expiresAt||''} onChange={e=>field('expiresAt',e.target.value)}/></label></details>
+              <details>
+                <summary>搜索展示与适用日期</summary>
+                <label>
+                  搜索标题（可选）
+                  <input
+                    value={body.seoTitle || ""}
+                    maxLength={200}
+                    onChange={(e) => field("seoTitle", e.target.value)}
+                  />
+                </label>
+                <label>
+                  搜索摘要（可选）
+                  <textarea
+                    value={body.seoDescription || ""}
+                    maxLength={500}
+                    onChange={(e) => field("seoDescription", e.target.value)}
+                  />
+                </label>
+                <label>
+                  信息适用截止日（可选，不会自动下架）
+                  <input
+                    type="date"
+                    value={body.expiresAt || ""}
+                    onChange={(e) => field("expiresAt", e.target.value)}
+                  />
+                </label>
+              </details>
               <h2>正文</h2>
               {body.blocks.map((b, i) => (
                 <div className="block" key={i}>
@@ -386,7 +473,21 @@ export function ContentCenter() {
                       )
                     }
                   />
-                  <label>人工核实日期（可选）<input type="date" value={s.checkedAt||''} onChange={e=>field('sources',body.sources.map((x,j)=>i===j?{...x,checkedAt:e.target.value}:x))}/></label>
+                  <label>
+                    人工核实日期（可选）
+                    <input
+                      type="date"
+                      value={s.checkedAt || ""}
+                      onChange={(e) =>
+                        field(
+                          "sources",
+                          body.sources.map((x, j) =>
+                            i === j ? { ...x, checkedAt: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
                   <button
                     onClick={() =>
                       field(
