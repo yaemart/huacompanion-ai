@@ -17,7 +17,10 @@
     "export:local": "tsx scripts/export-local.ts",
     "test:http": "node scripts/check-backend-http.mjs",
     "test:migrations": "node scripts/test-migrations.mjs",
-    "start:host": "next start --hostname 0.0.0.0"
+    "start:host": "next start --hostname 0.0.0.0",
+    "test:content": "tsx tests/integration/content.ts",
+    "seed:content": "tsx scripts/seed-content.ts",
+    "test:agent": "tsx tests/integration/content-agent.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

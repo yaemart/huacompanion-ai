@@ -1,7 +1,16 @@
 import "dotenv/config";
-import { mkdirSync, chmodSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  chmodSync,
+  writeFileSync,
+  readFileSync,
+  cpSync,
+  existsSync,
+  rmSync,
+} from "node:fs";
 import { execFileSync } from "node:child_process";
 import pg from "pg";
+import { createHash } from "node:crypto";
 const url = new URL(process.env.DATABASE_URL || "");
 if (
   process.env.APP_ENV !== "local" ||
@@ -47,6 +56,12 @@ try {
     "providers",
     "notifications",
     "audit_events",
+    "content_drafts",
+    "_content_drafts_v",
+    "content_published",
+    "content_events",
+    "content_media",
+    "content_agent_tasks",
   ]) {
     const query = `SELECT count(*)::int AS count FROM "${table}"`;
     const before = (await source.query(query)).rows[0].count;
@@ -59,6 +74,36 @@ try {
     )
       throw Error(`Content mismatch for ${table}`);
     results.push({ table, rows: before, restored: after });
+  }
+  const mediaBackup = backup + ".media";
+  const restoreMedia = ".local/" + name + "-media";
+  mkdirSync(mediaBackup, { recursive: true, mode: 0o700 });
+  const media = (await restored.query("SELECT filename FROM content_media"))
+    .rows;
+  try {
+    for (const { filename } of media) {
+      if (!/^[a-f0-9-]+\.webp$/.test(filename))
+        throw Error("Invalid media filename");
+      cpSync(".local/content-media/" + filename, mediaBackup + "/" + filename);
+      chmodSync(mediaBackup + "/" + filename, 0o600);
+    }
+    cpSync(mediaBackup, restoreMedia, { recursive: true });
+    for (const { filename } of media) {
+      const digest = (p) =>
+        createHash("sha256").update(readFileSync(p)).digest("hex");
+      if (
+        digest(".local/content-media/" + filename) !==
+        digest(restoreMedia + "/" + filename)
+      )
+        throw Error("Restored media mismatch");
+    }
+    results.push({
+      table: "media_files",
+      rows: media.length,
+      restored: media.length,
+    });
+  } finally {
+    if (existsSync(restoreMedia)) rmSync(restoreMedia, { recursive: true });
   }
   writeFileSync(
     "backups/last-restore-check.json",

@@ -68,6 +68,42 @@ try {
       `${collection}: exported ${rows.length - 1} records to ${directory}/${collection}.csv`,
     );
   }
+  for (const collection of [
+    "content-drafts",
+    "content-published",
+    "content-events",
+    "content-media",
+    "content-agent-tasks",
+  ] as const) {
+    let page = 1;
+    const records: unknown[] = [];
+    while (true) {
+      const result = await payload.find({
+        collection,
+        limit: 100,
+        page,
+        depth: 0,
+      });
+      records.push(...result.docs);
+      if (!result.hasNextPage) break;
+      page++;
+    }
+    writeFileSync(
+      `${directory}/${collection}.json`,
+      JSON.stringify(
+        {
+          formatVersion: 1,
+          collection,
+          exportedAt: new Date().toISOString(),
+          records,
+        },
+        null,
+        2,
+      ),
+      { mode: 0o600 },
+    );
+    console.log(`${collection}: exported ${records.length} records`);
+  }
 } catch (error) {
   console.error(error);
   process.exitCode = 1;

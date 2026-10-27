@@ -49,6 +49,11 @@ try {
       "notifications",
       "audit_events",
       "intake_limits",
+      "content_drafts",
+      "content_published",
+      "content_events",
+      "content_media",
+      "content_agent_tasks",
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);

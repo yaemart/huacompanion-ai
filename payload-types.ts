@@ -73,6 +73,11 @@ export interface Config {
     notifications: Notification;
     'audit-events': AuditEvent;
     'intake-limits': IntakeLimit;
+    'content-drafts': ContentDraft;
+    'content-published': ContentPublished;
+    'content-events': ContentEvent;
+    'content-media': ContentMedia;
+    'content-agent-tasks': ContentAgentTask;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +91,11 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'audit-events': AuditEventsSelect<false> | AuditEventsSelect<true>;
     'intake-limits': IntakeLimitsSelect<false> | IntakeLimitsSelect<true>;
+    'content-drafts': ContentDraftsSelect<false> | ContentDraftsSelect<true>;
+    'content-published': ContentPublishedSelect<false> | ContentPublishedSelect<true>;
+    'content-events': ContentEventsSelect<false> | ContentEventsSelect<true>;
+    'content-media': ContentMediaSelect<false> | ContentMediaSelect<true>;
+    'content-agent-tasks': ContentAgentTasksSelect<false> | ContentAgentTasksSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -267,6 +277,145 @@ export interface IntakeLimit {
   createdAt: string;
 }
 /**
+ * 通过「内容工作台」编辑、预览和审核发布。本列表只读。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-drafts".
+ */
+export interface ContentDraft {
+  id: number;
+  title: string;
+  contentKey: string;
+  locale: 'zh' | 'en';
+  kind: string;
+  slug: string;
+  identity: string;
+  routeKey: string;
+  body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  revision: number;
+  reviewState: 'draft' | 'review' | 'returned' | 'approved';
+  reviewNote?: string | null;
+  everPublished?: boolean | null;
+  sourceRevision?: number | null;
+  sourceDraft?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-published".
+ */
+export interface ContentPublished {
+  id: number;
+  draftId: number;
+  routeKey: string;
+  active?: boolean | null;
+  revision: number;
+  body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  publishedBy: number;
+  publishedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-events".
+ */
+export interface ContentEvent {
+  id: number;
+  draftId: number;
+  action: string;
+  actor: number;
+  revision?: number | null;
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-media".
+ */
+export interface ContentMedia {
+  id: number;
+  filename: string;
+  alt: string;
+  rights: string;
+  size: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * 模型未配置时不会发起调用。使用内容工作台管理任务。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-agent-tasks".
+ */
+export interface ContentAgentTask {
+  id: number;
+  title: string;
+  kind: string;
+  status: string;
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  result?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  error?: string | null;
+  attempts?: number | null;
+  lease?: string | null;
+  leaseUntil?: string | null;
+  usage?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  adoptedDraft?: number | null;
+  createdBy: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -313,6 +462,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'intake-limits';
         value: number | IntakeLimit;
+      } | null)
+    | ({
+        relationTo: 'content-drafts';
+        value: number | ContentDraft;
+      } | null)
+    | ({
+        relationTo: 'content-published';
+        value: number | ContentPublished;
+      } | null)
+    | ({
+        relationTo: 'content-events';
+        value: number | ContentEvent;
+      } | null)
+    | ({
+        relationTo: 'content-media';
+        value: number | ContentMedia;
+      } | null)
+    | ({
+        relationTo: 'content-agent-tasks';
+        value: number | ContentAgentTask;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -468,6 +637,88 @@ export interface AuditEventsSelect<T extends boolean = true> {
 export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
   count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-drafts_select".
+ */
+export interface ContentDraftsSelect<T extends boolean = true> {
+  title?: T;
+  contentKey?: T;
+  locale?: T;
+  kind?: T;
+  slug?: T;
+  identity?: T;
+  routeKey?: T;
+  body?: T;
+  revision?: T;
+  reviewState?: T;
+  reviewNote?: T;
+  everPublished?: T;
+  sourceRevision?: T;
+  sourceDraft?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-published_select".
+ */
+export interface ContentPublishedSelect<T extends boolean = true> {
+  draftId?: T;
+  routeKey?: T;
+  active?: T;
+  revision?: T;
+  body?: T;
+  publishedBy?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-events_select".
+ */
+export interface ContentEventsSelect<T extends boolean = true> {
+  draftId?: T;
+  action?: T;
+  actor?: T;
+  revision?: T;
+  snapshot?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-media_select".
+ */
+export interface ContentMediaSelect<T extends boolean = true> {
+  filename?: T;
+  alt?: T;
+  rights?: T;
+  size?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-agent-tasks_select".
+ */
+export interface ContentAgentTasksSelect<T extends boolean = true> {
+  title?: T;
+  kind?: T;
+  status?: T;
+  input?: T;
+  result?: T;
+  error?: T;
+  attempts?: T;
+  lease?: T;
+  leaseUntil?: T;
+  usage?: T;
+  adoptedDraft?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

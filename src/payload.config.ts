@@ -4,6 +4,7 @@ import { postgresAdapter } from "@payloadcms/db-postgres";
 import { zh } from "@payloadcms/translations/languages/zh";
 import { en } from "@payloadcms/translations/languages/en";
 import path from "node:path";
+import { contentCollections } from "./cms/content/collections";
 import { collections } from "./cms/collections";
 const secret = process.env.PAYLOAD_SECRET;
 if (!secret || secret.length < 32)
@@ -26,7 +27,7 @@ export default buildConfig({
     push: process.env.APP_ENV === "local",
     migrationDir: path.resolve("src/migrations"),
   }),
-  collections,
+  collections: [...collections, ...contentCollections],
   typescript: { outputFile: path.resolve("payload-types.ts") },
   csrf: [process.env.APP_URL || "http://127.0.0.1:3000"],
   graphQL: { disable: true },
