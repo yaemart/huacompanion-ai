@@ -1,3 +1,4 @@
+import { validateExhibitionPublication, effectiveExhibitionStatus } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
 import {
   eligibleProvider,
@@ -82,6 +83,10 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
     .filter((s) => (s.body as ContentBody).locale === locale)
     .map((s) => {
       const b = publicBody(s.body as ContentBody);
+      if (b.kind === "exhibition" && b.exhibition) {
+        b.exhibition.status = effectiveExhibitionStatus(b.exhibition);
+        b.acceptingInquiries = !["ended", "cancelled"].includes(b.exhibition.status);
+      }
       if (isCatalog(b.kind)) {
         b.acceptingInquiries =
           b.kind === "provider-profile" ||
@@ -232,6 +237,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       if (!clean.blocks.length) throw new ContentError("正文不能为空");
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
+      if (clean.kind === "exhibition") validateExhibitionPublication(clean.exhibition, clean.sources, input.exhibitionReviewed);
       if (isCatalog(clean.kind)) {
         validateCatalog(clean.kind, clean.catalog, true);
         if (input.catalogReviewed !== true)

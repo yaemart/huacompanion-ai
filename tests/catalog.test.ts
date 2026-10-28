@@ -120,3 +120,10 @@ test("catalog projection localizes cities without inventing service languages", 
   }
   assert.equal(publicCatalog(c, "ar").cities[0].name, "بكين");
 });
+
+test("exhibition selection accepts only valid revision and resets inquiry session",()=>{
+  assert.deepEqual(parseCatalogSource({exhibition:"hardware-2027",exhibitionRevision:4,forgedTitle:"fake"}),{exhibition:"hardware-2027",exhibitionRevision:4});
+  assert.throws(()=>parseCatalogSource({exhibition:"hardware-2027",exhibitionRevision:"4"}));
+  assert.throws(()=>parseCatalogSource({project:"project",exhibitionRevision:4}));
+  assert.notEqual(inquiryFormKey("en","business",{exhibition:"hardware-2027",exhibitionRevision:4}),inquiryFormKey("en","business",{exhibition:"hardware-2027",exhibitionRevision:5}));
+});

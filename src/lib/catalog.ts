@@ -5,7 +5,7 @@ import {
   cityLabel,
 } from "./catalog-options.ts";
 import { serviceSlugs } from "./routes.ts";
-export type CatalogSource = { provider?: string; project?: string };
+export type CatalogSource = { provider?: string; project?: string; exhibition?: string; exhibitionRevision?: number };
 export type Catalog = {
   categories: string[];
   cities: { code: string; name: string }[];
@@ -63,13 +63,17 @@ export function parseCatalogSource(value: unknown): CatalogSource | undefined {
     throw Error("Invalid service selection");
   const raw = value as Record<string, unknown>;
   const out: CatalogSource = {};
-  for (const k of ["provider", "project"] as const)
+  for (const k of ["provider", "project", "exhibition"] as const)
     if (raw[k] !== undefined) {
       if (typeof raw[k] !== "string" || !keyPattern.test(raw[k]))
         throw Error("Invalid service selection");
       out[k] = raw[k];
     }
-  if (!out.provider && !out.project) throw Error("Empty service selection");
+  if (raw.exhibitionRevision !== undefined) {
+    if (!out.exhibition || !Number.isSafeInteger(raw.exhibitionRevision) || Number(raw.exhibitionRevision) < 1) throw Error("Invalid exhibition revision");
+    out.exhibitionRevision = Number(raw.exhibitionRevision);
+  }
+  if (!out.provider && !out.project && !out.exhibition) throw Error("Empty service selection");
   return out;
 }
 export function validateCatalog(
@@ -279,5 +283,7 @@ export function inquiryFormKey(
     service || "",
     source?.provider || "",
     source?.project || "",
+    source?.exhibition || "",
+    source?.exhibitionRevision || "",
   ]);
 }

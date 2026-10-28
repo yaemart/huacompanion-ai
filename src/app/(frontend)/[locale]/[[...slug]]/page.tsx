@@ -1,3 +1,5 @@
+import { ExhibitionPage } from "@/components/exhibitions/ExhibitionPage";
+import { catalogCities } from "@/lib/catalog-options";
 import { translatedPaths } from "@/lib/translated-paths";
 import type { ContentBody } from "@/lib/content-model";
 import { isLocale, locales } from "@/lib/locales";
@@ -10,7 +12,7 @@ import { Site } from "@/components/Site";
 import { isKnownRoute, type Locale } from "@/lib/routes";
 import { getPayload } from "payload";
 import config from "@/payload.config";
-import { listPublished } from "@/server/content/service";
+import { listPublished, contentTransaction } from "@/server/content/service";
 import { PublishedSite } from "@/components/content/PublishedSite";
 import { cache } from "react";
 const content = cache(async (locale: string) =>
@@ -28,6 +30,10 @@ type Props = {
     service?: string;
     provider?: string;
     project?: string;
+    exhibition?: string;
+    industry?: string;
+    month?: string;
+    period?: string;
     category?: string;
     city?: string;
     language?: string;
@@ -52,6 +58,7 @@ export async function generateMetadata({ params }: Props) {
     : undefined;
   const detail =
     catalogDetail ||
+    (slug[0] === "exhibitions" ? docs.find(d => d.kind === "exhibition" && d.slug === slug[1]) : undefined) ||
     docs.find(
       (d) =>
         d.kind ===
@@ -61,10 +68,10 @@ export async function generateMetadata({ params }: Props) {
               ? "guide"
               : "page") && d.slug === (slug[1] || slug[0] || "home"),
     );
-  const titles: Record<string,string> = {services:"Our services",guides:"Knowledge centre",partners:"Partner with us",about:"About us",contact:"Contact",request:"Plan your visit",apply:"Partner application",privacy:"Privacy notice",terms:"Service boundaries"};
+  const titles: Record<string,string> = {exhibitions:"Exhibitions",services:"Our services",guides:"Knowledge centre",partners:"Partner with us",about:"About us",contact:"Contact",request:"Plan your visit",apply:"Partner application",privacy:"Privacy notice",terms:"Service boundaries"};
   const title = detail?.seoTitle || detail?.title || coreText(l, catalogKind ? (catalogKind === "provider-profile" ? "Service providers" : "Hua service projects") : titles[slug[0]] || "Your local companion in China.");
   return {
-    ...(catalogKind
+    ...((catalogKind || slug[0] === "exhibitions")
       ? { alternates: { canonical: `/${l}/${slug.join("/")}` } }
       : {}),
     description: detail?.seoDescription || detail?.summary,
@@ -75,6 +82,12 @@ export default async function Page({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;
   if (!isLocale(locale)) notFound();
   const docs = await content(locale);
+  if (slug[0] === "exhibitions") {
+    if (slug.length > 2) notFound();
+    const detail = slug[1] ? docs.find(d => d.kind === "exhibition" && d.slug === slug[1]) : undefined;
+    if (slug[1] && !detail) notFound();
+    return <ExhibitionPage locale={locale} items={docs} detail={detail} query={await searchParams} languagePaths={await languagePaths(detail)}/>;
+  }
   if (
     slug[0] === "providers" ||
     (slug[0] === "services" && slug[1] === "projects")
@@ -113,42 +126,41 @@ export default async function Page({ params, searchParams }: Props) {
     return (
       <PublishedSite locale={locale} slug={slug} contents={docs} languagePaths={await languagePaths(slug.length === 2 ? docs.find(d => d.slug === slug[1] && d.kind === (slug[0] === "guides" ? "guide" : slug[0] === "services" ? "service" : "partner")) : undefined)} />
     );
-  const { service, provider, project } = await searchParams;
+  const { service, provider, project, exhibition } = await searchParams;
   let catalogSelection: any;
   if (
     slug[0] === "request" &&
-    (provider !== undefined || project !== undefined)
+    (provider !== undefined || project !== undefined || exhibition !== undefined)
   ) {
     try {
       const source = parseCatalogSource({
         ...(provider !== undefined ? { provider } : {}),
         ...(project !== undefined ? { project } : {}),
+        ...(exhibition !== undefined ? { exhibition } : {}),
       });
-      const resolved = await resolveCatalogSource(
-        await getPayload({ config }),
-        locale,
-        source,
-      );
+      const payload = await getPayload({ config });
+      const resolved = await contentTransaction(payload, req => resolveCatalogSource(payload, locale, source, req, false));
       catalogSelection = {
-        source,
-        summary: [resolved?.provider?.title, resolved?.project?.title]
+        source: {...source, ...(resolved?.exhibition ? {exhibitionRevision:resolved.exhibition.revision} : {})},
+        city: resolved?.exhibition ? catalogCities.find(c=>c.code===resolved?.exhibition?.city)?.en : undefined,
+        summary: [resolved?.provider?.title, resolved?.project?.title, resolved?.exhibition?.title, resolved?.exhibition ? [resolved.exhibition.startDate, resolved.exhibition.endDate].filter(Boolean).join(" — ") : undefined]
           .filter(Boolean)
           .join(" · "),
       };
     } catch {
       catalogSelection = {
-        error: coreText(locale, "The selected provider or project is unavailable or incompatible. Please choose again or remove the selection."),
+        error: coreText(locale, exhibition !== undefined ? "The selected exhibition is unavailable, has changed, or does not match your service selection. Please reopen its page or remove the selection." : "The selected provider or project is unavailable or incompatible. Please choose again or remove the selection."),
       };
     }
   }
   return (
     <Site
       key={
-        slug.join("/") + inquiryFormKey(locale, service, { provider, project })
+        slug.join("/") + inquiryFormKey(locale, service, { provider, project, exhibition, exhibitionRevision:catalogSelection?.source?.exhibitionRevision })
       }
       locale={locale as Locale}
       slug={slug}
-      initialService={service}
+      initialService={service || (exhibition ? "business" : undefined)}
       catalogSelection={catalogSelection}
     />
   );

@@ -9,6 +9,12 @@ export function ContentNav({ user }: { user?: ContentUser }) {
       </a>
       <a
         style={{ display: "block", padding: "8px 0" }}
+        href="/content-center?kind=exhibition"
+      >
+        展会信息
+      </a>
+      <a
+        style={{ display: "block", padding: "8px 0" }}
         href="/content-center?kind=provider-profile"
       >
         服务商展示内容

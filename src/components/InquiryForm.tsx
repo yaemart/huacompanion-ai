@@ -16,6 +16,7 @@ import { Icon } from "./Icon";
 export type CatalogSelection = {
   source?: import("@/lib/catalog").CatalogSource;
   summary?: string;
+  city?: string;
   error?: string;
 };
 export function InquiryForm({
@@ -42,6 +43,7 @@ export function InquiryForm({
       categories: services.some((s) => s.slug === initialService)
         ? [initialService!]
         : [],
+      city: catalogSelection?.city || "",
       stayType: "short",
       datesUnknown: false,
       language: localeNames[locale],

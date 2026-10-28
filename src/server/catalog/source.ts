@@ -1,3 +1,5 @@
+import { effectiveExhibitionStatus } from "../../lib/exhibitions";
+import { coreText } from "../../lib/core-copy";
 import type { Locale } from "../../lib/locales";
 import { allSnapshots } from "./eligibility";
 import type { Payload } from "payload";
@@ -9,6 +11,7 @@ export async function resolveCatalogSource(
   locale: Locale,
   source: CatalogSource | undefined,
   req?: any,
+  requireRevision = !!req,
 ) {
   if (!source) return undefined;
   const docs = await listPublished(p, locale, req);
@@ -23,6 +26,9 @@ export async function resolveCatalogSource(
         (d) => d.kind === "service-project" && d.contentKey === source.project,
       )
     : undefined;
+  const exhibition = source.exhibition ? docs.find(d => d.kind === "exhibition" && d.contentKey === source.exhibition) : undefined;
+  const exhibitionError = () => new IntakeValidationError({source: coreText(locale, "The selected exhibition is unavailable, has changed, or does not match your service selection. Please reopen its page or remove the selection.")});
+  if (source.exhibition && (!exhibition?.exhibition || ["cancelled", "ended"].includes(effectiveExhibitionStatus(exhibition.exhibition)) || (source.project && !exhibition.exhibition.projectKeys.includes(source.project)) || (source.provider && !source.project))) throw exhibitionError();
   if (
     (source.provider && !provider) ||
     (source.project && !project) ||
@@ -50,6 +56,7 @@ export async function resolveCatalogSource(
         s.body.locale === locale &&
         s.body.kind === d.kind,
     )!;
+    if (d.kind === "exhibition" && requireRevision && source.exhibitionRevision !== s.revision) throw exhibitionError();
     return {
       key: d.contentKey,
       title: d.title,
@@ -57,6 +64,7 @@ export async function resolveCatalogSource(
       publishedAt: d.publishedAt,
       publicationId: s.id,
       revision: s.revision,
+      ...(d.kind === "exhibition" ? {startDate:d.exhibition!.startDate,endDate:d.exhibition!.endDate,city:d.exhibition!.city,venue:d.exhibition!.venue,status:effectiveExhibitionStatus(d.exhibition!)} : {}),
       ...(d.kind === "provider-profile" ? { providerRef: s.providerRef } : {}),
       ...(d.kind === "service-project"
         ? {
@@ -83,5 +91,6 @@ export async function resolveCatalogSource(
   return {
     ...(provider ? { provider: snapshot(provider) } : {}),
     ...(project ? { project: snapshot(project) } : {}),
+    ...(exhibition ? { exhibition: snapshot(exhibition) } : {}),
   };
 }

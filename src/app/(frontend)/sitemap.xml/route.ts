@@ -23,17 +23,17 @@ export async function GET() {
       .origin;
     const urls: string[] = [];
     for (const locale of locales) {
-      for (const path of ["", "providers", "services/projects", "guides"])
+      for (const path of ["", "providers", "services/projects", "guides", "exhibitions"])
         urls.push(
           "<url><loc>" +
             escape(origin + "/" + locale + (path ? "/" + path : "")) +
             "</loc></url>",
         );
       for (const d of await listPublished(p, locale)) {
-        if (!isCatalog(d.kind) && d.kind !== "guide") continue;
+        if (!isCatalog(d.kind) && d.kind !== "guide" && d.kind !== "exhibition") continue;
         const path = isCatalog(d.kind)
           ? catalogPath(d)
-          : `/${locale}/guides/${d.slug}`;
+          : `/${locale}/${d.kind === "exhibition" ? "exhibitions" : "guides"}/${d.slug}`;
         urls.push(
           "<url><loc>" +
             escape(origin + path) +

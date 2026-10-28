@@ -234,7 +234,7 @@ export const Inquiries: CollectionConfig = {
     ...intakeFields,
     {
       name: "catalogSource",
-      label: "咨询来源（服务商／服务项目）",
+      label: "咨询来源（展会／服务商／服务项目）",
       type: "json",
       admin: { readOnly: true },
       access: { update: () => false },

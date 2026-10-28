@@ -1,3 +1,5 @@
+import { catalogCities } from "@/lib/catalog-options";
+import { effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { CatalogDetails } from "@/components/catalog/CatalogPage";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -29,7 +31,11 @@ export default async function Preview({
   });
   const body = d.body as unknown as ContentBody;
   return (
-    <main className="section article" lang={body.locale} dir={body.locale === "ar" ? "rtl" : "ltr"}>
+    <main
+      className="section article"
+      lang={body.locale}
+      dir={body.locale === "ar" ? "rtl" : "ltr"}
+    >
       <p>
         工作稿预览 · {body.locale} · 修订 {d.revision} · 尚不代表网站已发布
       </p>
@@ -37,6 +43,45 @@ export default async function Preview({
       <h1>{body.title}</h1>
       <p>{body.summary}</p>
       {body.catalog && <CatalogDetails detail={body} locale={body.locale} />}
+      {body.kind === "exhibition" && body.exhibition && (
+        <section>
+          <h2>展会资料</h2>
+          <dl>
+            {Object.entries({
+              "届次／年份": body.exhibition.edition,
+              展会状态: {
+                pending: "待公布",
+                announced: "已公布",
+                postponed: "延期",
+                cancelled: "取消",
+                ended: "已结束",
+              }[effectiveExhibitionStatus(body.exhibition)],
+              展期: body.exhibition.startDate
+                ? `${body.exhibition.startDate} — ${body.exhibition.endDate}`
+                : "日期待确认",
+              城市: catalogCities.find((c) => c.code === body.exhibition?.city)
+                ?.zh,
+              场馆: body.exhibition.venue,
+              详细地址: body.exhibition.address,
+              英文地址: body.exhibition.addressEn,
+              行业: body.exhibition.industries.join("、"),
+              适合观众: body.exhibition.audience,
+              展品范围: body.exhibition.exhibits,
+              "门票／报名条件": body.exhibition.admission,
+              官方网站: body.exhibition.officialURL,
+              报名网址: body.exhibition.registrationURL,
+              最后人工核实: body.exhibition.verifiedAt,
+              待确认事项: body.exhibition.unresolved,
+              关联项目标识: body.exhibition.projectKeys.join("、"),
+            }).map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd style={{ whiteSpace: "pre-wrap" }}>{value || "未填写"}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
       <ContentBlocks blocks={body.blocks} />
       <h2>来源</h2>
       {body.sources.map((s) => (
