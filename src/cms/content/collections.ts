@@ -1,3 +1,4 @@
+import { catalogLanguages } from "../../lib/catalog-options";
 import type { CollectionConfig } from "payload";
 import { canEditContent } from "../../lib/content-model";
 import { contentSections, sectionFor } from "../../lib/content-sections";
@@ -51,7 +52,7 @@ export const ContentDrafts: CollectionConfig = {
       name: "locale",
       label: "语言",
       type: "select",
-      options: ["zh", "en"],
+      options: catalogLanguages.map(({ code, zh }) => ({ label: zh, value: code })),
       required: true,
     },
     { name: "kind", label: "类型", type: "text", required: true },

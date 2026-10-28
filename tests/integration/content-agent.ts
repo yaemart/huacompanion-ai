@@ -31,6 +31,22 @@ try {
     sources: [],
   });
   assert.equal((wrongLocale.input as any).locale, "zh");
+  for (const targetLocale of ["en", "es", "fr", "de", "it", "ar"]) {
+    const translation = await agentAction(p, user, {
+      action: "create", title: "Explicit translation target", kind: "translate",
+      material: "Public source material", draftId: zh.id, revision: zh.revision,
+      targetLocale,
+    });
+    assert.equal((translation.input as any).locale, targetLocale);
+    assert.equal((translation.input as any).source.locale, "zh");
+  }
+  for (const targetLocale of [undefined, "zh", "ja"]) {
+    await assert.rejects(() => agentAction(p, user, {
+      action: "create", title: "Invalid translation target", kind: "translate",
+      material: "Public source material", draftId: zh.id, revision: zh.revision,
+      targetLocale,
+    }));
+  }
   const task = await agentAction(p, user, {
     action: "create",
     title: "Test draft",

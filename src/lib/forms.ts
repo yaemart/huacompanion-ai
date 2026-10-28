@@ -1,4 +1,5 @@
-import type { Locale } from "./routes.ts";
+import type { Locale } from "./locales.ts";
+import { formText } from "./form-copy.ts";
 export type FormKind = "request" | "apply";
 export type Values = Record<string, string | string[] | boolean>;
 export function validateStep(
@@ -8,18 +9,16 @@ export function validateStep(
   locale: Locale,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
-  const en = locale === "en";
+
   const get = (k: string) =>
     typeof values[k] === "string" ? (values[k] as string).trim() : "";
   const require = (k: string) => {
     if (!get(k))
-      errors[k] = en ? "Please complete this field." : "请填写此项。";
+      errors[k] = formText(locale, "Please complete this field.");
   };
   if (step === 0) {
     if (!Array.isArray(values.categories) || !values.categories.length)
-      errors.categories = en
-        ? "Choose at least one service."
-        : "请至少选择一项服务。";
+      errors.categories = formText(locale, "Choose at least one service.");
     require("city");
     if (kind === "apply") require("organisation");
   }
@@ -29,13 +28,11 @@ export function validateStep(
       Number(get("people")) < 1 ||
       Number(get("people")) > 10000
     )
-      errors.people = en
-        ? "Enter a whole number from 1 to 10,000."
-        : "请输入 1 至 10000 的整数。";
+      errors.people = formText(locale, "Enter a whole number from 1 to 10,000.");
     if (!values.datesUnknown) {
       require("arrivalDate");
       if (get("arrivalDate") && !/^\d{4}-\d{2}-\d{2}$/.test(get("arrivalDate")))
-        errors.arrivalDate = en ? "Enter a valid date." : "请填写有效日期。";
+        errors.arrivalDate = formText(locale, "Enter a valid date.");
     }
     if (
       Array.isArray(values.categories) &&
@@ -51,9 +48,7 @@ export function validateStep(
       get("checkOut") &&
       get("checkOut") <= get("checkIn")
     )
-      errors.checkOut = en
-        ? "Check-out must be after check-in."
-        : "退房日期须晚于入住日期。";
+      errors.checkOut = formText(locale, "Check-out must be after check-in.");
   }
   if (step === 1 && kind === "apply") {
     require("capabilities");
@@ -63,14 +58,12 @@ export function validateStep(
     require("name");
     require("email");
     if (get("email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(get("email")))
-      errors.email = en ? "Enter a valid email address." : "请填写有效邮箱。";
+      errors.email = formText(locale, "Enter a valid email address.");
     if (kind === "request") require("language");
     else require("phone");
   }
   if (step === 3 && values.consent !== true)
-    errors.consent = en
-      ? "Please read and acknowledge the notice."
-      : "请阅读并确认告知事项。";
+    errors.consent = formText(locale, "Please read and acknowledge the notice.");
   return errors;
 }
 

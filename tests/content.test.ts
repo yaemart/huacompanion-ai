@@ -79,3 +79,10 @@ test("page content rejects unreachable routes and supports privacy and terms", (
     validateContent({ ...doc, kind: "page", slug: "terms" }),
   );
 });
+
+test("content accepts all seven explicit locales and rejects unsupported language codes", () => {
+  for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"])
+    assert.doesNotThrow(() => validateContent({...doc, locale}));
+  for (const locale of ["ja", "", "EN", null])
+    assert.throws(() => validateContent({...doc, locale}));
+});

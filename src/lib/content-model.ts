@@ -1,3 +1,4 @@
+import { isLocale, type Locale } from "./locales.ts";
 import {
   type Catalog,
   isCatalog,
@@ -30,7 +31,7 @@ export type ContentBody = {
     | "partner"
     | "provider-profile"
     | "service-project";
-  locale: "zh" | "en";
+  locale: Locale;
   slug: string;
   title: string;
   summary?: string;
@@ -87,7 +88,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
       "provider-profile",
       "service-project",
     ].includes(d.kind) ||
-    !["zh", "en"].includes(d.locale)
+    !isLocale(d.locale)
   )
     throw Error("内容类型或语言无效");
   if (

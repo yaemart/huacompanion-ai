@@ -1,3 +1,4 @@
+import type { Locale } from "./locales.ts";
 import {
   catalogCities,
   catalogLanguages,
@@ -101,7 +102,7 @@ export function validateCatalog(
     c.languages.length > catalogLanguages.length ||
     c.languages.some((x) => !catalogLanguages.some((l) => l.code === x))
   )
-    throw Error("服务语言目前仅支持中文和英文");
+    throw Error("请选择有效服务语言（中文、英文、西班牙文、法文、德文、意大利文或阿拉伯文）");
   for (const k of ["providerKeys", "guideKeys"] as const)
     if (
       !Array.isArray(c[k]) ||
@@ -184,7 +185,7 @@ export function validateCatalog(
     }
   }
 }
-export function publicCatalog(c: Catalog, locale: "zh" | "en" = "zh"): Catalog {
+export function publicCatalog(c: Catalog, locale: Locale = "zh"): Catalog {
   const out = emptyCatalog();
   for (const k of [
     "capabilities",
@@ -258,13 +259,15 @@ export function catalogFilter<
           .includes(q.q.toLowerCase())),
   );
 }
-export function priceText(c: Catalog, locale: string) {
-  const zh = locale === "zh";
-  return c.price.mode === "quote"
-    ? zh
-      ? "按需求询价"
-      : "Quote on request"
-    : `${c.price.currency} ${c.price.amount} / ${c.price.unit}${c.price.mode === "from" ? (zh ? " 起" : " and up") : ""}`;
+export function priceText(c: Catalog, locale: Locale) {
+  const labels: Record<Locale, [string, string]> = {
+    zh: ["按需求询价", " 起"], en: ["Quote on request", " and up"],
+    es: ["Presupuesto a medida", " en adelante"], fr: ["Sur devis", " et plus"],
+    de: ["Preis auf Anfrage", " aufwärts"], it: ["Preventivo su richiesta", " e oltre"],
+    ar: ["السعر عند الطلب", " فأكثر"],
+  };
+  return c.price.mode === "quote" ? labels[locale][0]
+    : `${c.price.currency} ${c.price.amount} / ${c.price.unit}${c.price.mode === "from" ? labels[locale][1] : ""}`;
 }
 export function inquiryFormKey(
   locale: string,

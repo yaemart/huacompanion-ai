@@ -1,3 +1,4 @@
+import { isLocale } from "./lib/locales";
 import { NextResponse, type NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname.replace(/\/+$/, "");
@@ -9,9 +10,10 @@ export function proxy(request: NextRequest) {
   if (pathname === "/admin/create-first-user")
     return NextResponse.redirect(new URL("/admin/login", request.url));
   const headers = new Headers(request.headers);
+  const locale = request.nextUrl.pathname.split("/")[1];
   headers.set(
     "x-hua-locale",
-    /^\/zh(?:\/|$)/.test(request.nextUrl.pathname) ? "zh-CN" : "en",
+    isLocale(locale) ? locale : "zh",
   );
   return NextResponse.next({ request: { headers } });
 }

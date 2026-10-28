@@ -82,28 +82,41 @@ test("removing or changing a source starts a fresh inquiry session", () => {
   );
 });
 
-test("catalog only accepts the initial eight cities and two service languages", () => {
+test("catalog only accepts the initial eight cities and seven service languages", () => {
   const c = emptyCatalog();
   c.cities = [{ code: "paris", name: "Paris" }];
   assert.throws(() => validateCatalog("provider-profile", c));
   c.cities = [{ code: "shanghai", name: "Shanghai" }];
-  c.languages = ["fr"];
+  c.languages = ["ja"];
   assert.throws(() => validateCatalog("provider-profile", c));
-  c.languages = ["zh", "en"];
+  c.languages = ["zh", "en", "es", "fr", "de", "it", "ar"];
   assert.doesNotThrow(() => validateCatalog("provider-profile", c));
 });
 
-test("catalog option labels stay consistent across both website languages", () => {
+test("catalog option labels stay consistent across all website languages", () => {
   assert.deepEqual(
     catalogCities.map((c) => c.zh),
     ["上海", "北京", "广州", "深圳", "重庆", "杭州", "武汉", "南京"],
   );
   assert.deepEqual(
     catalogLanguages.map((l) => l.zh),
-    ["中文", "英文"],
+    ["中文", "英文", "西班牙文", "法文", "德文", "意大利文", "阿拉伯文"],
   );
   const c = emptyCatalog();
   c.cities = [{ code: "beijing", name: "Incorrect label" }];
   assert.equal(publicCatalog(c, "en").cities[0].name, "Beijing");
   assert.equal(publicCatalog(c, "zh").cities[0].name, "北京");
+});
+
+test("catalog projection localizes cities without inventing service languages", () => {
+  const c = emptyCatalog();
+  c.languages = ["zh", "en"];
+  c.cities = [{code: "beijing", name: "北京"}];
+  for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"] as const) {
+    const projected = publicCatalog(c, locale);
+    assert.deepEqual(projected.languages, ["zh", "en"]);
+    assert.equal(projected.cities[0].name, catalogCities.find(city => city.code === "beijing")![locale]);
+    for (const language of catalogLanguages) assert.ok(language[locale]);
+  }
+  assert.equal(publicCatalog(c, "ar").cities[0].name, "بكين");
 });

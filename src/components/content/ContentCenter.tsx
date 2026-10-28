@@ -1,4 +1,5 @@
 "use client";
+import { catalogLanguages } from "@/lib/catalog-options";
 import {
   contentSections,
   sectionFor,
@@ -70,6 +71,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [versions, setVersions] = useState<any[]>([]);
   const [taskText, setTaskText] = useState("");
   const [material, setMaterial] = useState("");
+  const [targetLocale, setTargetLocale] = useState("en");
   const [taskKind, setTaskKind] = useState("draft");
   async function load() {
     const r = await fetch("/api/content-center", { cache: "no-store" });
@@ -161,6 +163,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
           revision: selected?.revision,
           sources: body.sources,
           locale: body.locale,
+          targetLocale,
         }),
       });
       const d = await r.json();
@@ -319,8 +322,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                   onChange={(e) => setLanguage(e.target.value)}
                 >
                   <option value="">全部</option>
-                  <option value="zh">中文</option>
-                  <option value="en">英文</option>
+                  {catalogLanguages.map(l => <option key={l.code} value={l.code}>{l.zh}</option>)}
                 </select>
               </label>
               <label>
@@ -420,13 +422,12 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     disabled={!!selected}
                     onChange={(e) => field("locale", e.target.value)}
                   >
-                    <option value="zh">中文</option>
-                    <option value="en">英文</option>
+                    {catalogLanguages.map(l => <option key={l.code} value={l.code}>{l.zh}</option>)}
                   </select>
                 </label>
               </div>
               <label>
-                内容标识（中英文共用，例如 arrival-guide）
+                内容标识（各语言共用，例如 arrival-guide）
                 <input
                   value={body.contentKey}
                   disabled={!!selected}
@@ -862,10 +863,15 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
             >
               <option value="draft">内容起草</option>
               <option value="research">资料整理</option>
-              <option value="translate">中英文翻译</option>
+              <option value="translate">多语言翻译</option>
               <option value="check">发布前检查</option>
             </select>
           </label>
+          {taskKind === "translate" && <label>目标语言
+            <select value={targetLocale} onChange={e => setTargetLocale(e.target.value)}>
+              {catalogLanguages.map(l => <option key={l.code} value={l.code}>{l.zh}</option>)}
+            </select>
+          </label>}
           <label>
             任务要求
             <input

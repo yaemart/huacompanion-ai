@@ -1,6 +1,7 @@
 import type { Locale } from "./routes";
-export type Pair = { en: string; zh: string };
-export const p = (en: string, zh: string): Pair => ({ en, zh });
+import { coreText } from "./core-copy.ts";
+export type Pair = Record<Locale, string>;
+export const p = (en: string, zh: string): Pair => ({ en, zh, es: coreText("es",en), fr: coreText("fr",en), de: coreText("de",en), it: coreText("it",en), ar: coreText("ar",en) });
 export type Service = {
   slug: string;
   title: Pair;

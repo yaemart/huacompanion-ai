@@ -1,3 +1,4 @@
+import { locales } from "@/lib/locales";
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { serviceSlugs } from "@/lib/routes";
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
         sitemap: "/sitemap.xml",
       },
       query: {
-        locale: { values: ["zh", "en"], default: "en" },
+        locale: { values: locales, default: "en" },
         kind: { values: ["provider-profile", "service-project"] },
         key: "Stable public contentKey; combines with kind and locale for a single record",
         category: { values: serviceSlugs },

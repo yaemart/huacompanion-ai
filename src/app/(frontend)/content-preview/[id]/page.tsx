@@ -29,7 +29,7 @@ export default async function Preview({
   });
   const body = d.body as unknown as ContentBody;
   return (
-    <main className="section article">
+    <main className="section article" lang={body.locale} dir={body.locale === "ar" ? "rtl" : "ltr"}>
       <p>
         工作稿预览 · {body.locale} · 修订 {d.revision} · 尚不代表网站已发布
       </p>

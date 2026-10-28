@@ -73,3 +73,10 @@ test("server ignores stale dates from hidden fields", () => {
   assert.equal(p.values.checkIn, undefined);
   assert.equal(p.values.arrivalDate, undefined);
 });
+
+test("intake preserves each supported locale rather than coercing it", () => {
+  for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"])
+    assert.equal(parseIntake({...valid, locale}).locale, locale);
+  for (const locale of ["ja", "", null])
+    assert.throws(() => parseIntake({...valid, locale}));
+});

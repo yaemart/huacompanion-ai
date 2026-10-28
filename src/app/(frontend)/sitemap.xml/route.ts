@@ -1,3 +1,4 @@
+import { locales } from "@/lib/locales";
 import { getPayload } from "payload";
 import config from "@/payload.config";
 import { listPublished } from "@/server/content/service";
@@ -21,7 +22,7 @@ export async function GET() {
     const origin = new URL(process.env.APP_URL || "http://127.0.0.1:3000")
       .origin;
     const urls: string[] = [];
-    for (const locale of ["zh", "en"]) {
+    for (const locale of locales) {
       for (const path of ["", "providers", "services/projects", "guides"])
         urls.push(
           "<url><loc>" +

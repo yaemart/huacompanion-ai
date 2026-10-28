@@ -1,8 +1,9 @@
 "use client";
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { services, p } from "@/lib/content";
-import type { Locale } from "@/lib/routes";
+import { services } from "@/lib/content";
+import { locales, localeNames, type Locale } from "@/lib/locales";
+import { formText, type FormCopyKey } from "@/lib/form-copy";
 import {
   validateStep,
   errorStep,
@@ -27,14 +28,13 @@ export function InquiryForm({
   initialService?: string;
   catalogSelection?: CatalogSelection;
 }) {
-  const en = locale === "en";
   const localMode = process.env.NEXT_PUBLIC_FORM_MODE === "local";
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState("");
   const [saveError, setSaveError] = useState("");
   const [attempted, setAttempted] = useState(false);
   const request = useRef<{ key: string; body: string } | null>(null);
-  const c = (a: string, b: string) => (en ? a : b);
+  const c = (key: FormCopyKey, _chinese?: string) => formText(locale, key);
   const partner = kind === "apply";
   const [step, setStep] = useState(0),
     [values, setValues] = useState<Values>({
@@ -43,7 +43,7 @@ export function InquiryForm({
         : [],
       stayType: "short",
       datesUnknown: false,
-      language: en ? "English" : "中文",
+      language: localeNames[locale],
       people: "1",
       channel: "email",
     }),
@@ -146,16 +146,16 @@ export function InquiryForm({
   const categories = values.categories as string[];
   const steps = partner
     ? [
-        p("Organisation", "机构信息"),
-        p("Capabilities", "服务能力"),
-        p("Contact", "联系方式"),
-        p("Review", "核对信息"),
+        c("Organisation", "机构信息"),
+        c("Capabilities", "服务能力"),
+        c("Contact", "联系方式"),
+        c("Review", "核对信息"),
       ]
     : [
-        p("Your needs", "服务需求"),
-        p("Visit details", "行程细节"),
-        p("Stay in touch", "联系方式"),
-        p("Review", "核对信息"),
+        c("Your needs", "服务需求"),
+        c("Visit details", "行程细节"),
+        c("Stay in touch", "联系方式"),
+        c("Review", "核对信息"),
       ];
   const move = (n: number) => {
     setStep(n);
@@ -230,12 +230,9 @@ export function InquiryForm({
         setReceipt(result.reference);
       } catch (error) {
         setSaveError(
-          error instanceof Error
+          error instanceof Error && error.name === "Error"
             ? error.message
-            : c(
-                "Unable to confirm saving. Please retry.",
-                "暂时无法确认保存，请重试。",
-              ),
+            : c("Unable to confirm saving. Please retry."),
         );
       } finally {
         setSaving(false);
@@ -313,7 +310,7 @@ export function InquiryForm({
               aria-current={step === i ? "step" : undefined}
             >
               <span>{step > i ? "✓" : i + 1}</span>
-              {s[locale]}
+              {s}
             </li>
           ))}
         </ol>
@@ -355,7 +352,7 @@ export function InquiryForm({
                 {c("STEP", "步骤")} {step + 1} / 4
               </span>
               <h2 ref={heading} tabIndex={-1}>
-                {steps[step][locale]}
+                {steps[step]}
               </h2>
               <p>{c("Fields marked * are required.", "标有 * 的为必填项。")}</p>
             </div>
@@ -547,7 +544,13 @@ export function InquiryForm({
                     </>
                   ) : (
                     <>
-                      {field("language", "text", true)}
+                      <div className="field">
+                        <label htmlFor="language">{labels.language}<span className="required"> *</span></label>
+                        <select id="language" value={val("language")} onChange={(e) => set("language", e.target.value)} aria-invalid={!!errors.language} aria-describedby={errors.language ? "language-error" : undefined}>
+                          {locales.map((code) => <option key={code} value={localeNames[code]} lang={code}>{localeNames[code]}</option>)}
+                        </select>
+                        {errors.language && <span className="field-error" id="language-error">{errors.language}</span>}
+                      </div>
                       <div className="field">
                         <label htmlFor="channel">
                           {c("Preferred contact channel", "首选联系渠道")}
@@ -557,7 +560,7 @@ export function InquiryForm({
                           value={val("channel")}
                           onChange={(e) => set("channel", e.target.value)}
                         >
-                          <option value="email">Email</option>
+                          <option value="email">{c("Email")}</option>
                           <option value="phone">{c("Phone", "电话")}</option>
                           <option value="wechat">WeChat</option>
                           <option value="whatsapp">WhatsApp</option>

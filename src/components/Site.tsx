@@ -1,3 +1,4 @@
+import { coreText } from "@/lib/core-copy";
 import Link from "next/link";
 import { Header } from "./Header";
 import { Icon } from "./Icon";
@@ -13,7 +14,7 @@ import {
 } from "@/lib/content";
 import type { Locale } from "@/lib/routes";
 const copy = (locale: Locale) => (en: string, zh: string) =>
-  locale === "en" ? en : zh;
+  coreText(locale, en, zh);
 function Button({
   locale,
   to = "request",
@@ -192,7 +193,7 @@ function Intro({
   return (
     <section className="page-intro">
       <div className="breadcrumb">
-        <Link href={`/${locale}`}>{locale === "en" ? "Home" : "首页"}</Link>
+        <Link href={`/${locale}`}>{coreText(locale, "Home")}</Link>
         <span>/</span>
         {label[locale]}
       </div>
@@ -948,7 +949,7 @@ export function Site({
   return (
     <>
       <a className="skip-link" href="#main">
-        {locale === "en" ? "Skip to content" : "跳到正文"}
+        {coreText(locale, "Skip to content")}
       </a>
       <Header locale={locale} />
       <main id="main">{page}</main>

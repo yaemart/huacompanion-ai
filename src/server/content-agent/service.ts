@@ -1,3 +1,4 @@
+import { isLocale } from "../../lib/locales";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
 import {
@@ -46,12 +47,10 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       }
       if (["translate", "check"].includes(input.kind) && !draft)
         throw new ContentError("此任务需要先选定并保存工作稿");
-      const locale =
-        input.kind === "translate"
-          ? draft!.locale === "zh"
-            ? "en"
-            : "zh"
-          : draft?.locale || (input.locale === "en" ? "en" : "zh");
+      const locale = input.kind === "translate" ? input.targetLocale : draft?.locale || input.locale || "zh";
+      if (!isLocale(locale)) throw new ContentError("请选择有效的目标语言");
+      if (input.kind === "translate" && locale === draft!.locale)
+        throw new ContentError("翻译目标语言必须与原文不同");
       const sourceBody = draft
         ? publicBody(draft.body as unknown as ContentBody)
         : null;

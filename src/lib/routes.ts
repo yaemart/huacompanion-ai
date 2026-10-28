@@ -1,4 +1,5 @@
-export type Locale = "en" | "zh";
+import type { Locale } from "./locales.ts";
+export type { Locale } from "./locales.ts";
 export const serviceSlugs = [
   "medical",
   "business",
@@ -17,7 +18,7 @@ export const guideSlugs = [
   "everyday-confidence",
 ];
 export function switchLocale(path: string, locale: Locale): string {
-  return path.replace(/^\/(en|zh)(?=\/|$)/, `/${locale}`);
+  return path.replace(/^\/(zh|en|es|fr|de|it|ar)(?=\/|[?#]|$)/, `/${locale}`);
 }
 export function isKnownRoute(slug: string[]): boolean {
   if (!slug.length) return true;

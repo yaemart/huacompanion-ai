@@ -1,4 +1,6 @@
 "use client";
+import type { Locale } from "@/lib/locales";
+import { publicText, resultText } from "@/lib/public-copy";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,14 +11,18 @@ export function PublishedGuides({
   locale,
 }: {
   items: ContentBody[];
-  locale: "zh" | "en";
+  locale: Locale;
 }) {
+  items = items.filter((d) => d.locale === locale);
   const params = useSearchParams();
   const router = useRouter();
-  const section = contentSections.find((s) => s.key === params.get("section"))?.id || 0;
+  const section =
+    contentSections.find((s) => s.key === params.get("section"))?.id || 0;
   const setSection = (id: number) => {
     const key = contentSections.find((s) => s.id === id)?.key;
-    router.replace(`/${locale}/guides${key ? `?section=${key}` : ""}`, { scroll: false });
+    router.replace(`/${locale}/guides${key ? `?section=${key}` : ""}`, {
+      scroll: false,
+    });
   };
   const [query, setQuery] = useState("");
   const selected = items.filter(
@@ -29,15 +35,14 @@ export function PublishedGuides({
   return (
     <>
       <label style={{ display: "block", marginBottom: 24 }}>
-        {locale === "zh" ? "搜索知识中心" : "Search the knowledge centre"}
+        {publicText(locale, "Search the knowledge centre")}
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={
-            locale === "zh"
-              ? "例如：工厂访问、接机、长租"
-              : "For example: factory visits, transfers, long stays"
-          }
+          placeholder={publicText(
+            locale,
+            "For example: factory visits, transfers, long stays",
+          )}
           style={{
             display: "block",
             width: "100%",
@@ -54,7 +59,7 @@ export function PublishedGuides({
           className={!section ? "selected" : ""}
           onClick={() => setSection(0)}
         >
-          {locale === "zh" ? "全部内容" : "All content"}
+          {publicText(locale, "All content")}
         </button>
       </div>
       <div className="guide-grid" style={{ marginBottom: 32 }}>
@@ -65,10 +70,9 @@ export function PublishedGuides({
             onClick={() => {
               const next = section === s.id ? 0 : s.id;
               setSection(next);
-
             }}
             style={{
-              textAlign: "left",
+              textAlign: "start",
               padding: 20,
               border:
                 section === s.id ? "2px solid #245c49" : "1px solid #cad8cd",
@@ -81,16 +85,12 @@ export function PublishedGuides({
             <p>{s.description[locale]}</p>
             <small>
               {items.filter((d) => sectionFor(d) === s.id).length}{" "}
-              {locale === "zh" ? "篇已发布" : "published"}
+              {publicText(locale, "published")}
             </small>
           </button>
         ))}
       </div>
-      <p aria-live="polite">
-        {locale === "zh"
-          ? `找到 ${selected.length} 篇内容`
-          : `${selected.length} results`}
-      </p>
+      <p aria-live="polite">{resultText(locale, selected.length)}</p>
       <div className="guide-grid">
         {selected.map((d) => (
           <Link
@@ -106,7 +106,7 @@ export function PublishedGuides({
                   ]
                 }
               </span>
-              <small>HUA COMPANION JOURNAL</small>
+              <small>{publicText(locale, "Knowledge centre")}</small>
             </div>
             <div className="guide-copy">
               <span className="eyebrow">
@@ -120,9 +120,10 @@ export function PublishedGuides({
       </div>
       {!selected.length && (
         <p>
-          {locale === "zh"
-            ? "此板块的内容正在整理与审核中。"
-            : "Content in this section is being prepared and reviewed."}
+          {publicText(
+            locale,
+            "Content in this section is being prepared and reviewed.",
+          )}
         </p>
       )}
     </>

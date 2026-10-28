@@ -1,3 +1,4 @@
+import { locales } from "@/lib/locales";
 import { listPublished } from "@/server/content/service";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -16,10 +17,7 @@ export async function GET(
     const { user } = await p.auth({ headers: req.headers });
     let allowed = canEditContent(user);
     if (!allowed) {
-      const docs = [
-        ...(await listPublished(p, "zh")),
-        ...(await listPublished(p, "en")),
-      ];
+      const docs = (await Promise.all(locales.map(locale => listPublished(p, locale)))).flat();
       allowed = docs.some((d) =>
         d.blocks.some((b) => b.type === "image" && b.mediaId === id),
       );

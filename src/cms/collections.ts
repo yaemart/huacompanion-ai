@@ -1,3 +1,4 @@
+import { catalogLanguages } from "../lib/catalog-options";
 import {
   catalogLock,
   suspendProviderProjects,
@@ -99,7 +100,7 @@ const intakeFields: Field[] = [
     name: "locale",
     label: "提交语言",
     type: "select",
-    options: ["en", "zh"],
+    options: catalogLanguages.map(({ code, zh }) => ({ label: zh, value: code })),
     defaultValue: "en",
     admin: { readOnly: true },
     access: protectedField,

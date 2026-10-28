@@ -2172,3 +2172,13 @@ html[lang="zh-CN"] .form-intro h1 {
 .catalog-card{padding:24px}.catalog-card h2{font-size:25px;margin:16px 0}.catalog-card p{margin:12px 0}
 .catalog-details{margin:32px 0;border-top:1px solid #d5ddd5}.catalog-details>div{display:grid;grid-template-columns:180px 1fr;gap:24px;padding:18px 0;border-bottom:1px solid #d5ddd5}.catalog-details dt{font-weight:600}.catalog-details dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:760px){.catalog-details>div{grid-template-columns:1fr;gap:8px}.catalog-filters{padding:16px}.catalog-filters label{min-width:100%}}
+
+/* Language names remain readable without flags; Arabic follows document direction. */
+select.language { max-width: 145px; min-height: 40px; padding: 6px 10px; background: transparent; border: 1px solid #d9dfd7; border-radius: 6px; font: inherit; }
+html[dir="rtl"] body { text-align: right; }
+html[dir="rtl"] input[type="email"], html[dir="rtl"] input[type="tel"], html[dir="rtl"] input[type="url"] { direction: ltr; text-align: left; }
+html[dir="rtl"] .brand, html[dir="rtl"] .brand-mark { direction: ltr; }
+html[dir="rtl"] .eyebrow { letter-spacing: normal; }
+html[dir="rtl"] .card-arrow { right: auto; left: 24px; }
+html[dir="rtl"] .article, html[dir="rtl"] .form-panel, html[dir="rtl"] .guide-copy { text-align: start; }
+@media(max-width: 600px) { select.language { max-width: 118px; } .header-actions .button.small { white-space: normal; text-align: center; } }

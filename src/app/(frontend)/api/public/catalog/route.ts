@@ -1,3 +1,4 @@
+import { isLocale } from "@/lib/locales";
 import { getPayload } from "payload";
 import config from "@/payload.config";
 import { listPublished } from "@/server/content/service";
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
     "X-Content-Type-Options": "nosniff",
   };
   if (
-    !["zh", "en"].includes(locale) ||
+    !isLocale(locale) ||
     (kind && !["provider-profile", "service-project"].includes(kind)) ||
     (category && !serviceSlugs.includes(category)) ||
     !Number.isSafeInteger(page) ||

@@ -1,3 +1,4 @@
+import type { Locale } from "../../lib/locales";
 import { allSnapshots } from "./eligibility";
 import type { Payload } from "payload";
 import type { CatalogSource } from "../../lib/catalog";
@@ -5,7 +6,7 @@ import { listPublished } from "../content/service";
 import { IntakeValidationError } from "../../lib/intake-validation";
 export async function resolveCatalogSource(
   p: Payload,
-  locale: string,
+  locale: Locale,
   source: CatalogSource | undefined,
   req?: any,
 ) {
@@ -31,10 +32,15 @@ export async function resolveCatalogSource(
       !project.catalog?.providerKeys.includes(provider.contentKey))
   )
     throw new IntakeValidationError({
-      source:
-        locale === "zh"
-          ? "所选服务商或项目已失效，或两者不匹配。请重新选择，或主动移除选择后提交一般咨询。"
-          : "The selection is unavailable or incompatible. Choose again, or remove it to send a general enquiry.",
+      source: {
+        zh: "所选服务商或项目已失效，或两者不匹配。请重新选择，或主动移除选择后提交一般咨询。",
+        en: "The selection is unavailable or incompatible. Choose again, or remove it to send a general enquiry.",
+        es: "La selección no está disponible o no es compatible. Elige otra opción o elimínala para enviar una consulta general.",
+        fr: "La sélection est indisponible ou incompatible. Choisissez à nouveau ou retirez-la pour envoyer une demande générale.",
+        de: "Die Auswahl ist nicht verfügbar oder nicht kompatibel. Wählen Sie erneut oder entfernen Sie sie für eine allgemeine Anfrage.",
+        it: "La selezione non è disponibile o non è compatibile. Scegli di nuovo o rimuovila per inviare una richiesta generale.",
+        ar: "الخيار غير متاح أو غير متوافق. اختر مرة أخرى أو أزله لإرسال استفسار عام.",
+      }[locale],
     });
   const raw = await allSnapshots(p, req);
   const snapshot = (d: NonNullable<typeof provider>) => {

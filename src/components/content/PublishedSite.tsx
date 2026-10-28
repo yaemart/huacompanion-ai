@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/locales";
+import { publicText } from "@/lib/public-copy";
 import { isCatalog, catalogPath } from "@/lib/catalog";
 import Link from "next/link";
 import { contentSections, sectionFor } from "@/lib/content-sections";
@@ -9,12 +11,14 @@ export function PublishedSite({
   locale,
   slug,
   contents,
+  languagePaths,
 }: {
-  locale: "en" | "zh";
+  locale: Locale;
   slug: string[];
   contents: ContentBody[];
+  languagePaths?: Partial<Record<Locale,string|null>>;
 }) {
-  const zh = locale === "zh";
+  contents = contents.filter((d) => d.locale === locale);
   const section = slug[0] || "home";
   const kind =
     section === "services"
@@ -31,26 +35,27 @@ export function PublishedSite({
   const guides = contents.filter((d) => d.kind === "guide");
   const faqs = contents.filter((d) => d.kind === "faq");
   const list = section === "services" ? services : guides;
-  const empty = zh
-    ? "内容正在整理中，请稍后查看。"
-    : "Content is being prepared. Please check back later.";
+  const empty = publicText(
+    locale,
+    "Content is being prepared. Please check back later.",
+  );
   return (
     <>
       <a className="skip-link" href="#main">
-        {zh ? "跳到正文" : "Skip to content"}
+        {publicText(locale, "Skip to content")}
       </a>
-      <Header locale={locale} />
+      <Header locale={locale} languagePaths={languagePaths} />
       <main id="main">
         <nav
           className="section tight"
-          aria-label={zh ? "服务目录" : "Service directories"}
+          aria-label={publicText(locale, "Service directories")}
         >
           <Link href={`/${locale}/providers`}>
-            {zh ? "查找服务商" : "Find providers"}
+            {publicText(locale, "Find providers")}
           </Link>{" "}
           ·{" "}
           <Link href={`/${locale}/services/projects`}>
-            {zh ? "华伴服务项目" : "Hua service projects"}
+            {publicText(locale, "Hua service projects")}
           </Link>
         </nav>
         {section === "home" ? (
@@ -59,27 +64,25 @@ export function PublishedSite({
               <span className="eyebrow">HUA COMPANION · SHANGHAI</span>
               <h1>
                 {detail?.title ||
-                  (zh
-                    ? "您来中国，华伴同行。"
-                    : "Your local companion in China.")}
+                  publicText(locale, "Your local companion in China.")}
               </h1>
               <p className="lead">{detail?.summary || empty}</p>
               {detail && <ContentBlocks blocks={detail.blocks} />}
               <Link className="button" href={`/${locale}/request`}>
-                {zh ? "提交服务需求" : "Plan your visit"} ↗
+                {publicText(locale, "Plan your visit")} ↗
               </Link>
               <img
                 src="/shanghai.svg"
-                alt={zh ? "上海城市插画" : "Shanghai illustration"}
+                alt={publicText(locale, "Shanghai illustration")}
                 style={{ width: "100%", maxHeight: 360, marginTop: 32 }}
               />
             </section>
             <section className="section tight">
-              <h2>{zh ? "来华服务" : "Our services"}</h2>
+              <h2>{publicText(locale, "Our services")}</h2>
               <Cards items={services} locale={locale} />
             </section>
             <section className="section tight">
-              <h2>{zh ? "知识中心" : "Knowledge centre"}</h2>
+              <h2>{publicText(locale, "Knowledge centre")}</h2>
               <Cards items={guides.slice(0, 3)} locale={locale} />
             </section>
           </>
@@ -88,12 +91,8 @@ export function PublishedSite({
             <span className="eyebrow">HUA COMPANION</span>
             <h1>
               {section === "services"
-                ? zh
-                  ? "来华服务"
-                  : "Our services"
-                : zh
-                  ? "知识中心"
-                  : "Knowledge centre"}
+                ? publicText(locale, "Our services")
+                : publicText(locale, "Knowledge centre")}
             </h1>
             {section === "guides" ? (
               <PublishedGuides items={guides} locale={locale} />
@@ -107,10 +106,11 @@ export function PublishedSite({
           <section className="section article-layout">
             <article className="article">
               {detail?.kind === "guide" && (
-                <nav aria-label={zh ? "当前位置" : "Breadcrumb"}>
-                  <Link href={`/${locale}`}>{zh ? "首页" : "Home"}</Link> /{" "}
+                <nav aria-label={publicText(locale, "Breadcrumb")}>
+                  <Link href={`/${locale}`}>{publicText(locale, "Home")}</Link>{" "}
+                  /{" "}
                   <Link href={`/${locale}/guides`}>
-                    {zh ? "知识中心" : "Knowledge centre"}
+                    {publicText(locale, "Knowledge centre")}
                   </Link>{" "}
                   /{" "}
                   <Link
@@ -128,9 +128,9 @@ export function PublishedSite({
                 {detail?.title ||
                   (
                     {
-                      about: zh ? "关于华伴" : "About Hua Companion",
-                      contact: zh ? "联系我们" : "Contact",
-                      partners: zh ? "合作伙伴" : "Partners",
+                      about: publicText(locale, "About Hua Companion"),
+                      contact: publicText(locale, "Contact"),
+                      partners: publicText(locale, "Partners"),
                     } as Record<string, string>
                   )[section] ||
                   ""}
@@ -144,7 +144,7 @@ export function PublishedSite({
                       d.catalog?.guideKeys.includes(detail.contentKey),
                     ) && (
                       <section>
-                        <h2>{zh ? "相关服务" : "Related services"}</h2>
+                        <h2>{publicText(locale, "Related services")}</h2>
                         {contents
                           .filter(
                             (d) =>
@@ -160,19 +160,19 @@ export function PublishedSite({
                     )}
                   {detail.publishedAt && (
                     <p>
-                      {zh ? "发布／更新于：" : "Published / updated: "}
+                      {publicText(locale, "Published / updated: ")}
                       {detail.publishedAt.slice(0, 10)}
                     </p>
                   )}
                   {detail.author && (
                     <p>
-                      {zh ? "作者：" : "Author: "}
+                      {publicText(locale, "Author: ")}
                       {detail.author}
                     </p>
                   )}
                   {detail.sources.length > 0 && (
                     <div className="source-note">
-                      <h2>{zh ? "资料来源" : "Sources"}</h2>
+                      <h2>{publicText(locale, "Sources")}</h2>
                       {detail.sources.map((s) => (
                         <p key={s.id}>
                           <a href={s.url} rel="noopener noreferrer">
@@ -192,13 +192,13 @@ export function PublishedSite({
                     locale={locale}
                   />
                   <Link className="button" href={`/${locale}/apply`}>
-                    {zh ? "申请合作" : "Apply to collaborate"}
+                    {publicText(locale, "Apply to collaborate")}
                   </Link>
                 </>
               )}
               {detail?.kind === "guide" && (
                 <aside>
-                  <h2>{zh ? "同板块延伸阅读" : "More in this section"}</h2>
+                  <h2>{publicText(locale, "More in this section")}</h2>
                   {contents
                     .filter(
                       (d) =>
@@ -218,16 +218,16 @@ export function PublishedSite({
               )}
             </article>
             <aside className="side-card">
-              <h2>{zh ? "从您的计划说起" : "Tell us about your visit"}</h2>
+              <h2>{publicText(locale, "Tell us about your visit")}</h2>
               <Link className="button" href={`/${locale}/request`}>
-                {zh ? "提交需求" : "Plan your visit"} ↗
+                {publicText(locale, "Plan your visit")} ↗
               </Link>
             </aside>
           </section>
         )}
         {section === "home" && faqs.length > 0 && (
           <section className="section">
-            <h2>{zh ? "常见问题" : "Frequently asked questions"}</h2>
+            <h2>{publicText(locale, "Frequently asked questions")}</h2>
             {faqs.map((f) => (
               <details key={f.contentKey} id={`faq-${f.contentKey}`}>
                 <summary>{f.title}</summary>
@@ -240,24 +240,33 @@ export function PublishedSite({
       <footer className="section">
         <p>
           <a href={`/api/public/content?locale=${locale}`}>
-            {zh
-              ? "公开内容数据（供 Agent 读取）"
-              : "Published content data for agents"}
+            {publicText(locale, "Published content data for agents")}
           </a>
         </p>
         <Link href={`/${locale}`}>华伴 · Hua Companion</Link>
         <p>© 2026 Hua Companion</p>
         <Link href={`/${locale}/privacy`}>
-          {zh ? "隐私说明" : "Privacy"}
-        </Link> ·{" "}
+          {publicText(locale, "Privacy")}
+        </Link>{" "}
+        ·{" "}
         <Link href={`/${locale}/terms`}>
-          {zh ? "服务边界" : "Service boundaries"}
+          {publicText(locale, "Service boundaries")}
         </Link>
       </footer>
     </>
   );
 }
-function Cards({ items, locale }: { items: ContentBody[]; locale: string }) {
+function Cards({ items, locale }: { items: ContentBody[]; locale: Locale }) {
+  items = items.filter((d) => d.locale === locale);
+  if (!items.length)
+    return (
+      <p>
+        {publicText(
+          locale,
+          "Content is being prepared. Please check back later.",
+        )}
+      </p>
+    );
   return (
     <div className="guide-grid">
       {items.map((d) => (
@@ -270,7 +279,7 @@ function Cards({ items, locale }: { items: ContentBody[]; locale: string }) {
             <h3>{d.title}</h3>
             <p>{d.summary}</p>
             <span className="text-link">
-              {locale === "zh" ? "了解更多" : "Read more"} ↗
+              {publicText(locale, "Read more")} ↗
             </span>
           </div>
         </Link>

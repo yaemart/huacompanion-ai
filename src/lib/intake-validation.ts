@@ -1,3 +1,4 @@
+import { isLocale, type Locale } from "./locales.ts";
 import { parseCatalogSource, type CatalogSource } from "./catalog.ts";
 import {
   validateStep,
@@ -54,7 +55,7 @@ const providerFields = [
 ];
 export function parseIntake(input: unknown): {
   kind: FormKind;
-  locale: "en" | "zh";
+  locale: Locale;
   values: Values;
   source?: CatalogSource;
 } {
@@ -63,7 +64,7 @@ export function parseIntake(input: unknown): {
   const body = input as Record<string, unknown>;
   if (body.kind !== "request" && body.kind !== "apply")
     throw new IntakeValidationError({ kind: "Invalid form" });
-  if (body.locale !== "en" && body.locale !== "zh")
+  if (!isLocale(body.locale))
     throw new IntakeValidationError({ locale: "Invalid language" });
   if (
     !body.values ||

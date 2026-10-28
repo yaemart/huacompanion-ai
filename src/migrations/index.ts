@@ -1,3 +1,4 @@
+import * as migration_20261028_000000_seven_locales from './20261028_000000_seven_locales';
 import * as migration_20261026_233245_initial_backend from './20261026_233245_initial_backend';
 import * as migration_20261026_233703_intake_limits from './20261026_233703_intake_limits';
 import * as migration_20261027_000251_content_center from './20261027_000251_content_center';
@@ -29,5 +30,10 @@ export const migrations = [
     up: migration_20261027_052934_service_catalog.up,
     down: migration_20261027_052934_service_catalog.down,
     name: '20261027_052934_service_catalog'
+  },
+  {
+    up: migration_20261028_000000_seven_locales.up,
+    down: migration_20261028_000000_seven_locales.down,
+    name: '20261028_000000_seven_locales',
   },
 ];

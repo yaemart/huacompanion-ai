@@ -1,3 +1,4 @@
+import { isLocale } from "@/lib/locales";
 import { isCatalog, catalogPath } from "@/lib/catalog";
 import { getPayload } from "payload";
 import config from "@/payload.config";
@@ -6,8 +7,8 @@ import { contentSections, sectionFor } from "@/lib/content-sections";
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
   const locale = q.get("locale") || "en";
-  if (!["en", "zh"].includes(locale))
-    return Response.json({ error: "locale must be en or zh" }, { status: 400 });
+  if (!isLocale(locale))
+    return Response.json({ error: "locale must be zh, en, es, fr, de, it or ar" }, { status: 400 });
   const section = q.get("section");
   const sectionEntry = contentSections.find((s) => s.key === section);
   if (section && !sectionEntry)
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
         total: items.length,
         sections: contentSections.map((s) => ({
           key: s.key,
-          title: s[locale as "zh" | "en"],
+          title: s[locale],
         })),
         items: docs,
       },

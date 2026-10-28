@@ -1,3 +1,4 @@
+import { isLocale, localeDirection } from "@/lib/locales";
 import "./globals.css";
 import { headers } from "next/headers";
 export const metadata = {
@@ -11,10 +12,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const locale =
-    (await headers()).get("x-hua-locale") === "zh-CN" ? "zh-CN" : "en";
+  const value = (await headers()).get("x-hua-locale");
+  const locale = isLocale(value) ? value : "zh";
   return (
-    <html lang={locale}>
+    <html lang={locale === "zh" ? "zh-CN" : locale} dir={localeDirection(locale)}>
       <body>{children}</body>
     </html>
   );

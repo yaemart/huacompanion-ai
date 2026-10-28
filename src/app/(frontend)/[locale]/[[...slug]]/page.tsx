@@ -1,3 +1,7 @@
+import { translatedPaths } from "@/lib/translated-paths";
+import type { ContentBody } from "@/lib/content-model";
+import { isLocale, locales } from "@/lib/locales";
+import { coreText } from "@/lib/core-copy";
 import { CatalogPage } from "@/components/catalog/CatalogPage";
 import { resolveCatalogSource } from "@/server/catalog/source";
 import { parseCatalogSource, inquiryFormKey } from "@/lib/catalog";
@@ -12,6 +16,11 @@ import { cache } from "react";
 const content = cache(async (locale: string) =>
   listPublished(await getPayload({ config }), locale),
 );
+async function languagePaths(detail?:ContentBody) {
+  if (!detail) return undefined;
+  const all = (await Promise.all(locales.map(locale => content(locale)))).flat();
+  return translatedPaths(detail, all);
+}
 export const dynamic = "force-dynamic";
 type Props = {
   params: Promise<{ locale: string; slug?: string[] }>;
@@ -28,7 +37,8 @@ type Props = {
 };
 export async function generateMetadata({ params }: Props) {
   const { locale, slug = [] } = await params;
-  const l = locale === "zh" ? "zh" : "en";
+  if (!isLocale(locale)) notFound();
+  const l = locale;
   const docs = await content(l);
   const catalogKind =
     slug[0] === "providers"
@@ -51,28 +61,19 @@ export async function generateMetadata({ params }: Props) {
               ? "guide"
               : "page") && d.slug === (slug[1] || slug[0] || "home"),
     );
-  const titles: Record<string, string[]> = {
-    services: ["Our services", "来华服务"],
-    guides: ["Knowledge centre", "知识中心"],
-    partners: ["Partner with us", "合作伙伴"],
-    about: ["About us", "关于华伴"],
-    contact: ["Contact", "联系我们"],
-    request: ["Plan your visit", "提交需求"],
-    apply: ["Partner application", "合作申请"],
-    privacy: ["Privacy notice", "隐私说明"],
-    terms: ["Service boundaries", "服务边界"],
-  };
+  const titles: Record<string,string> = {services:"Our services",guides:"Knowledge centre",partners:"Partner with us",about:"About us",contact:"Contact",request:"Plan your visit",apply:"Partner application",privacy:"Privacy notice",terms:"Service boundaries"};
+  const title = detail?.seoTitle || detail?.title || coreText(l, catalogKind ? (catalogKind === "provider-profile" ? "Service providers" : "Hua service projects") : titles[slug[0]] || "Your local companion in China.");
   return {
     ...(catalogKind
       ? { alternates: { canonical: `/${l}/${slug.join("/")}` } }
       : {}),
     description: detail?.seoDescription || detail?.summary,
-    title: `${detail?.seoTitle || detail?.title || (catalogKind ? (l === "zh" ? (catalogKind === "provider-profile" ? "服务商" : "华伴服务项目") : catalogKind === "provider-profile" ? "Service providers" : "Hua service projects") : undefined) || titles[slug[0]]?.[l === "en" ? 0 : 1] || (l === "en" ? "Your local companion in China" : "您来中国，华伴同行")} | Hua Companion · 华伴`,
+    title: `${title} | Hua Companion · 华伴`,
   };
 }
 export default async function Page({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;
-  if (!["en", "zh"].includes(locale)) notFound();
+  if (!isLocale(locale)) notFound();
   const docs = await content(locale);
   if (
     slug[0] === "providers" ||
@@ -93,6 +94,7 @@ export default async function Page({ params, searchParams }: Props) {
         kind={kind}
         detail={detail}
         query={await searchParams}
+        languagePaths={await languagePaths(detail)}
       />
     );
   }
@@ -109,7 +111,7 @@ export default async function Page({ params, searchParams }: Props) {
   } else if (!isKnownRoute(slug)) notFound();
   if (!["request", "apply"].includes(slug[0]))
     return (
-      <PublishedSite locale={locale as Locale} slug={slug} contents={docs} />
+      <PublishedSite locale={locale} slug={slug} contents={docs} languagePaths={await languagePaths(slug.length === 2 ? docs.find(d => d.slug === slug[1] && d.kind === (slug[0] === "guides" ? "guide" : slug[0] === "services" ? "service" : "partner")) : undefined)} />
     );
   const { service, provider, project } = await searchParams;
   let catalogSelection: any;
@@ -135,10 +137,7 @@ export default async function Page({ params, searchParams }: Props) {
       };
     } catch {
       catalogSelection = {
-        error:
-          locale === "zh"
-            ? "所选服务商或项目已失效，或两者不匹配。请重新选择或移除选择。"
-            : "The selected provider or project is unavailable or incompatible. Please choose again or remove the selection.",
+        error: coreText(locale, "The selected provider or project is unavailable or incompatible. Please choose again or remove the selection."),
       };
     }
   }

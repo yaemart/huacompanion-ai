@@ -61,6 +61,7 @@ export function CatalogFields({
         }}
       >
         <legend>服务语言（可多选）</legend>
+        <p>仅选择已确认能够提供的服务语言；网页翻译不会自动增加服务语言。</p>
         {catalogLanguages.map((l) => (
           <label
             key={l.code}

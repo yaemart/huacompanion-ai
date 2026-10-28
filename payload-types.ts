@@ -184,7 +184,7 @@ export interface Inquiry {
     | boolean
     | null;
   source?: ('website' | 'app' | 'manual') | null;
-  locale?: ('en' | 'zh') | null;
+  locale?: ('zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar') | null;
   consentAt?: string | null;
   privacyVersion?: string | null;
   requestKey: string;
@@ -226,7 +226,7 @@ export interface Provider {
     | boolean
     | null;
   source?: ('website' | 'app' | 'manual') | null;
-  locale?: ('en' | 'zh') | null;
+  locale?: ('zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar') | null;
   consentAt?: string | null;
   privacyVersion?: string | null;
   requestKey: string;
@@ -297,7 +297,7 @@ export interface ContentDraft {
   title: string;
   sectionLabel?: string | null;
   contentKey: string;
-  locale: 'zh' | 'en';
+  locale: 'zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar';
   kind: string;
   slug: string;
   identity: string;
