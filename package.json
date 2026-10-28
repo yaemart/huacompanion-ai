@@ -23,7 +23,8 @@
     "test:agent": "tsx tests/integration/content-agent.ts",
     "seed:knowledge": "tsx scripts/seed-knowledge.ts",
     "test:catalog": "tsx tests/integration/catalog.ts",
-    "test:catalog:http": "tsx tests/integration/catalog-http.ts"
+    "test:catalog:http": "tsx tests/integration/catalog-http.ts",
+    "seed:projects": "tsx scripts/seed-service-projects.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
