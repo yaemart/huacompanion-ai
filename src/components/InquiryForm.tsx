@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { services } from "@/lib/content";
+import { catalogCities } from "@/lib/catalog-options";
 import { locales, localeNames, type Locale } from "@/lib/locales";
 import { formText, type FormCopyKey } from "@/lib/form-copy";
 import {
@@ -112,7 +113,19 @@ export function InquiryForm({
         {labels[key]}
         {required && <span className="required"> *</span>}
       </label>
-      {type === "textarea" ? (
+      {key === "city" && !partner ? (
+        <select
+          id="city"
+          value={val("city")}
+          onChange={(e) => set("city", e.target.value)}
+          aria-required="true"
+          aria-invalid={!!errors.city}
+          aria-describedby={errors.city ? "city-error" : undefined}
+        >
+          <option value="">— {labels.city} —</option>
+          {catalogCities.map(city => <option key={city.code} value={city.en}>{city[locale]}</option>)}
+        </select>
+      ) : type === "textarea" ? (
         <textarea
           id={key}
           value={val(key)}
@@ -611,7 +624,7 @@ export function InquiryForm({
                       .map(([k, v]) => (
                         <div className="review-row" key={k}>
                           <dt>{labels[k]}</dt>
-                          <dd>{String(v)}</dd>
+                          <dd>{k === "city" && !partner ? catalogCities.find(city => city.en === v)?.[locale] || String(v) : String(v)}</dd>
                         </div>
                       ))}
                     {values.datesUnknown && (
