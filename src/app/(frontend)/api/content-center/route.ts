@@ -1,3 +1,4 @@
+import { locales } from "@/lib/locales";
 import {
   contentAuth,
   checkOrigin,
@@ -69,10 +70,7 @@ export async function GET(req: Request) {
             publicApproved: d.publicApproved,
           }))
         : [];
-    const visible = [
-      ...(await listPublished(p, "zh")),
-      ...(await listPublished(p, "en")),
-    ];
+    const visible = (await Promise.all(locales.map(locale => listPublished(p, locale)))).flat();
     return Response.json(
       {
         role: user.role,

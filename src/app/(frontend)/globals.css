@@ -2205,3 +2205,14 @@ html[dir="rtl"] .article, html[dir="rtl"] .form-panel, html[dir="rtl"] .guide-co
   .nav { gap: 14px; font-size: 11px; }
   .header-actions .button.small { display: none; }
 }
+
+/* Institution directory: factual information and a single Hua enquiry route. */
+.institution-meta,.institution-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:1rem;margin-block:1.5rem}
+.institution-status{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:.3rem .7rem;font-size:.85rem;line-height:1.5;color:#37634b;background:#eef5ef}
+.institution-status-pending{color:#75551e;background:#fff7e8}.institution-status-paused{color:#665b5b;background:#f3eeee}
+.institution-enquiry{padding:1.5rem;margin-block:2rem;border:1px solid var(--line);border-radius:16px;background:var(--cream,#f4f5ef)}
+.institution-sources li{margin-block:.75rem;overflow-wrap:anywhere}.institution-sources ul{padding-inline-start:1.5rem}
+.institution-card h2,.institution-page h1{overflow-wrap:anywhere}.institution-page{text-align:start}.institution-pagination{justify-content:center}
+.institution-filters input,.institution-filters select{min-width:0}.institution-card .institution-meta{margin-block:0 1rem}
+@media(max-width:600px){.institution-enquiry{padding:1rem}.institution-meta{align-items:flex-start}}
+@media(min-width:851px) and (max-width:1440px){.site-header{gap:14px;padding-inline:2%}.nav{gap:11px;font-size:11px}.header-actions .button.small{display:none}}

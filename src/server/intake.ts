@@ -80,6 +80,7 @@ export async function saveIntake(input: unknown, key: string) {
         data: {
           ...common,
           status: "new",
+          coordinationStage: "received",
           ...(catalogSource ? { catalogSource } : {}),
         },
       });

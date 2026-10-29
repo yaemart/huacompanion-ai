@@ -1,4 +1,4 @@
-import { catalogCities } from "@/lib/catalog-options";
+import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { CatalogDetails } from "@/components/catalog/CatalogPage";
 import { headers } from "next/headers";
@@ -73,6 +73,58 @@ export default async function Preview({
               最后人工核实: body.exhibition.verifiedAt,
               待确认事项: body.exhibition.unresolved,
               关联项目标识: body.exhibition.projectKeys.join("、"),
+            }).map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd style={{ whiteSpace: "pre-wrap" }}>{value || "未填写"}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+      {body.kind === "institution" && body.institution && (
+        <section>
+          <h2>医疗与康养机构资料</h2>
+          <p>以下均为拟公开内容。内部合作档案及私有核验材料不在此展示。</p>
+          <dl>
+            {Object.entries({
+              机构类型: (
+                {
+                  medical: "医疗机构",
+                  rehabilitation: "康复机构",
+                  wellness: "康养机构",
+                } as Record<string, string>
+              )[body.institution.type],
+              城市: catalogCities.find((c) => c.code === body.institution?.city)
+                ?.zh,
+              详细地址: body.institution.address,
+              英文地址: body.institution.addressEn,
+              到达方式: body.institution.directions,
+              适合人群: body.institution.audience,
+              预约方式与条件: body.institution.appointment,
+              到访准备: body.institution.preparation,
+              费用说明: body.institution.fees,
+              外籍访客接待状态: (
+                {
+                  pending: "待确认（不等于不接待）",
+                  confirmed: "已确认接待",
+                  paused: "暂停接待",
+                } as Record<string, string>
+              )[body.institution.foreignAcceptance],
+              外籍访客接待条件: body.institution.acceptanceConditions,
+              服务语言:
+                body.institution.languages
+                  .map(
+                    (code) =>
+                      catalogLanguages.find((l) => l.code === code)?.zh || code,
+                  )
+                  .join("、") || "尚未确认",
+              口译支持: body.institution.interpretation,
+              官方网站: body.institution.officialURL,
+              最后人工核实: body.institution.verifiedAt,
+              公开资质核验说明: body.institution.qualification,
+              待确认事项: body.institution.unresolved,
+              关联项目标识: body.institution.projectKeys.join("、"),
             }).map(([label, value]) => (
               <div key={label}>
                 <dt>{label}</dt>

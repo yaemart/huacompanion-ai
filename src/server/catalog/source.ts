@@ -26,6 +26,17 @@ export async function resolveCatalogSource(
         (d) => d.kind === "service-project" && d.contentKey === source.project,
       )
     : undefined;
+  const institution = source.institution ? docs.find(d => d.kind === "institution" && d.contentKey === source.institution) : undefined;
+  const institutionError = () => new IntakeValidationError({source: {
+    zh:"所选机构已变更、暂停接待或与服务不匹配。请重新打开机构页面，或移除选择后提交一般咨询。",
+    en:"The institution has changed, is unavailable or does not match this service. Reopen its page or remove the selection.",
+    es:"La institución ha cambiado, no está disponible o no corresponde al servicio. Abre su página de nuevo o elimina la selección.",
+    fr:"L’établissement a changé, est indisponible ou ne correspond pas au service. Rouvrez sa page ou retirez la sélection.",
+    de:"Die Einrichtung wurde geändert, ist nicht verfügbar oder passt nicht zur Leistung. Öffnen Sie die Seite erneut oder entfernen Sie die Auswahl.",
+    it:"La struttura è cambiata, non è disponibile o non corrisponde al servizio. Riapri la pagina o rimuovi la selezione.",
+    ar:"تغيرت المؤسسة أو أنها غير متاحة أو لا تتوافق مع الخدمة. أعد فتح صفحتها أو أزل الاختيار."
+  }[locale]});
+  if (source.institution && (!institution?.institution || institution.institution.foreignAcceptance !== "confirmed" || source.exhibition || source.provider || (source.project && !institution.institution.projectKeys.includes(source.project)))) throw institutionError();
   const exhibition = source.exhibition ? docs.find(d => d.kind === "exhibition" && d.contentKey === source.exhibition) : undefined;
   const exhibitionError = () => new IntakeValidationError({source: coreText(locale, "The selected exhibition is unavailable, has changed, or does not match your service selection. Please reopen its page or remove the selection.")});
   if (source.exhibition && (!exhibition?.exhibition || ["cancelled", "ended"].includes(effectiveExhibitionStatus(exhibition.exhibition)) || (source.project && !exhibition.exhibition.projectKeys.includes(source.project)) || (source.provider && !source.project))) throw exhibitionError();
@@ -57,6 +68,7 @@ export async function resolveCatalogSource(
         s.body.kind === d.kind,
     )!;
     if (d.kind === "exhibition" && requireRevision && source.exhibitionRevision !== s.revision) throw exhibitionError();
+    if (d.kind === "institution" && requireRevision && source.institutionRevision !== s.revision) throw institutionError();
     return {
       key: d.contentKey,
       title: d.title,
@@ -65,6 +77,7 @@ export async function resolveCatalogSource(
       publicationId: s.id,
       revision: s.revision,
       ...(d.kind === "exhibition" ? {startDate:d.exhibition!.startDate,endDate:d.exhibition!.endDate,city:d.exhibition!.city,venue:d.exhibition!.venue,status:effectiveExhibitionStatus(d.exhibition!)} : {}),
+      ...(d.kind === "institution" ? {city:d.institution!.city, type:d.institution!.type, foreignAcceptance:d.institution!.foreignAcceptance, verifiedAt:d.institution!.verifiedAt, address:d.institution!.address} : {}),
       ...(d.kind === "provider-profile" ? { providerRef: s.providerRef } : {}),
       ...(d.kind === "service-project"
         ? {
@@ -92,5 +105,6 @@ export async function resolveCatalogSource(
     ...(provider ? { provider: snapshot(provider) } : {}),
     ...(project ? { project: snapshot(project) } : {}),
     ...(exhibition ? { exhibition: snapshot(exhibition) } : {}),
+    ...(institution ? { institution: snapshot(institution) } : {}),
   };
 }

@@ -12,6 +12,12 @@ import {
   exhibitionIndustryLabels,
   exhibitionStatusLabels,
 } from "./ExhibitionFields";
+import {
+  InstitutionFields,
+  institutionTypeLabels,
+  institutionAcceptanceLabels,
+} from "./InstitutionFields";
+import { emptyInstitution } from "@/lib/institutions";
 import { emptyExhibition, effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
 import { useEffect, useState } from "react";
@@ -28,6 +34,7 @@ const empty = (): ContentBody => ({
   category: 1,
 });
 const kinds = {
+  institution: "医疗与康养机构",
   exhibition: "展会信息",
   guide: "来华指南",
   service: "服务介绍",
@@ -59,6 +66,9 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [selected, setSelected] = useState<any>(null);
   const [body, setBody] = useState<ContentBody>(() => ({
     ...empty(),
+    ...(initialKind === "institution"
+      ? { kind: "institution" as const, institution: emptyInstitution() }
+      : {}),
     ...(initialKind === "exhibition"
       ? { kind: "exhibition" as const, exhibition: emptyExhibition() }
       : {}),
@@ -71,6 +81,10 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [industryFilter, setIndustryFilter] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [eventFilter, setEventFilter] = useState("");
+  const [institutionTypeFilter, setInstitutionTypeFilter] = useState("");
+  const [acceptanceFilter, setAcceptanceFilter] = useState("");
+  const [serviceLanguageFilter, setServiceLanguageFilter] = useState("");
+  const [institutionReviewed, setInstitutionReviewed] = useState(false);
   const [exhibitionReviewed, setExhibitionReviewed] = useState(false);
   const [publicationFilter, setPublicationFilter] = useState("");
   const [providerRef, setProviderRef] = useState("");
@@ -102,6 +116,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     setProviderRef(d.providerRef ? String(d.providerRef) : "");
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
+    setInstitutionReviewed(false);
     setBody({ ...d.body, category: sectionFor(d.body) });
     setVersions([]);
     setMessage("");
@@ -120,13 +135,14 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
           ...(action === "save"
             ? {
                 body,
-                ...(body.kind === "provider-profile" && data.role === "admin"
+                ...(["provider-profile", "institution"].includes(body.kind) &&
+                data.role === "admin"
                   ? { providerRef: providerRef ? Number(providerRef) : null }
                   : {}),
               }
             : {}),
           ...(action === "publish"
-            ? { catalogReviewed, exhibitionReviewed }
+            ? { catalogReviewed, exhibitionReviewed, institutionReviewed }
             : {}),
           ...extra,
         }),
@@ -152,6 +168,9 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     setBody({
       ...body,
       [key]: value,
+      ...(key === "kind" && value === "institution" && !body.institution
+        ? { institution: emptyInstitution() }
+        : {}),
       ...(key === "kind" && value === "exhibition" && !body.exhibition
         ? { exhibition: emptyExhibition() }
         : {}),
@@ -161,6 +180,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     });
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
+    setInstitutionReviewed(false);
   }
   function block(index: number, value: Partial<Block>) {
     field(
@@ -202,19 +222,22 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
       <style>{`.content-center{max-width:1250px;margin:auto;padding:32px 24px;color:#183e35}.content-center h1{font-size:36px}.content-center h2{font-size:24px}.content-center button,.content-center input,.content-center select,.content-center textarea{font:inherit;padding:10px;border:1px solid #9aafa5;border-radius:6px}.content-center button{cursor:pointer;background:#edf3ed;margin:4px}.content-center button:disabled{opacity:.5;cursor:wait}.content-center input,.content-center textarea,.content-center select{width:100%;background:white}.content-center label{display:block;margin:14px 0}.content-center textarea{min-height:100px}.content-center .workspace{display:grid;grid-template-columns:280px 1fr;gap:24px}.content-center .panel{padding:20px;border:1px solid #cbd8ce;border-radius:12px;background:#fafcf9}.content-center .row{display:flex;gap:12px}.content-center .row>*{flex:1}.content-center aside.panel{max-height:75vh;overflow-y:auto;overflow-x:hidden}.content-center .item{display:block;width:100%;margin:4px 0;text-align:left}.content-center .notice{padding:16px;background:#edf2dc;white-space:pre-wrap}.content-center small{display:block}.content-center .block{padding:10px;margin:12px 0;border:1px solid #d1dcd1}@media(max-width:750px){.content-center .workspace{grid-template-columns:1fr}.content-center .row{display:block}.content-center aside.panel{max-height:35vh}}`}</style>
       <a href="/admin">← 中文管理后台</a>
       <h1>
-        {initialKind === "exhibition"
-          ? "展会信息管理"
-          : initialKind === "provider-profile"
-            ? "服务商展示内容管理"
-            : initialKind === "service-project"
-              ? "华伴服务项目管理"
-              : "知识与网站内容管理"}
+        {initialKind === "institution"
+          ? "医疗与康养机构管理"
+          : initialKind === "exhibition"
+            ? "展会信息管理"
+            : initialKind === "provider-profile"
+              ? "服务商展示内容管理"
+              : initialKind === "service-project"
+                ? "华伴服务项目管理"
+                : "知识与网站内容管理"}
       </h1>
       <nav
         aria-label="内容管理栏目"
         style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "20px 0" }}
       >
         <a href="/content-center">知识与网站内容</a>
+        <a href="/content-center?kind=institution">医疗与康养机构</a>
         <a href="/content-center?kind=exhibition">展会信息</a>
         <a href="/content-center?kind=provider-profile">服务商展示内容</a>
         <a href="/content-center?kind=service-project">华伴服务项目</a>
@@ -252,6 +275,12 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 setSelected(null);
                 setBody({
                   ...empty(),
+                  ...(kindFilter === "institution"
+                    ? {
+                        kind: "institution" as const,
+                        institution: emptyInstitution(),
+                      }
+                    : {}),
                   ...(kindFilter === "exhibition"
                     ? {
                         kind: "exhibition" as const,
@@ -268,16 +297,19 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 setProviderRef("");
                 setCatalogReviewed(false);
                 setExhibitionReviewed(false);
+                setInstitutionReviewed(false);
                 setVersions([]);
               }}
             >
-              {kindFilter === "exhibition"
-                ? "＋ 新建展会"
-                : kindFilter === "provider-profile"
-                  ? "＋ 新建服务商展示"
-                  : kindFilter === "service-project"
-                    ? "＋ 新建服务项目"
-                    : "＋ 新建内容"}
+              {kindFilter === "institution"
+                ? "＋ 新建机构"
+                : kindFilter === "exhibition"
+                  ? "＋ 新建展会"
+                  : kindFilter === "provider-profile"
+                    ? "＋ 新建服务商展示"
+                    : kindFilter === "service-project"
+                      ? "＋ 新建服务项目"
+                      : "＋ 新建内容"}
             </button>
             <label>
               内容库
@@ -308,7 +340,11 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
               </select>
             </label>
             <label>
-              {kindFilter === "exhibition" ? "展会城市" : "服务城市"}
+              {kindFilter === "institution"
+                ? "机构城市"
+                : kindFilter === "exhibition"
+                  ? "展会城市"
+                  : "服务城市"}
               <select
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
@@ -321,6 +357,54 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 ))}
               </select>
             </label>
+            {kindFilter === "institution" && (
+              <>
+                <label>
+                  机构类型
+                  <select
+                    value={institutionTypeFilter}
+                    onChange={(e) => setInstitutionTypeFilter(e.target.value)}
+                  >
+                    <option value="">全部类型</option>
+                    {Object.entries(institutionTypeLabels).map(([v, l]) => (
+                      <option key={v} value={v}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  接待状态
+                  <select
+                    value={acceptanceFilter}
+                    onChange={(e) => setAcceptanceFilter(e.target.value)}
+                  >
+                    <option value="">全部接待状态</option>
+                    {Object.entries(institutionAcceptanceLabels).map(
+                      ([v, l]) => (
+                        <option key={v} value={v}>
+                          {l}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <label>
+                  机构服务语言
+                  <select
+                    value={serviceLanguageFilter}
+                    onChange={(e) => setServiceLanguageFilter(e.target.value)}
+                  >
+                    <option value="">全部服务语言</option>
+                    {catalogLanguages.map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.zh}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
             {kindFilter === "exhibition" && (
               <>
                 <label>
@@ -445,11 +529,23 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     })()) &&
                   (!kindFilter || d.kind === kindFilter) &&
                   (!cityFilter ||
-                    (d.kind === "exhibition"
-                      ? d.body.exhibition?.city === cityFilter
-                      : d.body.catalog?.cities.some(
-                          (c: any) => c.code === cityFilter,
-                        ))) &&
+                    (d.kind === "institution"
+                      ? d.body.institution?.city === cityFilter
+                      : d.kind === "exhibition"
+                        ? d.body.exhibition?.city === cityFilter
+                        : d.body.catalog?.cities.some(
+                            (c: any) => c.code === cityFilter,
+                          ))) &&
+                  (kindFilter !== "institution" ||
+                    ((!institutionTypeFilter ||
+                      d.body.institution?.type === institutionTypeFilter) &&
+                      (!acceptanceFilter ||
+                        d.body.institution?.foreignAcceptance ===
+                          acceptanceFilter) &&
+                      (!serviceLanguageFilter ||
+                        d.body.institution?.languages.includes(
+                          serviceLanguageFilter,
+                        )))) &&
                   (kindFilter !== "exhibition" ||
                     ((!industryFilter ||
                       d.body.exhibition?.industries.includes(industryFilter)) &&
@@ -545,6 +641,68 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                   onChange={(e) => field("contentKey", e.target.value)}
                 />
               </label>
+              {body.kind === "institution" && (
+                <>
+                  <InstitutionFields
+                    value={body.institution || emptyInstitution()}
+                    onChange={(v) => field("institution", v)}
+                    choices={data.drafts.filter(
+                      (d: any) =>
+                        d.locale === body.locale &&
+                        d.kind === "service-project",
+                    )}
+                  />
+                  {data.role === "admin" ? (
+                    <>
+                      <label>
+                        关联内部合作档案（可选，仅后台可见）
+                        <select
+                          value={providerRef}
+                          onChange={(e) => {
+                            setProviderRef(e.target.value);
+                            setInstitutionReviewed(false);
+                          }}
+                        >
+                          <option value="">不关联内部档案</option>
+                          {(data.providers || []).map((p: any) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                          {providerRef &&
+                            !(data.providers || []).some(
+                              (p: any) => String(p.id) === providerRef,
+                            ) && (
+                              <option value={providerRef}>
+                                现有关联档案：{providerRef}
+                              </option>
+                            )}
+                        </select>
+                      </label>
+                      <small>
+                        公开目录不要求机构已签约。关联档案及其中联系人、合同和私有资质材料不会出现在公开机构资料中。
+                      </small>
+                      <label>
+                        <input
+                          type="checkbox"
+                          style={{ width: "auto" }}
+                          checked={institutionReviewed}
+                          onChange={(e) =>
+                            setInstitutionReviewed(e.target.checked)
+                          }
+                        />{" "}
+                        我已核对官方来源、资质核验说明、外籍接待状态与条件、服务语言及待确认事项，确认已保存版本可公开发布且不含内部资料。
+                      </label>
+                    </>
+                  ) : (
+                    <p>内部档案关联和发布核验由管理员维护。</p>
+                  )}
+                  <p>
+                    先保存修改，再进行人工发布核验。修改后需重新勾选；AI
+                    不会自动确认接待能力或发布。
+                  </p>
+                </>
+              )}
               {body.kind === "exhibition" && (
                 <p>
                   每届展会使用独立内容标识（例如
@@ -650,6 +808,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                             setProviderRef(e.target.value);
                             setCatalogReviewed(false);
                             setExhibitionReviewed(false);
+                            setInstitutionReviewed(false);
                           }}
                         >
                           <option value="">请选择已入驻的服务商</option>
@@ -869,7 +1028,8 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     <>
                       <button
                         disabled={
-                          body.kind === "exhibition" && !exhibitionReviewed
+                          (body.kind === "exhibition" && !exhibitionReviewed) ||
+                          (body.kind === "institution" && !institutionReviewed)
                         }
                         onClick={() => action("publish")}
                       >

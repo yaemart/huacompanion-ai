@@ -199,6 +199,10 @@ export interface Inquiry {
     | boolean
     | null;
   status: 'new' | 'needs-info' | 'processing' | 'quoted' | 'won' | 'closed';
+  /**
+   * 记录实际协调进展；处理状态用于整体业务管理。
+   */
+  coordinationStage?: ('received' | 'contacting' | 'confirming' | 'proposal' | 'completed' | 'closed') | null;
   owner?: (number | null) | Staff;
   nextFollowUp?: string | null;
   notes?: string | null;
@@ -582,6 +586,7 @@ export interface InquiriesSelect<T extends boolean = true> {
   contentHash?: T;
   catalogSource?: T;
   status?: T;
+  coordinationStage?: T;
   owner?: T;
   nextFollowUp?: T;
   notes?: T;

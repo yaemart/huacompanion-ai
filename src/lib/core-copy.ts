@@ -1,5 +1,7 @@
 import type { Locale } from './locales.ts';
 const rows = [
+['Medical & wellness institutions','医疗与康养机构','Instituciones médicas y de bienestar','Établissements médicaux et de bien-être','Medizinische Einrichtungen und Wellness','Strutture mediche e benessere','المؤسسات الطبية والعافية'],
+['Institutions','医疗康养','Instituciones','Établissements','Einrichtungen','Strutture','المؤسسات'],
 ['Home','首页','Inicio','Accueil','Startseite','Home','الرئيسية'],
 ['Services','来华服务','Servicios','Services','Dienstleistungen','Servizi','الخدمات'],
 ['Providers','服务商','Proveedores','Prestataires','Dienstleister','Fornitori','مقدمو الخدمات'],

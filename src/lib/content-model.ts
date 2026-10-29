@@ -1,3 +1,4 @@
+import { type Institution, validateInstitution, publicInstitution } from "./institutions.ts";
 import { type Exhibition, validateExhibition, publicExhibition } from "./exhibitions.ts";
 import { isLocale, type Locale } from "./locales.ts";
 import {
@@ -32,7 +33,8 @@ export type ContentBody = {
     | "partner"
     | "provider-profile"
     | "service-project"
-    | "exhibition";
+    | "exhibition"
+    | "institution";
   locale: Locale;
   slug: string;
   title: string;
@@ -41,6 +43,7 @@ export type ContentBody = {
   sources: Source[];
   catalog?: Catalog;
   exhibition?: Exhibition;
+  institution?: Institution;
   acceptingInquiries?: boolean;
   category?: number;
   order?: number;
@@ -91,6 +94,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
       "provider-profile",
       "service-project",
       "exhibition",
+      "institution",
     ].includes(d.kind) ||
     !isLocale(d.locale)
   )
@@ -115,6 +119,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
     throw Error("网站页面仅支持 home/about/contact/partners/privacy/terms");
   if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
   if (d.kind === "exhibition") validateExhibition(d.exhibition);
+  if (d.kind === "institution") validateInstitution(d.institution);
   checkBlocks(d.blocks);
   if (!Array.isArray(d.sources) || d.sources.length > 30)
     throw Error("来源格式无效");
@@ -166,6 +171,7 @@ export function validateCandidate(
 }
 export function publicBody(d: ContentBody): ContentBody {
   return {
+    ...(d.kind === "institution" && d.institution ? { institution: publicInstitution(d.institution) } : {}),
     ...(d.kind === "exhibition" && d.exhibition ? { exhibition: publicExhibition(d.exhibition) } : {}),
     ...(isCatalog(d.kind) && d.catalog
       ? { catalog: publicCatalog(d.catalog, d.locale) }

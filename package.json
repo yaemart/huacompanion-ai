@@ -26,7 +26,9 @@
     "test:catalog:http": "tsx tests/integration/catalog-http.ts",
     "seed:projects": "tsx scripts/seed-service-projects.ts",
     "seed:exhibitions": "tsx scripts/seed-exhibitions.ts",
-    "test:exhibitions": "tsx tests/integration/exhibitions.ts"
+    "test:exhibitions": "tsx tests/integration/exhibitions.ts",
+    "seed:institutions": "tsx scripts/seed-institutions.ts",
+    "test:institutions": "tsx tests/integration/institutions.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

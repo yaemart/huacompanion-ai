@@ -1,3 +1,4 @@
+import { validateInstitutionPublication } from "../../lib/institutions";
 import { validateExhibitionPublication, effectiveExhibitionStatus } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
 import {
@@ -87,6 +88,7 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
         b.exhibition.status = effectiveExhibitionStatus(b.exhibition);
         b.acceptingInquiries = !["ended", "cancelled"].includes(b.exhibition.status);
       }
+      if (b.kind === "institution" && b.institution) b.acceptingInquiries = b.institution.foreignAcceptance === "confirmed";
       if (isCatalog(b.kind)) {
         b.acceptingInquiries =
           b.kind === "provider-profile" ||
@@ -159,7 +161,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             req,
           });
       let providerRef = current?.providerRef;
-      if (body.kind === "provider-profile" && input.providerRef !== undefined) {
+      if (["provider-profile", "institution"].includes(body.kind) && input.providerRef !== undefined) {
         if (user?.role !== "admin")
           throw new ContentError("只有管理员可关联内部服务商", 403);
         if (
@@ -167,12 +169,14 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
           (!Number.isSafeInteger(input.providerRef) || input.providerRef < 1)
         )
           throw new ContentError("内部服务商编号无效");
-        if (current?.everPublished && current.providerRef !== input.providerRef)
+        if (body.kind === "provider-profile" && current?.everPublished && current.providerRef !== input.providerRef)
           throw new ContentError("已发布服务商的内部关联不能更改");
+        if (input.providerRef !== null)
+          await p.findByID({ collection: "providers", id: input.providerRef, req, depth: 0 });
         providerRef = input.providerRef;
       }
       const data = {
-        ...(body.kind === "provider-profile" ? { providerRef } : {}),
+        ...(["provider-profile", "institution"].includes(body.kind) ? { providerRef } : {}),
         title: body.title,
         contentKey: body.contentKey,
         locale: body.locale,
@@ -238,6 +242,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
       if (clean.kind === "exhibition") validateExhibitionPublication(clean.exhibition, clean.sources, input.exhibitionReviewed);
+      if (clean.kind === "institution") validateInstitutionPublication(clean.institution, clean.sources, input.institutionReviewed);
       if (isCatalog(clean.kind)) {
         validateCatalog(clean.kind, clean.catalog, true);
         if (input.catalogReviewed !== true)
@@ -267,7 +272,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       }
       const data = {
         providerRef:
-          clean.kind === "provider-profile" ? current.providerRef : null,
+          ["provider-profile", "institution"].includes(clean.kind) ? current.providerRef : null,
         suspended: false,
         draftId: current.id,
         routeKey: current.routeKey,

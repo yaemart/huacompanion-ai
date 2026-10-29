@@ -9,6 +9,12 @@ export function ContentNav({ user }: { user?: ContentUser }) {
       </a>
       <a
         style={{ display: "block", padding: "8px 0" }}
+        href="/content-center?kind=institution"
+      >
+        医疗与康养机构
+      </a>
+      <a
+        style={{ display: "block", padding: "8px 0" }}
         href="/content-center?kind=exhibition"
       >
         展会信息

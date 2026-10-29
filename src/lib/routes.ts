@@ -25,6 +25,7 @@ export function isKnownRoute(slug: string[]): boolean {
   if (slug.length === 1)
     return [
       "exhibitions",
+      "institutions",
       "services",
       "guides",
       "partners",
