@@ -1,14 +1,18 @@
 import { catalogLanguages } from "../../lib/catalog-options";
 import type { CollectionConfig } from "payload";
-import { canEditContent } from "../../lib/content-model";
+import { contentScope, isAdmin } from "../access";
+import { mediaScope } from "./media-access";
 import { contentSections, sectionFor } from "../../lib/content-sections";
 const closed = () => false;
 const access = {
   create: closed,
   update: closed,
   delete: closed,
-  read: ({ req }: any) => canEditContent(req.user),
-  readVersions: ({ req }: any) => canEditContent(req.user),
+  read: ({ req }: any) => contentScope(req.user),
+  readVersions: ({ req }: any) => {
+    const scope = contentScope(req.user);
+    return typeof scope === "boolean" ? scope : { "version.kind": scope.kind };
+  },
 };
 const group = "内容中心";
 export const ContentDrafts: CollectionConfig = {
@@ -38,7 +42,7 @@ export const ContentDrafts: CollectionConfig = {
       name: "providerRef",
       label: "内部服务商关联",
       type: "number",
-      access: { read: ({ req }) => req.user?.role === "admin" },
+      access: { read: ({ req }) => isAdmin(req.user) },
     },
     { name: "title", label: "标题", type: "text", required: true },
     {
@@ -87,6 +91,9 @@ export const ContentDrafts: CollectionConfig = {
     },
     { name: "reviewNote", label: "审核意见", type: "textarea" },
     { name: "everPublished", type: "checkbox", defaultValue: false },
+    { name: "contributors", type: "json", defaultValue: [] },
+    { name: "lastEditedBy", type: "number" },
+    { name: "submittedBy", type: "number" },
     { name: "sourceRevision", type: "number" },
     { name: "sourceDraft", type: "number" },
   ],
@@ -95,7 +102,7 @@ export const ContentPublished: CollectionConfig = {
   slug: "content-published",
   labels: { singular: "正式内容", plural: "正式内容" },
   admin: { group, useAsTitle: "routeKey" },
-  access: { ...access, read: ({ req }) => req.user?.role === "admin" },
+  access: { ...access, read: ({ req }) => isAdmin(req.user) },
   fields: [
     { name: "providerRef", type: "number" },
     { name: "suspended", type: "checkbox", defaultValue: false },
@@ -112,21 +119,23 @@ export const ContentEvents: CollectionConfig = {
   slug: "content-events",
   labels: { singular: "发布记录", plural: "发布记录" },
   admin: { group },
-  access: { ...access, read: ({ req }) => req.user?.role === "admin" },
+  access: { ...access, read: ({ req }) => isAdmin(req.user) },
   fields: [
     { name: "draftId", type: "number", required: true },
     { name: "action", type: "text", required: true },
     { name: "actor", type: "number", required: true },
     { name: "revision", type: "number" },
     { name: "snapshot", type: "json" },
+    { name: "overrideReason", type: "textarea" },
   ],
 };
 export const ContentMedia: CollectionConfig = {
   slug: "content-media",
   labels: { singular: "图片素材", plural: "图片素材" },
   admin: { group, useAsTitle: "alt" },
-  access,
+  access: { ...access, read: ({ req }) => mediaScope(req.payload, req.user, req) },
   fields: [
+    { name: "uploadedBy", type: "number" },
     { name: "filename", type: "text", unique: true, required: true },
     { name: "alt", label: "图片说明", type: "text", required: true },
     { name: "rights", label: "使用权来源", type: "text", required: true },
@@ -141,8 +150,12 @@ export const AgentTasks: CollectionConfig = {
     useAsTitle: "title",
     description: "模型未配置时不会发起调用。使用内容工作台管理任务。",
   },
-  access,
+  access: { ...access, read: ({ req }) => {
+    const scope = contentScope(req.user);
+    return typeof scope === "boolean" ? scope : { contentKind: scope.kind };
+  } },
   fields: [
+    { name: "contentKind", type: "text", required: true },
     { name: "title", type: "text", required: true },
     { name: "kind", type: "text", required: true },
     { name: "status", type: "text", required: true },

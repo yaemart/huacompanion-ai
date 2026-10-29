@@ -67,6 +67,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    teams: Team;
     staff: Staff;
     inquiries: Inquiry;
     providers: Provider;
@@ -85,6 +86,7 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    teams: TeamsSelect<false> | TeamsSelect<true>;
     staff: StaffSelect<false> | StaffSelect<true>;
     inquiries: InquiriesSelect<false> | InquiriesSelect<true>;
     providers: ProvidersSelect<false> | ProvidersSelect<true>;
@@ -137,12 +139,41 @@ export interface StaffAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teams".
+ */
+export interface Team {
+  id: number;
+  name: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "staff".
  */
 export interface Staff {
   id: number;
   name: string;
-  role: 'admin' | 'operations' | 'editor';
+  active?: boolean | null;
+  team?: (number | null) | Team;
+  /**
+   * 新员工默认不授权内容；编辑与审核均只允许操作所选内容类型。
+   */
+  contentKinds?:
+    | (
+        | 'service'
+        | 'guide'
+        | 'faq'
+        | 'page'
+        | 'partner'
+        | 'provider-profile'
+        | 'service-project'
+        | 'exhibition'
+        | 'institution'
+      )[]
+    | null;
+  additionalRoles?: ('admin' | 'manager' | 'operations' | 'editor' | 'reviewer')[] | null;
+  role: 'admin' | 'manager' | 'reviewer' | 'operations' | 'editor';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -189,6 +220,7 @@ export interface Inquiry {
   privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
+  team?: (number | null) | Team;
   catalogSource?:
     | {
         [k: string]: unknown;
@@ -235,6 +267,8 @@ export interface Provider {
   privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
+  team?: (number | null) | Team;
+  owner?: (number | null) | Staff;
   organisation: string;
   phone: string;
   languages: string;
@@ -275,6 +309,24 @@ export interface AuditEvent {
   action: string;
   actor?: (number | null) | Staff;
   fields?: string | null;
+  before?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  after?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -319,6 +371,17 @@ export interface ContentDraft {
   reviewState: 'draft' | 'review' | 'returned' | 'approved';
   reviewNote?: string | null;
   everPublished?: boolean | null;
+  contributors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lastEditedBy?: number | null;
+  submittedBy?: number | null;
   sourceRevision?: number | null;
   sourceDraft?: number | null;
   updatedAt: string;
@@ -369,6 +432,7 @@ export interface ContentEvent {
     | number
     | boolean
     | null;
+  overrideReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -378,6 +442,7 @@ export interface ContentEvent {
  */
 export interface ContentMedia {
   id: number;
+  uploadedBy?: number | null;
   filename: string;
   alt: string;
   rights: string;
@@ -393,6 +458,7 @@ export interface ContentMedia {
  */
 export interface ContentAgentTask {
   id: number;
+  contentKind: string;
   title: string;
   kind: string;
   status: string;
@@ -456,6 +522,10 @@ export interface PayloadKv {
 export interface PayloadLockedDocument {
   id: number;
   document?:
+    | ({
+        relationTo: 'teams';
+        value: number | Team;
+      } | null)
     | ({
         relationTo: 'staff';
         value: number | Staff;
@@ -544,10 +614,23 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teams_select".
+ */
+export interface TeamsSelect<T extends boolean = true> {
+  name?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "staff_select".
  */
 export interface StaffSelect<T extends boolean = true> {
   name?: T;
+  active?: T;
+  team?: T;
+  contentKinds?: T;
+  additionalRoles?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -584,6 +667,7 @@ export interface InquiriesSelect<T extends boolean = true> {
   privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
+  team?: T;
   catalogSource?: T;
   status?: T;
   coordinationStage?: T;
@@ -610,6 +694,8 @@ export interface ProvidersSelect<T extends boolean = true> {
   privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
+  team?: T;
+  owner?: T;
   organisation?: T;
   phone?: T;
   languages?: T;
@@ -646,6 +732,8 @@ export interface AuditEventsSelect<T extends boolean = true> {
   action?: T;
   actor?: T;
   fields?: T;
+  before?: T;
+  after?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -678,6 +766,9 @@ export interface ContentDraftsSelect<T extends boolean = true> {
   reviewState?: T;
   reviewNote?: T;
   everPublished?: T;
+  contributors?: T;
+  lastEditedBy?: T;
+  submittedBy?: T;
   sourceRevision?: T;
   sourceDraft?: T;
   updatedAt?: T;
@@ -710,6 +801,7 @@ export interface ContentEventsSelect<T extends boolean = true> {
   actor?: T;
   revision?: T;
   snapshot?: T;
+  overrideReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -718,6 +810,7 @@ export interface ContentEventsSelect<T extends boolean = true> {
  * via the `definition` "content-media_select".
  */
 export interface ContentMediaSelect<T extends boolean = true> {
+  uploadedBy?: T;
   filename?: T;
   alt?: T;
   rights?: T;
@@ -730,6 +823,7 @@ export interface ContentMediaSelect<T extends boolean = true> {
  * via the `definition` "content-agent-tasks_select".
  */
 export interface ContentAgentTasksSelect<T extends boolean = true> {
+  contentKind?: T;
   title?: T;
   kind?: T;
   status?: T;

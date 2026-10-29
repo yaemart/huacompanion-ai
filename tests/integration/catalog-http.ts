@@ -107,7 +107,7 @@ try {
   assert.equal((await fetch(base + "/en/providers/" + key)).status, 404);
   d = await post({ action: "submit", id: d.id, revision: d.revision });
   await post({
-    action: "publish",
+    action: "publish", overrideReason:"Local regression fixture review and cleanup",
     id: d.id,
     revision: d.revision,
     catalogReviewed: true,
@@ -181,7 +181,7 @@ try {
     revision: project.revision,
   });
   await post({
-    action: "publish",
+    action: "publish", overrideReason:"Local regression fixture review and cleanup",
     id: project.id,
     revision: project.revision,
     catalogReviewed: true,
@@ -251,7 +251,7 @@ try {
 } finally {
   for (const id of drafts) {
     const d = await p.findByID({ collection: "content-drafts", id });
-    await post({ action: "unpublish", id, revision: d.revision });
+    await post({ action: "unpublish", overrideReason:"Local regression fixture review and cleanup", id, revision: d.revision });
   }
   await p.update({
     collection: "providers",

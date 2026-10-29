@@ -89,6 +89,14 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [publicationFilter, setPublicationFilter] = useState("");
   const [providerRef, setProviderRef] = useState("");
   const [catalogReviewed, setCatalogReviewed] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+  const permissions = data.permissions || {};
+  const canEdit = !!permissions.canEdit;
+  const canReview = !!permissions.canReview;
+  const isAdmin = !!permissions.isAdmin;
+  const allowedKinds: string[] = permissions.contentKinds || [];
+  const editable = canEdit && selected?.reviewState !== "review";
+  const selfReview = !!selected && [...(Array.isArray(selected.contributors) ? selected.contributors : []), selected.lastEditedBy, selected.submittedBy].some(id => id != null && String(id) === String(permissions.userId));
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("content");
@@ -104,15 +112,36 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   async function load() {
     const r = await fetch("/api/content-center", { cache: "no-store" });
     const d = await r.json();
-    if (!r.ok) throw Error(d.error);
+    if (!r.ok) {
+      if ([401,403].includes(r.status)) {
+        setData({drafts:[],published:[],media:[],tasks:[]}); setSelected(null); setBody(empty());
+        window.location.assign("/admin/login");
+      }
+      throw Error(d.error);
+    }
     setData(d);
+    setSelected((previous: any) => {
+      if (previous && !d.drafts.some((draft:any) => draft.id === previous.id)) { setBody(empty()); return null; }
+      return previous;
+    });
     return d;
   }
   useEffect(() => {
-    load().catch((e) => setMessage(e.message));
+    load().then(d => {
+      const permitted = d.permissions?.contentKinds || [];
+      const kind = permitted.includes(initialKind) ? initialKind : permitted[0];
+      if (kind) {
+        setBody({...empty(), kind, ...(kind === "institution" ? {institution:emptyInstitution()} : {}), ...(kind === "exhibition" ? {exhibition:emptyExhibition()} : {}), ...(isCatalog(kind) ? {catalog:emptyCatalog()} : {})});
+        if (initialKind && !permitted.includes(initialKind)) setKindFilter("");
+      }
+    }).catch((e) => setMessage(e.message));
+    const refresh = () => { load().catch(e => setMessage(e.message)); };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, []);
   function select(d: any) {
     setSelected(d);
+    setOverrideReason("");
     setProviderRef(d.providerRef ? String(d.providerRef) : "");
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
@@ -136,19 +165,22 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
             ? {
                 body,
                 ...(["provider-profile", "institution"].includes(body.kind) &&
-                data.role === "admin"
+                isAdmin
                   ? { providerRef: providerRef ? Number(providerRef) : null }
                   : {}),
               }
             : {}),
-          ...(action === "publish"
-            ? { catalogReviewed, exhibitionReviewed, institutionReviewed }
+          ...(["publish", "return", "unpublish"].includes(action)
+            ? { catalogReviewed, exhibitionReviewed, institutionReviewed, overrideReason }
             : {}),
           ...extra,
         }),
       });
       const d = await r.json();
-      if (!r.ok) throw Error(d.error);
+      if (!r.ok) {
+        if ([401,403].includes(r.status)) await load();
+        throw Error(d.error);
+      }
       await load();
       select(d);
       setMessage(
@@ -208,7 +240,10 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
         }),
       });
       const d = await r.json();
-      if (!r.ok) throw Error(d.error);
+      if (!r.ok) {
+        if ([401,403].includes(r.status)) await load();
+        throw Error(d.error);
+      }
       await load();
       setMessage(d.message || "AI任务已更新");
     } catch (e) {
@@ -237,10 +272,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
         style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "20px 0" }}
       >
         <a href="/content-center">知识与网站内容</a>
-        <a href="/content-center?kind=institution">医疗与康养机构</a>
-        <a href="/content-center?kind=exhibition">展会信息</a>
-        <a href="/content-center?kind=provider-profile">服务商展示内容</a>
-        <a href="/content-center?kind=service-project">华伴服务项目</a>
+        {Object.entries(kinds).filter(([kind]) => allowedKinds.includes(kind)).map(([kind,label]) => <a key={kind} href={`/content-center?kind=${kind}`}>{label}</a>)}
       </nav>
       {isCatalog(initialKind) && (
         <p>
@@ -248,7 +280,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
         </p>
       )}
       <p>
-        编辑与 AI 生成的内容先进入草稿，只有管理员审核后才能发布。网站与未来 App
+        编辑与 AI 生成的内容先进入草稿，只有授权审核员核验后才能发布。网站与未来 App
         共用正式内容。
       </p>
       <nav>
@@ -270,11 +302,11 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
       {tab === "content" && (
         <div className="workspace">
           <aside className="panel">
-            <button
+            <button disabled={!canEdit || busy}
               onClick={() => {
                 setSelected(null);
                 setBody({
-                  ...empty(),
+                  ...empty(), kind: (kindFilter || allowedKinds[0] || "guide") as ContentBody["kind"],
                   ...(kindFilter === "institution"
                     ? {
                         kind: "institution" as const,
@@ -318,7 +350,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 onChange={(e) => setKindFilter(e.target.value)}
               >
                 <option value="">全部类型</option>
-                {Object.entries(kinds).map(([v, l]) => (
+                {Object.entries(kinds).filter(([v]) => allowedKinds.includes(v)).map(([v, l]) => (
                   <option key={v} value={v}>
                     {l}
                   </option>
@@ -602,7 +634,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                   当前公开展示或咨询受限：请检查服务商许可与履约关联。项目恢复需重新提交审核并发布。
                 </p>
               )}
-            <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
+            <fieldset disabled={busy || !editable} style={{ border: 0, padding: 0 }}>
               <div className="row">
                 <label>
                   内容类型
@@ -611,7 +643,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     disabled={!!selected}
                     onChange={(e) => field("kind", e.target.value)}
                   >
-                    {Object.entries(kinds).map(([v, l]) => (
+                    {Object.entries(kinds).filter(([v]) => allowedKinds.includes(v)).map(([v, l]) => (
                       <option key={v} value={v}>
                         {l}
                       </option>
@@ -652,7 +684,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                         d.kind === "service-project",
                     )}
                   />
-                  {data.role === "admin" ? (
+                  {isAdmin ? (
                     <>
                       <label>
                         关联内部合作档案（可选，仅后台可见）
@@ -682,17 +714,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       <small>
                         公开目录不要求机构已签约。关联档案及其中联系人、合同和私有资质材料不会出现在公开机构资料中。
                       </small>
-                      <label>
-                        <input
-                          type="checkbox"
-                          style={{ width: "auto" }}
-                          checked={institutionReviewed}
-                          onChange={(e) =>
-                            setInstitutionReviewed(e.target.checked)
-                          }
-                        />{" "}
-                        我已核对官方来源、资质核验说明、外籍接待状态与条件、服务语言及待确认事项，确认已保存版本可公开发布且不含内部资料。
-                      </label>
+                      <span>发布核验请使用下方审核区。</span>
                     </>
                   ) : (
                     <p>内部档案关联和发布核验由管理员维护。</p>
@@ -799,7 +821,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     )}
                   />
                   {body.kind === "provider-profile" &&
-                    (data.role === "admin" ? (
+                    (isAdmin ? (
                       <label>
                         关联内部服务商
                         <select
@@ -829,15 +851,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     ) : (
                       <p>内部服务商关联由管理员维护。</p>
                     ))}
-                  <label>
-                    <input
-                      type="checkbox"
-                      style={{ width: "auto" }}
-                      checked={catalogReviewed}
-                      onChange={(e) => setCatalogReviewed(e.target.checked)}
-                    />{" "}
-                    我已检查公开文字、图片、核验事项与价格，不含直联联系方式、二维码或内部资料。
-                  </label>
+                  <span>发布核验请使用下方审核区。</span>
                   <p>先保存修改，再提交审核。管理员发布时需勾选以上检查。</p>
                 </>
               )}
@@ -852,18 +866,8 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                         d.kind === "service-project",
                     )}
                   />
-                  {data.role === "admin" && (
-                    <label>
-                      <input
-                        type="checkbox"
-                        style={{ width: "auto" }}
-                        checked={exhibitionReviewed}
-                        onChange={(e) =>
-                          setExhibitionReviewed(e.target.checked)
-                        }
-                      />{" "}
-                      我已核对官方来源、展期、场馆、报名条件、待确认事项和图片使用权，并确认已保存版本可公开发布。
-                    </label>
+                  {isAdmin && (
+                    <span>发布核验请使用下方审核区。</span>
                   )}
                   <p>
                     先保存再审核。核实日期必须来自实际人工核查；AI
@@ -1011,7 +1015,9 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 ＋ 添加来源
               </button>
               <p>{selected?.reviewNote}</p>
-              <button onClick={() => action("save")}>保存草稿</button>
+            </fieldset>
+              {selected?.reviewState === "review" && <p>待审核内容已锁定编辑，请先由审核员退回再修改。</p>}
+              <button disabled={busy || !editable || !allowedKinds.includes(body.kind)} onClick={() => action("save")}>保存草稿</button>
               {selected && (
                 <>
                   <a
@@ -1021,13 +1027,18 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                   >
                     预览已保存工作稿 ↗
                   </a>
-                  <button onClick={() => action("submit")}>
+                  <button disabled={busy || !editable} onClick={() => action("submit")}>
                     提交已保存稿审核
                   </button>
-                  {data.role === "admin" && (
+                  {canReview && (
                     <>
+                      <h3>审核与发布</h3>
+                      {isCatalog(body.kind) && <label><input type="checkbox" style={{width:"auto"}} checked={catalogReviewed} onChange={e=>setCatalogReviewed(e.target.checked)}/> 已核验公开资料、图片权利及服务范围，不含内部联系方式。</label>}
+                      {body.kind === "exhibition" && <label><input type="checkbox" style={{width:"auto"}} checked={exhibitionReviewed} onChange={e=>setExhibitionReviewed(e.target.checked)}/> 已核验官方来源、展期、地址和报名条件。</label>}
+                      {body.kind === "institution" && <label><input type="checkbox" style={{width:"auto"}} checked={institutionReviewed} onChange={e=>setInstitutionReviewed(e.target.checked)}/> 已核验官方来源、资质说明、接待条件及服务语言。</label>}
+                      {selfReview && (isAdmin ? <label>管理员代审原因（必填）<textarea value={overrideReason} onChange={e=>setOverrideReason(e.target.value)} /></label> : <p>本人编辑或提交的内容，请交由另一位审核员审核。</p>)}
                       <button
-                        disabled={
+                        disabled={busy || selected.reviewState !== "review" || (selfReview && (!isAdmin || !overrideReason.trim())) || (isCatalog(body.kind) && !catalogReviewed) ||
                           (body.kind === "exhibition" && !exhibitionReviewed) ||
                           (body.kind === "institution" && !institutionReviewed)
                         }
@@ -1035,7 +1046,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       >
                         审核并发布已保存稿
                       </button>
-                      <button
+                      <button disabled={busy || selected.reviewState !== "review"}
                         onClick={() =>
                           action("return", {
                             note: prompt("退回修改意见") || "请修改后重新提交",
@@ -1044,7 +1055,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       >
                         退回修改
                       </button>
-                      <button onClick={() => action("unpublish")}>下架</button>
+                      <button disabled={busy} onClick={() => action("unpublish")}>下架</button>
                     </>
                   )}
                   <button
@@ -1082,14 +1093,13 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
               {versions.map((v) => (
                 <p key={v.id}>
                   修订 {v.revision} · {v.updatedAt}
-                  <button
+                  <button disabled={busy || !editable}
                     onClick={() => action("restore", { versionId: v.id })}
                   >
                     恢复为新草稿
                   </button>
                 </p>
               ))}
-            </fieldset>
           </section>
         </div>
       )}
@@ -1142,7 +1152,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
               使用权来源
               <input required name="rights" />
             </label>
-            <button disabled={busy}>上传图片</button>
+            <button disabled={busy || !canEdit}>上传图片</button>
           </form>
           {data.media.map((m: any) => (
             <p key={m.id}>
@@ -1210,7 +1220,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
               onChange={(e) => setMaterial(e.target.value)}
             />
           </label>
-          <button disabled={busy} onClick={() => task("create")}>
+          <button disabled={busy || !editable} onClick={() => task("create")}>
             保存任务
           </button>
           {data.tasks.map((t: any) => (
@@ -1239,17 +1249,17 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 </>
               )}
               <button
-                disabled={busy || t.status === "running"}
+                disabled={busy || !canEdit || t.status === "running"}
                 onClick={() => task("run", t.id)}
               >
                 执行／重试
               </button>
-              <button disabled={busy} onClick={() => task("cancel", t.id)}>
+              <button disabled={busy || !canEdit} onClick={() => task("cancel", t.id)}>
                 取消
               </button>
               {t.status === "succeeded" && (
                 <button
-                  disabled={busy || !!t.adoptedDraft}
+                  disabled={busy || !canEdit || !!t.adoptedDraft}
                   onClick={() => task("adopt", t.id)}
                 >
                   {t.adoptedDraft ? "已采纳" : "采纳为待审核草稿"}

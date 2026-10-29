@@ -1,36 +1,6 @@
-import { canEditContent, type ContentUser } from "../lib/content-model";
-export function ContentNav({ user }: { user?: ContentUser }) {
-  if (!canEditContent(user)) return null;
-  return (
-    <section aria-label="内容管理" style={{ marginBottom: 24 }}>
-      <h3 style={{ fontSize: 14, margin: "0 0 12px" }}>内容管理</h3>
-      <a style={{ display: "block", padding: "8px 0" }} href="/content-center">
-        知识与网站内容
-      </a>
-      <a
-        style={{ display: "block", padding: "8px 0" }}
-        href="/content-center?kind=institution"
-      >
-        医疗与康养机构
-      </a>
-      <a
-        style={{ display: "block", padding: "8px 0" }}
-        href="/content-center?kind=exhibition"
-      >
-        展会信息
-      </a>
-      <a
-        style={{ display: "block", padding: "8px 0" }}
-        href="/content-center?kind=provider-profile"
-      >
-        服务商展示内容
-      </a>
-      <a
-        style={{ display: "block", padding: "8px 0" }}
-        href="/content-center?kind=service-project"
-      >
-        华伴服务项目
-      </a>
-    </section>
-  );
+import { canAccessContentKind, canManageContent, canReviewContent, type Staff } from './access';
+export function ContentNav({user}:{user?:Staff}) {
+ if(!canManageContent(user)&&!canReviewContent(user))return null;
+ const links=[['guide','来华指南'],['service','服务介绍'],['faq','常见问题'],['page','网站页面'],['partner','公开伙伴'],['institution','医疗与康养机构'],['exhibition','展会信息'],['provider-profile','服务商展示内容'],['service-project','华伴服务项目']];
+ return <section aria-label="内容管理" style={{marginBottom:24}}><h3 style={{fontSize:14}}>内容管理</h3>{links.filter(([kind])=>canAccessContentKind(user,kind)).map(([kind,label])=><a key={kind} style={{display:'block',padding:'8px 0'}} href={`/content-center?kind=${kind}`}>{label}</a>)}</section>;
 }

@@ -1,3 +1,4 @@
+import { canAccessContentKind } from "../../cms/access";
 import { isLocale } from "../../lib/locales";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -42,9 +43,12 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
           id: input.draftId,
           req,
         });
+        if (!canAccessContentKind(user, draft.kind)) throw new ContentError("无此板块权限", 403);
         if (draft.revision !== input.revision)
           throw new ContentError("选定内容已变化，请刷新", 409);
       }
+      const contentKind = draft?.kind || "guide";
+      if (!canAccessContentKind(user, contentKind)) throw new ContentError("无此板块权限", 403);
       if (["translate", "check"].includes(input.kind) && !draft)
         throw new ContentError("此任务需要先选定并保存工作稿");
       const locale = input.kind === "translate" ? input.targetLocale : draft?.locale || input.locale || "zh";
@@ -92,6 +96,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       return p.create({
         collection: "content-agent-tasks",
         data: {
+          contentKind,
           title: input.title,
           kind: input.kind,
           status: "unconfigured",
@@ -108,6 +113,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       id: Number(input.id),
       req,
     });
+    if (!canAccessContentKind(user, task.contentKind)) throw new ContentError("无此板块权限", 403);
     if (input.action === "cancel") {
       if (task.adoptedDraft)
         throw new ContentError("该结果已采纳，请在工作稿中处理");
@@ -140,14 +146,19 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
           req,
         })
       : null;
+    if (target && !canAccessContentKind(user, target.kind)) throw new ContentError("无此板块权限", 403);
+    if (target?.reviewState === "review") throw new ContentError("待审核内容须先退回后才能修改", 409);
     if (target && target.revision !== source.targetRevision)
       throw new ContentError("工作稿已变化，请人工比较，不覆盖新稿", 409);
+    let sourceContributors: number[] = [];
     if (source.sourceDraft) {
       const original = await p.findByID({
         collection: "content-drafts",
         id: source.sourceDraft,
         req,
       });
+      sourceContributors = [...(Array.isArray(original.contributors) ? original.contributors : []), original.lastEditedBy, original.submittedBy].filter((id): id is number => typeof id === "number");
+      if (!canAccessContentKind(user, original.kind)) throw new ContentError("无此板块权限", 403);
       if (original.revision !== source.sourceRevision)
         throw new ContentError("原文已变化，请重新生成或人工整理", 409);
     }
@@ -169,6 +180,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       ),
     });
     validateContent(body);
+    if (!canAccessContentKind(user, body.kind)) throw new ContentError("无此板块权限", 403);
     const data = {
       title: body.title,
       contentKey: body.contentKey,
@@ -179,6 +191,8 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       routeKey: `${body.kind}:${body.locale}:${body.slug}`,
       body: body as any,
       revision: (target?.revision || 0) + 1,
+      contributors: [...new Set([...(Array.isArray(target?.contributors) ? target.contributors : []), ...sourceContributors, target?.lastEditedBy, target?.submittedBy, task.createdBy, Number(user!.id)].filter(id => typeof id === "number"))],
+      lastEditedBy: Number(user!.id),
       reviewState: "draft" as const,
       sourceDraft: source.sourceDraft,
       sourceRevision: source.sourceRevision,
@@ -213,6 +227,7 @@ export async function runTask(
       id,
       req,
     });
+    if (!canAccessContentKind(user, task.contentKind)) throw new ContentError("无此板块权限", 403);
     if (task.adoptedDraft || ["succeeded", "cancelled"].includes(task.status))
       throw new ContentError("已完成或取消的任务不能重跑");
     if (task.lease && new Date(task.leaseUntil || 0).getTime() > Date.now())

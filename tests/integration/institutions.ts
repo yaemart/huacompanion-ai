@@ -12,7 +12,7 @@ if (process.env.APP_ENV !== "local") throw Error("Local only");
 const p = await getPayload({config});
 const drafts: number[] = [];
 try {
-  const admin = (await p.find({collection:"staff",where:{role:{equals:"admin"}},limit:1})).docs[0];
+  const admin = (await p.find({collection:"staff",where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",limit:1})).docs[0];
   assert.ok(admin,"Local admin required");
   const run = `institution-test-${Date.now()}`;
   const institution = {...emptyInstitution(),type:"medical" as const,city:"shanghai",address:"Fictional test address",addressEn:"Test address",directions:"Test outpatient services",audience:"Test adults",appointment:"Test appointments",preparation:"Test preparation",fees:"Confirm fees",foreignAcceptance:"confirmed" as const,acceptanceConditions:"Test conditions",interpretation:"Arrange interpretation in advance",officialURL:"https://example.org/test-institution",verifiedAt:"2026-10-01",qualification:"Fictional test licensing explanation",languages:["en"],projectKeys:[`${run}-project`]};
@@ -24,14 +24,14 @@ try {
     return d;
   }
   async function submit(d:any) { return mutateContent(p,admin,{action:"submit",id:d.id,revision:d.revision}); }
-  async function publish(d:any,extra:any={institutionReviewed:true,catalogReviewed:true}) { return mutateContent(p,admin,{action:"publish",id:d.id,revision:d.revision,...extra}); }
+  async function publish(d:any,extra:any={institutionReviewed:true,catalogReviewed:true}) { return mutateContent(p,admin,{action:"publish", overrideReason:"Local regression fixture review and cleanup",id:d.id,revision:d.revision,...extra}); }
   async function source() { return (await resolveCatalogSource(p,"en",{institution:run}))!.institution!; }
   const values={categories:["medical"],city:"Shanghai",people:"2",datesUnknown:true,name:"Fictional institution integration",email:"test@example.com",language:"English",consent:true};
   const input=(revision:number,extra:any={})=>({kind:"request",locale:"en",source:{institution:run,institutionRevision:revision,...extra},values});
   let draft=await save({...body,internalNote:"PRIVATE",institution:{...institution,internalNote:"PRIVATE"}});
   assert.equal((await listPublished(p,"en")).some(d=>d.contentKey===run),false);
   draft=await submit(draft);
-  await assert.rejects(()=>mutateContent(p,{...admin,role:"editor"},{action:"publish",id:draft.id,revision:draft.revision,institutionReviewed:true}),/只有管理员/);
+  await assert.rejects(()=>mutateContent(p,{...admin,role:"editor"},{action:"publish", overrideReason:"Local regression fixture review and cleanup",id:draft.id,revision:draft.revision,institutionReviewed:true}),/只有内容审核员/);
   await assert.rejects(()=>publish(draft,{}),/人工核验/);
   const missing=await submit(await save({...body,contentKey:`${run}-missing`,slug:`${run}-missing`,sources:[]}));
   await assert.rejects(()=>publish(missing),/资料来源/);
@@ -88,18 +88,18 @@ try {
   await assert.rejects(()=>saveIntake(input(current.revision),randomUUID()));
   draft=await publish(await submit(await save(body,draft.id)));
   current=await source();
-  await mutateContent(p,admin,{action:"unpublish",id:draft.id,revision:draft.revision});
+  await mutateContent(p,admin,{action:"unpublish", overrideReason:"Local regression fixture review and cleanup",id:draft.id,revision:draft.revision});
   await assert.rejects(()=>saveIntake(input(current.revision),randomUUID()));
   assert.ok((await listPublished(p,"zh")).find(d=>d.contentKey===run),"English withdrawal preserves Chinese publication");
   assert.equal((await saveIntake(payload,key)).duplicate,true,"Already accepted retries remain idempotent after withdrawal");
   console.log("PASS institution permissions, privacy, locale isolation, publication/source checks, authoritative snapshots, revision, status, compatibility and idempotency");
 } finally {
   try {
-    const admin=(await p.find({collection:"staff",where:{role:{equals:"admin"}},limit:1})).docs[0];
+    const admin=(await p.find({collection:"staff",where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",limit:1})).docs[0];
     const failures:unknown[]=[];
     for (const id of drafts) try {
       const d=await p.findByID({collection:"content-drafts",id});
-      await mutateContent(p,admin,{action:"unpublish",id,revision:d.revision});
+      await mutateContent(p,admin,{action:"unpublish", overrideReason:"Local regression fixture review and cleanup",id,revision:d.revision});
     } catch(error) { failures.push(error); }
     if (failures.length) throw new AggregateError(failures,"Test fixture unpublish failed");
   } finally { await p.destroy(); }

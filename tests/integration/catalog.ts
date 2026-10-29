@@ -11,7 +11,7 @@ const p = await getPayload({ config });
 const admin = (
   await p.find({
     collection: "staff",
-    where: { role: { equals: "admin" } },
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",
     limit: 1,
   })
 ).docs[0];
@@ -94,7 +94,7 @@ async function reviewed(body: any, providerRef?: number) {
 }
 async function publish(d: any) {
   return mutateContent(p, admin, {
-    action: "publish",
+    action: "publish", overrideReason:"Local regression fixture review and cleanup",
     id: d.id,
     revision: d.revision,
     catalogReviewed: true,
@@ -207,7 +207,7 @@ try {
   await publish(await reviewed({ ...providerBody, locale: "zh" }, provider.id));
   await publish(await reviewed({ ...projectBody, locale: "zh" }));
   await mutateContent(p, admin, {
-    action: "unpublish",
+    action: "unpublish", overrideReason:"Local regression fixture review and cleanup",
     id: d.id,
     revision: d.revision,
   });
@@ -239,7 +239,7 @@ try {
   for (const id of drafts) {
     const d = await p.findByID({ collection: "content-drafts", id });
     await mutateContent(p, admin, {
-      action: "unpublish",
+      action: "unpublish", overrideReason:"Local regression fixture review and cleanup",
       id,
       revision: d.revision,
     });

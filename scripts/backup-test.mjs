@@ -52,6 +52,9 @@ try {
   const results = [];
   for (const table of [
     "staff",
+    "teams",
+    "staff_content_kinds",
+    "staff_additional_roles",
     "inquiries",
     "providers",
     "notifications",

@@ -1,31 +1,10 @@
-export function Dashboard() {
-  return (
-    <section
-      style={{
-        padding: "24px",
-        marginBottom: "24px",
-        border: "1px solid var(--theme-elevation-150)",
-        borderRadius: 6,
-      }}
-    >
-      <h2>华伴 · 本地运营后台</h2>
-      <p>
-        <a href="/content-center">打开内容工作台：编辑、审核发布与 AI 任务 →</a>
-      </p>
-      <p>
-        <a href="/content-center?kind=provider-profile">服务商展示管理 →</a> ·{" "}
-        <a href="/content-center?kind=service-project">华伴服务项目管理 →</a>
-      </p>
-      <p>当前节点：真实咨询与合作申请保存、员工权限、跟进与变更记录。</p>
-      <p>
-        新咨询由管理员分配负责人，客户运营只可读取分配给自己的咨询。内容编辑暂不开放业务数据。
-      </p>
-      <p>
-        邮件服务尚未配置，通知记录保存在“通知任务”中；记录存在不代表已发送。
-      </p>
-      <p>
-        <a href="/zh">中文网站</a> · <a href="/en">English website</a>
-      </p>
-    </section>
-  );
+import { canManageContent, canReviewContent, isAdmin, isManager, isOperator, type Staff } from './access';
+export function Dashboard({user}:{user?:Staff}) {
+ return <section style={{padding:24,marginBottom:24,border:'1px solid var(--theme-elevation-150)',borderRadius:6}}>
+ <h2>华伴 · 运营后台</h2>
+ {isAdmin(user)&&<p><a href="/admin/collections/staff">员工与授权</a> · <a href="/admin/collections/teams">团队管理</a> · <a href="/admin/collections/audit-events">操作记录</a></p>}
+ {(canManageContent(user)||canReviewContent(user))&&<p><a href="/content-center">内容工作台：授权板块的编辑与审核 →</a></p>}
+ {isOperator(user)&&<p><a href="/admin/collections/inquiries">客户咨询</a> · <a href="/admin/collections/providers">机构与服务商合作档案</a></p>}
+ {isAdmin(user)?<p>请先给业务记录分配团队，再分配负责人。历史未分配记录仅管理员可见。员工离职请停用账号并转交记录。</p>:isManager(user)?<p>你可以处理所属团队的业务记录，并分配给本团队运营人员。</p>:isOperator(user)?<p>你只能处理分配给自己的业务记录。需要转交时请联系主管。</p>:<p>内容权限按授权板块开放；编辑与审核分工，客户和机构内部商务资料不在内容权限范围内。</p>}
+ <p>邮件服务尚未配置；保存通知任务不代表邮件已发送。</p><p><a href="/zh">中文网站</a> · <a href="/en">English website</a></p></section>;
 }

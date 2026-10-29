@@ -16,10 +16,10 @@ const doc = {
   sources: [{ id: "source-1", title: "Source", url: "https://example.com" }],
 };
 test("only administrators and editors may manage content", () => {
-  assert.equal(canEditContent({ role: "editor" }), true);
-  assert.equal(canEditContent({ role: "admin" }), true);
+  assert.equal(canEditContent({ id: 1, role: "editor" }), true);
+  assert.equal(canEditContent({ id: 1, role: "admin" }), true);
   for (const role of ["operations", "agent", ""])
-    assert.equal(canEditContent({ role }), false);
+    assert.equal(canEditContent({ id: 1, role }), false);
   assert.equal(canEditContent(null), false);
 });
 test("content permits safe blocks and sources", () => {

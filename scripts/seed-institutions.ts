@@ -8,7 +8,7 @@ if(process.env.APP_ENV!=='local'||!process.env.DATABASE_URL?.includes('@127.0.0.
 const bodies=buildStarterInstitutions();bodies.forEach(validateContent);
 const p=await getPayload({config});
 try{
- const admin=(await p.find({collection:'staff',where:{role:{equals:'admin'}},limit:1})).docs[0];if(!admin)throw Error('Administrator required');
+ const admin=(await p.find({collection:'staff',where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",limit:1})).docs[0];if(!admin)throw Error('Administrator required');
  let created=0,skipped=0;
  for(const body of bodies){
   if((await p.count({collection:'content-drafts',where:{identity:{equals:body.contentKey+':'+body.locale}}})).totalDocs){skipped++;continue;}

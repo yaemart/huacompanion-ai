@@ -10,7 +10,7 @@ if(bodies.length!==12||new Set(bodies.map(b=>b.contentKey+":"+b.locale)).size!==
 bodies.forEach(validateContent);
 const p=await getPayload({config});
 try{
- const admin=(await p.find({collection:"staff",where:{role:{equals:"admin"}},limit:1})).docs[0];
+ const admin=(await p.find({collection:"staff",where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",limit:1})).docs[0];
  if(!admin)throw Error("Administrator required");
  // Preflight all guide references before creating any records.
  for(const body of bodies)for(const key of body.catalog!.guideKeys){

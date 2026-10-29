@@ -2,7 +2,7 @@ import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { CatalogDetails } from "@/components/catalog/CatalogPage";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { contentAuth } from "@/server/content/auth";
 import { ContentBlocks } from "@/components/content/ContentBlocks";
 import type { ContentBody } from "@/lib/content-model";
@@ -28,7 +28,7 @@ export default async function Preview({
     id: Number(id),
     overrideAccess: false,
     user: auth.user,
-  });
+  }).catch(() => notFound());
   const body = d.body as unknown as ContentBody;
   return (
     <main

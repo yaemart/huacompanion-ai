@@ -1,3 +1,5 @@
+import { canReviewContent, isAdmin, contentKinds } from "@/cms/access";
+import { canEditContent } from "@/lib/content-model";
 import { locales } from "@/lib/locales";
 import {
   contentAuth,
@@ -11,6 +13,7 @@ export async function GET(req: Request) {
     const { p, user } = await contentAuth(req.headers);
     const id = new URL(req.url).searchParams.get("versions");
     if (id) {
+      await p.findByID({ collection: "content-drafts", id: Number(id), overrideAccess: false, user, depth: 0 });
       const r = await p.findVersions({
         collection: "content-drafts",
         where: { parent: { equals: Number(id) } },
@@ -54,7 +57,7 @@ export async function GET(req: Request) {
       }),
     ]);
     const providers =
-      user.role === "admin"
+      isAdmin(user)
         ? (
             await p.find({
               collection: "providers",
@@ -74,9 +77,10 @@ export async function GET(req: Request) {
     return Response.json(
       {
         role: user.role,
+        permissions: { canEdit: canEditContent(user), canReview: canReviewContent(user), isAdmin: isAdmin(user), contentKinds: isAdmin(user) ? [...contentKinds] : user.contentKinds || [], userId: user.id },
         providers,
         drafts: drafts.docs,
-        published: published.docs.map((d) => {
+        published: published.docs.filter(d => drafts.docs.some(draft => draft.id === d.draftId)).map((d) => {
           const body = d.body as any;
           const live = visible.find(
             (v) =>

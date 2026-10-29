@@ -49,7 +49,7 @@ async function publish(nextBody: any) {
   let d = await mutateContent(p, admin, { action: 'save', body: nextBody, id: draftId, revision: current?.revision });
   draftId = d.id;
   d = await mutateContent(p, admin, { action: 'submit', id: d.id, revision: d.revision });
-  return mutateContent(p, admin, { action: 'publish', id: d.id, revision: d.revision, institutionReviewed: true });
+  return mutateContent(p, admin, { action: 'publish', overrideReason:"Local regression fixture review and cleanup", id: d.id, revision: d.revision, institutionReviewed: true });
 }
 function publicOnly(item: any) {
   for (const field of ['providerRef','draftId','reviewNote','reviewState','createdBy','updatedBy','internalNotes']) assert.equal(item[field], undefined, `${field} stays private`);
@@ -57,7 +57,7 @@ function publicOnly(item: any) {
   assert.equal(item.institution.contactEmail, undefined);
 }
 try {
-  admin = (await p.find({ collection: 'staff', where: { role: { equals: 'admin' } }, limit: 1 })).docs[0];
+  admin = (await p.find({ collection: 'staff', where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt", limit: 1 })).docs[0];
   assert.ok(admin, 'Local administrator required');
   await publish(body);
   const published = (await p.find({ collection: 'content-published', where: { draftId: { equals: draftId } }, limit: 1 })).docs[0];
@@ -119,7 +119,7 @@ try {
     assert.equal((await json(`/api/public/institutions?locale=en&key=${key}`)).items[0].inquiryPath, null);
   }
   const current = await p.findByID({ collection: 'content-drafts', id: draftId! });
-  await mutateContent(p, admin, { action: 'unpublish', id: draftId, revision: current.revision });
+  await mutateContent(p, admin, { action: 'unpublish', overrideReason:"Local regression fixture review and cleanup", id: draftId, revision: current.revision });
   await json(`/api/public/institutions?locale=en&key=${key}`, 404);
   await html(`/en/institutions/${key}`, 404);
   console.log('PASS institutions HTTP: escaped public pages, sources/privacy, filters, sitemap, attributed medical prefill, revision, private preview, seven locales/RTL, exact translation identity, pending/paused and withdrawal');
@@ -127,7 +127,7 @@ try {
   try {
     if (draftId && admin) {
       const current = await p.findByID({ collection: 'content-drafts', id: draftId });
-      await mutateContent(p, admin, { action: 'unpublish', id: draftId, revision: current.revision });
+      await mutateContent(p, admin, { action: 'unpublish', overrideReason:"Local regression fixture review and cleanup", id: draftId, revision: current.revision });
     }
   } finally { await p.destroy(); }
 }

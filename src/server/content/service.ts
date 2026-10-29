@@ -1,3 +1,4 @@
+import { canManageContent, canReviewContent, canAccessContentKind, isAdmin } from "../../cms/access";
 import { validateInstitutionPublication } from "../../lib/institutions";
 import { validateExhibitionPublication, effectiveExhibitionStatus } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
@@ -105,12 +106,14 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
 }
 
 export async function mutateContent(p: Payload, user: ContentUser, input: any) {
-  if (!canEditContent(user)) throw new ContentError("无内容管理权限", 403);
+  if (!canManageContent(user)) throw new ContentError("无内容管理权限", 403);
+  if (["save", "restore", "submit"].includes(input.action) && !canEditContent(user))
+    throw new ContentError("只有内容编辑可修改或提交工作稿", 403);
   if (
     ["publish", "unpublish", "return"].includes(input.action) &&
-    user?.role !== "admin"
+    !canReviewContent(user)
   )
-    throw new ContentError("只有管理员可审核发布", 403);
+    throw new ContentError("只有内容审核员可审核发布", 403);
   const result = await contentTransaction(p, async (req) => {
     const current = input.id
       ? await p.findByID({
@@ -120,6 +123,14 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
           depth: 0,
         })
       : null;
+    if (current && !canAccessContentKind(user, current.kind))
+      throw new ContentError("无此板块权限", 403);
+    if (current?.reviewState === "review" && ["save", "restore", "submit"].includes(input.action))
+      throw new ContentError("待审核内容须先退回后才能修改", 409);
+    const selfReview = current && [...(Array.isArray(current.contributors) ? current.contributors : []), current.lastEditedBy, current.submittedBy].some(id => id != null && String(id) === String(user!.id));
+    const overrideReason = String(input.overrideReason || "").trim().slice(0, 2000);
+    if (selfReview && ["publish", "return", "unpublish"].includes(input.action) && (!isAdmin(user) || !overrideReason))
+      throw new ContentError("不能审核自己编辑或提交的内容；管理员须填写例外原因", 403);
     if (current && current.revision !== input.revision)
       throw new ContentError("内容已经更新，请刷新后重试", 409);
     let body = input.body;
@@ -141,6 +152,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
     }
     if (["save", "restore"].includes(input.action)) {
       validateContent(body);
+      if (!canAccessContentKind(user, body.kind)) throw new ContentError("无此板块权限", 403);
       body = publicBody(body);
       if (current) {
         const old = current.body as unknown as ContentBody;
@@ -158,11 +170,13 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
           await p.findByID({
             collection: "content-media",
             id: block.mediaId!,
+            overrideAccess: false,
+            user: user as any,
             req,
           });
       let providerRef = current?.providerRef;
       if (["provider-profile", "institution"].includes(body.kind) && input.providerRef !== undefined) {
-        if (user?.role !== "admin")
+        if (!isAdmin(user))
           throw new ContentError("只有管理员可关联内部服务商", 403);
         if (
           input.providerRef !== null &&
@@ -186,6 +200,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         routeKey: `${body.kind}:${body.locale}:${body.slug}`,
         body,
         revision: (current?.revision || 0) + 1,
+        contributors: [...new Set([...(Array.isArray(current?.contributors) ? current.contributors : []), current?.lastEditedBy, current?.submittedBy, Number(user!.id)].filter(id => typeof id === "number"))],
+        lastEditedBy: Number(user!.id),
         reviewState: "draft" as const,
         reviewNote: "",
       };
@@ -197,7 +213,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             req,
           })
         : await p.create({ collection: "content-drafts", data, req });
-      if (user?.role !== "admin") delete (saved as any).providerRef;
+      if (!isAdmin(user)) delete (saved as any).providerRef;
       return saved;
     }
     if (!current) throw new ContentError("内容不存在", 404);
@@ -207,12 +223,19 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         id: current.id,
         data: {
           reviewState: "review",
+          submittedBy: Number(user!.id),
+          contributors: [...new Set([...(Array.isArray(current.contributors) ? current.contributors : []), current.lastEditedBy, current.submittedBy, Number(user!.id)].filter(id => typeof id === "number"))],
           revision: current.revision + 1,
           reviewNote: "",
         },
         req,
       });
-    if (input.action === "return")
+    if (input.action === "return") {
+      if (current.reviewState !== "review") throw new ContentError("仅待审核内容可以退回");
+      await p.create({ collection: "content-events", data: {
+        draftId: current.id, action: "return", actor: Number(user!.id),
+        revision: current.revision, overrideReason: selfReview ? overrideReason : "",
+      }, req });
       return p.update({
         collection: "content-drafts",
         id: current.id,
@@ -223,6 +246,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         },
         req,
       });
+    }
     if (!["publish", "unpublish"].includes(input.action))
       throw new ContentError("未知操作");
     const existing = (
@@ -307,6 +331,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         actor: Number(user!.id),
         revision: current.revision,
         snapshot: clean as any,
+        overrideReason: selfReview ? overrideReason : "",
       },
       req,
     });
@@ -314,13 +339,13 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       collection: "content-drafts",
       id: current.id,
       data: {
-        reviewState: input.action === "publish" ? "approved" : "draft",
+        reviewState: input.action === "publish" ? "approved" : current.reviewState === "review" ? "review" : "draft",
         everPublished: current.everPublished || input.action === "publish",
         revision: current.revision + 1,
       },
       req,
     });
   });
-  if (user?.role !== "admin") delete (result as any).providerRef;
+  if (!isAdmin(user)) delete (result as any).providerRef;
   return result;
 }

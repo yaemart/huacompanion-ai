@@ -17,7 +17,7 @@ const p = await getPayload({ config });
 const admin = (
   await p.find({
     collection: "staff",
-    where: { role: { equals: "admin" } },
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",
     limit: 1,
   })
 ).docs[0];
@@ -36,7 +36,7 @@ try {
   const d = await mutateContent(p, admin, { action: "save", body });
   await assert.rejects(() =>
     mutateContent(p, editor, {
-      action: "publish",
+      action: "publish", overrideReason:"Local regression fixture review and cleanup",
       id: d.id,
       revision: d.revision,
     }),
@@ -57,7 +57,7 @@ try {
     revision: d.revision,
   });
   await mutateContent(p, admin, {
-    action: "publish",
+    action: "publish", overrideReason:"Local regression fixture review and cleanup",
     id: d.id,
     revision: review.revision,
   });
@@ -78,7 +78,7 @@ try {
   );
   await assert.rejects(() =>
     mutateContent(p, admin, {
-      action: "publish",
+      action: "publish", overrideReason:"Local regression fixture review and cleanup",
       id: d.id,
       revision: latest.revision,
     }),
@@ -97,7 +97,7 @@ try {
     revision: changed.revision,
   });
   await mutateContent(p, admin, {
-    action: "publish",
+    action: "publish", overrideReason:"Local regression fixture review and cleanup",
     id: d.id,
     revision: reviewed.revision,
   });
@@ -108,7 +108,7 @@ try {
   assert.equal(await readPublished(p, "guide", "zh", key), null);
   const fresh = await p.findByID({ collection: "content-drafts", id: d.id });
   await mutateContent(p, admin, {
-    action: "unpublish",
+    action: "unpublish", overrideReason:"Local regression fixture review and cleanup",
     id: d.id,
     revision: fresh.revision,
   });

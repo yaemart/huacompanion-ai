@@ -7,10 +7,9 @@ import {
   validateCatalog,
   publicCatalog,
 } from "./catalog.ts";
-export type ContentUser =
-  { id?: number | string; role?: string } | null | undefined;
-export const canEditContent = (user: ContentUser) =>
-  !!user && ["admin", "editor"].includes(user.role || "");
+import { hasRole, isAdmin, type Staff } from "../cms/access.ts";
+export type ContentUser = Staff;
+export const canEditContent = (user: ContentUser) => isAdmin(user) || hasRole(user, "editor");
 export type Block = {
   type: "heading" | "paragraph" | "list" | "image" | "link";
   text?: string;

@@ -28,7 +28,9 @@
     "seed:exhibitions": "tsx scripts/seed-exhibitions.ts",
     "test:exhibitions": "tsx tests/integration/exhibitions.ts",
     "seed:institutions": "tsx scripts/seed-institutions.ts",
-    "test:institutions": "tsx tests/integration/institutions.ts"
+    "test:institutions": "tsx tests/integration/institutions.ts",
+    "test:permissions:business": "tsx tests/integration/permissions-business.ts",
+    "test:permissions:content": "tsx tests/integration/permissions-content.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

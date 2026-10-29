@@ -9,14 +9,20 @@ import type {
   Field,
   CollectionAfterChangeHook,
   Access,
+  AccessResult,
 } from "payload";
-import { isAdmin, isOperator, inquiryScope } from "./access";
+import { isAdmin, isManager, isActiveStaff, hasRole, relationID, inquiryScope, providerScope, contentKinds } from "./access";
+import { guardStaffChange, guardBusinessAssignment } from "./staff-guards";
 const admin: Access = ({ req }) => isAdmin(req.user);
-const operators: Access = ({ req }) => isOperator(req.user);
+const providersAssigned: Access = ({ req }) => providerScope(req.user);
 const assigned: Access = ({ req }) => inquiryScope(req.user);
 const fieldAdmin = {
   create: ({ req }: any) => isAdmin(req.user),
   update: ({ req }: any) => isAdmin(req.user),
+};
+const ownerAccess = {
+  create: ({ req }: any) => isManager(req.user),
+  update: ({ req }: any) => isManager(req.user),
 };
 const protectedField = { create: () => false, update: () => false };
 const categoryOptions = [
@@ -38,7 +44,7 @@ const audit: CollectionAfterChangeHook = async ({
   if (req.context.skipAudit) return doc;
   const changed = Object.keys(doc).filter(
     (k) =>
-      !["updatedAt", "createdAt", "_status"].includes(k) &&
+      !["updatedAt", "createdAt", "_status", "sessions", "hash", "salt", "password", "resetPasswordToken", "resetPasswordExpiration"].includes(k) &&
       JSON.stringify(doc[k]) !== JSON.stringify(previousDoc?.[k]),
   );
   await req.payload.create({
@@ -51,6 +57,8 @@ const audit: CollectionAfterChangeHook = async ({
       action: operation,
       actor: req.user?.id,
       fields: changed.join(", "),
+      before: Object.fromEntries(changed.filter((key) => ["role", "additionalRoles", "active", "team", "contentKinds", "owner", "status", "publicApproved", "coordinationStage", "nextFollowUp"].includes(key)).map((key) => [key, ["owner", "team"].includes(key) ? relationID(previousDoc?.[key]) ?? null : previousDoc?.[key] ?? null])),
+      after: Object.fromEntries(changed.filter((key) => ["role", "additionalRoles", "active", "team", "contentKinds", "owner", "status", "publicApproved", "coordinationStage", "nextFollowUp"].includes(key)).map((key) => [key, ["owner", "team"].includes(key) ? relationID(doc[key]) ?? null : doc[key] ?? null])),
     },
   });
   return doc;
@@ -155,26 +163,34 @@ export const Staff: CollectionConfig = {
     defaultColumns: ["name", "email", "role"],
   },
   auth: {
+    useSessions: true,
     maxLoginAttempts: 5,
     lockTime: 600000,
     tokenExpiration: 7200,
     cookies: { sameSite: "Strict", secure: process.env.APP_ENV !== "local" },
   },
   access: {
-    admin: ({ req }) =>
-      !!req.user && ["admin", "operations", "editor"].includes(req.user.role),
+    admin: ({ req }) => isActiveStaff(req.user) && ["admin", "manager", "operations", "editor", "reviewer"].some((role) => hasRole(req.user, role)),
     create: admin,
-    read: ({ req }) =>
-      isAdmin(req.user)
-        ? true
-        : req.user
-          ? { id: { equals: req.user.id } }
-          : false,
+    read: ({ req }): AccessResult => {
+      if (isAdmin(req.user)) return true;
+      if (!isActiveStaff(req.user)) return false;
+      const self = { id: { equals: req.user!.id } };
+      const team = relationID(req.user?.team);
+      if (hasRole(req.user, "manager") && team !== undefined)
+        return { or: [self, { and: [{ team: { equals: team } }, { active: { not_equals: false } }, { or: [{ role: { equals: "operations" } }, { additionalRoles: { contains: "operations" } }] }] }] };
+      return self;
+    },
     update: admin,
-    delete: admin,
+    delete: () => false,
   },
   fields: [
     { name: "name", label: "姓名", type: "text", required: true },
+    { name: "active", label: "账号启用", type: "checkbox", defaultValue: true, access: fieldAdmin },
+    { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
+    { name: "contentKinds", label: "允许管理的内容类型", type: "select", hasMany: true, defaultValue: [], options: contentKinds.map((value) => ({ value, label: ({ service: "服务介绍", guide: "实用指南", faq: "常见问题", page: "网站页面", partner: "合作伙伴", "provider-profile": "服务商介绍", "service-project": "服务项目", exhibition: "展会", institution: "医疗机构" })[value] })), access: fieldAdmin,
+      admin: { description: "新员工默认不授权内容；编辑与审核均只允许操作所选内容类型。" } },
+    { name: "additionalRoles", label: "兼任角色", type: "select", hasMany: true, defaultValue: [], options: [{ value: "admin", label: "管理员" }, { value: "manager", label: "业务主管" }, { value: "operations", label: "客户运营" }, { value: "editor", label: "内容编辑" }, { value: "reviewer", label: "内容审核" }], access: fieldAdmin },
     {
       name: "role",
       label: "角色",
@@ -184,6 +200,8 @@ export const Staff: CollectionConfig = {
       saveToJWT: true,
       options: [
         { label: "管理员", value: "admin" },
+        { label: "业务主管", value: "manager" },
+        { label: "内容审核", value: "reviewer" },
         { label: "客户运营", value: "operations" },
         { label: "内容编辑", value: "editor" },
       ],
@@ -191,17 +209,11 @@ export const Staff: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [
-      ({ req, operation, data }) => {
-        if (
-          operation === "create" &&
-          !isAdmin(req.user) &&
-          req.context.allowLocalStaffSetup !== true
-        )
-          throw new Forbidden();
-        return data;
-      },
-    ],
+    beforeLogin: [({ user }) => {
+      if (!isActiveStaff(user)) throw new Forbidden();
+      return user;
+    }],
+    beforeChange: [guardStaffChange],
     afterChange: [audit],
   },
 };
@@ -232,12 +244,13 @@ export const Inquiries: CollectionConfig = {
   versions: { maxPerDoc: 30 },
   fields: [
     ...intakeFields,
+    { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
     {
       name: "catalogSource",
       label: "咨询来源（机构／展会／服务商／服务项目）",
       type: "json",
       admin: { readOnly: true },
-      access: { update: () => false },
+      access: protectedField,
     },
     {
       name: "status",
@@ -273,7 +286,7 @@ export const Inquiries: CollectionConfig = {
       label: "负责人",
       type: "relationship",
       relationTo: "staff",
-      access: fieldAdmin,
+      access: ownerAccess,
     },
     {
       name: "nextFollowUp",
@@ -288,7 +301,7 @@ export const Inquiries: CollectionConfig = {
       maxLength: 10000,
     },
   ],
-  hooks: { afterChange: [audit] },
+  hooks: { beforeChange: [guardBusinessAssignment], afterChange: [audit] },
 };
 export const Providers: CollectionConfig = {
   slug: "providers",
@@ -306,14 +319,17 @@ export const Providers: CollectionConfig = {
   },
   access: {
     create: () => false,
-    read: operators,
-    update: operators,
+    read: providersAssigned,
+    update: providersAssigned,
     delete: admin,
-    readVersions: operators,
+    // Historical versions can contain contacts from before a reassignment.
+    readVersions: admin,
   },
   versions: { maxPerDoc: 30 },
   fields: [
     ...intakeFields,
+    { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
+    { name: "owner", label: "负责人", type: "relationship", relationTo: "staff", access: ownerAccess },
     { name: "organisation", label: "机构名称", type: "text", required: true },
     { name: "phone", label: "电话", type: "text", required: true },
     { name: "languages", label: "支持语言", type: "text", required: true },
@@ -351,6 +367,7 @@ export const Providers: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
+      guardBusinessAssignment,
       async ({ req, data }) => {
         await catalogLock(req);
         return data;
@@ -439,6 +456,8 @@ export const AuditEvents: CollectionConfig = {
       relationTo: "staff",
     },
     { name: "fields", label: "变更字段", type: "text" },
+    { name: "before", label: "权限及状态变更前", type: "json" },
+    { name: "after", label: "权限及状态变更后", type: "json" },
   ],
 };
 const IntakeLimits: CollectionConfig = {
@@ -455,7 +474,19 @@ const IntakeLimits: CollectionConfig = {
     { name: "count", type: "number", required: true, defaultValue: 0 },
   ],
 };
+export const Teams: CollectionConfig = {
+  slug: "teams",
+  labels: { singular: "团队", plural: "团队" },
+  admin: { group: "系统管理", useAsTitle: "name" },
+  access: {
+    create: admin, update: admin, delete: () => false,
+    read: ({ req }) => isAdmin(req.user) ? true : isActiveStaff(req.user) && relationID(req.user?.team) !== undefined ? { id: { equals: relationID(req.user?.team) } } : false,
+  },
+  fields: [{ name: "name", label: "团队名称", type: "text", required: true, unique: true }],
+  hooks: { afterChange: [audit] },
+};
 export const collections = [
+  Teams,
   Staff,
   Inquiries,
   Providers,

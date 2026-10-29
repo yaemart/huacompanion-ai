@@ -9,7 +9,7 @@ const p = await getPayload({ config });
 const admin = (
   await p.find({
     collection: "staff",
-    where: { role: { equals: "admin" } },
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",
     limit: 1,
   })
 ).docs[0];

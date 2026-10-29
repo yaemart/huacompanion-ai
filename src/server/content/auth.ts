@@ -1,12 +1,12 @@
 import { getPayload } from "payload";
 import config from "../../payload.config";
-import { canEditContent } from "../../lib/content-model";
+import { canManageContent, contentScope } from "../../cms/access";
 import { ContentError } from "./service";
 export async function contentAuth(headers: Headers) {
   const p = await getPayload({ config });
   const { user } = await p.auth({ headers });
-  if (!canEditContent(user))
-    throw new ContentError("请使用管理员或内容编辑账号登录", 403);
+  if (user?.collection !== "staff" || (!canManageContent(user) || contentScope(user) === false))
+    throw new ContentError("请使用有内容权限的员工账号登录", 403);
   return { p, user: user! };
 }
 export function checkOrigin(req: Request) {
