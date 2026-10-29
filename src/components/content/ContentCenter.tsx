@@ -17,6 +17,9 @@ import {
   institutionTypeLabels,
   institutionAcceptanceLabels,
 } from "./InstitutionFields";
+import { LifestyleFields } from "./LifestyleFields";
+import { emptyLifestyle, isLife, lifeCategories, effectiveLifeStatus } from "@/lib/lifestyle";
+import { lifeText } from "@/lib/lifestyle-copy";
 import { emptyInstitution } from "@/lib/institutions";
 import { emptyExhibition, effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
@@ -34,6 +37,7 @@ const empty = (): ContentBody => ({
   category: 1,
 });
 const kinds = {
+  venue:"体验场所与餐馆", activity:"体验活动",
   institution: "医疗与康养机构",
   exhibition: "展会信息",
   guide: "来华指南",
@@ -66,6 +70,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [selected, setSelected] = useState<any>(null);
   const [body, setBody] = useState<ContentBody>(() => ({
     ...empty(),
+    ...(isLife(initialKind)?{kind:initialKind,lifestyle:emptyLifestyle(initialKind)}:{}),
     ...(initialKind === "institution"
       ? { kind: "institution" as const, institution: emptyInstitution() }
       : {}),
@@ -84,6 +89,10 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   const [institutionTypeFilter, setInstitutionTypeFilter] = useState("");
   const [acceptanceFilter, setAcceptanceFilter] = useState("");
   const [serviceLanguageFilter, setServiceLanguageFilter] = useState("");
+  const [lifeReviewed,setLifeReviewed]=useState(false);
+  const [lifeCategory,setLifeCategory]=useState("");
+  const [lifeStatus,setLifeStatus]=useState("");
+  const [reviewBefore,setReviewBefore]=useState("");
   const [institutionReviewed, setInstitutionReviewed] = useState(false);
   const [exhibitionReviewed, setExhibitionReviewed] = useState(false);
   const [publicationFilter, setPublicationFilter] = useState("");
@@ -131,7 +140,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
       const permitted = d.permissions?.contentKinds || [];
       const kind = permitted.includes(initialKind) ? initialKind : permitted[0];
       if (kind) {
-        setBody({...empty(), kind, ...(kind === "institution" ? {institution:emptyInstitution()} : {}), ...(kind === "exhibition" ? {exhibition:emptyExhibition()} : {}), ...(isCatalog(kind) ? {catalog:emptyCatalog()} : {})});
+        setBody({...empty(), kind, ...(isLife(kind)?{lifestyle:emptyLifestyle(kind)}:{}), ...(kind === "institution" ? {institution:emptyInstitution()} : {}), ...(kind === "exhibition" ? {exhibition:emptyExhibition()} : {}), ...(isCatalog(kind) ? {catalog:emptyCatalog()} : {})});
         if (initialKind && !permitted.includes(initialKind)) setKindFilter("");
       }
     }).catch((e) => setMessage(e.message));
@@ -145,7 +154,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     setProviderRef(d.providerRef ? String(d.providerRef) : "");
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
-    setInstitutionReviewed(false);
+    setInstitutionReviewed(false); setLifeReviewed(false);
     setBody({ ...d.body, category: sectionFor(d.body) });
     setVersions([]);
     setMessage("");
@@ -164,14 +173,14 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
           ...(action === "save"
             ? {
                 body,
-                ...(["provider-profile", "institution"].includes(body.kind) &&
+                ...(["provider-profile", "institution", "venue", "activity"].includes(body.kind) &&
                 isAdmin
                   ? { providerRef: providerRef ? Number(providerRef) : null }
                   : {}),
               }
             : {}),
           ...(["publish", "return", "unpublish"].includes(action)
-            ? { catalogReviewed, exhibitionReviewed, institutionReviewed, overrideReason }
+            ? { catalogReviewed, exhibitionReviewed, institutionReviewed, lifeReviewed, overrideReason }
             : {}),
           ...extra,
         }),
@@ -200,6 +209,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     setBody({
       ...body,
       [key]: value,
+      ...(key === "kind" && isLife(value) ? {lifestyle:emptyLifestyle(value)} : {}),
       ...(key === "kind" && value === "institution" && !body.institution
         ? { institution: emptyInstitution() }
         : {}),
@@ -212,7 +222,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
     });
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
-    setInstitutionReviewed(false);
+    setInstitutionReviewed(false); setLifeReviewed(false);
   }
   function block(index: number, value: Partial<Block>) {
     field(
@@ -257,7 +267,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
       <style>{`.content-center{max-width:1250px;margin:auto;padding:32px 24px;color:#183e35}.content-center h1{font-size:36px}.content-center h2{font-size:24px}.content-center button,.content-center input,.content-center select,.content-center textarea{font:inherit;padding:10px;border:1px solid #9aafa5;border-radius:6px}.content-center button{cursor:pointer;background:#edf3ed;margin:4px}.content-center button:disabled{opacity:.5;cursor:wait}.content-center input,.content-center textarea,.content-center select{width:100%;background:white}.content-center label{display:block;margin:14px 0}.content-center textarea{min-height:100px}.content-center .workspace{display:grid;grid-template-columns:280px 1fr;gap:24px}.content-center .panel{padding:20px;border:1px solid #cbd8ce;border-radius:12px;background:#fafcf9}.content-center .row{display:flex;gap:12px}.content-center .row>*{flex:1}.content-center aside.panel{max-height:75vh;overflow-y:auto;overflow-x:hidden}.content-center .item{display:block;width:100%;margin:4px 0;text-align:left}.content-center .notice{padding:16px;background:#edf2dc;white-space:pre-wrap}.content-center small{display:block}.content-center .block{padding:10px;margin:12px 0;border:1px solid #d1dcd1}@media(max-width:750px){.content-center .workspace{grid-template-columns:1fr}.content-center .row{display:block}.content-center aside.panel{max-height:35vh}}`}</style>
       <a href="/admin">← 中文管理后台</a>
       <h1>
-        {initialKind === "institution"
+        {isLife(initialKind) ? (initialKind === "venue" ? "体验场所与餐馆管理" : "体验活动管理") : initialKind === "institution"
           ? "医疗与康养机构管理"
           : initialKind === "exhibition"
             ? "展会信息管理"
@@ -307,6 +317,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 setSelected(null);
                 setBody({
                   ...empty(), kind: (kindFilter || allowedKinds[0] || "guide") as ContentBody["kind"],
+                  ...(isLife(kindFilter)?{lifestyle:emptyLifestyle(kindFilter)}:{}),
                   ...(kindFilter === "institution"
                     ? {
                         kind: "institution" as const,
@@ -329,7 +340,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 setProviderRef("");
                 setCatalogReviewed(false);
                 setExhibitionReviewed(false);
-                setInstitutionReviewed(false);
+                setInstitutionReviewed(false); setLifeReviewed(false);
                 setVersions([]);
               }}
             >
@@ -389,6 +400,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 ))}
               </select>
             </label>
+            {isLife(kindFilter) && <div className="form-grid"><label>体验分类<select value={lifeCategory} onChange={e=>setLifeCategory(e.target.value)}><option value="">全部</option>{lifeCategories.map(k=><option key={k} value={k}>{lifeText('zh',k)}</option>)}</select></label><label>营业／活动状态<select value={lifeStatus} onChange={e=>setLifeStatus(e.target.value)}><option value="">全部</option>{['open','paused','closed','scheduled','full','cancelled','postponed','ended','registrationClosed'].map(k=><option key={k} value={k}>{lifeText('zh',k)}</option>)}</select></label><label>复核到期不晚于<input type="date" value={reviewBefore} onChange={e=>setReviewBefore(e.target.value)}/></label></div>}
             {kindFilter === "institution" && (
               <>
                 <label>
@@ -560,8 +572,9 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                           : !pub?.active;
                     })()) &&
                   (!kindFilter || d.kind === kindFilter) &&
+                  (!isLife(kindFilter) || ((!lifeCategory||d.body.lifestyle?.category===lifeCategory)&&(!lifeStatus||effectiveLifeStatus(d.body.lifestyle,d.kind)===lifeStatus)&&(!reviewBefore||(d.body.lifestyle?.reviewDue && d.body.lifestyle.reviewDue<=reviewBefore)))) &&
                   (!cityFilter ||
-                    (d.kind === "institution"
+                    (isLife(d.kind) ? d.body.lifestyle?.city === cityFilter : d.kind === "institution"
                       ? d.body.institution?.city === cityFilter
                       : d.kind === "exhibition"
                         ? d.body.exhibition?.city === cityFilter
@@ -673,6 +686,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                   onChange={(e) => field("contentKey", e.target.value)}
                 />
               </label>
+              {isLife(body.kind) && <><LifestyleFields kind={body.kind} value={body.lifestyle||emptyLifestyle(body.kind)} onChange={v=>field('lifestyle',v)}/>{isAdmin && <label>内部服务商编号（仅管理员可见）<input type="number" value={providerRef} onChange={e=>setProviderRef(e.target.value)}/></label>}</>}
               {body.kind === "institution" && (
                 <>
                   <InstitutionFields
@@ -692,7 +706,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                           value={providerRef}
                           onChange={(e) => {
                             setProviderRef(e.target.value);
-                            setInstitutionReviewed(false);
+                            setInstitutionReviewed(false); setLifeReviewed(false);
                           }}
                         >
                           <option value="">不关联内部档案</option>
@@ -772,7 +786,8 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 <label>
                   主板块
                   <select
-                    value={body.category || 1}
+                    value={isLife(body.kind) ? 6 : body.category || 1}
+                    disabled={isLife(body.kind)}
                     onChange={(e) => field("category", Number(e.target.value))}
                   >
                     {contentSections.map((s) => (
@@ -830,7 +845,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                             setProviderRef(e.target.value);
                             setCatalogReviewed(false);
                             setExhibitionReviewed(false);
-                            setInstitutionReviewed(false);
+                            setInstitutionReviewed(false); setLifeReviewed(false);
                           }}
                         >
                           <option value="">请选择已入驻的服务商</option>
@@ -1035,12 +1050,13 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       <h3>审核与发布</h3>
                       {isCatalog(body.kind) && <label><input type="checkbox" style={{width:"auto"}} checked={catalogReviewed} onChange={e=>setCatalogReviewed(e.target.checked)}/> 已核验公开资料、图片权利及服务范围，不含内部联系方式。</label>}
                       {body.kind === "exhibition" && <label><input type="checkbox" style={{width:"auto"}} checked={exhibitionReviewed} onChange={e=>setExhibitionReviewed(e.target.checked)}/> 已核验官方来源、展期、地址和报名条件。</label>}
+                      {isLife(body.kind) && <label><input type="checkbox" style={{width:"auto"}} checked={lifeReviewed} onChange={e=>setLifeReviewed(e.target.checked)}/> 已人工核实来源、营业或活动时间、收费、语言和参加要求。</label>}
                       {body.kind === "institution" && <label><input type="checkbox" style={{width:"auto"}} checked={institutionReviewed} onChange={e=>setInstitutionReviewed(e.target.checked)}/> 已核验官方来源、资质说明、接待条件及服务语言。</label>}
                       {selfReview && (isAdmin ? <label>管理员代审原因（必填）<textarea value={overrideReason} onChange={e=>setOverrideReason(e.target.value)} /></label> : <p>本人编辑或提交的内容，请交由另一位审核员审核。</p>)}
                       <button
                         disabled={busy || selected.reviewState !== "review" || (selfReview && (!isAdmin || !overrideReason.trim())) || (isCatalog(body.kind) && !catalogReviewed) ||
                           (body.kind === "exhibition" && !exhibitionReviewed) ||
-                          (body.kind === "institution" && !institutionReviewed)
+                          (isLife(body.kind) && !lifeReviewed) || (body.kind === "institution" && !institutionReviewed)
                         }
                         onClick={() => action("publish")}
                       >
@@ -1234,7 +1250,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
               {t.result && (
                 <>
                   <h4>{t.result.title}</h4>
-                  <p>{t.result.summary}</p>
+                  <p>{t.result.summary}</p>{t.result.lifestyleText && <details><summary>结构化资料翻译</summary><dl>{Object.entries(t.result.lifestyleText).map(([k,v])=><div key={k}><dt>{lifeText("zh",k)}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
                   <ul>
                     {t.result.questions?.map((q: string, i: number) => (
                       <li key={i}>{q}</li>

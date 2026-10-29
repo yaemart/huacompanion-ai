@@ -10,7 +10,7 @@ export type Staff = {
   contentKinds?: string[] | null;
 } | null | undefined;
 export const staffRoles = ["admin", "manager", "operations", "editor", "reviewer"] as const;
-export const contentKinds = ["service", "guide", "faq", "page", "partner", "provider-profile", "service-project", "exhibition", "institution"] as const;
+export const contentKinds = ["service", "guide", "faq", "page", "partner", "provider-profile", "service-project", "exhibition", "institution", "venue", "activity"] as const;
 export function relationID(value: unknown): string | number | undefined {
   if (typeof value === "string" || typeof value === "number") return value;
   if (value && typeof value === "object" && "id" in value) return relationID(value.id);

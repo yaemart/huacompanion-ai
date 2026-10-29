@@ -1,3 +1,4 @@
+import { type Lifestyle, lifeTranslationFields, isLife, validateLifestyle, publicLifestyle } from "./lifestyle.ts";
 import { type Institution, validateInstitution, publicInstitution } from "./institutions.ts";
 import { type Exhibition, validateExhibition, publicExhibition } from "./exhibitions.ts";
 import { isLocale, type Locale } from "./locales.ts";
@@ -33,7 +34,9 @@ export type ContentBody = {
     | "provider-profile"
     | "service-project"
     | "exhibition"
-    | "institution";
+    | "institution"
+    | "venue"
+    | "activity";
   locale: Locale;
   slug: string;
   title: string;
@@ -43,11 +46,13 @@ export type ContentBody = {
   catalog?: Catalog;
   exhibition?: Exhibition;
   institution?: Institution;
+  lifestyle?: Lifestyle;
   acceptingInquiries?: boolean;
   category?: number;
   order?: number;
   author?: string;
   publishedAt?: string;
+  publicationRevision?: number;
   expiresAt?: string;
   seoTitle?: string;
   seoDescription?: string;
@@ -93,7 +98,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
       "provider-profile",
       "service-project",
       "exhibition",
-      "institution",
+      "institution", "venue", "activity",
     ].includes(d.kind) ||
     !isLocale(d.locale)
   )
@@ -118,6 +123,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
     throw Error("网站页面仅支持 home/about/contact/partners/privacy/terms");
   if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
   if (d.kind === "exhibition") validateExhibition(d.exhibition);
+  if (isLife(d.kind)) validateLifestyle(d.lifestyle,d.kind);
   if (d.kind === "institution") validateInstitution(d.institution);
   checkBlocks(d.blocks);
   if (!Array.isArray(d.sources) || d.sources.length > 30)
@@ -140,6 +146,7 @@ export type Candidate = {
   blocks: Block[];
   sourceIds: string[];
   questions: string[];
+  lifestyleText?: Partial<Record<typeof lifeTranslationFields[number],string>>;
 };
 export function validateCandidate(
   value: unknown,
@@ -153,6 +160,10 @@ export function validateCandidate(
     r.title.length > 200
   )
     throw Error("AI标题无效");
+  if(r.lifestyleText!==undefined){
+    if(!r.lifestyleText || typeof r.lifestyleText!=='object' || Array.isArray(r.lifestyleText)) throw Error('AI结构化翻译格式无效');
+    for(const [k,v] of Object.entries(r.lifestyleText)) if(!(lifeTranslationFields as readonly string[]).includes(k)||typeof v!=='string'||v.length>5000) throw Error('AI仅可翻译允许的文字字段');
+  }
   checkBlocks(r.blocks);
   if (r.blocks.some((b) => b.type === "image"))
     throw Error("AI不能自行引用图片");
@@ -170,6 +181,7 @@ export function validateCandidate(
 }
 export function publicBody(d: ContentBody): ContentBody {
   return {
+    ...(isLife(d.kind) && d.lifestyle ? {lifestyle:publicLifestyle(d.lifestyle)} : {}),
     ...(d.kind === "institution" && d.institution ? { institution: publicInstitution(d.institution) } : {}),
     ...(d.kind === "exhibition" && d.exhibition ? { exhibition: publicExhibition(d.exhibition) } : {}),
     ...(isCatalog(d.kind) && d.catalog

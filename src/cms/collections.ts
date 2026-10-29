@@ -188,7 +188,7 @@ export const Staff: CollectionConfig = {
     { name: "name", label: "姓名", type: "text", required: true },
     { name: "active", label: "账号启用", type: "checkbox", defaultValue: true, access: fieldAdmin },
     { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
-    { name: "contentKinds", label: "允许管理的内容类型", type: "select", hasMany: true, defaultValue: [], options: contentKinds.map((value) => ({ value, label: ({ service: "服务介绍", guide: "实用指南", faq: "常见问题", page: "网站页面", partner: "合作伙伴", "provider-profile": "服务商介绍", "service-project": "服务项目", exhibition: "展会", institution: "医疗机构" })[value] })), access: fieldAdmin,
+    { name: "contentKinds", label: "允许管理的内容类型", type: "select", hasMany: true, defaultValue: [], options: contentKinds.map((value) => ({ value, label: ({ service: "服务介绍", guide: "实用指南", faq: "常见问题", page: "网站页面", partner: "合作伙伴", "provider-profile": "服务商介绍", "service-project": "服务项目", exhibition: "展会", institution: "医疗机构", venue: "体验场所与餐馆", activity: "体验活动" })[value] })), access: fieldAdmin,
       admin: { description: "新员工默认不授权内容；编辑与审核均只允许操作所选内容类型。" } },
     { name: "additionalRoles", label: "兼任角色", type: "select", hasMany: true, defaultValue: [], options: [{ value: "admin", label: "管理员" }, { value: "manager", label: "业务主管" }, { value: "operations", label: "客户运营" }, { value: "editor", label: "内容编辑" }, { value: "reviewer", label: "内容审核" }], access: fieldAdmin },
     {

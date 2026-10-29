@@ -165,6 +165,7 @@ export function sectionFor(body: {
   kind?: string;
   slug?: string;
 }) {
+  if (body.kind === "venue" || body.kind === "activity") return 6;
   if (body.category && contentSections.some((s) => s.id === body.category))
     return body.category;
   const mapping: Record<string, number> = {
@@ -176,6 +177,7 @@ export function sectionFor(body: {
     interpretation: 7,
     arrival: 1,
   };
+  if (body.kind === "venue" || body.kind === "activity") return 6;
   return body.kind === "service" ? mapping[body.slug || ""] || 8 : 8;
 }
 export function filterContent<

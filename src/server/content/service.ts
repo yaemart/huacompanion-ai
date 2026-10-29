@@ -1,4 +1,5 @@
 import { canManageContent, canReviewContent, canAccessContentKind, isAdmin } from "../../cms/access";
+import { isLife, lifeCanEnquire, validateLifePublication } from "../../lib/lifestyle";
 import { validateInstitutionPublication } from "../../lib/institutions";
 import { validateExhibitionPublication, effectiveExhibitionStatus } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
@@ -89,6 +90,7 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
         b.exhibition.status = effectiveExhibitionStatus(b.exhibition);
         b.acceptingInquiries = !["ended", "cancelled"].includes(b.exhibition.status);
       }
+      if (isLife(b.kind) && b.lifestyle) b.acceptingInquiries = lifeCanEnquire(b.lifestyle,b.kind);
       if (b.kind === "institution" && b.institution) b.acceptingInquiries = b.institution.foreignAcceptance === "confirmed";
       if (isCatalog(b.kind)) {
         b.acceptingInquiries =
@@ -100,7 +102,7 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
           providerKeys.has(k),
         );
       }
-      return { ...b, publishedAt: s.publishedAt };
+      return { ...b, publicationRevision:s.revision, publishedAt: s.publishedAt };
     })
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
@@ -175,7 +177,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             req,
           });
       let providerRef = current?.providerRef;
-      if (["provider-profile", "institution"].includes(body.kind) && input.providerRef !== undefined) {
+      if (["provider-profile", "institution", "venue", "activity"].includes(body.kind) && input.providerRef !== undefined) {
         if (!isAdmin(user))
           throw new ContentError("只有管理员可关联内部服务商", 403);
         if (
@@ -190,7 +192,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         providerRef = input.providerRef;
       }
       const data = {
-        ...(["provider-profile", "institution"].includes(body.kind) ? { providerRef } : {}),
+        ...(["provider-profile", "institution", "venue", "activity"].includes(body.kind) ? { providerRef } : {}),
         title: body.title,
         contentKey: body.contentKey,
         locale: body.locale,
@@ -266,6 +268,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
       if (clean.kind === "exhibition") validateExhibitionPublication(clean.exhibition, clean.sources, input.exhibitionReviewed);
+      if (isLife(clean.kind)) validateLifePublication(clean.lifestyle,clean.kind,clean.sources,input.lifeReviewed);
       if (clean.kind === "institution") validateInstitutionPublication(clean.institution, clean.sources, input.institutionReviewed);
       if (isCatalog(clean.kind)) {
         validateCatalog(clean.kind, clean.catalog, true);
@@ -296,7 +299,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       }
       const data = {
         providerRef:
-          ["provider-profile", "institution"].includes(clean.kind) ? current.providerRef : null,
+          ["provider-profile", "institution", "venue", "activity"].includes(clean.kind) ? current.providerRef : null,
         suspended: false,
         draftId: current.id,
         routeKey: current.routeKey,

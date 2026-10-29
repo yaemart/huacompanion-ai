@@ -82,6 +82,7 @@ export default async function Preview({
           </dl>
         </section>
       )}
+      {body.lifestyle && <section><h2>场所／活动资料</h2><dl>{Object.entries(body.lifestyle).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{Array.isArray(v)?v.join('、'):String(v??'待确认')}</dd></div>)}</dl></section>}
       {body.kind === "institution" && body.institution && (
         <section>
           <h2>医疗与康养机构资料</h2>

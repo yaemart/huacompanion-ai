@@ -7,6 +7,7 @@ import * as migration_20261028_000000_seven_locales from './20261028_000000_seve
 import * as migration_20261029_000000_coordination_stage from './20261029_000000_coordination_stage';
 import * as migration_20261029_013605_staff_permissions from './20261029_013605_staff_permissions';
 import * as migration_20261029_014325_content_contributors from './20261029_014325_content_contributors';
+import * as migration_20261029_024218_city_life_permissions from './20261029_024218_city_life_permissions';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20261029_014325_content_contributors.up,
     down: migration_20261029_014325_content_contributors.down,
-    name: '20261029_014325_content_contributors'
+    name: '20261029_014325_content_contributors',
+  },
+  {
+    up: migration_20261029_024218_city_life_permissions.up,
+    down: migration_20261029_024218_city_life_permissions.down,
+    name: '20261029_024218_city_life_permissions'
   },
 ];

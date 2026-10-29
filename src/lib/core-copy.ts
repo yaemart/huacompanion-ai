@@ -1,5 +1,6 @@
 import type { Locale } from './locales.ts';
 const rows = [
+['City life & experiences','城市生活与体验','Vida urbana y experiencias','Vie urbaine et expériences','Stadtleben und Erlebnisse','Vita urbana ed esperienze','حياة المدينة والتجارب'],
 ['Medical & wellness institutions','医疗与康养机构','Instituciones médicas y de bienestar','Établissements médicaux et de bien-être','Medizinische Einrichtungen und Wellness','Strutture mediche e benessere','المؤسسات الطبية والعافية'],
 ['Institutions','医疗康养','Instituciones','Établissements','Einrichtungen','Strutture','المؤسسات'],
 ['Home','首页','Inicio','Accueil','Startseite','Home','الرئيسية'],

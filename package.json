@@ -30,7 +30,9 @@
     "seed:institutions": "tsx scripts/seed-institutions.ts",
     "test:institutions": "tsx tests/integration/institutions.ts",
     "test:permissions:business": "tsx tests/integration/permissions-business.ts",
-    "test:permissions:content": "tsx tests/integration/permissions-content.ts"
+    "test:permissions:content": "tsx tests/integration/permissions-content.ts",
+    "test:life": "tsx tests/integration/lifestyle.ts",
+    "seed:life": "tsx scripts/seed-life-candidates.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

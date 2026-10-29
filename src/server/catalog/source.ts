@@ -1,3 +1,5 @@
+import { isLife, lifeCanEnquire, effectiveLifeStatus } from "../../lib/lifestyle";
+import { lifeText } from "../../lib/lifestyle-copy";
 import { effectiveExhibitionStatus } from "../../lib/exhibitions";
 import { coreText } from "../../lib/core-copy";
 import type { Locale } from "../../lib/locales";
@@ -26,6 +28,9 @@ export async function resolveCatalogSource(
         (d) => d.kind === "service-project" && d.contentKey === source.project,
       )
     : undefined;
+  const life = source.life ? docs.find(d=>d.kind===source.lifeKind && d.contentKey===source.life) : undefined;
+  const lifeError=()=>new IntakeValidationError({source:lifeText(locale,'unavailable')});
+  if(source.life && (!life?.lifestyle || !isLife(life.kind) || !lifeCanEnquire(life.lifestyle,life.kind) || (source.project&&!life.lifestyle.projectKeys.includes(source.project)))) throw lifeError();
   const institution = source.institution ? docs.find(d => d.kind === "institution" && d.contentKey === source.institution) : undefined;
   const institutionError = () => new IntakeValidationError({source: {
     zh:"所选机构已变更、暂停接待或与服务不匹配。请重新打开机构页面，或移除选择后提交一般咨询。",
@@ -67,6 +72,7 @@ export async function resolveCatalogSource(
         s.body.locale === locale &&
         s.body.kind === d.kind,
     )!;
+    if (isLife(d.kind) && requireRevision && source.lifeRevision !== s.revision) throw lifeError();
     if (d.kind === "exhibition" && requireRevision && source.exhibitionRevision !== s.revision) throw exhibitionError();
     if (d.kind === "institution" && requireRevision && source.institutionRevision !== s.revision) throw institutionError();
     return {
@@ -77,6 +83,7 @@ export async function resolveCatalogSource(
       publicationId: s.id,
       revision: s.revision,
       ...(d.kind === "exhibition" ? {startDate:d.exhibition!.startDate,endDate:d.exhibition!.endDate,city:d.exhibition!.city,venue:d.exhibition!.venue,status:effectiveExhibitionStatus(d.exhibition!)} : {}),
+      ...(isLife(d.kind) ? {city:d.lifestyle!.city,category:d.lifestyle!.category,address:d.lifestyle!.address,startAt:d.lifestyle!.startAt,endAt:d.lifestyle!.endAt,status:effectiveLifeStatus(d.lifestyle!,d.kind),kind:d.kind} : {}),
       ...(d.kind === "institution" ? {city:d.institution!.city, type:d.institution!.type, foreignAcceptance:d.institution!.foreignAcceptance, verifiedAt:d.institution!.verifiedAt, address:d.institution!.address} : {}),
       ...(d.kind === "provider-profile" ? { providerRef: s.providerRef } : {}),
       ...(d.kind === "service-project"
@@ -105,6 +112,7 @@ export async function resolveCatalogSource(
     ...(provider ? { provider: snapshot(provider) } : {}),
     ...(project ? { project: snapshot(project) } : {}),
     ...(exhibition ? { exhibition: snapshot(exhibition) } : {}),
+    ...(life ? {life:snapshot(life)} : {}),
     ...(institution ? { institution: snapshot(institution) } : {}),
   };
 }

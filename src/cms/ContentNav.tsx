@@ -1,6 +1,6 @@
 import { canAccessContentKind, canManageContent, canReviewContent, type Staff } from './access';
 export function ContentNav({user}:{user?:Staff}) {
  if(!canManageContent(user)&&!canReviewContent(user))return null;
- const links=[['guide','来华指南'],['service','服务介绍'],['faq','常见问题'],['page','网站页面'],['partner','公开伙伴'],['institution','医疗与康养机构'],['exhibition','展会信息'],['provider-profile','服务商展示内容'],['service-project','华伴服务项目']];
+ const links=[['guide','来华指南'],['service','服务介绍'],['faq','常见问题'],['page','网站页面'],['partner','公开伙伴'],['venue','体验场所与餐馆'],['activity','体验活动'],['institution','医疗与康养机构'],['exhibition','展会信息'],['provider-profile','服务商展示内容'],['service-project','华伴服务项目']];
  return <section aria-label="内容管理" style={{marginBottom:24}}><h3 style={{fontSize:14}}>内容管理</h3>{links.filter(([kind])=>canAccessContentKind(user,kind)).map(([kind,label])=><a key={kind} style={{display:'block',padding:'8px 0'}} href={`/content-center?kind=${kind}`}>{label}</a>)}</section>;
 }

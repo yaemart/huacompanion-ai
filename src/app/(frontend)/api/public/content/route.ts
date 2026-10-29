@@ -27,6 +27,7 @@ export async function GET(req: Request) {
         section: contentSections.find((s) => s.id === sectionFor(d))?.key,
         path: isCatalog(d.kind)
           ? catalogPath(d)
+          : ["venue","activity"].includes(d.kind) ? `/${locale}/life/${d.kind}/${d.slug}`
           : d.kind === "institution"
             ? `/${locale}/institutions/${d.slug}`
           : d.kind === "exhibition"

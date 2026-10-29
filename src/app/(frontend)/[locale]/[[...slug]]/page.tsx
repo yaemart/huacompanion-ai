@@ -1,3 +1,6 @@
+import { LifestylePage } from "@/components/lifestyle/LifestylePage";
+import { isLife } from "@/lib/lifestyle";
+import { lifeText } from "@/lib/lifestyle-copy";
 import { InstitutionPage } from "@/components/institutions/InstitutionPage";
 import { ExhibitionPage } from "@/components/exhibitions/ExhibitionPage";
 import { catalogCities } from "@/lib/catalog-options";
@@ -33,6 +36,7 @@ type Props = {
     project?: string;
     exhibition?: string;
     institution?: string;
+    life?: string; lifeKind?: string; lifeRevision?:string; date?:string; status?:string; cuisine?:string; scene?:string; budget?:string;
     type?: string;
     direction?: string;
     industry?: string;
@@ -62,6 +66,7 @@ export async function generateMetadata({ params }: Props) {
     : undefined;
   const detail =
     catalogDetail ||
+    (slug[0] === "life" ? docs.find(d=>d.kind===slug[1] && d.slug===slug[2]) : undefined) ||
     (slug[0] === "institutions" ? docs.find(d => d.kind === "institution" && d.slug === slug[1]) : undefined) ||
     (slug[0] === "exhibitions" ? docs.find(d => d.kind === "exhibition" && d.slug === slug[1]) : undefined) ||
     docs.find(
@@ -74,9 +79,9 @@ export async function generateMetadata({ params }: Props) {
               : "page") && d.slug === (slug[1] || slug[0] || "home"),
     );
   const titles: Record<string,string> = {institutions:"Medical & wellness institutions",exhibitions:"Exhibitions",services:"Our services",guides:"Knowledge centre",partners:"Partner with us",about:"About us",contact:"Contact",request:"Plan your visit",apply:"Partner application",privacy:"Privacy notice",terms:"Service boundaries"};
-  const title = detail?.seoTitle || detail?.title || coreText(l, catalogKind ? (catalogKind === "provider-profile" ? "Service providers" : "Hua service projects") : titles[slug[0]] || "Your local companion in China.");
+  const title = (slug[0] === "life" ? detail?.seoTitle || detail?.title || lifeText(l,"title") : undefined) || detail?.seoTitle || detail?.title || coreText(l, catalogKind ? (catalogKind === "provider-profile" ? "Service providers" : "Hua service projects") : titles[slug[0]] || "Your local companion in China.");
   return {
-    ...((catalogKind || slug[0] === "exhibitions" || slug[0] === "institutions")
+    ...((catalogKind || slug[0] === "exhibitions" || slug[0] === "institutions" || slug[0] === "life")
       ? { alternates: { canonical: `/${l}/${slug.join("/")}` } }
       : {}),
     description: detail?.seoDescription || detail?.summary,
@@ -87,6 +92,14 @@ export default async function Page({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;
   if (!isLocale(locale)) notFound();
   const docs = await content(locale);
+  if(slug[0]==='life') {
+    if(slug.length!==1 && (slug.length!==3 || !isLife(slug[1]))) notFound();
+    const detail=slug[2]?docs.find(d=>d.kind===slug[1]&&d.slug===slug[2]):undefined;
+    if(slug[2]&&!detail)notFound();
+    const raw=await searchParams;
+    const query=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,Array.isArray(v)?v[0]:v]));
+    return <LifestylePage items={docs} locale={locale} detail={detail} query={query} languagePaths={await languagePaths(detail)}/>;
+  }
   if (slug[0] === "institutions") {
     if (slug.length > 2) notFound();
     const detail = slug[1] ? docs.find(d => d.kind === "institution" && d.slug === slug[1]) : undefined;
@@ -139,11 +152,11 @@ export default async function Page({ params, searchParams }: Props) {
     return (
       <PublishedSite locale={locale} slug={slug} contents={docs} languagePaths={await languagePaths(slug.length === 2 ? docs.find(d => d.slug === slug[1] && d.kind === (slug[0] === "guides" ? "guide" : slug[0] === "services" ? "service" : "partner")) : undefined)} />
     );
-  const { service, provider, project, exhibition, institution } = await searchParams;
+  const { service, provider, project, exhibition, institution, life, lifeKind, lifeRevision } = await searchParams;
   let catalogSelection: any;
   if (
     slug[0] === "request" &&
-    (provider !== undefined || project !== undefined || exhibition !== undefined || institution !== undefined)
+    (provider !== undefined || project !== undefined || exhibition !== undefined || institution !== undefined || life !== undefined)
   ) {
     try {
       const source = parseCatalogSource({
@@ -151,30 +164,31 @@ export default async function Page({ params, searchParams }: Props) {
         ...(project !== undefined ? { project } : {}),
         ...(exhibition !== undefined ? { exhibition } : {}),
         ...(institution !== undefined ? { institution } : {}),
+        ...(life !== undefined ? {life,lifeKind,lifeRevision:Number(lifeRevision)} : {}),
       });
       const payload = await getPayload({ config });
-      const resolved = await contentTransaction(payload, req => resolveCatalogSource(payload, locale, source, req, false));
+      const resolved = await contentTransaction(payload, req => resolveCatalogSource(payload, locale, source, req, !!life));
       catalogSelection = {
-        source: {...source, ...(resolved?.exhibition ? {exhibitionRevision:resolved.exhibition.revision} : {}), ...(resolved?.institution ? {institutionRevision:resolved.institution.revision} : {})},
-        city: catalogCities.find(c=>c.code===(resolved?.institution?.city || resolved?.exhibition?.city))?.en,
-        summary: [resolved?.institution?.title, resolved?.provider?.title, resolved?.project?.title, resolved?.exhibition?.title, resolved?.exhibition ? [resolved.exhibition.startDate, resolved.exhibition.endDate].filter(Boolean).join(" — ") : undefined]
+        source: {...source, ...(resolved?.life ? {lifeRevision:resolved.life.revision}:{}), ...(resolved?.exhibition ? {exhibitionRevision:resolved.exhibition.revision} : {}), ...(resolved?.institution ? {institutionRevision:resolved.institution.revision} : {})},
+        city: catalogCities.find(c=>c.code===(resolved?.life?.city || resolved?.institution?.city || resolved?.exhibition?.city))?.en,
+        summary: [resolved?.life?.title, resolved?.life?.startAt, resolved?.institution?.title, resolved?.provider?.title, resolved?.project?.title, resolved?.exhibition?.title, resolved?.exhibition ? [resolved.exhibition.startDate, resolved.exhibition.endDate].filter(Boolean).join(" — ") : undefined]
           .filter(Boolean)
           .join(" · "),
       };
     } catch {
       catalogSelection = {
-        error: institution !== undefined ? ({zh:"所选机构已变更、暂停接待或与服务不匹配。请重新打开机构页面，或移除选择后提交一般咨询。",en:"The institution is unavailable or incompatible. Reopen its page or remove the selection.",es:"La institución no está disponible o no es compatible. Abre su página o elimina la selección.",fr:"L’établissement est indisponible ou incompatible. Rouvrez sa page ou retirez la sélection.",de:"Die Einrichtung ist nicht verfügbar oder nicht kompatibel. Öffnen Sie ihre Seite oder entfernen Sie die Auswahl.",it:"La struttura non è disponibile o non è compatibile. Riapri la pagina o rimuovi la selezione.",ar:"المؤسسة غير متاحة أو غير متوافقة. أعد فتح صفحتها أو أزل الاختيار."}[locale]) : coreText(locale, exhibition !== undefined ? "The selected exhibition is unavailable, has changed, or does not match your service selection. Please reopen its page or remove the selection." : "The selected provider or project is unavailable or incompatible. Please choose again or remove the selection."),
+        error: life !== undefined ? lifeText(locale,"unavailable") : institution !== undefined ? ({zh:"所选机构已变更、暂停接待或与服务不匹配。请重新打开机构页面，或移除选择后提交一般咨询。",en:"The institution is unavailable or incompatible. Reopen its page or remove the selection.",es:"La institución no está disponible o no es compatible. Abre su página o elimina la selección.",fr:"L’établissement est indisponible ou incompatible. Rouvrez sa page ou retirez la sélection.",de:"Die Einrichtung ist nicht verfügbar oder nicht kompatibel. Öffnen Sie ihre Seite oder entfernen Sie die Auswahl.",it:"La struttura non è disponibile o non è compatibile. Riapri la pagina o rimuovi la selezione.",ar:"المؤسسة غير متاحة أو غير متوافقة. أعد فتح صفحتها أو أزل الاختيار."}[locale]) : coreText(locale, exhibition !== undefined ? "The selected exhibition is unavailable, has changed, or does not match your service selection. Please reopen its page or remove the selection." : "The selected provider or project is unavailable or incompatible. Please choose again or remove the selection."),
       };
     }
   }
   return (
     <Site
       key={
-        slug.join("/") + inquiryFormKey(locale, service, { provider, project, exhibition, institution, institutionRevision:catalogSelection?.source?.institutionRevision, exhibitionRevision:catalogSelection?.source?.exhibitionRevision })
+        slug.join("/") + inquiryFormKey(locale, service, { provider, project, exhibition, institution, life, lifeKind:lifeKind as "venue"|"activity"|undefined, lifeRevision:catalogSelection?.source?.lifeRevision, institutionRevision:catalogSelection?.source?.institutionRevision, exhibitionRevision:catalogSelection?.source?.exhibitionRevision })
       }
       locale={locale as Locale}
       slug={slug}
-      initialService={service || (institution ? "medical" : exhibition ? "business" : undefined)}
+      initialService={service || (life ? "travel" : institution ? "medical" : exhibition ? "business" : undefined)}
       catalogSelection={catalogSelection}
     />
   );

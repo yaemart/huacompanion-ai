@@ -170,6 +170,8 @@ export interface Staff {
         | 'service-project'
         | 'exhibition'
         | 'institution'
+        | 'venue'
+        | 'activity'
       )[]
     | null;
   additionalRoles?: ('admin' | 'manager' | 'operations' | 'editor' | 'reviewer')[] | null;

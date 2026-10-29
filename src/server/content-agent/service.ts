@@ -1,3 +1,4 @@
+import { isLife, lifeTranslationFields } from "../../lib/lifestyle";
 import { canAccessContentKind } from "../../cms/access";
 import { isLocale } from "../../lib/locales";
 import { randomUUID } from "node:crypto";
@@ -90,6 +91,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
         targetId: target?.id,
         targetRevision: target?.revision,
         kind: input.kind,
+        ...(input.kind==='translate' && sourceBody && isLife(sourceBody.kind) ? {translationInstructions:'Return lifestyleText translating every nonempty field named in lifestyleTextFields. Do not change numbers, dates, status, URLs, IDs or service languages.',lifestyleTextFields:lifeTranslationFields.filter(k=>sourceBody.lifestyle?.[k])}:{}),
       };
       if (JSON.stringify(selected).length > 20000)
         throw new ContentError("材料与选定内容合计不能超过20000字符");
@@ -139,6 +141,9 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       source.sources.map((s: any) => s.id),
     );
     const result = task.result as unknown as Candidate;
+    if(task.kind==='translate' && isLife(source.source?.kind) && source.source?.lifestyle){
+      for(const k of lifeTranslationFields) if(source.source.lifestyle[k] && !result.lifestyleText?.[k]?.trim()) throw new ContentError('结构化资料翻译不完整，请补全预约、收费等文字字段后再采纳');
+    }
     let target = source.targetId
       ? await p.findByID({
           collection: "content-drafts",
@@ -166,12 +171,13 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
     if (base && base.locale !== source.locale)
       throw new ContentError("目标语言不一致，请重新创建任务", 409);
     const body: ContentBody = publicBody({
-      ...base,
+      ...(base || source.source),
       contentKey:
         base?.contentKey || source.source?.contentKey || `ai-${task.id}`,
       slug: base?.slug || source.source?.slug || `ai-${task.id}`,
       kind: base?.kind || source.source?.kind || "guide",
       locale: source.locale,
+      ...((base?.lifestyle || source.source?.lifestyle) ? {lifestyle:{...(base?.lifestyle || source.source.lifestyle),...(task.kind==='translate'?result.lifestyleText:{})}}:{}),
       title: result.title,
       summary: result.summary || "",
       blocks: result.blocks,

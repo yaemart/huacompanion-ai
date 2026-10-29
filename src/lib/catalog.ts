@@ -5,7 +5,7 @@ import {
   cityLabel,
 } from "./catalog-options.ts";
 import { serviceSlugs } from "./routes.ts";
-export type CatalogSource = { provider?: string; project?: string; exhibition?: string; exhibitionRevision?: number; institution?: string; institutionRevision?: number };
+export type CatalogSource = { provider?: string; project?: string; exhibition?: string; exhibitionRevision?: number; institution?: string; institutionRevision?: number; life?: string; lifeKind?: "venue"|"activity"; lifeRevision?: number };
 export type Catalog = {
   categories: string[];
   cities: { code: string; name: string }[];
@@ -63,7 +63,7 @@ export function parseCatalogSource(value: unknown): CatalogSource | undefined {
     throw Error("Invalid service selection");
   const raw = value as Record<string, unknown>;
   const out: CatalogSource = {};
-  for (const k of ["provider", "project", "exhibition", "institution"] as const)
+  for (const k of ["provider", "project", "exhibition", "institution", "life"] as const)
     if (raw[k] !== undefined) {
       if (typeof raw[k] !== "string" || !keyPattern.test(raw[k]))
         throw Error("Invalid service selection");
@@ -77,8 +77,18 @@ export function parseCatalogSource(value: unknown): CatalogSource | undefined {
     if (!out.institution || !Number.isSafeInteger(raw.institutionRevision) || Number(raw.institutionRevision) < 1) throw Error("Invalid institution revision");
     out.institutionRevision = Number(raw.institutionRevision);
   }
+  if (raw.lifeKind !== undefined) {
+    if(!out.life || !['venue','activity'].includes(String(raw.lifeKind))) throw Error('Invalid life kind');
+    out.lifeKind=raw.lifeKind as 'venue'|'activity';
+  }
+  if(out.life && !out.lifeKind) throw Error('Life kind required');
+  if(raw.lifeRevision !== undefined){
+    if(!out.life || !Number.isSafeInteger(raw.lifeRevision) || Number(raw.lifeRevision)<1) throw Error('Invalid life revision');
+    out.lifeRevision=Number(raw.lifeRevision);
+  }
+  if(out.life && (out.provider||out.institution||out.exhibition)) throw Error('Incompatible source selection');
   if (out.institution && out.exhibition) throw Error("Incompatible source selection");
-  if (!out.provider && !out.project && !out.exhibition && !out.institution) throw Error("Empty service selection");
+  if (!out.provider && !out.project && !out.exhibition && !out.institution && !out.life) throw Error("Empty service selection");
   return out;
 }
 export function validateCatalog(
@@ -290,6 +300,7 @@ export function inquiryFormKey(
     source?.project || "",
     source?.exhibition || "",
     source?.exhibitionRevision || "",
+    source?.life || "", source?.lifeKind || "", source?.lifeRevision || "",
     source?.institution || "",
     source?.institutionRevision || "",
   ]);
