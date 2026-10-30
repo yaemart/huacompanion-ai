@@ -34,7 +34,10 @@
     "test:life": "tsx tests/integration/lifestyle.ts",
     "seed:life": "tsx scripts/seed-life-candidates.ts",
     "test:housekeeping": "tsx tests/integration/housekeeping.ts",
-    "seed:housekeeping": "tsx scripts/seed-housekeeping.ts"
+    "seed:housekeeping": "tsx scripts/seed-housekeeping.ts",
+    "support:worker": "tsx scripts/support-worker.ts",
+    "test:support": "tsx tests/integration/support.ts",
+    "test:support:agent": "tsx tests/integration/support-agent.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

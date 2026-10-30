@@ -1,3 +1,4 @@
+import {supportAssignmentToken} from './support/trusted.ts';
 import { Forbidden } from "payload";
 import type { CollectionBeforeChangeHook } from "payload";
 import { hasRole, isAdmin, isManager, relationID } from "./access.ts";
@@ -36,12 +37,13 @@ export const guardStaffChange: CollectionBeforeChangeHook = async ({ req, operat
 };
 
 export const guardBusinessAssignment: CollectionBeforeChangeHook = async ({ req, data, originalDoc }) => {
+  const supportAssignment = req.context?.supportAssignmentToken === supportAssignmentToken && originalDoc?.reference === req.context.reference && String(relationID(data.team)) === String(relationID(req.context.team)) && String(relationID(data.owner)) === String(relationID(req.context.owner));
   const changingTeam = "team" in data && String(relationID(data.team)) !== String(relationID(originalDoc?.team));
   const changingOwner = "owner" in data && String(relationID(data.owner)) !== String(relationID(originalDoc?.owner));
   if (!changingTeam && !changingOwner) return data;
-  if (changingTeam && !isAdmin(req.user)) throw new Forbidden();
+  if (changingTeam && !isAdmin(req.user) && !supportAssignment) throw new Forbidden();
   const team = "team" in data ? data.team : originalDoc?.team;
-  if (changingOwner && !isAdmin(req.user)) {
+  if (changingOwner && !isAdmin(req.user) && !supportAssignment) {
     const actorTeam = relationID(req.user?.team);
     if (!isManager(req.user) || actorTeam === undefined || String(actorTeam) !== String(relationID(team))) throw new Forbidden();
   }

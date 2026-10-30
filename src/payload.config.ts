@@ -1,3 +1,4 @@
+import {supportCollections} from './cms/support/collections';
 import "dotenv/config";
 import { buildConfig } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
@@ -30,7 +31,7 @@ export default buildConfig({
     push: process.env.APP_ENV === "local",
     migrationDir: path.resolve("src/migrations"),
   }),
-  collections: [...collections, ...contentCollections],
+  collections: [...collections, ...contentCollections, ...supportCollections],
   typescript: { outputFile: path.resolve("payload-types.ts") },
   csrf: [process.env.APP_URL || "http://127.0.0.1:3000"],
   graphQL: { disable: true },

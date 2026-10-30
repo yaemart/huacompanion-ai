@@ -1,4 +1,5 @@
 "use client";
+import {supportText} from "@/lib/support";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -57,6 +58,7 @@ export function Header({ locale, languagePaths }: { locale: Locale; languagePath
           ))}
         </nav>
         <div className="header-actions">
+          <Link href={`/${locale}/support`}>{supportText(locale,"title")}</Link>
           <select className="language" aria-label={c("Website language")} value={locale}
             onChange={event => {
               const next = event.target.value;

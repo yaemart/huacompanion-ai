@@ -27,10 +27,14 @@ export function InquiryForm({
   kind,
   initialService,
   catalogSelection,
+  supportConversation,
+  initialValues,
 }: {
   locale: Locale;
   kind: FormKind;
   initialService?: string;
+  supportConversation?: number;
+  initialValues?: Record<string,string>;
   catalogSelection?: CatalogSelection;
 }) {
   const localMode = process.env.NEXT_PUBLIC_FORM_MODE === "local";
@@ -52,6 +56,7 @@ export function InquiryForm({
       language: localeNames[locale],
       people: "1",
       channel: "email",
+      ...initialValues,
     }),
     [errors, setErrors] = useState<Record<string, string>>({}),
     [checked, setChecked] = useState(false);
@@ -217,13 +222,13 @@ export function InquiryForm({
       setSaveError("");
       setAttempted(true);
       try {
-        const response = await fetch("/api/intake", {
+        const response = await fetch(supportConversation ? "/api/support" : "/api/intake", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Idempotency-Key": request.current.key,
           },
-          body: request.current.body,
+          body: supportConversation ? JSON.stringify({action:"confirm",id:supportConversation,key:request.current.key,payload:JSON.parse(request.current.body)}) : request.current.body,
         });
         const result = await response.json();
         if (!response.ok) {

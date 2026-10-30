@@ -79,6 +79,10 @@ export interface Config {
     'content-events': ContentEvent;
     'content-media': ContentMedia;
     'content-agent-tasks': ContentAgentTask;
+    'support-customers': SupportCustomer;
+    'support-conversations': SupportConversation;
+    'support-messages': SupportMessage;
+    'support-runs': SupportRun;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -98,6 +102,10 @@ export interface Config {
     'content-events': ContentEventsSelect<false> | ContentEventsSelect<true>;
     'content-media': ContentMediaSelect<false> | ContentMediaSelect<true>;
     'content-agent-tasks': ContentAgentTasksSelect<false> | ContentAgentTasksSelect<true>;
+    'support-customers': SupportCustomersSelect<false> | SupportCustomersSelect<true>;
+    'support-conversations': SupportConversationsSelect<false> | SupportConversationsSelect<true>;
+    'support-messages': SupportMessagesSelect<false> | SupportMessagesSelect<true>;
+    'support-runs': SupportRunsSelect<false> | SupportRunsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -550,6 +558,122 @@ export interface ContentAgentTask {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-customers".
+ */
+export interface SupportCustomer {
+  id: number;
+  name?: string | null;
+  email?: string | null;
+  verified?: boolean | null;
+  locale?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-conversations".
+ */
+export interface SupportConversation {
+  id: number;
+  visitorHash: string;
+  startKey: string;
+  locale: string;
+  topic?: string | null;
+  mode: 'ai' | 'waiting' | 'human';
+  status: 'open' | 'waiting-customer' | 'resolved';
+  aiRevision: number;
+  revision: number;
+  aiConsent?: boolean | null;
+  consentAt?: string | null;
+  team?: (number | null) | Team;
+  owner?: (number | null) | Staff;
+  customer?: (number | null) | SupportCustomer;
+  summary?: string | null;
+  proposedRequest?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  nextFollowUp?: string | null;
+  inquiryLinks?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-messages".
+ */
+export interface SupportMessage {
+  id: number;
+  conversation: number | SupportConversation;
+  dedupe: string;
+  author: 'customer' | 'staff' | 'ai' | 'system';
+  visibility: 'public' | 'internal';
+  staff?: (number | null) | Staff;
+  text: string;
+  citations?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-runs".
+ */
+export interface SupportRun {
+  id: number;
+  conversation: number | SupportConversation;
+  dedupe: string;
+  task?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  revision: number;
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'discarded';
+  lease?: string | null;
+  leaseUntil?: string | null;
+  day?: string | null;
+  reserved?: number | null;
+  usage?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  model?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -619,6 +743,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'content-agent-tasks';
         value: number | ContentAgentTask;
+      } | null)
+    | ({
+        relationTo: 'support-customers';
+        value: number | SupportCustomer;
+      } | null)
+    | ({
+        relationTo: 'support-conversations';
+        value: number | SupportConversation;
+      } | null)
+    | ({
+        relationTo: 'support-messages';
+        value: number | SupportMessage;
+      } | null)
+    | ({
+        relationTo: 'support-runs';
+        value: number | SupportRun;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -922,6 +1062,78 @@ export interface ContentAgentTasksSelect<T extends boolean = true> {
   usage?: T;
   adoptedDraft?: T;
   createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-customers_select".
+ */
+export interface SupportCustomersSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  verified?: T;
+  locale?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-conversations_select".
+ */
+export interface SupportConversationsSelect<T extends boolean = true> {
+  visitorHash?: T;
+  startKey?: T;
+  locale?: T;
+  topic?: T;
+  mode?: T;
+  status?: T;
+  aiRevision?: T;
+  revision?: T;
+  aiConsent?: T;
+  consentAt?: T;
+  team?: T;
+  owner?: T;
+  customer?: T;
+  summary?: T;
+  proposedRequest?: T;
+  nextFollowUp?: T;
+  inquiryLinks?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-messages_select".
+ */
+export interface SupportMessagesSelect<T extends boolean = true> {
+  conversation?: T;
+  dedupe?: T;
+  author?: T;
+  visibility?: T;
+  staff?: T;
+  text?: T;
+  citations?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-runs_select".
+ */
+export interface SupportRunsSelect<T extends boolean = true> {
+  conversation?: T;
+  dedupe?: T;
+  task?: T;
+  revision?: T;
+  status?: T;
+  lease?: T;
+  leaseUntil?: T;
+  day?: T;
+  reserved?: T;
+  usage?: T;
+  model?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }
