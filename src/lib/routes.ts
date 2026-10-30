@@ -1,6 +1,7 @@
 import type { Locale } from "./locales.ts";
 export type { Locale } from "./locales.ts";
 export const serviceSlugs = [
+  "housekeeping",
   "medical",
   "business",
   "transport",

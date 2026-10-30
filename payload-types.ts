@@ -205,7 +205,9 @@ export interface Inquiry {
   reference: string;
   name: string;
   email: string;
-  categories: ('medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival')[];
+  categories: (
+    'housekeeping' | 'medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival'
+  )[];
   city: string;
   details?:
     | {
@@ -222,6 +224,30 @@ export interface Inquiry {
   privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
+  homeFulfilment?: {
+    provider?: (number | null) | Provider;
+    scope?: string | null;
+    quote?: string | null;
+    confirmation?: string | null;
+    fullAddress?: string | null;
+    scheduledAt?: string | null;
+    personnel?: string | null;
+    handover?: string | null;
+    aftercare?: string | null;
+  };
+  /**
+   * 仅记录已获授权的必要信息转交；系统不会自动发送。
+   */
+  homeSharingLog?:
+    | {
+        recipient: string;
+        scope: string;
+        consentEvidence: string;
+        consentAt: string;
+        sharedAt: string;
+        id?: string | null;
+      }[]
+    | null;
   team?: (number | null) | Team;
   catalogSource?:
     | {
@@ -236,7 +262,8 @@ export interface Inquiry {
   /**
    * 记录实际协调进展；处理状态用于整体业务管理。
    */
-  coordinationStage?: ('received' | 'contacting' | 'confirming' | 'proposal' | 'completed' | 'closed') | null;
+  coordinationStage?:
+    ('received' | 'contacting' | 'confirming' | 'proposal' | 'scheduled' | 'aftercare' | 'completed' | 'closed') | null;
   owner?: (number | null) | Staff;
   nextFollowUp?: string | null;
   notes?: string | null;
@@ -252,7 +279,9 @@ export interface Provider {
   reference: string;
   name: string;
   email: string;
-  categories: ('medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival')[];
+  categories: (
+    'housekeeping' | 'medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival'
+  )[];
   city: string;
   details?:
     | {
@@ -269,6 +298,25 @@ export interface Provider {
   privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
+  housekeepingApplication?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  housekeepingVerification?: {
+    entityEvidence?: string | null;
+    staffEvidence?: string | null;
+    languageEvidence?: string | null;
+    insuranceEvidence?: string | null;
+    aftercareEvidence?: string | null;
+    commercialTerms?: string | null;
+    reviewedAt?: string | null;
+    reviewed?: boolean | null;
+  };
   team?: (number | null) | Team;
   owner?: (number | null) | Staff;
   organisation: string;
@@ -278,7 +326,7 @@ export interface Provider {
   website?: string | null;
   hours?: string | null;
   qualification?: string | null;
-  status: 'applied' | 'verified' | 'contracted' | 'paused';
+  status: 'applied' | 'needs-info' | 'verified' | 'contracted' | 'paused';
   publicApproved?: boolean | null;
   notes?: string | null;
   updatedAt: string;
@@ -669,6 +717,29 @@ export interface InquiriesSelect<T extends boolean = true> {
   privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
+  homeFulfilment?:
+    | T
+    | {
+        provider?: T;
+        scope?: T;
+        quote?: T;
+        confirmation?: T;
+        fullAddress?: T;
+        scheduledAt?: T;
+        personnel?: T;
+        handover?: T;
+        aftercare?: T;
+      };
+  homeSharingLog?:
+    | T
+    | {
+        recipient?: T;
+        scope?: T;
+        consentEvidence?: T;
+        consentAt?: T;
+        sharedAt?: T;
+        id?: T;
+      };
   team?: T;
   catalogSource?: T;
   status?: T;
@@ -696,6 +767,19 @@ export interface ProvidersSelect<T extends boolean = true> {
   privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
+  housekeepingApplication?: T;
+  housekeepingVerification?:
+    | T
+    | {
+        entityEvidence?: T;
+        staffEvidence?: T;
+        languageEvidence?: T;
+        insuranceEvidence?: T;
+        aftercareEvidence?: T;
+        commercialTerms?: T;
+        reviewedAt?: T;
+        reviewed?: T;
+      };
   team?: T;
   owner?: T;
   organisation?: T;

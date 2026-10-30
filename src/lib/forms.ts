@@ -1,3 +1,4 @@
+import {validateHomeIntake,homeRequestFields,homeProviderFields} from "./housekeeping.ts";
 import type { Locale } from "./locales.ts";
 import { formText } from "./form-copy.ts";
 export type FormKind = "request" | "apply";
@@ -22,7 +23,8 @@ export function validateStep(
     require("city");
     if (kind === "apply") require("organisation");
   }
-  if (step === 1 && kind === "request") {
+  if(step===1 && Array.isArray(values.categories) && values.categories.includes("housekeeping"))Object.assign(errors,validateHomeIntake(kind,values,locale));
+  if (step === 1 && kind === "request" && !(Array.isArray(values.categories)&&values.categories.length===1&&values.categories[0]==="housekeeping")) {
     if (
       !/^\d+$/.test(get("people")) ||
       Number(get("people")) < 1 ||
@@ -70,6 +72,7 @@ export function validateStep(
 export function visibleReviewValues(values: Values): Values {
   const selected = Array.isArray(values.categories) ? values.categories : [];
   const groups: Record<string, string[]> = {
+    housekeeping:[...homeRequestFields,...homeProviderFields],
     business: ["industry", "purpose"],
     transport: ["flight", "pickup", "dropoff", "luggage"],
     stays: [
@@ -91,7 +94,8 @@ export function visibleReviewValues(values: Values): Values {
       .filter(([category]) => !selected.includes(category))
       .flatMap(([, fields]) => fields),
   );
-  if (values.datesUnknown) hidden.add("arrivalDate");
+  if (values.datesUnknown || (selected.length===1&&selected[0]==="housekeeping")) {hidden.add("arrivalDate");if(selected.length===1&&selected[0]==="housekeeping")hidden.add("people");}
+  if(values.homeFlexible==="yes")hidden.add("homeDate");
   for (const field of values.stayType === "long"
     ? ["checkIn", "checkOut"]
     : ["leaseLength", "rentalNeeds"])

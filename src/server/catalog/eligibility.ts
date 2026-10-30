@@ -1,8 +1,9 @@
+import {houseProviderVerified} from '../../lib/housekeeping';
 import type { Payload } from "payload";
 import type { ContentBody } from "../../lib/content-model";
 export const providerEligible = (p: any) =>
   !!p?.publicApproved && ["verified", "contracted"].includes(p.status);
-export async function eligibleProvider(p: Payload, id: unknown, req?: any) {
+export async function eligibleProvider(p: Payload, id: unknown, req?: any, housekeeping = false) {
   if (!Number.isSafeInteger(id) || Number(id) < 1) return false;
   const result = await p.find({
     collection: "providers",
@@ -12,7 +13,7 @@ export async function eligibleProvider(p: Payload, id: unknown, req?: any) {
     overrideAccess: true,
     req,
   });
-  return providerEligible(result.docs[0]);
+  return providerEligible(result.docs[0]) && (!housekeeping || houseProviderVerified(result.docs[0]));
 }
 export async function allSnapshots(p: Payload, req?: any) {
   const docs: any[] = [];

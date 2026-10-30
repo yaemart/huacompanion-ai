@@ -1,3 +1,4 @@
+import {homeRequestFields,homeProviderFields} from "./housekeeping.ts";
 import { isLocale, type Locale } from "./locales.ts";
 import { parseCatalogSource, type CatalogSource } from "./catalog.ts";
 import {
@@ -16,6 +17,7 @@ export class IntakeValidationError extends Error {
 }
 const common = ["name", "email", "city"];
 const requestFields = [
+  ...homeRequestFields,
   "people",
   "arrivalDate",
   "industry",
@@ -43,6 +45,7 @@ const requestFields = [
   "channel",
 ];
 const providerFields = [
+  ...homeProviderFields,
   "organisation",
   "phone",
   "website",
@@ -103,7 +106,7 @@ export function parseIntake(input: unknown): {
   if (
     !Array.isArray(raw.categories) ||
     !raw.categories.length ||
-    raw.categories.length > 7 ||
+    raw.categories.length > serviceSlugs.length ||
     raw.categories.some(
       (x) => typeof x !== "string" || !serviceSlugs.includes(x),
     )

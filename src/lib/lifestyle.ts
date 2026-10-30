@@ -67,7 +67,7 @@ export function filterLifestyle<T extends {kind:string;title:string;summary?:str
  return !f.q||[d.title,d.summary,v.tags,v.address,v.subcategory].join(' ').toLowerCase().includes(f.q.trim().toLowerCase());});
 }
 
-export function lifeInquiryPath(d:{locale:string;kind:string;contentKey:string;publicationRevision?:number},project?:string){
- return `/${d.locale}/request?${new URLSearchParams({life:d.contentKey,lifeKind:d.kind,lifeRevision:String(d.publicationRevision||0),service:'travel',...(project?{project}:{})})}`;
+export function lifeInquiryPath(d:{locale:string;kind:string;contentKey:string;publicationRevision?:number},project?:string,projectRevision?:number,service="travel"){
+ return `/${d.locale}/request?${new URLSearchParams({life:d.contentKey,lifeKind:d.kind,lifeRevision:String(d.publicationRevision||0),service,...(project?{project,projectRevision:String(projectRevision||0)}:{})})}`;
 }
 export const lifeTranslationFields=['subcategory','tags','address','transport','audience','languageNotes','priceUnit','fees','booking','ageRestriction','dressCode','accessibility','unresolved','assistance','hours','organizer','participation','refunds','cuisine','specialties','menuLanguages','diningScenes','facilities','dietary','dietaryEvidence','sponsorship'] as const;

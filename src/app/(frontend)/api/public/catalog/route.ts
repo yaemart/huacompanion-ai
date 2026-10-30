@@ -1,3 +1,4 @@
+import {homeServices} from "@/lib/housekeeping";
 import { isLocale } from "@/lib/locales";
 import { getPayload } from "payload";
 import config from "@/payload.config";
@@ -17,6 +18,9 @@ export async function GET(req: Request) {
   };
   if (
     !isLocale(locale) ||
+    (q.has("homeService") && q.get("homeService")!=="" && !(homeServices as readonly string[]).includes(q.get("homeService")!)) ||
+    (q.get("district")||"").length>200 ||
+    (q.has("equipment") && q.get("equipment")!=="" && !["provider","customer","confirm"].includes(q.get("equipment")!)) ||
     (kind && !["provider-profile", "service-project"].includes(kind)) ||
     (category && !serviceSlugs.includes(category)) ||
     !Number.isSafeInteger(page) ||
@@ -36,6 +40,7 @@ export async function GET(req: Request) {
       {
         kind,
         category,
+        homeService:q.get("homeService")||"",district:q.get("district")||"",equipment:q.get("equipment")||"",
         city: q.get("city") || "",
         language: q.get("language") || "",
         q: q.get("q") || "",
@@ -61,7 +66,7 @@ export async function GET(req: Request) {
             ...d,
             path: catalogPath(d),
             inquiryPath: d.acceptingInquiries
-              ? `/${locale}/request?${new URLSearchParams({ [d.kind === "provider-profile" ? "provider" : "project"]: d.contentKey, service: d.catalog!.categories[0] })}`
+              ? `/${locale}/request?${new URLSearchParams({ [d.kind === "provider-profile" ? "provider" : "project"]: d.contentKey, service: d.catalog!.categories.includes("housekeeping")?"housekeeping":d.catalog!.categories[0],...(d.catalog!.categories.includes("housekeeping")?{[d.kind==="provider-profile"?"providerRevision":"projectRevision"]:String(d.publicationRevision)}:{}) })}`
               : null,
           })),
         docs: "/api/public/catalog/docs",

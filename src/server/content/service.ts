@@ -1,3 +1,4 @@
+import {houseProviderCovers} from '../../lib/housekeeping';
 import { canManageContent, canReviewContent, canAccessContentKind, isAdmin } from "../../cms/access";
 import { isLife, lifeCanEnquire, validateLifePublication } from "../../lib/lifestyle";
 import { validateInstitutionPublication } from "../../lib/institutions";
@@ -58,20 +59,20 @@ export async function readPublished(
 }
 export async function listPublished(p: Payload, locale: string, req?: any) {
   const snapshots = await allSnapshots(p, req);
-  const eligible = new Map<number, boolean>();
+  const eligible = new Map<string, boolean>();
   for (const s of snapshots)
     if (
       (s.body as ContentBody).kind === "provider-profile" &&
-      !eligible.has(s.providerRef)
+      !eligible.has(`${s.providerRef}:${!!s.body.catalog?.categories.includes("housekeeping")}`)
     )
       eligible.set(
-        s.providerRef,
-        await eligibleProvider(p, s.providerRef, req),
+        `${s.providerRef}:${!!s.body.catalog?.categories.includes("housekeeping")}`,
+        await eligibleProvider(p, s.providerRef, req, s.body.catalog?.categories.includes("housekeeping")),
       );
   const available = snapshots.filter(
     (s) =>
       (s.body as ContentBody).kind !== "provider-profile" ||
-      eligible.get(s.providerRef),
+      eligible.get(`${s.providerRef}:${!!s.body.catalog?.categories.includes("housekeeping")}`),
   );
   const providerKeys = new Set(
     available
@@ -97,7 +98,7 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
           b.kind === "provider-profile" ||
           (!s.suspended &&
             (b.catalog!.fulfillment === "arranged" ||
-              b.catalog!.providerKeys.every((k) => providerKeys.has(k))));
+              b.catalog!.providerKeys.every((k) => providerKeys.has(k) && (!b.catalog!.categories.includes("housekeeping") || available.some(x=>x.body.kind==="provider-profile" && x.body.locale===locale && x.body.contentKey===k && houseProviderCovers(b.catalog!.housekeeping,x.body.catalog?.housekeeping))))));
         b.catalog!.providerKeys = b.catalog!.providerKeys.filter((k) =>
           providerKeys.has(k),
         );
@@ -278,7 +279,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
           );
         if (
           clean.kind === "provider-profile" &&
-          !(await eligibleProvider(p, current.providerRef, req))
+          !(await eligibleProvider(p, current.providerRef, req, clean.catalog?.categories.includes("housekeeping")))
         )
           throw new ContentError("关联服务商必须已核实／签约并获准公开");
         if (
@@ -290,7 +291,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             clean.catalog!.providerKeys.some(
               (k) =>
                 !live.some(
-                  (d) => d.kind === "provider-profile" && d.contentKey === k,
+                  (d) => d.kind === "provider-profile" && d.contentKey === k && (!clean.catalog!.categories.includes("housekeeping") || houseProviderCovers(clean.catalog!.housekeeping,d.catalog?.housekeeping)),
                 ),
             )
           )

@@ -1,4 +1,5 @@
 import type { Locale } from "./routes";
+import {homePair} from "./housekeeping-copy.ts";
 import { coreText } from "./core-copy.ts";
 export type Pair = Record<Locale, string>;
 export const p = (en: string, zh: string): Pair => ({ en, zh, es: coreText("es",en), fr: coreText("fr",en), de: coreText("de",en), it: coreText("it",en), ar: coreText("ar",en) });
@@ -13,6 +14,7 @@ export type Service = {
   icon: string;
 };
 export const services: Service[] = [
+  {slug:"housekeeping",icon:"stays",title:homePair("title"),short:homePair("intro"),intro:homePair("intro"),items:[homePair("regular"),homePair("deep"),homePair("move-in")],boundary:homePair("boundary"),prepare:homePair("notice")},
   {
     slug: "medical",
     icon: "medical",

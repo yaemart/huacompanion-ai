@@ -1,3 +1,6 @@
+import {HousekeepingDetails} from "./HousekeepingDetails";
+import {homeText} from "@/lib/housekeeping-copy";
+import {homeServices} from "@/lib/housekeeping";
 import type { Locale } from "@/lib/locales";
 import { publicText, resultText } from "@/lib/public-copy";
 import {
@@ -14,6 +17,7 @@ import { catalogFilter, catalogPath, priceText } from "@/lib/catalog";
 import { services } from "@/lib/content";
 export type CatalogQuery = {
   category?: string;
+  homeService?:string;district?:string;equipment?:string;
   city?: string;
   language?: string;
   q?: string;
@@ -88,6 +92,7 @@ export function CatalogPage({
             <h1>{detail.title}</h1>
             <p className="lead">{detail.summary}</p>
             <CatalogDetails detail={detail} locale={locale} />
+            {detail.catalog?.housekeeping && <HousekeepingDetails value={detail.catalog.housekeeping} locale={locale}/>}
             <ContentBlocks blocks={detail.blocks} />
             <p>
               {publicText(locale, "Updated")}:{" "}
@@ -96,7 +101,7 @@ export function CatalogPage({
             {detail.acceptingInquiries ? (
               <Link
                 className="button"
-                href={`/${locale}/request?${new URLSearchParams({ [kind === "provider-profile" ? "provider" : "project"]: detail.contentKey, service: detail.catalog!.categories[0] })}`}
+                href={`/${locale}/request?${new URLSearchParams({ [kind === "provider-profile" ? "provider" : "project"]: detail.contentKey, service: detail.catalog!.categories.includes("housekeeping")?"housekeeping":detail.catalog!.categories[0],...(detail.catalog!.categories.includes("housekeeping")?{[kind==="provider-profile"?"providerRevision":"projectRevision"]:String(detail.publicationRevision)}:{}) })}`}
               >
                 {publicText(locale, "Enquire through Hua")} ↗
               </Link>
@@ -164,7 +169,10 @@ export function CatalogPage({
                 "Find a suitable service. Hua coordinates every enquiry and arrangement.",
               )}
             </p>
+            <p><Link href={`/${locale}/apply?service=housekeeping`}>{homeText(locale,'title')} · {homeText(locale,'join')}</Link></p>
             <form action={base} method="get" className="catalog-filters">
+              {query.category==='housekeeping'&&<><label>{homeText(locale,'homeService')}<select name="homeService" defaultValue={query.homeService||''}><option value="">—</option>{homeServices.map(k=><option key={k} value={k}>{homeText(locale,k)}</option>)}</select></label><label>{homeText(locale,'districts')}<input name="district" defaultValue={query.district||''}/></label><label>{homeText(locale,'homeEquipment')}<select name="equipment" defaultValue={query.equipment||''}><option value="">—</option>{['provider','customer','confirm'].map(k=><option key={k} value={k}>{homeText(locale,k)}</option>)}</select></label></>}
+
               <label>
                 {publicText(locale, "Search")}
                 <input
@@ -232,8 +240,8 @@ export function CatalogPage({
                   <h2>{d.title}</h2>
                   <p>{d.summary}</p>
                   <p>
-                    {d.catalog?.languages
-                      .map((l) => languageLabel(l, locale))
+                    {(d.catalog?.categories.includes("housekeeping")?d.catalog.housekeeping?.workerLanguages:d.catalog?.languages)
+                      ?.map((l) => languageLabel(l, locale))
                       .join(" / ")}
                   </p>
                   <strong>{priceText(d.catalog!, locale)}</strong>
@@ -304,8 +312,8 @@ export function CatalogDetails({
       c.cities.map((x) => cityLabel(x.code, locale)).join(" · "),
     ],
     [
-      publicText(locale, "Languages"),
-      c.languages.map((l) => languageLabel(l, locale)).join(" / "),
+      c.categories.includes("housekeeping")?homeText(locale,"workerLanguages"):publicText(locale, "Languages"),
+      (c.categories.includes("housekeeping")?c.housekeeping?.workerLanguages||[]:c.languages).map((l) => languageLabel(l, locale)).join(" / ") || homeText(locale,"confirm"),
     ],
     [publicText(locale, "Pricing"), priceText(c, locale)],
     [publicText(locale, "Price conditions"), c.price.conditions || ""],

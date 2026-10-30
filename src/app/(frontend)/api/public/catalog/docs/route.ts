@@ -25,6 +25,9 @@ export async function GET() {
           values: catalogLanguages.map((l) => l.code),
           labels: catalogLanguages,
         },
+        homeService: "regular | deep | move-in",
+        district: "Housekeeping service districts substring, max 200 characters",
+        equipment: "provider | customer | confirm",
         q: "Title, summary or capabilities substring, max 200 characters",
         page: "Positive integer; 20 records per page",
       },
@@ -37,11 +40,13 @@ export async function GET() {
       fields: {
         contentKey: "Stable public identifier shared across translations",
         path: "Canonical relative page link",
+        publicationRevision: "Preserve returned inquiryPath and its providerRevision/projectRevision for housekeeping; stale versions are refused.",
         publishedAt: "Timestamp of the published version",
         catalog: {
           categories: "Stable service category codes",
           cities: "Objects with stable code and localized name",
-          languages: "Language codes",
+          languages: "General language codes; housekeeping uses separate customerLanguages/workerLanguages. Language filtering for housekeeping means verified worker languages.",
+          housekeeping: "Public scope, exclusions, staffing, district coverage, pricing, tools, entry, aftercare and insurance explanation. No private contacts or addresses. Unknown language arrays mean unconfirmed, not all languages.",
           verification:
             "Specific checked items and dates only; not an outcome guarantee",
           price: {

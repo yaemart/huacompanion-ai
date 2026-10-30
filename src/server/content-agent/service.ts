@@ -1,3 +1,4 @@
+import {homeTexts} from "../../lib/housekeeping";
 import { isLife, lifeTranslationFields } from "../../lib/lifestyle";
 import { canAccessContentKind } from "../../cms/access";
 import { isLocale } from "../../lib/locales";
@@ -91,6 +92,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
         targetId: target?.id,
         targetRevision: target?.revision,
         kind: input.kind,
+        ...(input.kind==='translate' && sourceBody?.catalog?.housekeeping ? {housekeepingInstructions:'Return housekeepingText translating all nonempty fields named in housekeepingTextFields. Do not change language capabilities, services or equipment codes.',housekeepingTextFields:homeTexts.filter(k=>sourceBody.catalog?.housekeeping?.[k])}:{}),
         ...(input.kind==='translate' && sourceBody && isLife(sourceBody.kind) ? {translationInstructions:'Return lifestyleText translating every nonempty field named in lifestyleTextFields. Do not change numbers, dates, status, URLs, IDs or service languages.',lifestyleTextFields:lifeTranslationFields.filter(k=>sourceBody.lifestyle?.[k])}:{}),
       };
       if (JSON.stringify(selected).length > 20000)
@@ -141,6 +143,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       source.sources.map((s: any) => s.id),
     );
     const result = task.result as unknown as Candidate;
+    if(task.kind==='translate' && source.source?.catalog?.housekeeping){for(const k of homeTexts)if(source.source.catalog.housekeeping[k]&&!result.housekeepingText?.[k]?.trim())throw new ContentError('家政结构化翻译不完整');}
     if(task.kind==='translate' && isLife(source.source?.kind) && source.source?.lifestyle){
       for(const k of lifeTranslationFields) if(source.source.lifestyle[k] && !result.lifestyleText?.[k]?.trim()) throw new ContentError('结构化资料翻译不完整，请补全预约、收费等文字字段后再采纳');
     }
@@ -177,6 +180,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       slug: base?.slug || source.source?.slug || `ai-${task.id}`,
       kind: base?.kind || source.source?.kind || "guide",
       locale: source.locale,
+      ...((base?.catalog?.housekeeping||source.source?.catalog?.housekeeping)?{catalog:{...(base?.catalog||source.source.catalog),housekeeping:{...(base?.catalog?.housekeeping||source.source.catalog.housekeeping),...(task.kind==='translate'?result.housekeepingText:{})}}}:{}),
       ...((base?.lifestyle || source.source?.lifestyle) ? {lifestyle:{...(base?.lifestyle || source.source.lifestyle),...(task.kind==='translate'?result.lifestyleText:{})}}:{}),
       title: result.title,
       summary: result.summary || "",

@@ -1,3 +1,4 @@
+import {homeTexts} from "./housekeeping.ts";
 import { type Lifestyle, lifeTranslationFields, isLife, validateLifestyle, publicLifestyle } from "./lifestyle.ts";
 import { type Institution, validateInstitution, publicInstitution } from "./institutions.ts";
 import { type Exhibition, validateExhibition, publicExhibition } from "./exhibitions.ts";
@@ -146,6 +147,7 @@ export type Candidate = {
   blocks: Block[];
   sourceIds: string[];
   questions: string[];
+  housekeepingText?: Partial<Record<typeof homeTexts[number],string>>;
   lifestyleText?: Partial<Record<typeof lifeTranslationFields[number],string>>;
 };
 export function validateCandidate(
@@ -160,6 +162,10 @@ export function validateCandidate(
     r.title.length > 200
   )
     throw Error("AI标题无效");
+  if(r.housekeepingText!==undefined){
+    if(!r.housekeepingText||typeof r.housekeepingText!=="object"||Array.isArray(r.housekeepingText))throw Error("家政翻译格式无效");
+    for(const [k,v] of Object.entries(r.housekeepingText))if(!(homeTexts as readonly string[]).includes(k)||typeof v!=="string"||v.length>5000)throw Error("家政翻译仅允许公开文字字段");
+  }
   if(r.lifestyleText!==undefined){
     if(!r.lifestyleText || typeof r.lifestyleText!=='object' || Array.isArray(r.lifestyleText)) throw Error('AI结构化翻译格式无效');
     for(const [k,v] of Object.entries(r.lifestyleText)) if(!(lifeTranslationFields as readonly string[]).includes(k)||typeof v!=='string'||v.length>5000) throw Error('AI仅可翻译允许的文字字段');

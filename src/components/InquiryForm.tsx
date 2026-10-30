@@ -1,4 +1,7 @@
 "use client";
+import {HousekeepingIntakeFields} from "./HousekeepingIntakeFields";
+import {homeText} from "@/lib/housekeeping-copy";
+import {homeRequestFields,homeProviderFields} from "@/lib/housekeeping";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { services } from "@/lib/content";
@@ -54,6 +57,7 @@ export function InquiryForm({
     [checked, setChecked] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const labels: Record<string, string> = {
+    ...Object.fromEntries([...homeRequestFields,...homeProviderFields].map(k=>[k,homeText(locale,k)])),
     organisation: c("Organisation name", "机构名称"),
     city: partner
       ? c("Service areas", "服务区域")
@@ -427,7 +431,7 @@ export function InquiryForm({
             )}
             {step === 1 && !partner && (
               <>
-                {section(
+                {!(categories.length===1&&categories[0]==="housekeeping") && section(
                   c("Travel basics", "基本行程"),
                   <>
                     {field("people", "number", true)}
@@ -447,6 +451,7 @@ export function InquiryForm({
                     {field("budget")}
                   </>,
                 )}
+                {categories.includes("housekeeping") && <><HousekeepingIntakeFields kind="request" locale={locale} values={values} set={set} errors={errors}/>{categories.length===1&&field("budget")}</>}
                 {categories.includes("business") &&
                   section(
                     c("Business visit", "商务访问"),
@@ -533,6 +538,7 @@ export function InquiryForm({
             )}
             {step === 1 && partner && (
               <>
+                {categories.includes("housekeeping") && <HousekeepingIntakeFields kind="apply" locale={locale} values={values} set={set} errors={errors}/>}
                 {field("languages", "text", true)}
                 {field("capabilities", "textarea", true)}
                 {field("hours")}

@@ -1,3 +1,4 @@
+import {type Housekeeping,validateHousekeeping,publicHousekeeping} from "./housekeeping.ts";
 import type { Locale } from "./locales.ts";
 import {
   catalogCities,
@@ -5,8 +6,9 @@ import {
   cityLabel,
 } from "./catalog-options.ts";
 import { serviceSlugs } from "./routes.ts";
-export type CatalogSource = { provider?: string; project?: string; exhibition?: string; exhibitionRevision?: number; institution?: string; institutionRevision?: number; life?: string; lifeKind?: "venue"|"activity"; lifeRevision?: number };
+export type CatalogSource = { provider?: string; providerRevision?:number; project?: string; projectRevision?:number; exhibition?: string; exhibitionRevision?: number; institution?: string; institutionRevision?: number; life?: string; lifeKind?: "venue"|"activity"; lifeRevision?: number };
 export type Catalog = {
+  housekeeping?:Housekeeping;
   categories: string[];
   cities: { code: string; name: string }[];
   languages: string[];
@@ -69,6 +71,7 @@ export function parseCatalogSource(value: unknown): CatalogSource | undefined {
         throw Error("Invalid service selection");
       out[k] = raw[k];
     }
+  for(const k of ["provider","project"] as const){const r=raw[k+"Revision"];if(r!==undefined){if(!out[k]||!Number.isSafeInteger(r)||Number(r)<1)throw Error("Invalid source revision");out[(k+"Revision") as "providerRevision"|"projectRevision"]=Number(r);}}
   if (raw.exhibitionRevision !== undefined) {
     if (!out.exhibition || !Number.isSafeInteger(raw.exhibitionRevision) || Number(raw.exhibitionRevision) < 1) throw Error("Invalid exhibition revision");
     out.exhibitionRevision = Number(raw.exhibitionRevision);
@@ -99,7 +102,7 @@ export function validateCatalog(
   if (
     !c ||
     !Array.isArray(c.categories) ||
-    c.categories.length > 7 ||
+    c.categories.length > serviceSlugs.length ||
     c.categories.some((x) => !serviceSlugs.includes(x))
   )
     throw Error("请选择有效服务分类");
@@ -177,8 +180,9 @@ export function validateCatalog(
   for (const s of [c.price.unit, c.price.conditions])
     if (s !== undefined && (typeof s !== "string" || s.length > 2000))
       throw Error("价格说明无效");
+  if(c.categories.includes("housekeeping"))validateHousekeeping(c.housekeeping,publishing);
   if (publishing) {
-    if (!c.categories.length || !c.cities.length || !c.languages.length)
+    if (!c.categories.length || !c.cities.length || (!c.categories.includes("housekeeping")&&!c.languages.length))
       throw Error("发布前请填写分类、城市及语言");
     if (kind === "provider-profile" && !c.capabilities.trim())
       throw Error("请填写服务能力");
@@ -221,6 +225,7 @@ export function publicCatalog(c: Catalog, locale: Locale = "zh"): Catalog {
   ] as const)
     out[k] = c[k];
   out.categories = [...c.categories];
+  if(c.categories.includes("housekeeping") && c.housekeeping)out.housekeeping=publicHousekeeping(c.housekeeping);
   out.cities = c.cities.map((x) => ({
     code: x.code,
     name: cityLabel(x.code, locale),
@@ -260,6 +265,7 @@ export function catalogFilter<
   q: {
     kind?: string;
     category?: string;
+    homeService?:string; district?:string; equipment?:string;
     city?: string;
     language?: string;
     q?: string;
@@ -271,7 +277,10 @@ export function catalogFilter<
       (!q.kind || d.kind === q.kind) &&
       (!q.category || d.catalog?.categories.includes(q.category)) &&
       (!q.city || d.catalog?.cities.some((c) => c.code === q.city)) &&
-      (!q.language || d.catalog?.languages.includes(q.language)) &&
+      (!q.language || (d.catalog?.categories.includes("housekeeping") ? d.catalog.housekeeping?.workerLanguages.includes(q.language) : d.catalog?.languages.includes(q.language))) &&
+      (!q.homeService || !!d.catalog?.housekeeping?.services.includes(q.homeService)) &&
+      (!q.district || !!d.catalog?.housekeeping?.districts.toLowerCase().includes(q.district.toLowerCase())) &&
+      (!q.equipment || d.catalog?.housekeeping?.equipmentBy===q.equipment) &&
       (!q.q ||
         `${d.title} ${d.summary || ""} ${d.catalog?.capabilities || ""}`
           .toLowerCase()
@@ -296,7 +305,7 @@ export function inquiryFormKey(
   return JSON.stringify([
     locale,
     service || "",
-    source?.provider || "",
+    source?.provider || "", source?.providerRevision||"",source?.projectRevision||"",
     source?.project || "",
     source?.exhibition || "",
     source?.exhibitionRevision || "",

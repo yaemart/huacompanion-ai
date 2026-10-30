@@ -6,6 +6,8 @@ import {
   filterContent,
 } from "@/lib/content-sections";
 import { catalogCities } from "@/lib/catalog-options";
+import {HousekeepingFields} from "./HousekeepingFields";
+import {emptyHousekeeping} from "@/lib/housekeeping";
 import { CatalogFields } from "./CatalogFields";
 import {
   ExhibitionFields,
@@ -208,7 +210,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
   function field(key: keyof ContentBody, value: any) {
     setBody({
       ...body,
-      [key]: value,
+      [key]: key==="catalog" && value?.categories?.includes("housekeeping") ? {...value,housekeeping:value.housekeeping||emptyHousekeeping()} : value,
       ...(key === "kind" && isLife(value) ? {lifestyle:emptyLifestyle(value)} : {}),
       ...(key === "kind" && value === "institution" && !body.institution
         ? { institution: emptyInstitution() }
@@ -687,6 +689,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                 />
               </label>
               {isLife(body.kind) && <><LifestyleFields kind={body.kind} value={body.lifestyle||emptyLifestyle(body.kind)} onChange={v=>field('lifestyle',v)}/>{isAdmin && <label>内部服务商编号（仅管理员可见）<input type="number" value={providerRef} onChange={e=>setProviderRef(e.target.value)}/></label>}</>}
+              {isCatalog(body.kind) && body.catalog?.categories.includes("housekeeping") && <HousekeepingFields value={body.catalog.housekeeping||emptyHousekeeping()} onChange={v=>field("catalog",{...body.catalog,housekeeping:v})}/>}
               {body.kind === "institution" && (
                 <>
                   <InstitutionFields
@@ -1250,7 +1253,7 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
               {t.result && (
                 <>
                   <h4>{t.result.title}</h4>
-                  <p>{t.result.summary}</p>{t.result.lifestyleText && <details><summary>结构化资料翻译</summary><dl>{Object.entries(t.result.lifestyleText).map(([k,v])=><div key={k}><dt>{lifeText("zh",k)}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
+                  <p>{t.result.summary}</p>{t.result.housekeepingText && <details><summary>家政结构化译文（请逐项核对）</summary><pre>{JSON.stringify(t.result.housekeepingText,null,2)}</pre></details>}{t.result.lifestyleText && <details><summary>结构化资料翻译</summary><dl>{Object.entries(t.result.lifestyleText).map(([k,v])=><div key={k}><dt>{lifeText("zh",k)}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
                   <ul>
                     {t.result.questions?.map((q: string, i: number) => (
                       <li key={i}>{q}</li>

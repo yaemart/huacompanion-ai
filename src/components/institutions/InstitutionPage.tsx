@@ -22,7 +22,7 @@ export function InstitutionPage({ items, locale, detail, query = {}, languagePat
   const canEnquire = !!selected && institution?.foreignAcceptance === 'confirmed' && selected.acceptingInquiries !== false;
   const related = institution ? localItems.filter(d => d.kind === 'service-project' && institution.projectKeys.includes(d.contentKey)) : [];
   function enquiry(key: string, project?: string) {
-    return `/${locale}/request?${new URLSearchParams({ institution: key, ...(project ? { project } : {}) })}`;
+    return `/${locale}/request?${new URLSearchParams({ institution: key, ...(project ? { project, projectRevision:String(localItems.find(d=>d.kind==='service-project'&&d.contentKey===project)?.publicationRevision||0), ...(localItems.find(d=>d.kind==='service-project'&&d.contentKey===project)?.catalog?.categories.includes('housekeeping')?{service:'housekeeping'}:{}) } : {}) })}`;
   }
   function pageHref(value: number) {
     const params = new URLSearchParams();

@@ -8,6 +8,7 @@ import * as migration_20261029_000000_coordination_stage from './20261029_000000
 import * as migration_20261029_013605_staff_permissions from './20261029_013605_staff_permissions';
 import * as migration_20261029_014325_content_contributors from './20261029_014325_content_contributors';
 import * as migration_20261029_024218_city_life_permissions from './20261029_024218_city_life_permissions';
+import * as migration_20261030_000212_housekeeping from './20261030_000212_housekeeping';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20261029_024218_city_life_permissions.up,
     down: migration_20261029_024218_city_life_permissions.down,
-    name: '20261029_024218_city_life_permissions'
+    name: '20261029_024218_city_life_permissions',
+  },
+  {
+    up: migration_20261030_000212_housekeeping.up,
+    down: migration_20261030_000212_housekeeping.down,
+    name: '20261030_000212_housekeeping'
   },
 ];

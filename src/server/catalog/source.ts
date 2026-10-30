@@ -72,6 +72,7 @@ export async function resolveCatalogSource(
         s.body.locale === locale &&
         s.body.kind === d.kind,
     )!;
+    if(d.catalog?.categories.includes('housekeeping') && ((d.kind==='provider-profile'&&source.providerRevision!==s.revision)||(d.kind==='service-project'&&source.projectRevision!==s.revision))) throw new IntakeValidationError({source:coreText(locale,'The selected provider or project is unavailable or incompatible. Please choose again or remove the selection.')});
     if (isLife(d.kind) && requireRevision && source.lifeRevision !== s.revision) throw lifeError();
     if (d.kind === "exhibition" && requireRevision && source.exhibitionRevision !== s.revision) throw exhibitionError();
     if (d.kind === "institution" && requireRevision && source.institutionRevision !== s.revision) throw institutionError();
@@ -86,6 +87,7 @@ export async function resolveCatalogSource(
       ...(isLife(d.kind) ? {city:d.lifestyle!.city,category:d.lifestyle!.category,address:d.lifestyle!.address,startAt:d.lifestyle!.startAt,endAt:d.lifestyle!.endAt,status:effectiveLifeStatus(d.lifestyle!,d.kind),kind:d.kind} : {}),
       ...(d.kind === "institution" ? {city:d.institution!.city, type:d.institution!.type, foreignAcceptance:d.institution!.foreignAcceptance, verifiedAt:d.institution!.verifiedAt, address:d.institution!.address} : {}),
       ...(d.kind === "provider-profile" ? { providerRef: s.providerRef } : {}),
+      ...(d.catalog?.categories.includes("housekeeping")?{housekeeping:d.catalog.housekeeping}:{}),
       ...(d.kind === "service-project"
         ? {
             fulfillment: d.catalog!.fulfillment,

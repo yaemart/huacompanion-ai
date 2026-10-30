@@ -32,7 +32,9 @@
     "test:permissions:business": "tsx tests/integration/permissions-business.ts",
     "test:permissions:content": "tsx tests/integration/permissions-content.ts",
     "test:life": "tsx tests/integration/lifestyle.ts",
-    "seed:life": "tsx scripts/seed-life-candidates.ts"
+    "seed:life": "tsx scripts/seed-life-candidates.ts",
+    "test:housekeeping": "tsx tests/integration/housekeeping.ts",
+    "seed:housekeeping": "tsx scripts/seed-housekeeping.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

@@ -32,7 +32,7 @@ type Props = {
   params: Promise<{ locale: string; slug?: string[] }>;
   searchParams: Promise<{
     service?: string;
-    provider?: string;
+    provider?: string; providerRevision?:string;projectRevision?:string;homeService?:string;district?:string;equipment?:string;
     project?: string;
     exhibition?: string;
     institution?: string;
@@ -152,7 +152,7 @@ export default async function Page({ params, searchParams }: Props) {
     return (
       <PublishedSite locale={locale} slug={slug} contents={docs} languagePaths={await languagePaths(slug.length === 2 ? docs.find(d => d.slug === slug[1] && d.kind === (slug[0] === "guides" ? "guide" : slug[0] === "services" ? "service" : "partner")) : undefined)} />
     );
-  const { service, provider, project, exhibition, institution, life, lifeKind, lifeRevision } = await searchParams;
+  const { service, provider, project, exhibition, institution, life, lifeKind, lifeRevision,providerRevision,projectRevision } = await searchParams;
   let catalogSelection: any;
   if (
     slug[0] === "request" &&
@@ -160,16 +160,16 @@ export default async function Page({ params, searchParams }: Props) {
   ) {
     try {
       const source = parseCatalogSource({
-        ...(provider !== undefined ? { provider } : {}),
-        ...(project !== undefined ? { project } : {}),
+        ...(provider !== undefined ? { provider,...(providerRevision?{providerRevision:Number(providerRevision)}:{}) } : {}),
+        ...(project !== undefined ? { project,...(projectRevision?{projectRevision:Number(projectRevision)}:{}) } : {}),
         ...(exhibition !== undefined ? { exhibition } : {}),
         ...(institution !== undefined ? { institution } : {}),
         ...(life !== undefined ? {life,lifeKind,lifeRevision:Number(lifeRevision)} : {}),
       });
       const payload = await getPayload({ config });
-      const resolved = await contentTransaction(payload, req => resolveCatalogSource(payload, locale, source, req, !!life));
+      const resolved = await contentTransaction(payload, req => resolveCatalogSource(payload, locale, source, req, !!life || service==="housekeeping" || providerRevision!==undefined || projectRevision!==undefined));
       catalogSelection = {
-        source: {...source, ...(resolved?.life ? {lifeRevision:resolved.life.revision}:{}), ...(resolved?.exhibition ? {exhibitionRevision:resolved.exhibition.revision} : {}), ...(resolved?.institution ? {institutionRevision:resolved.institution.revision} : {})},
+        source: {...source, ...(resolved?.provider ? {providerRevision:resolved.provider.revision}:{}),...(resolved?.project ? {projectRevision:resolved.project.revision}:{}), ...(resolved?.life ? {lifeRevision:resolved.life.revision}:{}), ...(resolved?.exhibition ? {exhibitionRevision:resolved.exhibition.revision} : {}), ...(resolved?.institution ? {institutionRevision:resolved.institution.revision} : {})},
         city: catalogCities.find(c=>c.code===(resolved?.life?.city || resolved?.institution?.city || resolved?.exhibition?.city))?.en,
         summary: [resolved?.life?.title, resolved?.life?.startAt, resolved?.institution?.title, resolved?.provider?.title, resolved?.project?.title, resolved?.exhibition?.title, resolved?.exhibition ? [resolved.exhibition.startDate, resolved.exhibition.endDate].filter(Boolean).join(" — ") : undefined]
           .filter(Boolean)
@@ -184,7 +184,7 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <Site
       key={
-        slug.join("/") + inquiryFormKey(locale, service, { provider, project, exhibition, institution, life, lifeKind:lifeKind as "venue"|"activity"|undefined, lifeRevision:catalogSelection?.source?.lifeRevision, institutionRevision:catalogSelection?.source?.institutionRevision, exhibitionRevision:catalogSelection?.source?.exhibitionRevision })
+        slug.join("/") + inquiryFormKey(locale, service, { provider, project,providerRevision:catalogSelection?.source?.providerRevision,projectRevision:catalogSelection?.source?.projectRevision, exhibition, institution, life, lifeKind:lifeKind as "venue"|"activity"|undefined, lifeRevision:catalogSelection?.source?.lifeRevision, institutionRevision:catalogSelection?.source?.institutionRevision, exhibitionRevision:catalogSelection?.source?.exhibitionRevision })
       }
       locale={locale as Locale}
       slug={slug}

@@ -1,3 +1,4 @@
+import {housekeepingApplication,housekeepingVerification,homeFulfilment,homeSharingLog,guardHomeWorkflow} from "./housekeeping-fields";
 import { catalogLanguages } from "../lib/catalog-options";
 import {
   catalogLock,
@@ -26,6 +27,7 @@ const ownerAccess = {
 };
 const protectedField = { create: () => false, update: () => false };
 const categoryOptions = [
+  {label:"家政与居家服务",value:"housekeeping"},
   { label: "医疗机构对接", value: "medical" },
   { label: "展会与商务访问", value: "business" },
   { label: "接送机与交通", value: "transport" },
@@ -244,6 +246,7 @@ export const Inquiries: CollectionConfig = {
   versions: { maxPerDoc: 30 },
   fields: [
     ...intakeFields,
+    homeFulfilment,homeSharingLog,
     { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
     {
       name: "catalogSource",
@@ -277,6 +280,8 @@ export const Inquiries: CollectionConfig = {
         { label: "联系客户", value: "contacting" },
         { label: "与机构／服务商确认", value: "confirming" },
         { label: "方案待确认", value: "proposal" },
+        {label:"已确认人员与预约",value:"scheduled"},
+        {label:"售后跟进",value:"aftercare"},
         { label: "已完成", value: "completed" },
         { label: "已关闭", value: "closed" },
       ],
@@ -301,7 +306,7 @@ export const Inquiries: CollectionConfig = {
       maxLength: 10000,
     },
   ],
-  hooks: { beforeChange: [guardBusinessAssignment], afterChange: [audit] },
+  hooks: { beforeChange: [guardBusinessAssignment,guardHomeWorkflow], afterChange: [audit] },
 };
 export const Providers: CollectionConfig = {
   slug: "providers",
@@ -328,6 +333,7 @@ export const Providers: CollectionConfig = {
   versions: { maxPerDoc: 30 },
   fields: [
     ...intakeFields,
+    housekeepingApplication,housekeepingVerification,
     { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
     { name: "owner", label: "负责人", type: "relationship", relationTo: "staff", access: ownerAccess },
     { name: "organisation", label: "机构名称", type: "text", required: true },
@@ -351,6 +357,7 @@ export const Providers: CollectionConfig = {
       access: fieldAdmin,
       options: [
         { label: "已申请", value: "applied" },
+        {label:"待补资料",value:"needs-info"},
         { label: "已核实", value: "verified" },
         { label: "已签约", value: "contracted" },
         { label: "暂停合作", value: "paused" },
@@ -367,7 +374,7 @@ export const Providers: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      guardBusinessAssignment,
+      guardBusinessAssignment,guardHomeWorkflow,
       async ({ req, data }) => {
         await catalogLock(req);
         return data;
