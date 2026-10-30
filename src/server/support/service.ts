@@ -1,3 +1,4 @@
+import {supportFeatures,requireSupportFeature} from './features';
 import {supportAssignmentToken} from '../../cms/support/trusted';
 import {createHash} from 'node:crypto';
 import type {Payload} from 'payload';
@@ -15,21 +16,22 @@ export async function scoped(p:Payload,user:any,id:unknown,req?:any){if(!isOpera
 export async function messages(p:Payload,id:number,req?:any){return (await p.find({collection:'support-messages',where:{conversation:{equals:id}},limit:1000,sort:'id',depth:0,overrideAccess:true,req})).docs;}
 export async function append(p:Payload,c:any,data:any,req:any){return p.create({collection:'support-messages',data:{conversation:c.id,...data},overrideAccess:true,req});}
 export async function updateConversation(p:Payload,c:any,data:any,req:any,aiChanged=false){return p.update({collection:'support-conversations',id:c.id,data:{...data,revision:c.revision+1,aiRevision:(c.aiRevision||1)+((aiChanged||['mode','locale','aiConsent'].some(k=>k in data))?1:0)},overrideAccess:true,req});}
-async function queue(p:Payload,c:any,req:any){if(c.mode==='ai'&&c.aiConsent)await p.create({collection:'support-runs',data:{conversation:c.id,dedupe:`${c.id}:${c.aiRevision}`,revision:c.aiRevision,status:'queued'},req});}
+async function queue(p:Payload,c:any,req:any){if(c.mode==='ai'&&c.aiConsent&&(await supportFeatures(p,req)).aiReception.available)await p.create({collection:'support-runs',data:{conversation:c.id,dedupe:`${c.id}:${c.aiRevision}`,revision:c.aiRevision,status:'queued'},req});}
 async function cap(p:Payload,c:any,req:any){const all=await messages(p,c.id,req);if(all.length>=900)throw new ContentError('Conversation limit reached; start a new conversation',429);const recent=all.filter(m=>m.author==='customer'&&Date.parse(m.createdAt)>Date.now()-60000);if(recent.length>=12)throw new ContentError('Please wait before sending another message',429);}
 export async function visitorRead(p:Payload,hash:string,id?:unknown):Promise<any>{
- if(!id)return {conversations:(await p.find({collection:'support-conversations',where:{visitorHash:{equals:hash}},sort:'-updatedAt',limit:100,depth:0})).docs.map(publicConversation),aiAvailable:modelConfigured()};
+ if(!id)return {features:await supportFeatures(p),conversations:(await p.find({collection:'support-conversations',where:{visitorHash:{equals:hash}},sort:'-updatedAt',limit:100,depth:0})).docs.map(publicConversation),aiAvailable:(await supportFeatures(p)).aiReception.available};
  const c=await owned(p,hash,id);const inquiries=[];for(const link of (c.inquiryLinks as any[]||[])){const q=(await p.find({collection:'inquiries',where:{reference:{equals:link.reference}},limit:1,depth:0})).docs[0];if(q)inquiries.push({reference:q.reference,status:q.status,stage:q.coordinationStage});}
- return {conversation:publicConversation(c),messages:(await messages(p,c.id)).map(publicMessage).filter(Boolean),inquiries,aiAvailable:modelConfigured()};
+ return {conversation:publicConversation(c),messages:(await messages(p,c.id)).map(publicMessage).filter(Boolean),inquiries,aiAvailable:(await supportFeatures(p)).aiReception.available};
 }
 export async function visitorAction(p:Payload,hash:string,input:any):Promise<any>{
  if(!hash)throw new ContentError('Session required',403);
  return supportTransaction(p,async req=>{
+ if(['start','message','confirm'].includes(input.action))await requireSupportFeature(p,'textChat',req);
  if(input.action==='start'){
  const startKey=createHash('sha256').update(hash+':'+keyOf(input.key)).digest('hex');const old=(await p.find({collection:'support-conversations',where:{startKey:{equals:startKey}},limit:1,req})).docs[0];if(old)return publicConversation(old);
  if(!isLocale(input.locale)||!['general','business','housekeeping'].includes(input.topic))throw new ContentError('Invalid conversation');
  const recent=await p.count({collection:'support-conversations',where:{createdAt:{greater_than:new Date(Date.now()-600000).toISOString()}},req});const own=await p.count({collection:'support-conversations',where:{visitorHash:{equals:hash}},req});if(recent.totalDocs>=100||own.totalDocs>=100)throw new ContentError('Conversation limit reached',429);
- const c=await p.create({collection:'support-conversations',data:{visitorHash:hash,startKey,locale:input.locale,topic:input.topic,aiConsent:input.aiConsent===true,consentAt:input.aiConsent===true?new Date().toISOString():null,mode:input.aiConsent===true&&modelConfigured()?'ai':'waiting',status:'open',revision:1,aiRevision:1},req});
+ const c=await p.create({collection:'support-conversations',data:{visitorHash:hash,startKey,locale:input.locale,topic:input.topic,aiConsent:input.aiConsent===true,consentAt:input.aiConsent===true?new Date().toISOString():null,mode:input.aiConsent===true&&(await supportFeatures(p,req)).aiReception.available?'ai':'waiting',status:'open',revision:1,aiRevision:1},req});
  await append(p,c,{dedupe:`start:${c.id}`,author:'system',visibility:'public',text:supportText(c.locale,c.mode==='ai'?'intro':'unavailable')},req);return publicConversation(c);
  }
  const c=await owned(p,hash,input.id,req);
@@ -59,7 +61,7 @@ export async function staffRead(p:Payload,user:any,id?:unknown):Promise<any>{
  if(!isOperator(user))throw new ContentError('Staff access required',403);
  if(id){const c=await scoped(p,user,id);const inquiries=[];for(const l of (c.inquiryLinks as any[]||[])){const found=await p.find({collection:'inquiries',where:{reference:{equals:l.reference}},overrideAccess:false,user,limit:1,depth:0});if(found.docs[0])inquiries.push(found.docs[0]);}return {conversation:c,messages:await messages(p,c.id),inquiries};}
  const [cs,teams,staff]=await Promise.all([p.find({collection:'support-conversations',overrideAccess:false,user,limit:200,depth:0,sort:'-updatedAt'}),p.find({collection:'teams',overrideAccess:false,user,limit:100,depth:0}),p.find({collection:'staff',overrideAccess:false,user,limit:200,depth:0})]);
- return {conversations:cs.docs,teams:teams.docs.map(t=>({id:t.id,name:t.name})),staff:staff.docs.filter(s=>validOwner(s,s.team)).map(s=>({id:s.id,name:s.name,team:relationID(s.team)})),user:{id:user.id,isAdmin:isAdmin(user),isManager:isManager(user)}};
+ return {features:await supportFeatures(p),conversations:cs.docs,teams:teams.docs.map(t=>({id:t.id,name:t.name})),staff:staff.docs.filter(s=>validOwner(s,s.team)).map(s=>({id:s.id,name:s.name,team:relationID(s.team)})),user:{id:user.id,isAdmin:isAdmin(user),isManager:isManager(user)}};
 }
 export async function staffAction(p:Payload,user:any,input:any){return supportTransaction(p,async req=>{
  const c=await scoped(p,user,input.id,req);
@@ -69,12 +71,13 @@ export async function staffAction(p:Payload,user:any,input:any){return supportTr
  let change:any={};
  if(['reply','note'].includes(input.action)){await append(p,c,{dedupe:`staff:${c.id}:${user.id}:${keyOf(input.key)}`,author:'staff',staff:user.id,visibility:input.action==='note'?'internal':'public',text:validateMessage(input.text)},req);if(input.action==='reply')change={mode:'human',status:'waiting-customer'};}
  else if(input.action==='translate'){
+ await requireSupportFeature(p,'translation',req);
  if(!c.aiConsent||!modelConfigured())throw new ContentError('需要客户允许 AI 处理，并配置模型');if(!isLocale(input.locale))throw new ContentError('Invalid translation language');
  const message=await p.findByID({collection:'support-messages',id:validID(input.message),depth:0,req});if(relationID(message.conversation)!==c.id||message.visibility!=='public'||message.author!=='customer')throw new ContentError('仅翻译当前会话的客户公开消息');
  const dedupe=`translate:${c.id}:${message.id}:${input.locale}:${user.id}`;if(!(await p.count({collection:'support-runs',where:{dedupe:{equals:dedupe}},req})).totalDocs)await p.create({collection:'support-runs',data:{conversation:c.id,dedupe,revision:c.aiRevision,status:'queued',task:{kind:'translate',message:message.id,locale:input.locale,actor:user.id}},req});return {ok:true};
  }
  else if(input.action==='takeover')change={mode:'human',status:'open'};
- else if(input.action==='resume'){if(!c.aiConsent||!modelConfigured())throw new ContentError('AI consent and configured model required');change={mode:'ai',status:'open'};}
+ else if(input.action==='resume'){await requireSupportFeature(p,'aiReception',req);if(!c.aiConsent||!modelConfigured())throw new ContentError('AI consent and configured model required');change={mode:'ai',status:'open'};}
  else if(input.action==='resolve')change={status:'resolved',mode:'human'};
  else if(input.action==='followup'){if(input.at&&!Number.isFinite(Date.parse(input.at)))throw new ContentError('Invalid follow-up date');change={nextFollowUp:input.at||null};}
  else if(input.action==='assign'){

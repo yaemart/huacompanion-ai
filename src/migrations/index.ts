@@ -13,6 +13,7 @@ import * as migration_20261030_005114_customer_support from './20261030_005114_c
 import * as migration_20261030_005604_support_request_draft from './20261030_005604_support_request_draft';
 import * as migration_20261030_005946_support_ai_revision from './20261030_005946_support_ai_revision';
 import * as migration_20261030_010427_support_translation from './20261030_010427_support_translation';
+import * as migration_20261030_095004_support_feature_settings from './20261030_095004_support_feature_settings';
 
 export const migrations = [
   {
@@ -88,6 +89,11 @@ export const migrations = [
   {
     up: migration_20261030_010427_support_translation.up,
     down: migration_20261030_010427_support_translation.down,
-    name: '20261030_010427_support_translation'
+    name: '20261030_010427_support_translation',
+  },
+  {
+    up: migration_20261030_095004_support_feature_settings.up,
+    down: migration_20261030_095004_support_feature_settings.down,
+    name: '20261030_095004_support_feature_settings'
   },
 ];

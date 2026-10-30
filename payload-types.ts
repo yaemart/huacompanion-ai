@@ -115,8 +115,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'support-settings': SupportSetting;
+  };
+  globalsSelect: {
+    'support-settings': SupportSettingsSelect<false> | SupportSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -1176,6 +1180,66 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * 开启开关不代表已完成开发或配置外部服务。关闭 AI 会阻止新任务及尚未发出的结果；已有记录保留。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-settings".
+ */
+export interface SupportSetting {
+  id: number;
+  /**
+   * 仅在服务已配置时生效
+   */
+  textChat?: boolean | null;
+  /**
+   * 仅在服务已配置时生效
+   */
+  aiReception?: boolean | null;
+  /**
+   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   */
+  voiceMessages?: boolean | null;
+  /**
+   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   */
+  transcription?: boolean | null;
+  /**
+   * 仅在服务已配置时生效
+   */
+  translation?: boolean | null;
+  /**
+   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   */
+  speechPlayback?: boolean | null;
+  /**
+   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   */
+  aiCalls?: boolean | null;
+  /**
+   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   */
+  humanCalls?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-settings_select".
+ */
+export interface SupportSettingsSelect<T extends boolean = true> {
+  textChat?: T;
+  aiReception?: T;
+  voiceMessages?: T;
+  transcription?: T;
+  translation?: T;
+  speechPlayback?: T;
+  aiCalls?: T;
+  humanCalls?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

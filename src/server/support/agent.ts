@@ -1,3 +1,4 @@
+import {supportFeatures} from './features';
 import {randomUUID} from 'node:crypto';
 import type {Payload} from 'payload';
 import {listPublished} from '../content/service';
@@ -26,6 +27,8 @@ export async function runSupportJob(p:Payload,adapter?:SupportAdapter,options:{d
  const job=(await p.find({collection:'support-runs',where:{status:{equals:'queued'}},sort:'id',limit:1,req})).docs[0];if(!job)return null;
  const c=await p.findByID({collection:'support-conversations',id:relationID(job.conversation)!,depth:0,req});
  if(!await runAllowed(p,c,job,req)){await p.update({collection:'support-runs',id:job.id,data:{status:'discarded'},req});return {skipped:true};}
+ const feature=(job.task as any)?.kind==='translate'?'translation':'aiReception';
+ if(!(await supportFeatures(p,req))[feature].enabled){await failToHuman(p,c,job,'Feature disabled by administrator',req);return {skipped:true};}
  if(!adapter){await failToHuman(p,c,job,'AI gateway not configured',req);return {skipped:true};}
  const task=job.task as any;const translation=task?.kind==='translate';
  const customerMessages=(await messages(p,c.id,req)).filter(m=>m.visibility==='public'&&m.author==='customer'&&(!translation||m.id===task.message)).slice(-20);
@@ -52,6 +55,7 @@ export async function runSupportJob(p:Payload,adapter?:SupportAdapter,options:{d
  await supportTransaction(p,async req=>{
  const latest=await p.findByID({collection:'support-runs',id:run.id,req});if(latest.status!=='running'||latest.lease!==run.lease)return;
  const current=await p.findByID({collection:'support-conversations',id:c.id,depth:0,req});
+ if(!(await supportFeatures(p,req))[(run.task as any)?.kind==='translate'?'translation':'aiReception'].enabled){await failToHuman(p,current,run,'Feature disabled before delivery',req);return;}
  if(!await runAllowed(p,current,latest,req)){await p.update({collection:'support-runs',id:run.id,data:{status:'discarded',usage:result.usage,lease:null,leaseUntil:null},req});return;}
  if((run.task as any)?.kind==='translate'){
  await append(p,c,{dedupe:`ai:${run.id}`,author:'ai',visibility:'internal',text:`AI 译文（${(run.task as any).locale}，请核实原文）：\n${reply}`},req);
