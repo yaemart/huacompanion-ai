@@ -67,7 +67,7 @@ export function PublishedSite({
                   publicText(locale, "Your local companion in China.")}
               </h1>
               <p className="lead">{detail?.summary || empty}</p>
-              {detail && <ContentBlocks blocks={detail.blocks} />}
+              {detail && <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />}
               <Link className="button" href={`/${locale}/request`}>
                 {publicText(locale, "Plan your visit")} ↗
               </Link>
@@ -138,7 +138,7 @@ export function PublishedSite({
               <p className="lead">{detail?.summary || empty}</p>
               {detail && (
                 <>
-                  <ContentBlocks blocks={detail.blocks} />
+                  <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />
                   {detail.kind === "guide" &&
                     contents.some((d) =>
                       d.catalog?.guideKeys.includes(detail.contentKey),

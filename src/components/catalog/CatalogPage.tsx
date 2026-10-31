@@ -93,7 +93,7 @@ export function CatalogPage({
             <p className="lead">{detail.summary}</p>
             <CatalogDetails detail={detail} locale={locale} />
             {detail.catalog?.housekeeping && <HousekeepingDetails value={detail.catalog.housekeeping} locale={locale}/>}
-            <ContentBlocks blocks={detail.blocks} />
+            <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />
             <p>
               {publicText(locale, "Updated")}:{" "}
               {detail.publishedAt?.slice(0, 10)}

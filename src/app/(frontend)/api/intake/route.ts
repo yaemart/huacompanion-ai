@@ -1,3 +1,4 @@
+import {intakeEnabled} from '@/lib/deployment';
 import {NextResponse} from 'next/server';
 import {saveIntake,IntakeConflict} from '@/server/intake';
 import {IntakeValidationError} from '@/lib/intake-validation';
@@ -5,7 +6,7 @@ import {intakeAllowed} from '@/server/rate-limit';
 export const runtime='nodejs';
 export async function POST(request:Request){
  const headers={'Cache-Control':'no-store'};
- if(process.env.APP_ENV!=='local')return NextResponse.json({error:'Intake is not enabled outside local testing yet.'},{status:503,headers});
+ if(!intakeEnabled(process.env))return NextResponse.json({error:'Intake is not enabled for this environment.'},{status:503,headers});
  if(request.headers.get('origin')!==process.env.APP_URL)return NextResponse.json({error:'Invalid origin'},{status:403,headers});
  if(!request.headers.get('content-type')?.startsWith('application/json'))return NextResponse.json({error:'JSON required'},{status:415,headers});
  try{

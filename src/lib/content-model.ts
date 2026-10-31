@@ -25,6 +25,7 @@ export type Source = {
   checkedAt?: string;
 };
 export type ContentBody = {
+  qualityReview?: {checkedAt?:string;nextReviewAt?:string};
   contentKey: string;
   kind:
     | "service"

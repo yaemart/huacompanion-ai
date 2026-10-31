@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {intakeEnabled} from '../src/lib/deployment.ts';
+test('public trial intake requires explicit switch HTTPS and policy version',()=>{assert.equal(intakeEnabled({APP_ENV:'local'}),true);assert.equal(intakeEnabled({APP_ENV:'trial',INTAKE_ENABLED:'true',APP_URL:'http://site.example',PRIVACY_VERSION:'v1'}),false);assert.equal(intakeEnabled({APP_ENV:'trial',INTAKE_ENABLED:'true',APP_URL:'https://site.example',PRIVACY_VERSION:'v1'}),true);assert.equal(intakeEnabled({APP_ENV:'trial',APP_URL:'https://site.example',PRIVACY_VERSION:'v1'}),false);assert.equal(intakeEnabled({APP_ENV:'trial',INTAKE_ENABLED:'true',APP_URL:'https://site.example'}),false);});

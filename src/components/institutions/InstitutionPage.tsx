@@ -48,7 +48,7 @@ export function InstitutionPage({ items, locale, detail, query = {}, languagePat
           <div><dt>{t('verified')}</dt><dd>{institution.verifiedAt || t('unknown')}</dd></div>
         </dl>
         {institution.officialURL && <p><a href={institution.officialURL} target="_blank" rel="noopener noreferrer">{t('official')} ↗</a></p>}
-        <ContentBlocks blocks={selected.blocks}/>
+        <ContentBlocks quality={selected.qualityReview} locale={locale} blocks={selected.blocks}/>
         {selected.sources.length > 0 && <section className="institution-sources"><h2>{t('sources')}</h2><ul>{selected.sources.map(source => <li key={source.id}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title} ↗</a>{source.checkedAt && <> · {t('verified')}: <time dateTime={source.checkedAt}>{source.checkedAt}</time></>}</li>)}</ul></section>}
         <section className="institution-enquiry">
           {canEnquire ? <Link className="button" href={enquiry(selected.contentKey)}>{t('enquire')} ↗</Link> : <p role="status">{t(institution.foreignAcceptance === 'pending' ? 'pending' : 'paused')}</p>}

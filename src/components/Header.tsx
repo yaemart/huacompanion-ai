@@ -15,7 +15,7 @@ export function Header({ locale, languagePaths }: { locale: Locale; languagePath
   return (
     <>
       <div className="preview-bar">
-        {c(process.env.NEXT_PUBLIC_FORM_MODE === "local" ? "LOCAL TESTING · Submissions save locally. Use fictional details only." : "DESIGN PREVIEW · Forms do not send or save information yet.")}
+        {process.env.NEXT_PUBLIC_FORM_MODE === "trial" ? {zh:"华伴试运行 · 服务安排以人工确认为准",en:"Hua Companion trial · Service arrangements require staff confirmation",es:"Prueba de Hua Companion · El personal debe confirmar los servicios",fr:"Hua Companion en essai · Services soumis à confirmation",de:"Hua Companion Testbetrieb · Leistungen müssen bestätigt werden",it:"Hua Companion in prova · Servizi soggetti a conferma",ar:"هوا كومبانيون قيد التجربة · ترتيبات الخدمة تتطلب تأكيد الموظفين"}[locale] : c(process.env.NEXT_PUBLIC_FORM_MODE === "local" ? "LOCAL TESTING · Submissions save locally. Use fictional details only." : "DESIGN PREVIEW · Forms do not send or save information yet.")}
       </div>
       <header className="site-header">
         <Link className="brand" href={`/${locale}`} aria-label="Hua Companion">
@@ -58,6 +58,7 @@ export function Header({ locale, languagePaths }: { locale: Locale; languagePath
           ))}
         </nav>
         <div className="header-actions">
+          <Link href={`/${locale}/account`}>{{zh:"客户中心",en:"My account",es:"Mi cuenta",fr:"Mon compte",de:"Mein Konto",it:"Il mio account",ar:"حسابي"}[locale]}</Link>
           <Link href={`/${locale}/support`}>{supportText(locale,"title")}</Link>
           <select className="language" aria-label={c("Website language")} value={locale}
             onChange={event => {

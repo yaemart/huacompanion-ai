@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {recoverMessage} from '../src/lib/support-recovery.ts';
+test('recovery preserves a retry key without accepting unbounded or malformed data',()=>{const draft={key:'12345678-1234-4234-a234-123456789012',text:'Need help'};assert.deepEqual(recoverMessage(JSON.stringify(draft)),draft);assert.equal(recoverMessage('{bad'),null);assert.equal(recoverMessage(JSON.stringify({...draft,text:'x'.repeat(4001)})),null);assert.equal(recoverMessage(JSON.stringify({...draft,key:'bad'})),null);});

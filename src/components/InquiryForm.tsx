@@ -37,7 +37,7 @@ export function InquiryForm({
   initialValues?: Record<string,string>;
   catalogSelection?: CatalogSelection;
 }) {
-  const localMode = process.env.NEXT_PUBLIC_FORM_MODE === "local";
+  const localMode = ["local","trial"].includes(process.env.NEXT_PUBLIC_FORM_MODE || "");
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState("");
   const [saveError, setSaveError] = useState("");

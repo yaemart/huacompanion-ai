@@ -1,3 +1,4 @@
+import {contentQualityHook} from '../quality/hooks';
 import { catalogLanguages } from "../../lib/catalog-options";
 import type { CollectionConfig } from "payload";
 import { contentScope, isAdmin } from "../access";
@@ -27,6 +28,7 @@ export const ContentDrafts: CollectionConfig = {
   access,
   versions: { maxPerDoc: 30 },
   hooks: {
+    afterChange:[contentQualityHook],
     beforeChange: [
       ({ data, originalDoc }) => {
         const body = data.body || originalDoc?.body || {};
@@ -113,6 +115,7 @@ export const ContentPublished: CollectionConfig = {
     { name: "body", type: "json", required: true },
     { name: "publishedBy", type: "number", required: true },
     { name: "publishedAt", type: "date", required: true },
+    { name: "qualityReview", type: "json" },
   ],
 };
 export const ContentEvents: CollectionConfig = {

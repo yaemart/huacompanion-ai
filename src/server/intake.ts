@@ -73,7 +73,7 @@ export async function saveIntake(input: unknown, key: string) {
       source: "website" as const,
       locale,
       consentAt: new Date().toISOString(),
-      privacyVersion: "local-testing-2026-10-27",
+      privacyVersion: process.env.PRIVACY_VERSION || "local-testing-2026-10-27",
       requestKey,
       contentHash,
     };

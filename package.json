@@ -37,7 +37,17 @@
     "seed:housekeeping": "tsx scripts/seed-housekeeping.ts",
     "support:worker": "tsx scripts/support-worker.ts",
     "test:support": "tsx tests/integration/support.ts",
-    "test:support:agent": "tsx tests/integration/support-agent.ts"
+    "test:support:agent": "tsx tests/integration/support-agent.ts",
+    "test:support:voice": "tsx tests/integration/support-voice.ts",
+    "test:support:calls": "tsx tests/integration/calls.ts",
+    "test:support:operations": "tsx tests/integration/support-operations.ts",
+    "test:support:operations:db": "tsx tests/integration/support-operations-db.ts",
+    "workflow:worker": "tsx scripts/workflow-worker.ts",
+    "test:business": "tsx tests/integration/business.ts",
+    "test:workflow": "tsx tests/integration/workflow.ts",
+    "test:quality": "tsx tests/integration/quality.ts",
+    "test:customer": "tsx tests/integration/customer.ts",
+    "test:business:ai": "tsx tests/integration/business-ai.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

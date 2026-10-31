@@ -65,6 +65,13 @@ try {
     "content_events",
     "content_media",
     "content_agent_tasks",
+    "service_cases", "service_quotes", "service_events", "business_ai_tasks",
+    "workflow_events", "workflow_notifications", "workflow_tasks", "workflow_mail_jobs", "workflow_customer_notifications", "workflow_settings",
+    "customer_accounts", "customer_challenges", "customer_sessions", "customer_inquiry_links", "customer_settings",
+    "content_quality", "content_quality_events",
+    "support_conversations", "support_messages", "support_runs", "support_settings",
+    "support_voice_audio", "support_voice_jobs", "support_calls", "support_call_presence",
+    "support_feedback", "support_reviews", "support_retention_audits",
   ]) {
     const query = `SELECT count(*)::int AS count FROM "${table}"`;
     const before = (await source.query(query)).rows[0].count;

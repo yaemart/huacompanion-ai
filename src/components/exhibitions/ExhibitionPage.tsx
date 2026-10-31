@@ -63,7 +63,7 @@ export function ExhibitionPage({ items, locale, detail, query = {}, languagePath
           {e.officialURL && <a href={e.officialURL} target="_blank" rel="noopener noreferrer">{t("official")} ↗</a>}
           {e.registrationURL && <a href={e.registrationURL} target="_blank" rel="noopener noreferrer">{t("registration")} ↗</a>}
         </div>
-        <ContentBlocks blocks={selected.blocks} />
+        <ContentBlocks quality={selected.qualityReview} locale={locale} blocks={selected.blocks} />
         <section className="exhibition-inquiry">
           {canEnquire ? <Link className="button" href={enquiry(selected.contentKey)}>{t("enquire")} ↗</Link> : <p role="status">{t(closed ? "unavailable" : "paused")}</p>}
           <p>{t("disclaimer")}</p><Link href={`/${locale}/request`}>{t("general")}</Link>

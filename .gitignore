@@ -6,3 +6,9 @@ node_modules/
 .superpowers/
 .local/
 backups/
+
+# Machine-specific files and private credentials
+.DS_Store
+*.log
+*.pem
+*.key

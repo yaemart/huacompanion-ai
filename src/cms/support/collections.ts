@@ -1,3 +1,5 @@
+import {supportWorkflowHook} from '../../server/business/hooks';
+import {voiceMessageFields} from './voice';
 import type {CollectionConfig,Field} from 'payload';
 import {inquiryScope,isAdmin} from '../access';
 const privateAccess={create:()=>false,update:()=>false,delete:()=>false,read:({req}:any)=>isAdmin(req.user)};
@@ -12,10 +14,10 @@ export const supportCollections:CollectionConfig[]=[
  {name:'team',type:'relationship',relationTo:'teams'},{name:'owner',type:'relationship',relationTo:'staff'},{name:'customer',type:'relationship',relationTo:'support-customers'},
  {name:'summary',type:'textarea'},{name:'proposedRequest',type:'json'},{name:'nextFollowUp',type:'date'},{name:'inquiryLinks',type:'json'},
  ]},
- {...base,slug:'support-messages',labels:{singular:'客服消息',plural:'客服消息'},fields:[
+ {...base,slug:'support-messages',hooks:{afterChange:[supportWorkflowHook]},labels:{singular:'客服消息',plural:'客服消息'},fields:[
  {name:'conversation',type:'relationship',relationTo:'support-conversations',required:true,index:true},text('dedupe',{required:true,unique:true}),
  {name:'author',type:'select',options:['customer','staff','ai','system'],required:true},{name:'visibility',type:'select',options:['public','internal'],required:true},
- {name:'staff',type:'relationship',relationTo:'staff'},{name:'text',type:'textarea',required:true,maxLength:8000},{name:'citations',type:'json'},
+ ...voiceMessageFields,{name:'staff',type:'relationship',relationTo:'staff'},{name:'text',type:'textarea',required:true,maxLength:8000},{name:'citations',type:'json'},
  ]},
  {...base,slug:'support-runs',labels:{singular:'客服 AI 任务',plural:'客服 AI 任务'},fields:[
  {name:'conversation',type:'relationship',relationTo:'support-conversations',required:true,index:true},text('dedupe',{required:true,unique:true}),{name:'task',type:'json'},{name:'revision',type:'number',required:true},

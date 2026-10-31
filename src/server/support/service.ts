@@ -1,3 +1,4 @@
+import {intakeEnabled} from '../../lib/deployment';
 import {supportFeatures,requireSupportFeature} from './features';
 import {supportAssignmentToken} from '../../cms/support/trusted';
 import {createHash} from 'node:crypto';
@@ -43,7 +44,7 @@ export async function visitorAction(p:Payload,hash:string,input:any):Promise<any
  if(input.action==='language'){if(!isLocale(input.locale))throw new ContentError('Invalid language');const pending=await p.count({collection:'support-runs',where:{and:[{conversation:{equals:c.id}},{status:{in:['queued','running']}},{revision:{equals:c.aiRevision}}]},req});const next=await updateConversation(p,c,{locale:input.locale},req);if(pending.totalDocs)await queue(p,next,req);return {ok:true};}
  if(input.action==='handoff'){await updateConversation(p,c,{mode:c.mode==='human'?'human':'waiting',aiConsent:false,status:'open'},req);return {ok:true};}
  if(input.action==='confirm'){
- if(process.env.APP_ENV!=='local')throw new ContentError('Intake enabled for local testing only',503);
+ if(!intakeEnabled(process.env))throw new ContentError('Intake is not enabled for this environment',503);
  if((c.inquiryLinks as any[]||[]).length>=20 && !(c.inquiryLinks as any[]).some(l=>l.key===input.key))throw new ContentError('Request limit reached',429);
  if(input.payload?.kind!=='request')throw new ContentError('Only service requests may be linked');
  const key=keyOf(input.key);const digest=createHash('sha256').update(`${hash}:${c.id}:${key}`).digest('hex');const uuid=`${digest.slice(0,8)}-${digest.slice(8,12)}-4${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;

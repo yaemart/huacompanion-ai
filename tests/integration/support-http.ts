@@ -8,4 +8,8 @@ const stranger=await fetch(base+'/api/support?id='+c.id,{headers:{Cookie:'hua-su
 assert.equal((await post({action:'handoff',id:c.id},cookie,'https://not-hua.invalid')).status,403);
 assert.equal((await fetch(base+'/api/support/staff')).status,403);
 for(const locale of ['zh','en','es','fr','de','it','ar'])assert.equal((await fetch(base+'/'+locale+'/support')).status,200);
-console.log('PASS support HTTP cookies, visitor isolation, origin protection, staff auth and seven languages');
+for(const route of ['/api/support/calls/staff','/api/support/operations','/api/support/voice?audio=1','/api/support/voice/jobs?job=1'])assert.ok((await fetch(base+route)).status>=400,route+' must require authorized scope');
+const features=(await (await fetch(base+'/api/support',{headers:{Cookie:cookie}})).json()).features;
+assert.equal(features.voiceMessages.implemented,true);assert.equal(features.humanCalls.implemented,true);
+if(!features.humanCalls.available){const off=await fetch(base+'/api/support/calls',{method:'POST',headers:{Origin:base,'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({action:'start',conversation:c.id,kind:'human',key:randomUUID()})});assert.equal(off.status,503);}
+console.log('PASS multimodal HTTP access/feature gates; support HTTP cookies, visitor isolation, origin protection, staff auth and seven languages');

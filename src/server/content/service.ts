@@ -1,3 +1,5 @@
+import {versionOf} from '../../cms/quality/hooks';
+import {publicQualityMetadata} from '../../lib/quality';
 import {houseProviderCovers} from '../../lib/housekeeping';
 import { canManageContent, canReviewContent, canAccessContentKind, isAdmin } from "../../cms/access";
 import { isLife, lifeCanEnquire, validateLifePublication } from "../../lib/lifestyle";
@@ -103,7 +105,7 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
           providerKeys.has(k),
         );
       }
-      return { ...b, publicationRevision:s.revision, publishedAt: s.publishedAt };
+      return { ...b, publicationRevision:s.revision, publishedAt: s.publishedAt, qualityReview:publicQualityMetadata((s as any).qualityReview,s.revision) };
     })
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
@@ -298,7 +300,10 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             throw new ContentError("指定服务商尚未发布或已暂停");
         }
       }
+      const quality=(await (p as any).find({collection:'content-quality',where:{draftId:{equals:current.id}},limit:1,depth:0,req})).docs[0];
+      const qualityReview=quality?.state==='checked'&&quality.contentVersion===versionOf(current.body)?{state:'checked',checkedRevision:current.revision,checkedAt:quality.checkedAt,nextReviewAt:quality.nextReviewAt}:null;
       const data = {
+        qualityReview,
         providerRef:
           ["provider-profile", "institution", "venue", "activity"].includes(clean.kind) ? current.providerRef : null,
         suspended: false,

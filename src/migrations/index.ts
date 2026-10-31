@@ -14,6 +14,10 @@ import * as migration_20261030_005604_support_request_draft from './20261030_005
 import * as migration_20261030_005946_support_ai_revision from './20261030_005946_support_ai_revision';
 import * as migration_20261030_010427_support_translation from './20261030_010427_support_translation';
 import * as migration_20261030_095004_support_feature_settings from './20261030_095004_support_feature_settings';
+import * as migration_20261030_233618_support_multimodal from './20261030_233618_support_multimodal';
+import * as migration_20261031_033746_business_platform from './20261031_033746_business_platform';
+import * as migration_20261031_034016_customer_notifications from './20261031_034016_customer_notifications';
+import * as migration_20261031_054202_business_ai from './20261031_054202_business_ai';
 
 export const migrations = [
   {
@@ -94,6 +98,26 @@ export const migrations = [
   {
     up: migration_20261030_095004_support_feature_settings.up,
     down: migration_20261030_095004_support_feature_settings.down,
-    name: '20261030_095004_support_feature_settings'
+    name: '20261030_095004_support_feature_settings',
+  },
+  {
+    up: migration_20261030_233618_support_multimodal.up,
+    down: migration_20261030_233618_support_multimodal.down,
+    name: '20261030_233618_support_multimodal',
+  },
+  {
+    up: migration_20261031_033746_business_platform.up,
+    down: migration_20261031_033746_business_platform.down,
+    name: '20261031_033746_business_platform',
+  },
+  {
+    up: migration_20261031_034016_customer_notifications.up,
+    down: migration_20261031_034016_customer_notifications.down,
+    name: '20261031_034016_customer_notifications',
+  },
+  {
+    up: migration_20261031_054202_business_ai.up,
+    down: migration_20261031_054202_business_ai.down,
+    name: '20261031_054202_business_ai'
   },
 ];

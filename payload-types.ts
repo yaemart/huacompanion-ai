@@ -83,6 +83,28 @@ export interface Config {
     'support-conversations': SupportConversation;
     'support-messages': SupportMessage;
     'support-runs': SupportRun;
+    'support-voice-audio': SupportVoiceAudio;
+    'support-voice-jobs': SupportVoiceJob;
+    'support-calls': SupportCall;
+    'support-call-presence': SupportCallPresence;
+    'support-feedback': SupportFeedback;
+    'support-reviews': SupportReview;
+    'support-retention-audits': SupportRetentionAudit;
+    'business-ai-tasks': BusinessAiTask;
+    'service-cases': ServiceCase;
+    'service-quotes': ServiceQuote;
+    'service-events': ServiceEvent;
+    'workflow-events': WorkflowEvent;
+    'workflow-notifications': WorkflowNotification;
+    'workflow-tasks': WorkflowTask;
+    'workflow-customer-notifications': WorkflowCustomerNotification;
+    'workflow-mail-jobs': WorkflowMailJob;
+    'content-quality': ContentQuality;
+    'content-quality-events': ContentQualityEvent;
+    'customer-accounts': CustomerAccount;
+    'customer-challenges': CustomerChallenge;
+    'customer-sessions': CustomerSession;
+    'customer-inquiry-links': CustomerInquiryLink;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -106,6 +128,28 @@ export interface Config {
     'support-conversations': SupportConversationsSelect<false> | SupportConversationsSelect<true>;
     'support-messages': SupportMessagesSelect<false> | SupportMessagesSelect<true>;
     'support-runs': SupportRunsSelect<false> | SupportRunsSelect<true>;
+    'support-voice-audio': SupportVoiceAudioSelect<false> | SupportVoiceAudioSelect<true>;
+    'support-voice-jobs': SupportVoiceJobsSelect<false> | SupportVoiceJobsSelect<true>;
+    'support-calls': SupportCallsSelect<false> | SupportCallsSelect<true>;
+    'support-call-presence': SupportCallPresenceSelect<false> | SupportCallPresenceSelect<true>;
+    'support-feedback': SupportFeedbackSelect<false> | SupportFeedbackSelect<true>;
+    'support-reviews': SupportReviewsSelect<false> | SupportReviewsSelect<true>;
+    'support-retention-audits': SupportRetentionAuditsSelect<false> | SupportRetentionAuditsSelect<true>;
+    'business-ai-tasks': BusinessAiTasksSelect<false> | BusinessAiTasksSelect<true>;
+    'service-cases': ServiceCasesSelect<false> | ServiceCasesSelect<true>;
+    'service-quotes': ServiceQuotesSelect<false> | ServiceQuotesSelect<true>;
+    'service-events': ServiceEventsSelect<false> | ServiceEventsSelect<true>;
+    'workflow-events': WorkflowEventsSelect<false> | WorkflowEventsSelect<true>;
+    'workflow-notifications': WorkflowNotificationsSelect<false> | WorkflowNotificationsSelect<true>;
+    'workflow-tasks': WorkflowTasksSelect<false> | WorkflowTasksSelect<true>;
+    'workflow-customer-notifications': WorkflowCustomerNotificationsSelect<false> | WorkflowCustomerNotificationsSelect<true>;
+    'workflow-mail-jobs': WorkflowMailJobsSelect<false> | WorkflowMailJobsSelect<true>;
+    'content-quality': ContentQualitySelect<false> | ContentQualitySelect<true>;
+    'content-quality-events': ContentQualityEventsSelect<false> | ContentQualityEventsSelect<true>;
+    'customer-accounts': CustomerAccountsSelect<false> | CustomerAccountsSelect<true>;
+    'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
+    'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
+    'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -117,9 +161,13 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'support-settings': SupportSetting;
+    'workflow-settings': WorkflowSetting;
+    'customer-settings': CustomerSetting;
   };
   globalsSelect: {
     'support-settings': SupportSettingsSelect<false> | SupportSettingsSelect<true>;
+    'workflow-settings': WorkflowSettingsSelect<false> | WorkflowSettingsSelect<true>;
+    'customer-settings': CustomerSettingsSelect<false> | CustomerSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -472,6 +520,15 @@ export interface ContentPublished {
     | null;
   publishedBy: number;
   publishedAt: string;
+  qualityReview?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -625,6 +682,8 @@ export interface SupportMessage {
   dedupe: string;
   author: 'customer' | 'staff' | 'ai' | 'system';
   visibility: 'public' | 'internal';
+  voiceAudio?: (number | null) | SupportVoiceAudio;
+  voiceTranscript?: string | null;
   staff?: (number | null) | Staff;
   text: string;
   citations?:
@@ -636,6 +695,20 @@ export interface SupportMessage {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-voice-audio".
+ */
+export interface SupportVoiceAudio {
+  id: number;
+  conversation: number | SupportConversation;
+  dedupe: string;
+  digest: string;
+  body: string;
+  seconds: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -673,6 +746,516 @@ export interface SupportRun {
     | null;
   model?: string | null;
   error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-voice-jobs".
+ */
+export interface SupportVoiceJob {
+  id: number;
+  conversation: number | SupportConversation;
+  message: number | SupportMessage;
+  dedupe: string;
+  kind: 'transcribe' | 'synthesize';
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'discarded';
+  lease?: string | null;
+  leaseUntil?: string | null;
+  consentAt: string;
+  day?: string | null;
+  reserved?: number | null;
+  error?: string | null;
+  audio?: (number | null) | SupportVoiceAudio;
+  actor?: (number | null) | Staff;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-calls".
+ */
+export interface SupportCall {
+  id: number;
+  conversation: number | SupportConversation;
+  dedupe: string;
+  gatewayID: string;
+  kind: 'ai' | 'human';
+  state: 'queued' | 'connecting' | 'active' | 'ended' | 'expired' | 'failed';
+  owner?: (number | null) | Staff;
+  staffJoined?: boolean | null;
+  claimUntil?: string | null;
+  expiresAt: string;
+  day?: string | null;
+  reservedSeconds: number;
+  reservedCents: number;
+  aiBridge?: boolean | null;
+  cleanupPending?: boolean | null;
+  rejectedStaff?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-call-presence".
+ */
+export interface SupportCallPresence {
+  id: number;
+  staffKey: string;
+  staff: number | Staff;
+  state: 'available' | 'busy' | 'away' | 'offline';
+  heartbeatAt: string;
+  languages:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  capacity: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-feedback".
+ */
+export interface SupportFeedback {
+  id: number;
+  conversation: number | SupportConversation;
+  dedupe: string;
+  rating: number;
+  comment?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-reviews".
+ */
+export interface SupportReview {
+  id: number;
+  conversation: number | SupportConversation;
+  dedupe: string;
+  actor: number | Staff;
+  category: 'knowledge-gap' | 'quality' | 'follow-up';
+  note: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-retention-audits".
+ */
+export interface SupportRetentionAudit {
+  id: number;
+  actor: number | Staff;
+  kind: 'text' | 'audio' | 'transcript';
+  token: string;
+  status: 'preview' | 'executed';
+  expiresAt: string;
+  candidates:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  policy:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  executedAt?: string | null;
+  result?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "business-ai-tasks".
+ */
+export interface BusinessAiTask {
+  id: number;
+  serviceCase: number | ServiceCase;
+  createdBy: number | Staff;
+  dedupe: string;
+  fingerprint: string;
+  status: 'unconfigured' | 'queued' | 'running' | 'succeeded' | 'adopted' | 'failed' | 'discarded' | 'cancelled';
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  result?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  error?: string | null;
+  model?: string | null;
+  lease?: string | null;
+  leaseUntil?: string | null;
+  day?: string | null;
+  reserved?: number | null;
+  usage?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  adoptedQuote?: (number | null) | ServiceQuote;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-cases".
+ */
+export interface ServiceCase {
+  id: number;
+  inquiry: number | Inquiry;
+  title: string;
+  stage:
+    | 'received'
+    | 'discovery'
+    | 'quoting'
+    | 'awaiting-confirmation'
+    | 'accepted'
+    | 'scheduled'
+    | 'in-service'
+    | 'completed'
+    | 'paused'
+    | 'cancelled'
+    | 'aftercare';
+  revision: number;
+  latestQuote?: (number | null) | ServiceQuote;
+  acceptedQuote?: (number | null) | ServiceQuote;
+  customerSummary?: string | null;
+  publicArrangement?: string | null;
+  scheduledAt?: string | null;
+  provider?: (number | null) | Provider;
+  resourceConfirmed?: boolean | null;
+  internalArrangement?: string | null;
+  completedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-quotes".
+ */
+export interface ServiceQuote {
+  id: number;
+  serviceCase: number | ServiceCase;
+  dedupe: string;
+  revision: number;
+  status: 'draft' | 'sent' | 'accepted' | 'superseded' | 'withdrawn';
+  title: string;
+  scope: string;
+  included: string;
+  excluded: string;
+  terms: string;
+  currency: string;
+  lines:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  totalMinor: number;
+  internalCostMinor?: number | null;
+  expiresAt: string;
+  sentAt?: string | null;
+  confirmedAt?: string | null;
+  confirmedBy?: (number | null) | CustomerAccount;
+  createdBy: number | Staff;
+  aiTask?: (number | null) | BusinessAiTask;
+  reviewStatus?: ('pending' | 'approved' | 'rejected') | null;
+  reviewedBy?: (number | null) | Staff;
+  reviewedAt?: string | null;
+  reviewReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-accounts".
+ */
+export interface CustomerAccount {
+  id: number;
+  email: string;
+  verifiedAt?: string | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-events".
+ */
+export interface ServiceEvent {
+  id: number;
+  serviceCase: number | ServiceCase;
+  dedupe: string;
+  action: string;
+  actor?: (number | null) | Staff;
+  customer?: (number | null) | CustomerAccount;
+  detail?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-events".
+ */
+export interface WorkflowEvent {
+  id: number;
+  key: string;
+  type:
+    | 'inquiry-created'
+    | 'owner-changed'
+    | 'customer-reply'
+    | 'quote-sent'
+    | 'quote-confirmed'
+    | 'quality-due'
+    | 'case-stage'
+    | 'task-due'
+    | 'task-escalated';
+  inquiry?: (number | null) | Inquiry;
+  contentDraft?: (number | null) | ContentDraft;
+  recipient?: (number | null) | Staff;
+  title: string;
+  dueAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-notifications".
+ */
+export interface WorkflowNotification {
+  id: number;
+  key: string;
+  event?: (number | null) | WorkflowEvent;
+  inquiry?: (number | null) | Inquiry;
+  contentDraft?: (number | null) | ContentDraft;
+  recipient?: (number | null) | Staff;
+  title: string;
+  readAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-tasks".
+ */
+export interface WorkflowTask {
+  id: number;
+  key: string;
+  inquiry?: (number | null) | Inquiry;
+  contentDraft?: (number | null) | ContentDraft;
+  assignee?: (number | null) | Staff;
+  title: string;
+  status: 'open' | 'done';
+  dueAt?: string | null;
+  history?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-customer-notifications".
+ */
+export interface WorkflowCustomerNotification {
+  id: number;
+  key: string;
+  customer?: (number | null) | CustomerAccount;
+  inquiry?: (number | null) | Inquiry;
+  type: string;
+  title: string;
+  readAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-mail-jobs".
+ */
+export interface WorkflowMailJob {
+  id: number;
+  key: string;
+  notification?: (number | null) | WorkflowNotification;
+  customerNotification?: (number | null) | WorkflowCustomerNotification;
+  status: 'queued' | 'running' | 'sent' | 'disabled' | 'retry' | 'uncertain' | 'failed';
+  lease?: string | null;
+  leaseUntil?: string | null;
+  nextAt?: string | null;
+  attempts?: number | null;
+  providerId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * 在内容质量工作台登记来源、负责人和复核。复核不替代发布审核。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-quality".
+ */
+export interface ContentQuality {
+  id: number;
+  draftId: number;
+  title: string;
+  kind: string;
+  contentKey: string;
+  locale: string;
+  owner?: (number | null) | Staff;
+  state: 'review-needed' | 'checked';
+  contentVersion: string;
+  checkedRevision?: number | null;
+  checkedAt?: string | null;
+  nextReviewAt?: string | null;
+  sourceVersion?: string | null;
+  sourceDraft?: number | null;
+  sourceIds?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reason?: string | null;
+  checkedBy?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-quality-events".
+ */
+export interface ContentQualityEvent {
+  id: number;
+  draftId: number;
+  kind: string;
+  actor: number;
+  revision: number;
+  reason: string;
+  sourceIds:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  nextReviewAt: string;
+  sourceVersion?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-challenges".
+ */
+export interface CustomerChallenge {
+  id: number;
+  email: string;
+  handle: string;
+  tokenHash: string;
+  expiresAt?: string | null;
+  consumedAt?: string | null;
+  attempts?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-sessions".
+ */
+export interface CustomerSession {
+  id: number;
+  customer: number | CustomerAccount;
+  tokenHash: string;
+  expiresAt?: string | null;
+  revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-inquiry-links".
+ */
+export interface CustomerInquiryLink {
+  id: number;
+  customer: number | CustomerAccount;
+  inquiry: number | Inquiry;
+  conversation?: (number | null) | SupportConversation;
+  verifiedBy: number | Staff;
+  verificationReason: string;
+  verifiedAt?: string | null;
+  revokedBy?: (number | null) | Staff;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+  active?: boolean | null;
+  dedupe: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -763,6 +1346,94 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'support-runs';
         value: number | SupportRun;
+      } | null)
+    | ({
+        relationTo: 'support-voice-audio';
+        value: number | SupportVoiceAudio;
+      } | null)
+    | ({
+        relationTo: 'support-voice-jobs';
+        value: number | SupportVoiceJob;
+      } | null)
+    | ({
+        relationTo: 'support-calls';
+        value: number | SupportCall;
+      } | null)
+    | ({
+        relationTo: 'support-call-presence';
+        value: number | SupportCallPresence;
+      } | null)
+    | ({
+        relationTo: 'support-feedback';
+        value: number | SupportFeedback;
+      } | null)
+    | ({
+        relationTo: 'support-reviews';
+        value: number | SupportReview;
+      } | null)
+    | ({
+        relationTo: 'support-retention-audits';
+        value: number | SupportRetentionAudit;
+      } | null)
+    | ({
+        relationTo: 'business-ai-tasks';
+        value: number | BusinessAiTask;
+      } | null)
+    | ({
+        relationTo: 'service-cases';
+        value: number | ServiceCase;
+      } | null)
+    | ({
+        relationTo: 'service-quotes';
+        value: number | ServiceQuote;
+      } | null)
+    | ({
+        relationTo: 'service-events';
+        value: number | ServiceEvent;
+      } | null)
+    | ({
+        relationTo: 'workflow-events';
+        value: number | WorkflowEvent;
+      } | null)
+    | ({
+        relationTo: 'workflow-notifications';
+        value: number | WorkflowNotification;
+      } | null)
+    | ({
+        relationTo: 'workflow-tasks';
+        value: number | WorkflowTask;
+      } | null)
+    | ({
+        relationTo: 'workflow-customer-notifications';
+        value: number | WorkflowCustomerNotification;
+      } | null)
+    | ({
+        relationTo: 'workflow-mail-jobs';
+        value: number | WorkflowMailJob;
+      } | null)
+    | ({
+        relationTo: 'content-quality';
+        value: number | ContentQuality;
+      } | null)
+    | ({
+        relationTo: 'content-quality-events';
+        value: number | ContentQualityEvent;
+      } | null)
+    | ({
+        relationTo: 'customer-accounts';
+        value: number | CustomerAccount;
+      } | null)
+    | ({
+        relationTo: 'customer-challenges';
+        value: number | CustomerChallenge;
+      } | null)
+    | ({
+        relationTo: 'customer-sessions';
+        value: number | CustomerSession;
+      } | null)
+    | ({
+        relationTo: 'customer-inquiry-links';
+        value: number | CustomerInquiryLink;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1018,6 +1689,7 @@ export interface ContentPublishedSelect<T extends boolean = true> {
   body?: T;
   publishedBy?: T;
   publishedAt?: T;
+  qualityReview?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1115,6 +1787,8 @@ export interface SupportMessagesSelect<T extends boolean = true> {
   dedupe?: T;
   author?: T;
   visibility?: T;
+  voiceAudio?: T;
+  voiceTranscript?: T;
   staff?: T;
   text?: T;
   citations?: T;
@@ -1138,6 +1812,382 @@ export interface SupportRunsSelect<T extends boolean = true> {
   usage?: T;
   model?: T;
   error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-voice-audio_select".
+ */
+export interface SupportVoiceAudioSelect<T extends boolean = true> {
+  conversation?: T;
+  dedupe?: T;
+  digest?: T;
+  body?: T;
+  seconds?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-voice-jobs_select".
+ */
+export interface SupportVoiceJobsSelect<T extends boolean = true> {
+  conversation?: T;
+  message?: T;
+  dedupe?: T;
+  kind?: T;
+  status?: T;
+  lease?: T;
+  leaseUntil?: T;
+  consentAt?: T;
+  day?: T;
+  reserved?: T;
+  error?: T;
+  audio?: T;
+  actor?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-calls_select".
+ */
+export interface SupportCallsSelect<T extends boolean = true> {
+  conversation?: T;
+  dedupe?: T;
+  gatewayID?: T;
+  kind?: T;
+  state?: T;
+  owner?: T;
+  staffJoined?: T;
+  claimUntil?: T;
+  expiresAt?: T;
+  day?: T;
+  reservedSeconds?: T;
+  reservedCents?: T;
+  aiBridge?: T;
+  cleanupPending?: T;
+  rejectedStaff?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-call-presence_select".
+ */
+export interface SupportCallPresenceSelect<T extends boolean = true> {
+  staffKey?: T;
+  staff?: T;
+  state?: T;
+  heartbeatAt?: T;
+  languages?: T;
+  capacity?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-feedback_select".
+ */
+export interface SupportFeedbackSelect<T extends boolean = true> {
+  conversation?: T;
+  dedupe?: T;
+  rating?: T;
+  comment?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-reviews_select".
+ */
+export interface SupportReviewsSelect<T extends boolean = true> {
+  conversation?: T;
+  dedupe?: T;
+  actor?: T;
+  category?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-retention-audits_select".
+ */
+export interface SupportRetentionAuditsSelect<T extends boolean = true> {
+  actor?: T;
+  kind?: T;
+  token?: T;
+  status?: T;
+  expiresAt?: T;
+  candidates?: T;
+  policy?: T;
+  executedAt?: T;
+  result?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "business-ai-tasks_select".
+ */
+export interface BusinessAiTasksSelect<T extends boolean = true> {
+  serviceCase?: T;
+  createdBy?: T;
+  dedupe?: T;
+  fingerprint?: T;
+  status?: T;
+  input?: T;
+  result?: T;
+  error?: T;
+  model?: T;
+  lease?: T;
+  leaseUntil?: T;
+  day?: T;
+  reserved?: T;
+  usage?: T;
+  adoptedQuote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-cases_select".
+ */
+export interface ServiceCasesSelect<T extends boolean = true> {
+  inquiry?: T;
+  title?: T;
+  stage?: T;
+  revision?: T;
+  latestQuote?: T;
+  acceptedQuote?: T;
+  customerSummary?: T;
+  publicArrangement?: T;
+  scheduledAt?: T;
+  provider?: T;
+  resourceConfirmed?: T;
+  internalArrangement?: T;
+  completedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-quotes_select".
+ */
+export interface ServiceQuotesSelect<T extends boolean = true> {
+  serviceCase?: T;
+  dedupe?: T;
+  revision?: T;
+  status?: T;
+  title?: T;
+  scope?: T;
+  included?: T;
+  excluded?: T;
+  terms?: T;
+  currency?: T;
+  lines?: T;
+  totalMinor?: T;
+  internalCostMinor?: T;
+  expiresAt?: T;
+  sentAt?: T;
+  confirmedAt?: T;
+  confirmedBy?: T;
+  createdBy?: T;
+  aiTask?: T;
+  reviewStatus?: T;
+  reviewedBy?: T;
+  reviewedAt?: T;
+  reviewReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-events_select".
+ */
+export interface ServiceEventsSelect<T extends boolean = true> {
+  serviceCase?: T;
+  dedupe?: T;
+  action?: T;
+  actor?: T;
+  customer?: T;
+  detail?: T;
+  reason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-events_select".
+ */
+export interface WorkflowEventsSelect<T extends boolean = true> {
+  key?: T;
+  type?: T;
+  inquiry?: T;
+  contentDraft?: T;
+  recipient?: T;
+  title?: T;
+  dueAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-notifications_select".
+ */
+export interface WorkflowNotificationsSelect<T extends boolean = true> {
+  key?: T;
+  event?: T;
+  inquiry?: T;
+  contentDraft?: T;
+  recipient?: T;
+  title?: T;
+  readAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-tasks_select".
+ */
+export interface WorkflowTasksSelect<T extends boolean = true> {
+  key?: T;
+  inquiry?: T;
+  contentDraft?: T;
+  assignee?: T;
+  title?: T;
+  status?: T;
+  dueAt?: T;
+  history?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-customer-notifications_select".
+ */
+export interface WorkflowCustomerNotificationsSelect<T extends boolean = true> {
+  key?: T;
+  customer?: T;
+  inquiry?: T;
+  type?: T;
+  title?: T;
+  readAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-mail-jobs_select".
+ */
+export interface WorkflowMailJobsSelect<T extends boolean = true> {
+  key?: T;
+  notification?: T;
+  customerNotification?: T;
+  status?: T;
+  lease?: T;
+  leaseUntil?: T;
+  nextAt?: T;
+  attempts?: T;
+  providerId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-quality_select".
+ */
+export interface ContentQualitySelect<T extends boolean = true> {
+  draftId?: T;
+  title?: T;
+  kind?: T;
+  contentKey?: T;
+  locale?: T;
+  owner?: T;
+  state?: T;
+  contentVersion?: T;
+  checkedRevision?: T;
+  checkedAt?: T;
+  nextReviewAt?: T;
+  sourceVersion?: T;
+  sourceDraft?: T;
+  sourceIds?: T;
+  reason?: T;
+  checkedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-quality-events_select".
+ */
+export interface ContentQualityEventsSelect<T extends boolean = true> {
+  draftId?: T;
+  kind?: T;
+  actor?: T;
+  revision?: T;
+  reason?: T;
+  sourceIds?: T;
+  nextReviewAt?: T;
+  sourceVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-accounts_select".
+ */
+export interface CustomerAccountsSelect<T extends boolean = true> {
+  email?: T;
+  verifiedAt?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-challenges_select".
+ */
+export interface CustomerChallengesSelect<T extends boolean = true> {
+  email?: T;
+  handle?: T;
+  tokenHash?: T;
+  expiresAt?: T;
+  consumedAt?: T;
+  attempts?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-sessions_select".
+ */
+export interface CustomerSessionsSelect<T extends boolean = true> {
+  customer?: T;
+  tokenHash?: T;
+  expiresAt?: T;
+  revokedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-inquiry-links_select".
+ */
+export interface CustomerInquiryLinksSelect<T extends boolean = true> {
+  customer?: T;
+  inquiry?: T;
+  conversation?: T;
+  verifiedBy?: T;
+  verificationReason?: T;
+  verifiedAt?: T;
+  revokedBy?: T;
+  revokedAt?: T;
+  revocationReason?: T;
+  active?: T;
+  dedupe?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1182,7 +2232,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * 开启开关不代表已完成开发或配置外部服务。关闭 AI 会阻止新任务及尚未发出的结果；已有记录保留。
+ * 功能必须完成开发、配置并开启才可使用。关闭后禁止新调用和未发出的结果；已有记录保留。通话关闭后由维护进程结束在途通话。
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "support-settings".
@@ -1190,37 +2240,82 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface SupportSetting {
   id: number;
   /**
-   * 仅在服务已配置时生效
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   textChat?: boolean | null;
   /**
-   * 仅在服务已配置时生效
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   aiReception?: boolean | null;
   /**
-   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   voiceMessages?: boolean | null;
   /**
-   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   transcription?: boolean | null;
   /**
-   * 仅在服务已配置时生效
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   translation?: boolean | null;
   /**
-   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   speechPlayback?: boolean | null;
   /**
-   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   aiCalls?: boolean | null;
   /**
-   * 尚未实现；即使勾选也不会开放入口或调用外部服务
+   * 仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。
    */
   humanCalls?: boolean | null;
+  /**
+   * 默认关闭。必须先预览，再确认执行。不会删除会话或关联服务申请。
+   */
+  retentionDeletionEnabled?: boolean | null;
+  textRetentionDays: number;
+  audioRetentionDays: number;
+  transcriptRetentionDays: number;
+  voiceMaxSeconds?: number | null;
+  voiceMaxBytes?: number | null;
+  voiceUploadsPerMinute?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-settings".
+ */
+export interface WorkflowSetting {
+  id: number;
+  enabledEvents?:
+    | (
+        | 'inquiry-created'
+        | 'owner-changed'
+        | 'customer-reply'
+        | 'quote-sent'
+        | 'quote-confirmed'
+        | 'quality-due'
+        | 'case-stage'
+        | 'task-due'
+        | 'task-escalated'
+      )[]
+    | null;
+  emailEnabled?: boolean | null;
+  escalationEnabled?: boolean | null;
+  escalationHours?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-settings".
+ */
+export interface CustomerSetting {
+  id: number;
+  enabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1237,6 +2332,36 @@ export interface SupportSettingsSelect<T extends boolean = true> {
   speechPlayback?: T;
   aiCalls?: T;
   humanCalls?: T;
+  retentionDeletionEnabled?: T;
+  textRetentionDays?: T;
+  audioRetentionDays?: T;
+  transcriptRetentionDays?: T;
+  voiceMaxSeconds?: T;
+  voiceMaxBytes?: T;
+  voiceUploadsPerMinute?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-settings_select".
+ */
+export interface WorkflowSettingsSelect<T extends boolean = true> {
+  enabledEvents?: T;
+  emailEnabled?: T;
+  escalationEnabled?: T;
+  escalationHours?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-settings_select".
+ */
+export interface CustomerSettingsSelect<T extends boolean = true> {
+  enabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

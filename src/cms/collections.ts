@@ -1,3 +1,4 @@
+import {businessLock,inquiryWorkflowHook} from '../server/business/hooks';
 import {housekeepingApplication,housekeepingVerification,homeFulfilment,homeSharingLog,guardHomeWorkflow} from "./housekeeping-fields";
 import { catalogLanguages } from "../lib/catalog-options";
 import {
@@ -215,7 +216,7 @@ export const Staff: CollectionConfig = {
       if (!isActiveStaff(user)) throw new Forbidden();
       return user;
     }],
-    beforeChange: [guardStaffChange],
+    beforeChange: [businessLock,guardStaffChange],
     afterChange: [audit],
   },
 };
@@ -306,7 +307,7 @@ export const Inquiries: CollectionConfig = {
       maxLength: 10000,
     },
   ],
-  hooks: { beforeChange: [guardBusinessAssignment,guardHomeWorkflow], afterChange: [audit] },
+  hooks: { beforeChange: [businessLock,guardBusinessAssignment,guardHomeWorkflow], afterChange: [audit,inquiryWorkflowHook] },
 };
 export const Providers: CollectionConfig = {
   slug: "providers",
@@ -374,11 +375,11 @@ export const Providers: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      guardBusinessAssignment,guardHomeWorkflow,
       async ({ req, data }) => {
         await catalogLock(req);
         return data;
       },
+      businessLock,guardBusinessAssignment,guardHomeWorkflow,
     ],
     beforeValidate: [
       ({ data, originalDoc }) => {

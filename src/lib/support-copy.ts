@@ -1,4 +1,5 @@
 const rows:Record<string,string[]>={
+reviewTranscript:['核对转写并填入消息框','Review transcript in message box','Revisar transcripción en el mensaje','Vérifier la transcription dans le message','Transkript im Nachrichtenfeld prüfen','Verifica la trascrizione nel messaggio','مراجعة النص في مربع الرسالة'],
 received:['待受理','Received','Recibido','Reçu','Eingegangen','Ricevuto','تم الاستلام'],
 contacting:['联系客户','Contacting customer','Contactando al cliente','Contact client','Kundenkontakt','Contatto cliente','التواصل مع العميل'],
 confirming:['核实资源中','Checking resources','Verificando recursos','Vérification des ressources','Ressourcenprüfung','Verifica risorse','التحقق من الموارد'],
