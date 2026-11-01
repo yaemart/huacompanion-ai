@@ -1,3 +1,5 @@
+import { parseSiteLocales } from "@/lib/site-locales";
+
 export function GET() {
   return new Response(
     `# Hua Companion / 华伴
@@ -11,7 +13,8 @@ Public information about visiting China. All arrangements are coordinated throug
 - Exhibitions: /api/public/exhibitions/docs
 - Sitemap: /sitemap.xml
 
-Supported locale codes: zh, en, es, fr, de, it, ar. Public APIs are read-only and return published information only. Use returned inquiryPath for enquiries. A submission \
+Supported locale codes: ${parseSiteLocales(process.env.SITE_LOCALES).join(", ")}. \
+Public APIs are read-only and return published information only. Use returned inquiryPath for enquiries. A submission \
 is not a confirmed booking. Respect currentStatus, sources and verification dates; unknown fields are not guarantees. No authorization to access private staff, customers, \
 contacts or internal records.
 `,

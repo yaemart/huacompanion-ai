@@ -2,7 +2,7 @@ import { isLocale, type Locale } from "./locales.ts";
 
 /** Public language policy; editorial tools retain every supported locale. */
 export function parseSiteLocales(value: string | undefined): Locale[] {
-  if (value === undefined) return ["zh", "en"];
+  if (value === undefined) return ["en", "zh"];
   const configured = value.split(",").map((locale) => locale.trim());
   if (
     configured.some((locale) => !isLocale(locale)) ||
