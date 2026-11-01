@@ -27,6 +27,8 @@ CSV 支持北京时间日期（首尾日均包含）、状态、类别。查询�
 
 最终 `npm run check` 通过（lint 0 error、474 个遗留 warning，Prettier 与 290 个源码／脚本／测试文件行长检查通过，typecheck 通过，132/132 单元测试通过）；`npm run build` 生产构建通过。统计 HTTP 另验证实际浏览器同源 Cookie 可打开中文概览、页面始终 noindex；保留 Payload 的 Sec-Fetch-Site／Origin CSRF 校验。
 
+生成器 SQL 模板的制表符和行尾空白另作小提交清理；check（132/132 单元测试）、空库迁移及 git diff --check 重新通过，SQL 结构不变。
+
 本任务不需要购买或提供账户。Task 3–5 和真实托管环境验收继续执行。
 
 ## 2026-11-01 收敛与试运行准备：任务 1
