@@ -2,6 +2,8 @@
 
 核对日期：2026-11-01，以下美元月费为预算估算，不是报价；未开通任何账户、订阅、域名或外部接入。两种方案都使用同一个 Docker 镜像，运行一个网站与两个常驻任务。试运行先中英、noindex、关闭模型／客户中心／语音／通话，完成账户和验收后再开放表单。
 
+本轮为[流量入口任务书](traffic-entry-task.md)的停止点 A 提供选择，尚待确认。推荐先选 Render 新加坡区，网站、两个 worker 和数据库均在同一区域私网；欧洲或美洲用户占多数时，可在开通前改选法兰克福或美国区。均为境外托管，地域选择后更换需迁移，参见 [Render 地域说明](https://render.com/docs/regions)。备选也须选择境外应用与数据库地域，不在中国大陆部署。统计另见[方案比较](analytics-options.md)。
+
 ## 推荐：Render Pro + Render 托管 PostgreSQL
 
 选 Pro 工作区用于多人协作；网站起步 `1c-2g`（1 CPU／2GB），两个 background worker 各 `0.5c-512mb`。三个服务使用同一已测试的 Git 提交／镜像，命令分别为 `npm run start:host`、`npm run support:worker`、`npm run workflow:worker`。同区数据库用私网连接；先在维护窗口运行一次迁移，再发布三个服务，失败停止发布，不让三个进程同时迁移。付费 worker 是常驻服务，不把轮询任务改成临时函数。平台计划和规格见[官方计算计划](https://render.com/docs/compute-plans)。

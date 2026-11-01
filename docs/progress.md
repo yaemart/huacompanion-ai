@@ -1,5 +1,23 @@
 # 实施记录
 
+## 2026-11-01 流量入口：阶段 0 核对、0.2 补齐与停止点 A
+
+最新[用户任务书](traffic-entry-task.md)替代此前两份说明；旧章节保留为历史验证证据。范围到停止点 A，不开始阶段 1。已有基础在草稿 [PR #2](https://github.com/yaemart/huacompanion-ai/pull/2)，未合并；本轮用独立小 PR 补齐 0.2，暂基于独立 CI 补齐 PR #3 的分支，基础合并后须改指 main 并重验，不自动合并。
+
+- **0.1 复用**：独立仅格式化提交 d24d7b3 已存在，前后测试及 AST 验证见本文件任务 1，不重复格式化。Prettier 100、ESLint/typescript-eslint、check 和 push/PR CI 已有。该要求在旧 PR 中实现；不冒称已追溯拆成三个新 PR。
+- **0.2 补齐**：SITE_LOCALES 缺省由 zh,en 改为 en,zh，根路径仍进入 /en；更新配置示例、清单及交接。llms.txt 原来固定宣传七语言，现按实际公开配置列出。七语后台/代码保留，高级功能开关及权限未改。本轮修改文件无新增或保留 any，没有新增依赖、外部服务或迁移。
+- **0.3 复核**：在 Node24.22.1 执行 npm audit fix --ignore-scripts，无 --force，结果 up to date，package/lock 均无变更。全树仍 23 项（6 low、17 moderate），omit=dev 仍 11 项（6 low、5 moderate），无 high/critical；**并非全部开发依赖**。运行时 deepmerge、生产树迁移工具 esbuild、开发 lint minimatch 的原因见既有任务 3 / trial-deployment.md。不兼容强制降级未执行。dependencies 无 node，engines/.nvmrc 已有。
+
+实际验证：默认顺序单元测试先失败（旧 zh,en）再通过（3/3）；HTTP 新断言先捕获 llms 的旧七语宣传，再通过。完整 npm run check 退出 0：lint 0 error / 474 个既有 warning，Prettier 通过，313 个源码/脚本/测试文件无超过200字符行、无例外，typecheck 通过，146/146 单元通过。test:trial:http 验证根路径307到/en、两语选项顺序、llms、两页导航无客户/客服入口、全部客服功能关闭及两 API 503。独立只读复核未发现重要问题；阶段0.1提交97404cc的push/PR两次CI已实际成功（41284413080、41284433409）。本轮0.2的云端结果以新head单独核对。源码既有 any 债务仍为 299/39 文件，原因逐项在下方任务 1 清单；本轮没有扩大清理范围。没有修改数据库、客户权限或报价规则。另跑 check-locales-http.mjs 通过：12个页面、10个启用语言API检查、其余语言拒绝及sitemap/hreflang隐藏。
+
+实际浏览器从根路径进入英文首页，仅 English/中文两项；保存了桌面1440×900及手机390×844截图。页面显示本机测试横幅及内容待准备提示，不冒充已发布内容。临时验收标签已关闭并恢复默认视口。
+
+![桌面英文首页](screenshots/traffic-entry-phase0/desktop-en.jpg)
+
+![手机英文首页](screenshots/traffic-entry-phase0/mobile-en.jpg)
+
+[托管比较](hosting-options.md)复用已核实方案并明确境外地域；新增[统计比较](analytics-options.md)，指出 Umami 默认匿名会话标识、Cloudflare 不支持自定义事件，以及无个人标识无法精确去重有效人数。推荐供确认：Render + Cloudflare 访问性能统计 + 阶段4站内每日业务事件汇总，指标以有效行为次数展示。**这只是提案，用户尚未确认；当前已停止在 A，没有接入统计代码、开通账户、购买或部署。**用户随后明确选择先整理阶段1完整任务书和实施顺序，已交付[阶段1开发计划](traffic-entry-phase1-plan.md)：拆分数据/审核/纯函数/SSR/浏览器查询/横幅/提醒/SEO/真实部署及B验收，含每个PR预计行数、权限与日期边界、A/B门禁。仅计划，没有阶段1业务实现。下一步先由用户审阅计划与A选择，确认后再开始1.1。
+
 ## 2026-11-01 流量入口 0.1：覆盖所有 PR 的检查触发
 
 最新用户分阶段任务书要求每次 push 和 PR 检查。既有 CI 的 pull_request 仅针对 main；本次去掉 base 分支过滤，使有依赖的阶段小 PR 也触发同一门禁，push 和手动入口保留。只改 CI 配置，不改业务、权限、依赖或数据。本步独立 PR，依赖尚未合并的基础 PR #2，不自动合并。

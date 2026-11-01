@@ -15,7 +15,7 @@
 
 ## 账户到位后的执行顺序
 
-1. 在独立试运行项目中创建已批准的规格和数据库；保持 `APP_ENV=trial`、`SITE_LOCALES=zh,en`、`SEARCH_ENGINE_INDEXING=false`、`INTAKE_ENABLED=false`，模型／客户／语音／通话／AI 报价和外发邮件关闭。
+1. 在独立试运行项目中创建已批准的规格和数据库；保持 `APP_ENV=trial`、`SITE_LOCALES=en,zh`、`SEARCH_ENGINE_INDEXING=false`、`INTAKE_ENABLED=false`，模型／客户／语音／通话／AI 报价和外发邮件关闭。
 2. 构建同一验证提交的镜像，备份后执行迁移，使用维护终端运行 `bootstrap:admin`（默认 dry-run，明确 `--apply`），再执行 `trial:configure -- --apply` 收敛已有设置。三个进程分别监管，网站图片盘保持持久化。
 3. 配置试运行子域名与 HTTPS、真实隐私版本及可信网关，验证直接提交／伪造头被拒绝和跨客户端限流。不购买新网关能力，遇到必要费用先报你决定。
 4. 在你的授权下，配置 Resend 发件域名和邮件开关，**仅向你指定邮箱实际发送一封通知**，记录发件任务 ID、供应商接收／投递事件和收件确认；接口返回接受不等于到达收件箱。完成后按试运行决定保留或关闭外发。

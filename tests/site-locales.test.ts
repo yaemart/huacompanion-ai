@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { parseSiteLocales, publicFeatures } from "../src/lib/site-locales.ts";
 import { locales, isLocale } from "../src/lib/locales.ts";
 
-test("public locales default to Chinese and English while retaining seven-language support", () => {
-  assert.deepEqual(parseSiteLocales(undefined), ["zh", "en"]);
+test("public locales default to English then Chinese while retaining seven-language support", () => {
+  assert.deepEqual(parseSiteLocales(undefined), ["en", "zh"]);
   assert.equal(locales.length, 7);
   assert.equal(isLocale("ar"), true);
   assert.deepEqual(parseSiteLocales("zh,en,es,fr,de,it,ar"), locales);
