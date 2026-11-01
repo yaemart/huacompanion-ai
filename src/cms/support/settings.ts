@@ -27,7 +27,7 @@ export const supportSettings: GlobalConfig = {
       name,
       label,
       type: "checkbox" as const,
-      defaultValue: name === "textChat",
+      defaultValue: false,
       admin: { description: "仅在对应服务已配置、额度可用时生效；开启不会自动配置外部服务。" },
     })),
     ...operationsSettingsFields,

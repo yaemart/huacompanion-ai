@@ -1,3 +1,4 @@
+import { isSiteLocale, getSiteLocales } from "@/server/site-config";
 import { LifestylePage } from "@/components/lifestyle/LifestylePage";
 import { isLife } from "@/lib/lifestyle";
 import { lifeText } from "@/lib/lifestyle-copy";
@@ -6,7 +7,7 @@ import { ExhibitionPage } from "@/components/exhibitions/ExhibitionPage";
 import { catalogCities } from "@/lib/catalog-options";
 import { translatedPaths } from "@/lib/translated-paths";
 import type { ContentBody } from "@/lib/content-model";
-import { isLocale, locales } from "@/lib/locales";
+import { isLocale } from "@/lib/locales";
 import { coreText } from "@/lib/core-copy";
 import { CatalogPage } from "@/components/catalog/CatalogPage";
 import { resolveCatalogSource } from "@/server/catalog/source";
@@ -26,7 +27,7 @@ const content = cache(async (locale: string) =>
 );
 async function languagePaths(detail?: ContentBody) {
   if (!detail) return undefined;
-  const all = (await Promise.all(locales.map((locale) => content(locale)))).flat();
+  const all = (await Promise.all(getSiteLocales().map((locale) => content(locale)))).flat();
   return translatedPaths(detail, all);
 }
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ type Props = {
 };
 export async function generateMetadata({ params }: Props) {
   const { locale, slug = [] } = await params;
-  if (!isLocale(locale)) notFound();
+  if (!isLocale(locale) || !isSiteLocale(locale)) notFound();
   const l = locale;
   const docs = await content(l);
   const catalogKind =
@@ -135,7 +136,7 @@ export async function generateMetadata({ params }: Props) {
 }
 export default async function Page({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;
-  if (!isLocale(locale)) notFound();
+  if (!isLocale(locale) || !isSiteLocale(locale)) notFound();
   const docs = await content(locale);
   if (slug[0] === "life") {
     if (slug.length !== 1 && (slug.length !== 3 || !isLife(slug[1]))) notFound();

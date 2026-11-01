@@ -1,3 +1,4 @@
+import { isSiteLocale } from "@/server/site-config";
 import { homeServices } from "@/lib/housekeeping";
 import { isLocale } from "@/lib/locales";
 import { getPayload } from "payload";
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
   };
   if (
     !isLocale(locale) ||
+    !isSiteLocale(locale) ||
     (q.has("homeService") &&
       q.get("homeService") !== "" &&
       !(homeServices as readonly string[]).includes(q.get("homeService")!)) ||

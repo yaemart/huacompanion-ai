@@ -47,3 +47,7 @@ CI 当前状态及链接：
 ## 收敛任务 3 交接补充（2026-11-01）
 
 按客户端限流、honeypot、技术计数迁移、Node 运行时移出依赖、稳定 dev 启动和依赖审计已实现。开发服务现通过 npm run dev 启动（预加载器关闭 Payload HMR），CMS 配置修改后重启。新增 test:intake 和 test:intake:http，DB 测试必须串行。真实网关防绕过与云环境容量未验收，剩余依赖告警不是纯开发依赖；详见 trial-deployment.md。后续继续任务 4、5，不开放真实收集、不启用高级功能、不合并或正式发布。
+
+## 收敛任务 4 交接补充（2026-11-01）
+
+公网语言默认 SITE_LOCALES=zh,en，其余代码和后台七语保留。高级功能开关本机已明确关闭，Header隐藏入口，客户／客服API关闭；后续集成测试自行开启并 finally 恢复。trial:configure默认预览，--apply会关闭高级设置并审计，非启动钩子。新增test:trial及test:trial:http，inventory列出全部功能状态。迁移只改数据库默认，旧库需要显式CLI收敛。当前仍未接入真实邮件／托管账户，继续Task5。

@@ -1,3 +1,4 @@
+import { isSiteLocale } from "@/server/site-config";
 import { isLocale } from "@/lib/locales";
 import { isCatalog, catalogPath } from "@/lib/catalog";
 import { getPayload } from "payload";
@@ -7,8 +8,11 @@ import { contentSections, sectionFor } from "@/lib/content-sections";
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
   const locale = q.get("locale") || "en";
-  if (!isLocale(locale))
-    return Response.json({ error: "locale must be zh, en, es, fr, de, it or ar" }, { status: 400 });
+  if (!isLocale(locale) || !isSiteLocale(locale))
+    return Response.json(
+      { error: "locale must be an active SITE_LOCALES language" },
+      { status: 400 },
+    );
   const section = q.get("section");
   const sectionEntry = contentSections.find((s) => s.key === section);
   if (section && !sectionEntry) return Response.json({ error: "Unknown section" }, { status: 400 });

@@ -1,3 +1,4 @@
+import { isSiteLocale } from "@/server/site-config";
 import { isLocale } from "@/lib/locales";
 import { notFound } from "next/navigation";
 export default async function LocaleLayout({
@@ -8,6 +9,6 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  if (!isLocale(locale)) notFound();
+  if (!isLocale(locale) || !isSiteLocale(locale)) notFound();
   return children;
 }

@@ -1,3 +1,4 @@
+import { getSiteLocales } from "@/server/site-config";
 export async function GET() {
   return Response.json(
     {
@@ -8,7 +9,7 @@ export async function GET() {
       description:
         "Read-only published exhibition snapshots. Drafts and internal records are never returned. Exact locale only; no language fallback.",
       parameters: {
-        locale: "zh|en|es|fr|de|it|ar (default en)",
+        locale: `${getSiteLocales().join("|")} (default en)`,
         city: "Catalog city code",
         industry: "hardware|electrical|machinery|electronics|building|consumer|other",
         month: "YYYY-MM; includes events overlapping this month",

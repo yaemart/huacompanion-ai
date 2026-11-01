@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { nav, navPaths } from "@/lib/content";
 import { switchLocale, type Locale } from "@/lib/routes";
-import { locales, localeNames, isLocale } from "@/lib/locales";
+import { localeNames, isLocale } from "@/lib/locales";
 import { coreText } from "@/lib/core-copy";
+import { useSiteConfig } from "./SiteContext";
 export function Header({
   locale,
   languagePaths,
@@ -15,6 +16,7 @@ export function Header({
   languagePaths?: Partial<Record<Locale, string | null>>;
 }) {
   const path = usePathname();
+  const { activeLocales, features } = useSiteConfig();
   const c = (en: string, zh?: string) => coreText(locale, en, zh);
   const [open, setOpen] = useState(false);
   const [languageNotice, setLanguageNotice] = useState(false);
@@ -74,20 +76,24 @@ export function Header({
           ))}
         </nav>
         <div className="header-actions">
-          <Link href={`/${locale}/account`}>
-            {
+          {features.customerCenter && (
+            <Link href={`/${locale}/account`}>
               {
-                zh: "客户中心",
-                en: "My account",
-                es: "Mi cuenta",
-                fr: "Mon compte",
-                de: "Mein Konto",
-                it: "Il mio account",
-                ar: "حسابي",
-              }[locale]
-            }
-          </Link>
-          <Link href={`/${locale}/support`}>{supportText(locale, "title")}</Link>
+                {
+                  zh: "客户中心",
+                  en: "My account",
+                  es: "Mi cuenta",
+                  fr: "Mon compte",
+                  de: "Mein Konto",
+                  it: "Il mio account",
+                  ar: "حسابي",
+                }[locale]
+              }
+            </Link>
+          )}
+          {features.textChat && (
+            <Link href={`/${locale}/support`}>{supportText(locale, "title")}</Link>
+          )}
           <select
             className="language"
             aria-label={c("Website language")}
@@ -105,7 +111,7 @@ export function Header({
               }
             }}
           >
-            {locales.map((code) => (
+            {activeLocales.map((code) => (
               <option key={code} value={code} lang={code}>
                 {localeNames[code]}
               </option>

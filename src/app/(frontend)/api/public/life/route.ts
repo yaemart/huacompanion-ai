@@ -1,3 +1,4 @@
+import { isSiteLocale } from "@/server/site-config";
 import { isLocale } from "@/lib/locales";
 import { catalogCities } from "@/lib/catalog-options";
 import { getPayload } from "payload";
@@ -37,6 +38,7 @@ export async function GET(req: Request) {
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
   if (
     !isLocale(locale) ||
+    !isSiteLocale(locale) ||
     !Number.isSafeInteger(page) ||
     page < 1 ||
     Object.values(f).some((v) => v.length > 200) ||

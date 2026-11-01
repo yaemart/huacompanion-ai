@@ -1,5 +1,7 @@
 import { isLocale, localeDirection } from "@/lib/locales";
 import "./globals.css";
+import { SiteProvider } from "@/components/SiteContext";
+import { getSiteLocales, getPublicFeatures } from "@/server/site-config";
 import { headers } from "next/headers";
 import { indexingAllowed } from "@/lib/seo";
 export function generateMetadata() {
@@ -12,9 +14,13 @@ export function generateMetadata() {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const value = (await headers()).get("x-hua-locale");
   const locale = isLocale(value) ? value : "zh";
+  const activeLocales = getSiteLocales();
+  const features = await getPublicFeatures();
   return (
     <html lang={locale === "zh" ? "zh-CN" : locale} dir={localeDirection(locale)}>
-      <body>{children}</body>
+      <body>
+        <SiteProvider value={{ activeLocales, features }}>{children}</SiteProvider>
+      </body>
     </html>
   );
 }

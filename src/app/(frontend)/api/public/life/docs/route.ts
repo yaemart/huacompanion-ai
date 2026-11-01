@@ -1,3 +1,4 @@
+import { getSiteLocales } from "@/server/site-config";
 export function GET() {
   return Response.json(
     {
@@ -8,7 +9,7 @@ export function GET() {
       description:
         "Published venues, restaurants and activities. No private contacts or draft content. Exact requested locale; missing translations are not fabricated.",
       parameters: {
-        locale: "zh|en|es|fr|de|it|ar (default en)",
+        locale: `${getSiteLocales().join("|")} (default en)`,
         kind: "venue|activity",
         category: "dining|nightlife|music|social|culture|sports|family",
         city: "shanghai|beijing|guangzhou|shenzhen|chongqing|hangzhou|wuhan|nanjing",

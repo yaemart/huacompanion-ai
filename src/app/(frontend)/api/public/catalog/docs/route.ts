@@ -1,4 +1,4 @@
-import { locales } from "@/lib/locales";
+import { getSiteLocales } from "@/server/site-config";
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { serviceSlugs } from "@/lib/routes";
 export async function GET() {
@@ -13,7 +13,7 @@ export async function GET() {
         sitemap: "/sitemap.xml",
       },
       query: {
-        locale: { values: locales, default: "en" },
+        locale: { values: getSiteLocales(), default: "en" },
         kind: { values: ["provider-profile", "service-project"] },
         key: "Stable public contentKey; combines with kind and locale for a single record",
         category: { values: serviceSlugs },

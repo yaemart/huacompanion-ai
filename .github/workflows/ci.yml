@@ -93,3 +93,4 @@ jobs:
           npm run test:support
           npm run test:reporting
           npm run test:intake
+          npm run test:trial

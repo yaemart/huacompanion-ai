@@ -74,6 +74,12 @@ try {
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);
+    const textChatDefault = await pool.query(
+      "SELECT column_default FROM information_schema.columns " +
+        "WHERE table_schema='public' AND table_name='support_settings' AND column_name='text_chat'",
+    );
+    if (textChatDefault.rows[0]?.column_default !== "false")
+      throw Error("Trial text chat must default to disabled");
     const clientKey = await pool.query(
       "SELECT column_name FROM information_schema.columns " +
         "WHERE table_schema='public' AND table_name='intake_limits' AND column_name='client_key'",

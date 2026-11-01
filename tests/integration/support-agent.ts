@@ -15,7 +15,10 @@ if (process.env.APP_ENV !== "local") throw Error("Local only");
 const p = await getPayload({ config });
 let sourceDraftID: number | undefined;
 const oldSettings = await p.findGlobal({ slug: "support-settings" });
-await p.updateGlobal({ slug: "support-settings", data: { aiReception: true, translation: true } });
+await p.updateGlobal({
+  slug: "support-settings",
+  data: { textChat: true, aiReception: true, translation: true },
+});
 try {
   const admin = (
     await p.find({
@@ -279,7 +282,11 @@ try {
     });
   await p.updateGlobal({
     slug: "support-settings",
-    data: { aiReception: oldSettings.aiReception, translation: oldSettings.translation },
+    data: {
+      textChat: oldSettings.textChat === true,
+      aiReception: oldSettings.aiReception,
+      translation: oldSettings.translation,
+    },
   });
   await p.destroy();
 }

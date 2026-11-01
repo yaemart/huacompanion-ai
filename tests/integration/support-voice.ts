@@ -23,6 +23,7 @@ try {
   await p.updateGlobal({
     slug: "support-settings",
     data: {
+      textChat: true,
       voiceMessages: true,
       transcription: true,
       speechPlayback: true,
@@ -181,6 +182,7 @@ try {
   await p.updateGlobal({
     slug: "support-settings",
     data: {
+      textChat: settings.textChat === true,
       voiceMessages: settings.voiceMessages,
       transcription: settings.transcription,
       speechPlayback: settings.speechPlayback,

@@ -12,7 +12,9 @@ import {
 if (process.env.APP_ENV !== "local") throw Error("Local only");
 const p = await getPayload({ config });
 let operatorID: number | undefined;
+const oldSettings = await p.findGlobal({ slug: "support-settings" });
 try {
+  await p.updateGlobal({ slug: "support-settings", data: { textChat: true } });
   const admin = (
     await p.find({
       collection: "staff",
@@ -127,6 +129,10 @@ try {
     "PASS support visitor isolation, note privacy, roles, dedupe, inquiry confirmation and takeover",
   );
 } finally {
+  await p.updateGlobal({
+    slug: "support-settings",
+    data: { textChat: oldSettings.textChat === true },
+  });
   if (operatorID) {
     const admin = (
       await p.find({

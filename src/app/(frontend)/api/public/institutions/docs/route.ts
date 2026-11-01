@@ -1,3 +1,4 @@
+import { getSiteLocales } from "@/server/site-config";
 export async function GET() {
   return Response.json(
     {
@@ -8,7 +9,7 @@ export async function GET() {
       description:
         "Read-only published institution snapshots. Drafts, private provider links and internal records are never returned. Exact locale only; no language fallback.",
       parameters: {
-        locale: "zh|en|es|fr|de|it|ar (default en); content translation language",
+        locale: `${getSiteLocales().join("|")} (default en); content translation language`,
         city: "Catalog city code",
         type: "medical|rehabilitation|wellness",
         language:

@@ -49,9 +49,9 @@
 
 ### Task 4: 试运行清单和配置
 
-- [ ] inventory 根据证据区分已验证/未验证/未实现，列外部依赖与开关。
-- [ ] SITE_LOCALES 中英默认、切换器/sitemap/服务端路由一致，高级能力保持关闭。
-- [ ] 默认值与语言配置测试、check、progress，提交任务 4。
+- [x] inventory 根据证据区分已验证/未验证/未实现，列外部依赖与开关。
+- [x] SITE_LOCALES 中英默认、切换器/sitemap/服务端路由一致，高级能力保持关闭。
+- [x] 默认值与语言配置测试、check、progress，提交任务 4。
 
 ### Task 5: 部署准备
 

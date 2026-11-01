@@ -17,7 +17,7 @@ export function featureState(
 ) {
   const implemented = developed.includes(key);
   const connected = key === "textChat" || configured[key] === true;
-  const enabled = settings[key] === true || (key === "textChat" && settings[key] === undefined);
+  const enabled = settings[key] === true;
   return {
     implemented,
     configured: connected,
