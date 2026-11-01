@@ -107,7 +107,9 @@ export function buildStarterInstitutions(): ContentBody[] {
           foreignAcceptance: "pending",
           unresolved: zh
             ? "需核验机构主体与资质、具体院区地址、外籍接待条件、实际服务语言、预约和收费要求；康养入住另需确认短住、年龄及陪同条件。"
-            : "Verify legal identity and qualifications, exact location, foreign visitor eligibility, actual service languages, appointment and fee requirements. Wellness stays also need duration, age and companion conditions checked.",
+            : "Verify legal identity and qualifications, exact location, foreign visitor eligibility, " +
+              "actual service languages, appointment and fee requirements. Wellness stays also need " +
+              "duration, age and companion conditions checked.",
           qualification: "",
           languages: [],
           projectKeys: [],

@@ -5,3 +5,5 @@ node_modules
 backups
 package-lock.json
 next-env.d.ts
+payload-types.ts
+src/app/(payload)/admin/importMap.js

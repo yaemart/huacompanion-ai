@@ -125,18 +125,30 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "support_settings" ADD COLUMN "voice_max_seconds" numeric DEFAULT 60;
   ALTER TABLE "support_settings" ADD COLUMN "voice_max_bytes" numeric DEFAULT 6000000;
   ALTER TABLE "support_settings" ADD COLUMN "voice_uploads_per_minute" numeric DEFAULT 4;
-  ALTER TABLE "support_voice_audio" ADD CONSTRAINT "support_voice_audio_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_message_id_support_messages_id_fk" FOREIGN KEY ("message_id") REFERENCES "public"."support_messages"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_audio_id_support_voice_audio_id_fk" FOREIGN KEY ("audio_id") REFERENCES "public"."support_voice_audio"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_calls" ADD CONSTRAINT "support_calls_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_calls" ADD CONSTRAINT "support_calls_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_call_presence" ADD CONSTRAINT "support_call_presence_staff_id_staff_id_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_feedback" ADD CONSTRAINT "support_feedback_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_reviews" ADD CONSTRAINT "support_reviews_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_reviews" ADD CONSTRAINT "support_reviews_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_retention_audits" ADD CONSTRAINT "support_retention_audits_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_voice_audio" ADD CONSTRAINT "support_voice_audio_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_message_id_support_messages_id_fk" FOREIGN KEY ("message_id") REFERENCES \
+"public"."support_messages"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_audio_id_support_voice_audio_id_fk" FOREIGN KEY ("audio_id") REFERENCES \
+"public"."support_voice_audio"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_voice_jobs" ADD CONSTRAINT "support_voice_jobs_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null \
+ON UPDATE no action;
+  ALTER TABLE "support_calls" ADD CONSTRAINT "support_calls_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_calls" ADD CONSTRAINT "support_calls_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE \
+no action;
+  ALTER TABLE "support_call_presence" ADD CONSTRAINT "support_call_presence_staff_id_staff_id_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "support_feedback" ADD CONSTRAINT "support_feedback_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_reviews" ADD CONSTRAINT "support_reviews_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_reviews" ADD CONSTRAINT "support_reviews_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "support_retention_audits" ADD CONSTRAINT "support_retention_audits_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON \
+DELETE set null ON UPDATE no action;
   CREATE INDEX "support_voice_audio_conversation_idx" ON "support_voice_audio" USING btree ("conversation_id");
   CREATE UNIQUE INDEX "support_voice_audio_dedupe_idx" ON "support_voice_audio" USING btree ("dedupe");
   CREATE INDEX "support_voice_audio_updated_at_idx" ON "support_voice_audio" USING btree ("updated_at");
@@ -176,14 +188,22 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE UNIQUE INDEX "support_retention_audits_token_idx" ON "support_retention_audits" USING btree ("token");
   CREATE INDEX "support_retention_audits_updated_at_idx" ON "support_retention_audits" USING btree ("updated_at");
   CREATE INDEX "support_retention_audits_created_at_idx" ON "support_retention_audits" USING btree ("created_at");
-  ALTER TABLE "support_messages" ADD CONSTRAINT "support_messages_voice_audio_id_support_voice_audio_id_fk" FOREIGN KEY ("voice_audio_id") REFERENCES "public"."support_voice_audio"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_voice_audio_fk" FOREIGN KEY ("support_voice_audio_id") REFERENCES "public"."support_voice_audio"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_voice_jobs_fk" FOREIGN KEY ("support_voice_jobs_id") REFERENCES "public"."support_voice_jobs"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_calls_fk" FOREIGN KEY ("support_calls_id") REFERENCES "public"."support_calls"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_call_presence_fk" FOREIGN KEY ("support_call_presence_id") REFERENCES "public"."support_call_presence"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_feedback_fk" FOREIGN KEY ("support_feedback_id") REFERENCES "public"."support_feedback"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_reviews_fk" FOREIGN KEY ("support_reviews_id") REFERENCES "public"."support_reviews"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_retention_audits_fk" FOREIGN KEY ("support_retention_audits_id") REFERENCES "public"."support_retention_audits"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "support_messages" ADD CONSTRAINT "support_messages_voice_audio_id_support_voice_audio_id_fk" FOREIGN KEY ("voice_audio_id") REFERENCES \
+"public"."support_voice_audio"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_voice_audio_fk" FOREIGN KEY ("support_voice_audio_id") REFERENCES \
+"public"."support_voice_audio"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_voice_jobs_fk" FOREIGN KEY ("support_voice_jobs_id") REFERENCES \
+"public"."support_voice_jobs"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_calls_fk" FOREIGN KEY ("support_calls_id") REFERENCES \
+"public"."support_calls"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_call_presence_fk" FOREIGN KEY ("support_call_presence_id") REFERENCES \
+"public"."support_call_presence"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_feedback_fk" FOREIGN KEY ("support_feedback_id") REFERENCES \
+"public"."support_feedback"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_reviews_fk" FOREIGN KEY ("support_reviews_id") REFERENCES \
+"public"."support_reviews"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_retention_audits_fk" FOREIGN KEY ("support_retention_audits_id") \
+REFERENCES "public"."support_retention_audits"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "support_messages_voice_audio_idx" ON "support_messages" USING btree ("voice_audio_id");
   CREATE INDEX "payload_locked_documents_rels_support_voice_audio_id_idx" ON "payload_locked_documents_rels" USING btree ("support_voice_audio_id");
   CREATE INDEX "payload_locked_documents_rels_support_voice_jobs_id_idx" ON "payload_locked_documents_rels" USING btree ("support_voice_jobs_id");

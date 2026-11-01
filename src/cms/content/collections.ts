@@ -5,12 +5,12 @@ import { contentScope, isAdmin } from "../access";
 import { mediaScope } from "./media-access";
 import { contentSections, sectionFor } from "../../lib/content-sections";
 const closed = () => false;
-const access = {
+const access: NonNullable<CollectionConfig["access"]> = {
   create: closed,
   update: closed,
   delete: closed,
-  read: ({ req }: any) => contentScope(req.user),
-  readVersions: ({ req }: any) => {
+  read: ({ req }) => contentScope(req.user),
+  readVersions: ({ req }) => {
     const scope = contentScope(req.user);
     return typeof scope === "boolean" ? scope : { "version.kind": scope.kind };
   },

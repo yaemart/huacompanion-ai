@@ -56,7 +56,26 @@ export function InstitutionPage({
       )
     : [];
   function enquiry(key: string, project?: string) {
-    return `/${locale}/request?${new URLSearchParams({ institution: key, ...(project ? { project, projectRevision: String(localItems.find((d) => d.kind === "service-project" && d.contentKey === project)?.publicationRevision || 0), ...(localItems.find((d) => d.kind === "service-project" && d.contentKey === project)?.catalog?.categories.includes("housekeeping") ? { service: "housekeeping" } : {}) } : {}) })}`;
+    return (
+      `/${locale}/request?` +
+      new URLSearchParams({
+        institution: key,
+        ...(project
+          ? {
+              project,
+              projectRevision: String(
+                localItems.find((d) => d.kind === "service-project" && d.contentKey === project)
+                  ?.publicationRevision || 0,
+              ),
+              ...(localItems
+                .find((d) => d.kind === "service-project" && d.contentKey === project)
+                ?.catalog?.categories.includes("housekeeping")
+                ? { service: "housekeeping" }
+                : {}),
+            }
+          : {}),
+      })
+    );
   }
   function pageHref(value: number) {
     const params = new URLSearchParams();

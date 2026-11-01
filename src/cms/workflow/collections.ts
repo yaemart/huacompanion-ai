@@ -1,13 +1,20 @@
-import type { CollectionConfig, GlobalConfig, Field } from "payload";
+import type { CollectionConfig, GlobalConfig, Field, TextField } from "payload";
 import { isAdmin } from "../access";
 import { workflowEventTypes } from "../../lib/workflow";
-const access = {
-  read: ({ req }: any) => isAdmin(req.user),
+const access: NonNullable<CollectionConfig["access"]> = {
+  read: ({ req }) => isAdmin(req.user),
   create: () => false,
   update: () => false,
   delete: () => false,
 };
-const text = (name: string, extra: any = {}): Field => ({ name, type: "text", ...extra });
+const text = (
+  name: string,
+  extra: Pick<TextField, "required" | "unique" | "index"> = {},
+): Field => ({
+  name,
+  type: "text",
+  ...extra,
+});
 const rel = (name: string, relationTo: string): Field =>
   ({ name, type: "relationship", relationTo }) as Field;
 const base = { access, admin: { group: "通知与待办" } };

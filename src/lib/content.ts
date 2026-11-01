@@ -60,7 +60,9 @@ export const services: Service[] = [
       ),
     ],
     boundary: p(
-      "We coordinate practical arrangements. Medical institutions are responsible for diagnosis and treatment. We do not recommend treatment or promise outcomes or acceptance. Do not submit medical records or detailed medical history here.",
+      "We coordinate practical arrangements. Medical institutions are responsible for " +
+        "diagnosis and treatment. We do not recommend treatment or promise outcomes or " +
+        "acceptance. Do not submit medical records or detailed medical history here.",
       "华伴提供协调服务，诊断与治疗由医疗机构负责。我们不推荐治疗方案，不承诺疗效或接诊结果。请勿在本网站提交病历或详细病史。",
     ),
     prepare: p(
@@ -277,12 +279,16 @@ export const guides = [
     sections: [
       p("Keep your itinerary together", "集中整理行程"),
       p(
-        "Write down accommodation addresses in Chinese and English, transport details and the contact information of each confirmed provider. Keep a copy accessible without a network connection.",
+        "Write down accommodation addresses in Chinese and English, transport details and the " +
+          "contact information of each confirmed provider. Keep a copy accessible without a " +
+          "network connection.",
         "整理住宿地址的中英文版本、交通信息及已确认服务商的联系方式，保留可离线查看的副本。",
       ),
       p("Confirm with the official source", "向官方来源确认"),
       p(
-        "Check entry requirements, carrier rules and service eligibility directly with the appropriate authorities and providers for your nationality and dates. This checklist does not determine visa or entry eligibility.",
+        "Check entry requirements, carrier rules and service eligibility directly with the " +
+          "appropriate authorities and providers for your nationality and dates. This checklist " +
+          "does not determine visa or entry eligibility.",
         "根据国籍与行程日期，向有关主管机构及实际服务商核实入境要求、承运规则与使用资格。本清单不判断签证或入境资格。",
       ),
       p("Leave space for changes", "给变化留出余地"),
@@ -309,12 +315,16 @@ export const guides = [
       ),
       p("Confirm access and language", "确认访问与语言"),
       p(
-        "Appointments, exhibition admission and factory access need confirmation from the relevant host. Share interpretation languages, technical vocabulary and confidentiality needs in advance.",
+        "Appointments, exhibition admission and factory access need confirmation from the " +
+          "relevant host. Share interpretation languages, technical vocabulary and " +
+          "confidentiality needs in advance.",
         "预约、展会入场和工厂访问需由相应接待方确认。提前说明翻译语言、专业术语及保密要求。",
       ),
       p("Separate coordination from verification", "区分协调与专业核验"),
       p(
-        "A coordinated visit does not certify a supplier or guarantee quality. If you need a professional audit or inspection, specify it separately and confirm the qualified provider and scope.",
+        "A coordinated visit does not certify a supplier or guarantee quality. If you need a " +
+          "professional audit or inspection, specify it separately and confirm the qualified " +
+          "provider and scope.",
         "协调访问不代表供应商认证或质量保证。如需专业审核或检验，应单独说明并确认具备相应能力的服务商及工作范围。",
       ),
     ],
@@ -331,7 +341,9 @@ export const guides = [
     sections: [
       p("Begin with practical needs", "先说明协调需求"),
       p(
-        "At the initial enquiry, share only city, dates, language and the type of help needed. Do not include detailed medical history, identification numbers or records in a general contact form.",
+        "At the initial enquiry, share only city, dates, language and the type of help needed. " +
+          "Do not include detailed medical history, identification numbers or records in a " +
+          "general contact form.",
         "初步咨询仅说明城市、日期、语言及所需协助类型。不要在普通联系表单中填写详细病史、证件号码或病历内容。",
       ),
       p("Let the institution confirm", "由医疗机构确认"),
@@ -341,7 +353,9 @@ export const guides = [
       ),
       p("Confirm supporting arrangements separately", "分别确认配套安排"),
       p(
-        "Accommodation, transport and interpretation may involve different providers. Ask who delivers each service, who contracts and collects payment, and what the cancellation terms are.",
+        "Accommodation, transport and interpretation may involve different providers. Ask who " +
+          "delivers each service, who contracts and collects payment, and what the cancellation " +
+          "terms are.",
         "住宿、交通与翻译可能由不同服务方提供。逐项确认服务方、签约方、收款方与取消规则。",
       ),
     ],
@@ -411,7 +425,9 @@ export const guides = [
       ),
       p("Use official instructions", "按官方说明操作"),
       p(
-        "Check communication and payment services directly with their official providers. Requirements can vary; confirm what applies to you rather than relying on another traveller’s experience.",
+        "Check communication and payment services directly with their official providers. " +
+          "Requirements can vary; confirm what applies to you rather than relying on another " +
+          "traveller’s experience.",
         "向通信和支付服务的官方提供方核实使用要求。不同情况可能适用不同规则，不宜直接套用他人的经验。",
       ),
       p("Keep control of your accounts", "自己掌握账户"),
@@ -440,7 +456,9 @@ export const faqs = [
   [
     p("Who provides the service and receives payment?", "由谁提供服务、签约和收款？"),
     p(
-      "This is specified for each item in your proposal. We may introduce an independent provider or coordinate a wider arrangement where the necessary operating conditions are met. Fees and responsibilities are explained before confirmation.",
+      "This is specified for each item in your proposal. We may introduce an independent " +
+        "provider or coordinate a wider arrangement where the necessary operating conditions " +
+        "are met. Fees and responsibilities are explained before confirmation.",
       "方案会逐项写明实际服务方、签约方和收款方。可采用合作对接，或在具备相应经营条件后由华伴统筹；费用与责任在确认前说明。",
     ),
   ],
@@ -454,7 +472,9 @@ export const faqs = [
   [
     p("Can my organisation apply to collaborate?", "我的机构可以申请合作吗？"),
     p(
-      "Yes. Submit a capability introduction for review. An application does not establish a partnership, and names or logos are not published without verification and separate permission.",
+      "Yes. Submit a capability introduction for review. An application does not establish a " +
+        "partnership, and names or logos are not published without verification and separate " +
+        "permission.",
       "欢迎提交服务能力介绍。申请需审核，不自动建立合作关系；未经核实及独立授权，不公开机构名称或标志。",
     ),
   ],

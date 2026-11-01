@@ -1,10 +1,13 @@
+import type { SupportMessage, SupportConversation } from "../../payload-types";
 export { supportText } from "./support-copy.ts";
 export function validateMessage(value: unknown) {
   if (typeof value !== "string" || !value.trim() || value.length > 4000)
     throw Error("Message must contain 1–4000 characters");
   return value.trim();
 }
-export function publicMessage(m: any) {
+export function publicMessage<T extends Pick<SupportMessage, "id"> & Partial<SupportMessage>>(
+  m: T,
+) {
   return m.visibility === "public"
     ? {
         id: m.id,
@@ -17,7 +20,9 @@ export function publicMessage(m: any) {
       }
     : null;
 }
-export function publicConversation(c: any) {
+export function publicConversation<
+  T extends Pick<SupportConversation, "id"> & Partial<SupportConversation>,
+>(c: T) {
   return {
     id: c.id,
     locale: c.locale,

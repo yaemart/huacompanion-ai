@@ -1,9 +1,9 @@
-import type { CollectionConfig, Field } from "payload";
+import type { CollectionConfig, Field, CollectionSlug } from "payload";
 import { businessStages, stageLabels } from "../../lib/business";
 const no = () => false;
 const access = { create: no, read: no, update: no, delete: no };
 const text = (name: string, extra: object = {}): Field => ({ name, type: "text", ...extra });
-const relation = (name: string, relationTo: any, extra: object = {}): Field => ({
+const relation = (name: string, relationTo: CollectionSlug, extra: object = {}): Field => ({
   name,
   type: "relationship",
   relationTo,

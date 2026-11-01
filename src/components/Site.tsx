@@ -432,7 +432,9 @@ function ServicePage({ locale, slug }: { locale: Locale; slug?: string }) {
           <h3>{c("What happens next", "接下来如何安排")}</h3>
           <p>
             {c(
-              "We review your request, clarify details and confirm available resources. The proposal names the actual provider, contracting and payment parties, included and excluded items, fees and cancellation terms.",
+              "We review your request, clarify details and confirm available resources. The proposal " +
+                "names the actual provider, contracting and payment parties, included and excluded " +
+                "items, fees and cancellation terms.",
               "我们整理需求、沟通细节并确认资源。方案会写明实际服务方、签约方、收款方、包含与排除事项、费用及取消规则。",
             )}
           </p>
@@ -555,13 +557,17 @@ function About({ locale }: { locale: Locale }) {
           </h2>
           <p>
             {c(
-              "Our founder’s existing business sells Chinese-made hardware and electrical products on Amazon. That experience informs our interest in cross-border communication and business visits, while Hua Companion welcomes a broader range of needs.",
+              "Our founder’s existing business sells Chinese-made hardware and electrical products on " +
+                "Amazon. That experience informs our interest in cross-border communication and " +
+                "business visits, while Hua Companion welcomes a broader range of needs.",
               "创始人现有业务是在亚马逊销售中国制造的五金与电器。这份经历帮助我们理解跨境沟通与商务访问的实际需求，华伴也面向更广泛的来华服务需求。",
             )}
           </p>
           <p>
             {c(
-              "We are at an early stage of developing our service capabilities and provider network. We confirm what can be arranged for each request and explain responsibilities before a commitment is made.",
+              "We are at an early stage of developing our service capabilities and provider network. " +
+                "We confirm what can be arranged for each request and explain responsibilities before a " +
+                "commitment is made.",
               "我们正逐步建设服务能力与合作网络。每项需求均先确认资源与可行安排，在作出承诺前说明责任边界。",
             )}
           </p>
@@ -701,7 +707,10 @@ function GuidePage({ locale, slug }: { locale: Locale; slug?: string }) {
             <h3>{c("Source & applicability", "来源与适用说明")}</h3>
             <p>
               {c(
-                "Source: the Hua Companion project brief and service-scope checklist. This is general process guidance, not a verified statement of current visa, medical or provider policy. Check date-sensitive requirements with the relevant official institution before acting.",
+                "Source: the Hua Companion project brief and service-scope checklist. This is general " +
+                  "process guidance, not a verified statement of current visa, medical or provider " +
+                  "policy. Check date-sensitive requirements with the relevant official institution " +
+                  "before acting.",
                 "来源：华伴建设任务书及服务范围清单。本文为一般流程指引，不是对当前签证、医疗或服务商政策的核实说明；涉及日期的要求请向相关官方机构确认。",
               )}
             </p>
@@ -741,7 +750,11 @@ function Legal({ locale, privacy }: { locale: Locale; privacy: boolean }) {
         <h2>{c("Current preview", "当前预览")}</h2>
         <p>
           {c(
-            "In local testing mode, submissions are saved in a PostgreSQL database on this computer for workflow testing. Only authorised staff can access them. Please use fictional details only. No email or model service receives the submission. The local administrator can remove test records; database backups may retain copies. Company identity and contact channels are not yet verified.",
+            "In local testing mode, submissions are saved in a PostgreSQL database on this computer " +
+              "for workflow testing. Only authorised staff can access them. Please use fictional " +
+              "details only. No email or model service receives the submission. The local " +
+              "administrator can remove test records; database backups may retain copies. Company " +
+              "identity and contact channels are not yet verified.",
             "本地测试模式会将提交内容保存到本机 PostgreSQL 数据库，用于业务流程测试；仅授权员工可访问。请仅使用虚构资料。信息不会发送给邮件或模型服务。管理员可清理测试记录，数据库备份可能保留副本。公司主体和联系方式尚待核实。",
           )}
         </p>
@@ -750,21 +763,28 @@ function Legal({ locale, privacy }: { locale: Locale; privacy: boolean }) {
             <h2>{c("Planned information use", "拟收集信息及用途")}</h2>
             <p>
               {c(
-                "The operational site will collect only the contact and service-request details needed to review enquiries, coordinate follow-up and assess provider applications. Medical records and identification documents will not be accepted through these forms.",
+                "The operational site will collect only the contact and service-request details needed " +
+                  "to review enquiries, coordinate follow-up and assess provider applications. Medical " +
+                  "records and identification documents will not be accepted through these forms.",
                 "正式运营网站拟仅收集审核咨询、协调跟进及评估合作申请所需的联系方式与需求资料。表单不接收病历或证件材料。",
               )}
             </p>
             <h2>{c("Before launch", "上线前补齐")}</h2>
             <p>
               {c(
-                "The final notice must identify the operating entity and privacy contact, data processors and locations, retention periods, deletion and access procedures, and any necessary cross-border arrangements. This preview notice is not a completed production privacy policy.",
+                "The final notice must identify the operating entity and privacy contact, data " +
+                  "processors and locations, retention periods, deletion and access procedures, and any " +
+                  "necessary cross-border arrangements. This preview notice is not a completed production " +
+                  "privacy policy.",
                 "正式隐私告知须补齐运营主体、隐私联系人、数据处理服务商与存放地区、保留期限、查阅删除流程及必要的跨境安排。本预览说明并非已完成的正式隐私政策。",
               )}
             </p>
             <h2>{c("Your control", "您的选择")}</h2>
             <p>
               {c(
-                "Optional fields will remain optional. Any additional sharing with an institution or model service must be explained and limited to what is needed. Passwords and verification codes must never be provided.",
+                "Optional fields will remain optional. Any additional sharing with an institution or " +
+                  "model service must be explained and limited to what is needed. Passwords and " +
+                  "verification codes must never be provided.",
                 "可选字段保持可选。向机构或模型服务进一步传递信息时，应说明用途并限制在必要范围内。请勿提供密码或验证码。",
               )}
             </p>
@@ -780,7 +800,9 @@ function Legal({ locale, privacy }: { locale: Locale; privacy: boolean }) {
             <h2>{c("Quotes and responsibility", "报价与责任")}</h2>
             <p>
               {c(
-                "A confirmed proposal must state providers, contracting and payment parties, fees, inclusions, exclusions and cancellation rules. Hua Companion does not automatically collect payment for every service.",
+                "A confirmed proposal must state providers, contracting and payment parties, fees, " +
+                  "inclusions, exclusions and cancellation rules. Hua Companion does not automatically " +
+                  "collect payment for every service.",
                 "确认方案须说明实际服务方、签约方、收款方、费用、包含及排除事项与取消规则。华伴不默认对所有服务统一收款。",
               )}
             </p>

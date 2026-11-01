@@ -216,7 +216,9 @@ try {
   await json(`/api/public/institutions?locale=en&key=${key}`, 404);
   await html(`/en/institutions/${key}`, 404);
   console.log(
-    "PASS institutions HTTP: escaped public pages, sources/privacy, filters, sitemap, attributed medical prefill, revision, private preview, seven locales/RTL, exact translation identity, pending/paused and withdrawal",
+    "PASS institutions HTTP: escaped public pages, sources/privacy, filters, sitemap, " +
+      "attributed medical prefill, revision, private preview, seven locales/RTL, exact " +
+      "translation identity, pending/paused and withdrawal",
   );
 } finally {
   try {

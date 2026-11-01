@@ -139,7 +139,9 @@ export function buildStarterExhibitions(): ContentBody[] {
             text:
               locale === "zh"
                 ? "华伴可接收采购陪同、翻译及访问协调需求，实际服务范围与档期需另行确认。资料整理不代表主办方合作或入场保证。"
-                : "Hua can review sourcing, interpretation and visit-coordination needs. Confirm scope and availability separately; listing an event does not imply organizer partnership or guaranteed entry.",
+                : "Hua can review sourcing, interpretation and visit-coordination needs. Confirm scope " +
+                  "and availability separately; listing an event does not imply organizer partnership or " +
+                  "guaranteed entry.",
           },
         ],
         sources: [

@@ -37,7 +37,9 @@ const confirm: Record<number, [string, string]> = {
   ],
   3: [
     "华伴仅协调流程与配套服务，不提供诊断、治疗建议或接诊和疗效承诺。紧急医疗需求应联系当地专业急救服务。",
-    "Hua Companion coordinates practical arrangements, not diagnosis or treatment, and does not promise acceptance or outcomes. For urgent medical needs, contact appropriate local emergency services.",
+    "Hua Companion coordinates practical arrangements, not diagnosis or treatment, and does " +
+      "not promise acceptance or outcomes. For urgent medical needs, contact appropriate " +
+      "local emergency services.",
   ],
   4: [
     "车辆、时间、费用、等待和取消条件由实际服务方确认，本文不表示已有可预订资源。",
@@ -45,7 +47,9 @@ const confirm: Record<number, [string, string]> = {
   ],
   5: [
     "入住、租赁、通信和支付要求需分别向实际机构核实，本文不承诺资格、可用性或交易成功。",
-    "Confirm accommodation, rental, connectivity and payment requirements with the relevant providers. This article does not guarantee eligibility, availability or transaction success.",
+    "Confirm accommodation, rental, connectivity and payment requirements with the relevant " +
+      "providers. This article does not guarantee eligibility, availability or transaction " +
+      "success.",
   ],
   6: [
     "开放时间、门票、预约和承接机构需按行程日期核实，本文不是确认行程或报价。",

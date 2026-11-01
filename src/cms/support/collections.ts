@@ -2,11 +2,11 @@ import { supportWorkflowHook } from "../../server/business/hooks";
 import { voiceMessageFields } from "./voice";
 import type { CollectionConfig, Field } from "payload";
 import { inquiryScope, isAdmin } from "../access";
-const privateAccess = {
+const privateAccess: NonNullable<CollectionConfig["access"]> = {
   create: () => false,
   update: () => false,
   delete: () => false,
-  read: ({ req }: any) => isAdmin(req.user),
+  read: ({ req }) => isAdmin(req.user),
 };
 const base = { access: privateAccess, admin: { group: "客户服务" } };
 const text = (name: string, extra: Partial<Field> = {}): Field =>

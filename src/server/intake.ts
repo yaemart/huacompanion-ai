@@ -1,7 +1,7 @@
 import { resolveCatalogSource } from "./catalog/source";
 import { catalogLock } from "./catalog/eligibility";
 import { createHash, randomUUID } from "node:crypto";
-import { getPayload } from "payload";
+import { getPayload, type PayloadRequest } from "payload";
 import config from "@/payload.config";
 import { parseIntake, IntakeValidationError } from "@/lib/intake-validation";
 export class IntakeConflict extends Error {}
@@ -32,21 +32,21 @@ export async function saveIntake(input: unknown, key: string) {
   if (prior) return prior;
   const transactionID = await payload.db.beginTransaction();
   if (!transactionID) throw Error("Transactions required");
-  const req = { transactionID };
+  const req: Partial<PayloadRequest> = { transactionID };
   const reference = `HC-${kind === "request" ? "Q" : "P"}-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${randomUUID().slice(0, 8).toUpperCase()}`;
   try {
     await catalogLock({ ...req, payload });
     const catalogSource = await resolveCatalogSource(payload, locale, parsed.source, req);
     if (kind === "request" && catalogSource) {
       const homes = [
-        (catalogSource.project as any)?.housekeeping,
-        (catalogSource.provider as any)?.housekeeping,
-      ].filter(Boolean);
+        catalogSource.project?.housekeeping,
+        catalogSource.provider?.housekeeping,
+      ].filter((home) => home != null);
       if (
         homes.length &&
         (!Array.isArray(values.categories) ||
           !values.categories.includes("housekeeping") ||
-          homes.some((h) => !h.services.includes(values.homeService)))
+          homes.some((h) => !h.services.some((service) => service === values.homeService)))
       )
         throw new IntakeValidationError({
           homeService: "The selected provider or project does not offer this housekeeping service.",

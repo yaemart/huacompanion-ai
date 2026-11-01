@@ -14,7 +14,9 @@ if (!existsSync(env)) {
   const password = randomBytes(30).toString("hex");
   writeFileSync(
     env,
-    `DATABASE_URL=postgresql://hua:${password}@127.0.0.1:${port}/hua_companion\nPAYLOAD_SECRET=${randomBytes(48).toString("hex")}\nAPP_URL=http://127.0.0.1:3000\nAPP_ENV=local\nNEXT_PUBLIC_FORM_MODE=local\n`,
+    `DATABASE_URL=postgresql://hua:${password}@127.0.0.1:${port}/hua_companion\n` +
+      `PAYLOAD_SECRET=${randomBytes(48).toString("hex")}\n` +
+      "APP_URL=http://127.0.0.1:3000\nAPP_ENV=local\nNEXT_PUBLIC_FORM_MODE=local\n",
     { mode: 0o600, flag: "wx" },
   );
 }

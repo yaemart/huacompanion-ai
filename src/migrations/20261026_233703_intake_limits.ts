@@ -14,7 +14,8 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE UNIQUE INDEX "intake_limits_bucket_idx" ON "intake_limits" USING btree ("bucket");
   CREATE INDEX "intake_limits_updated_at_idx" ON "intake_limits" USING btree ("updated_at");
   CREATE INDEX "intake_limits_created_at_idx" ON "intake_limits" USING btree ("created_at");
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_intake_limits_fk" FOREIGN KEY ("intake_limits_id") REFERENCES "public"."intake_limits"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_intake_limits_fk" FOREIGN KEY ("intake_limits_id") REFERENCES \
+"public"."intake_limits"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "payload_locked_documents_rels_intake_limits_id_idx" ON "payload_locked_documents_rels" USING btree ("intake_limits_id");`);
 }
 

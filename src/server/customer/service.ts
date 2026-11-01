@@ -1,3 +1,23 @@
+import type { Payload, PayloadRequest } from "payload";
+import type { CustomerAccount, CustomerSession } from "../../../payload-types";
+import type { Staff } from "../../cms/access";
+import { transactionSession, type SupportInquiryLink } from "../db-types";
+export type CustomerIdentity = Pick<CustomerAccount, "id"> & {
+  email?: string;
+  customerSessionID?: CustomerSession["id"];
+};
+interface VerificationInput {
+  email?: unknown;
+  locale?: unknown;
+  handle?: unknown;
+  token?: unknown;
+}
+interface CustomerLinkInput {
+  inquiryID: number | string;
+  reason?: unknown;
+  email?: unknown;
+  conversationID?: number | string;
+}
 import { customerWorkflowRead, customerWorkflowMarkRead } from "../workflow/service";
 import { randomBytes } from "node:crypto";
 import { isLocale } from "../../lib/locales";
@@ -16,12 +36,15 @@ import { ContentError } from "../content/service";
 import { configuredMailEnabled, sendConfiguredMail } from "../workflow/mail";
 const fresh = () => randomBytes(32).toString("hex");
 const now = () => new Date().toISOString();
-export async function customerTransaction<T>(p: any, fn: (req: any) => Promise<T>): Promise<T> {
+export async function customerTransaction<T>(
+  p: Payload,
+  fn: (req: Partial<PayloadRequest>) => Promise<T>,
+): Promise<T> {
   const id = await p.db.beginTransaction();
   if (!id) throw Error("Transaction required");
   try {
-    await p.db.sessions[id].db.execute("SELECT pg_advisory_xact_lock(726281)");
-    await p.db.sessions[id].db.execute("SELECT pg_advisory_xact_lock(726283)");
+    await transactionSession(p, id).db.execute("SELECT pg_advisory_xact_lock(726281)");
+    await transactionSession(p, id).db.execute("SELECT pg_advisory_xact_lock(726283)");
     const result = await fn({ transactionID: id });
     await p.db.commitTransaction(id);
     return result;
@@ -30,13 +53,17 @@ export async function customerTransaction<T>(p: any, fn: (req: any) => Promise<T
     throw e;
   }
 }
-export async function customerAvailable(p: any) {
+export async function customerAvailable(p: Payload) {
   return (
     !!(await p.findGlobal({ slug: "customer-settings", overrideAccess: true })).enabled &&
     configuredMailEnabled()
   );
 }
-export async function requestVerification(p: any, input: any, mail = sendConfiguredMail) {
+export async function requestVerification(
+  p: Payload,
+  input: VerificationInput,
+  mail = sendConfiguredMail,
+) {
   if (!(await customerAvailable(p)))
     throw new ContentError("Customer verification is disabled until email is configured", 503);
   let email: string;
@@ -97,7 +124,7 @@ export async function requestVerification(p: any, input: any, mail = sendConfigu
   }
   return { ok: true, handle };
 }
-export async function verifyCustomer(p: any, input: any) {
+export async function verifyCustomer(p: Payload, input: VerificationInput) {
   if (!(await customerAvailable(p)))
     throw new ContentError("Customer verification is disabled", 503);
   if (!validCustomerToken(input.handle)) throw new ContentError("Verification failed", 401);
@@ -115,7 +142,7 @@ export async function verifyCustomer(p: any, input: any) {
     await p.update({
       collection: "customer-challenges",
       id: c.id,
-      data: { attempts: c.attempts + 1 },
+      data: { attempts: c.attempts! + 1 },
       req,
     });
     if (!customerTokenMatches(input.token, c.tokenHash)) return null;
@@ -164,7 +191,7 @@ function cookieToken(headers: Headers) {
     .find((x) => x.startsWith(customerCookie + "="))
     ?.slice(customerCookie.length + 1);
 }
-export async function customerSession(p: any, headers: Headers) {
+export async function customerSession(p: Payload, headers: Headers) {
   if (!(await p.findGlobal({ slug: "customer-settings", overrideAccess: true })).enabled)
     throw new ContentError("Customer login required", 401);
   const token = cookieToken(headers);
@@ -180,13 +207,13 @@ export async function customerSession(p: any, headers: Headers) {
   if (!usableCustomerSession(session)) throw new ContentError("Customer login required", 401);
   const c = await p.findByID({
     collection: "customer-accounts",
-    id: relationID(session.customer),
+    id: relationID(session.customer)!,
     depth: 0,
   });
   if (!c.active || !c.verifiedAt) throw new ContentError("Customer login required", 401);
   return { ...c, customerSessionID: session.id };
 }
-export async function logoutCustomer(p: any, headers: Headers) {
+export async function logoutCustomer(p: Payload, headers: Headers) {
   return customerTransaction(p, async (req) => {
     const token = cookieToken(headers);
     if (validCustomerToken(token))
@@ -199,7 +226,12 @@ export async function logoutCustomer(p: any, headers: Headers) {
     return { ok: true };
   });
 }
-export async function customerOwnsInquiry(p: any, customer: any, inquiryID: any, req?: any) {
+export async function customerOwnsInquiry(
+  p: Payload,
+  customer: CustomerIdentity,
+  inquiryID: number | string | undefined,
+  req?: Partial<PayloadRequest>,
+) {
   const denied = () => new ContentError("Inquiry unavailable", 404);
   if (
     !customer?.id ||
@@ -234,21 +266,27 @@ export async function customerOwnsInquiry(p: any, customer: any, inquiryID: any,
   ).docs[0];
   if (
     !link ||
-    !(await p.findByID({ collection: "inquiries", id: inquiryID, depth: 0, req }).catch(() => null))
+    !(await p
+      .findByID({ collection: "inquiries", id: inquiryID!, depth: 0, req })
+      .catch(() => null))
   )
     throw denied();
   return true;
 }
-export async function linkCustomerInquiry(p: any, user: any, input: any) {
+export async function linkCustomerInquiry(
+  p: Payload,
+  user: NonNullable<Staff>,
+  input: CustomerLinkInput,
+) {
   if (!isOperator(user)) throw new ContentError("Staff access required", 403);
   return customerTransaction(p, async (req) => {
-    user = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
-    if (!isOperator(user)) throw new ContentError("Staff access required", 403);
+    const actor = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
+    if (!isOperator(actor)) throw new ContentError("Staff access required", 403);
     const inquiry = await p.findByID({
       collection: "inquiries",
       id: input.inquiryID,
       overrideAccess: false,
-      user,
+      user: actor,
       depth: 0,
       req,
     });
@@ -273,11 +311,15 @@ export async function linkCustomerInquiry(p: any, user: any, input: any) {
         collection: "support-conversations",
         id: input.conversationID,
         overrideAccess: false,
-        user,
+        user: actor,
         depth: 0,
         req,
       });
-      if (!(conversation.inquiryLinks || []).some((l: any) => l.reference === inquiry.reference))
+      if (
+        !((conversation.inquiryLinks as SupportInquiryLink[] | null) || []).some(
+          (l) => l.reference === inquiry.reference,
+        )
+      )
         throw new ContentError("Conversation must belong to this inquiry");
     }
     const dedupe = `${c.id}:${inquiry.id}`;
@@ -296,7 +338,7 @@ export async function linkCustomerInquiry(p: any, user: any, input: any) {
         customer: c.id,
         inquiry: inquiry.id,
         conversation: conversation?.id,
-        verifiedBy: user.id,
+        verifiedBy: actor.id,
         verificationReason: reason,
         verifiedAt: now(),
         active: true,
@@ -307,7 +349,7 @@ export async function linkCustomerInquiry(p: any, user: any, input: any) {
     return { ok: true };
   });
 }
-export async function customerRead(p: any, customer: any) {
+export async function customerRead(p: Payload, customer: CustomerIdentity) {
   return customerTransaction(p, async (req) => {
     const links = (
       await p.find({
@@ -324,7 +366,7 @@ export async function customerRead(p: any, customer: any) {
       await customerOwnsInquiry(p, customer, relationID(l.inquiry), req);
       const q = await p.findByID({
         collection: "inquiries",
-        id: relationID(l.inquiry),
+        id: relationID(l.inquiry)!,
         depth: 0,
         req,
       });
@@ -338,12 +380,17 @@ export async function customerRead(p: any, customer: any) {
         const c = await p
           .findByID({
             collection: "support-conversations",
-            id: relationID(l.conversation),
+            id: relationID(l.conversation)!,
             depth: 0,
             req,
           })
           .catch(() => null);
-        if (c && (c.inquiryLinks || []).some((x: any) => x.reference === q.reference)) {
+        if (
+          c &&
+          ((c.inquiryLinks as SupportInquiryLink[] | null) || []).some(
+            (x) => x.reference === q.reference,
+          )
+        ) {
           const messages = (
             await p.find({
               collection: "support-messages",
@@ -355,7 +402,7 @@ export async function customerRead(p: any, customer: any) {
               depth: 0,
               req,
             })
-          ).docs.map((m: any) => ({
+          ).docs.map((m) => ({
             id: m.id,
             text: m.text,
             author: m.author,
@@ -373,7 +420,11 @@ export async function customerRead(p: any, customer: any) {
     };
   });
 }
-export async function customerLinkedInquiries(p: any, customer: any, req?: any) {
+export async function customerLinkedInquiries(
+  p: Payload,
+  customer: CustomerIdentity,
+  req?: Partial<PayloadRequest>,
+) {
   const links = (
     await p.find({
       collection: "customer-inquiry-links",
@@ -391,16 +442,20 @@ export async function customerLinkedInquiries(p: any, customer: any, req?: any) 
   }
   return ids;
 }
-export async function revokeCustomerInquiry(p: any, user: any, input: any) {
+export async function revokeCustomerInquiry(
+  p: Payload,
+  user: NonNullable<Staff>,
+  input: CustomerLinkInput,
+) {
   if (!isOperator(user)) throw new ContentError("Staff access required", 403);
   return customerTransaction(p, async (req) => {
-    user = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
-    if (!isOperator(user)) throw new ContentError("Staff access required", 403);
+    const actor = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
+    if (!isOperator(actor)) throw new ContentError("Staff access required", 403);
     await p.findByID({
       collection: "inquiries",
       id: input.inquiryID,
       overrideAccess: false,
-      user,
+      user: actor,
       depth: 0,
       req,
     });
@@ -429,14 +484,18 @@ export async function revokeCustomerInquiry(p: any, user: any, input: any) {
       await p.update({
         collection: "customer-inquiry-links",
         id: link.id,
-        data: { active: false, revokedBy: user.id, revokedAt: now(), revocationReason: reason },
+        data: { active: false, revokedBy: actor.id, revokedAt: now(), revocationReason: reason },
         req,
       });
     return { ok: true };
   });
 }
 
-export async function markCustomerNotification(p: any, customer: any, id: unknown) {
+export async function markCustomerNotification(
+  p: Payload,
+  customer: CustomerIdentity,
+  id: unknown,
+) {
   const notificationID = Number(id);
   if (!Number.isSafeInteger(notificationID) || notificationID < 1)
     throw new ContentError("Invalid notification");

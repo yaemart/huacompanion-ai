@@ -63,7 +63,19 @@ export async function GET(req: Request) {
           ...d,
           path: catalogPath(d),
           inquiryPath: d.acceptingInquiries
-            ? `/${locale}/request?${new URLSearchParams({ [d.kind === "provider-profile" ? "provider" : "project"]: d.contentKey, service: d.catalog!.categories.includes("housekeeping") ? "housekeeping" : d.catalog!.categories[0], ...(d.catalog!.categories.includes("housekeeping") ? { [d.kind === "provider-profile" ? "providerRevision" : "projectRevision"]: String(d.publicationRevision) } : {}) })}`
+            ? `/${locale}/request?` +
+              new URLSearchParams({
+                [d.kind === "provider-profile" ? "provider" : "project"]: d.contentKey,
+                service: d.catalog!.categories.includes("housekeeping")
+                  ? "housekeeping"
+                  : d.catalog!.categories[0],
+                ...(d.catalog!.categories.includes("housekeeping")
+                  ? {
+                      [d.kind === "provider-profile" ? "providerRevision" : "projectRevision"]:
+                        String(d.publicationRevision),
+                    }
+                  : {}),
+              })
             : null,
         })),
         docs: "/api/public/catalog/docs",

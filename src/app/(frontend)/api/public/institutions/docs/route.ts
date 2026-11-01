@@ -19,14 +19,21 @@ export async function GET() {
         page: "Positive integer, page size 20",
       },
       status:
-        "foreignAcceptance pending means awaiting verification, not refusal to accept foreign visitors. An empty languages array does not imply support for all languages. Only confirmed institutions accept new inquiries; pending and paused return inquiryPath null.",
+        "foreignAcceptance pending means awaiting verification, not refusal to accept foreign " +
+        "visitors. An empty languages array does not imply support for all languages. Only " +
+        "confirmed institutions accept new inquiries; pending and paused return inquiryPath " +
+        "null.",
       errors: {
         400: "Invalid parameters",
         404: "Key or slug has no publication in requested locale",
         503: "Data temporarily unavailable",
       },
       usage:
-        "Use path for details and inquiryPath for enquiries. Consult officialURL and acceptanceConditions before planning. verifiedAt records the last manual source check; qualification is a public verification explanation, not a guarantee. Related projectKeys do not imply availability. Listing does not imply a contracted partnership.",
+        "Use path for details and inquiryPath for enquiries. Consult officialURL and " +
+        "acceptanceConditions before planning. verifiedAt records the last manual source check; " +
+        "qualification is a public verification explanation, not a guarantee. Related " +
+        "projectKeys do not imply availability. Listing does not imply a contracted " +
+        "partnership.",
     },
     { headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } },
   );

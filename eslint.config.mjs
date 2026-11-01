@@ -67,4 +67,20 @@ export default defineConfig([
     rules: { "no-unsafe-finally": "warn" },
   },
   prettier,
+  {
+    files: [
+      "src/server/intake.ts",
+      "src/server/customer/service.ts",
+      "src/server/support/service.ts",
+      "src/server/business/service.ts",
+      "src/server/workflow/service.ts",
+      "src/cms/access.ts",
+      "src/cms/collections.ts",
+      "src/cms/**/collections.ts",
+    ],
+    rules: { "@typescript-eslint/no-explicit-any": "error" },
+  },
+  {
+    rules: { "max-statements-per-line": ["error", { max: 1 }] },
+  },
 ]);

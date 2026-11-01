@@ -121,7 +121,11 @@ try {
       "隐私说明 — 本地测试",
       "Privacy notice — local testing",
       "本地测试提交保存在本机数据库，仅授权员工可访问。请使用虚构资料，不要提交病历、证件、密码或验证码。尚未接入邮件或模型，管理员可清理测试记录，备份可能保留副本。正式运营前须补齐主体、联系方式、保留期限和查阅删除流程。",
-      "Local test submissions are stored on this computer for authorized staff. Use fictional details only; do not submit medical records, identity documents, passwords or codes. Email and model services are not connected. Backups may retain test records. Before launch, confirm the operating entity, contacts, retention and access/deletion procedures.",
+      "Local test submissions are stored on this computer for authorized staff. Use fictional " +
+        "details only; do not submit medical records, identity documents, passwords or codes. " +
+        "Email and model services are not connected. Backups may retain test records. Before " +
+        "launch, confirm the operating entity, contacts, retention and access/deletion " +
+        "procedures.",
     ]);
     await seed({
       contentKey: "page-terms",

@@ -90,7 +90,21 @@ export function CatalogPage({
             {detail.acceptingInquiries ? (
               <Link
                 className="button"
-                href={`/${locale}/request?${new URLSearchParams({ [kind === "provider-profile" ? "provider" : "project"]: detail.contentKey, service: detail.catalog!.categories.includes("housekeeping") ? "housekeeping" : detail.catalog!.categories[0], ...(detail.catalog!.categories.includes("housekeeping") ? { [kind === "provider-profile" ? "providerRevision" : "projectRevision"]: String(detail.publicationRevision) } : {}) })}`}
+                href={
+                  `/${locale}/request?` +
+                  new URLSearchParams({
+                    [kind === "provider-profile" ? "provider" : "project"]: detail.contentKey,
+                    service: detail.catalog!.categories.includes("housekeeping")
+                      ? "housekeeping"
+                      : detail.catalog!.categories[0],
+                    ...(detail.catalog!.categories.includes("housekeeping")
+                      ? {
+                          [kind === "provider-profile" ? "providerRevision" : "projectRevision"]:
+                            String(detail.publicationRevision),
+                        }
+                      : {}),
+                  })
+                }
               >
                 {publicText(locale, "Enquire through Hua")} ↗
               </Link>

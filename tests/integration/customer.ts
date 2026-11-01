@@ -313,7 +313,9 @@ try {
     0,
   );
   console.log(
-    "PASS customer real DB: disabled mail, hashed secret, bounded attempts, expiry/replay, session logout, no auto-link, scoped manual association, revocation, cross-device identity, send cap and failed-mail invalidation",
+    "PASS customer real DB: disabled mail, hashed secret, bounded attempts, expiry/replay, " +
+      "session logout, no auto-link, scoped manual association, revocation, cross-device " +
+      "identity, send cap and failed-mail invalidation",
   );
 } finally {
   for (const k of envKeys) {

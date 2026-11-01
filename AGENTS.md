@@ -10,6 +10,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 多电脑开发与交接
 
+- 源码使用 Prettier（100 字符目标行宽）与 ESLint；一行一条语句，不压缩函数。源码行最长 200 字符，文案如需例外须在实施记录列明并显式调整检查，不能静默跳过。
+- 提交前必须运行 `npm run check`（lint、typecheck、单元测试）及相关集成测试，实际结果记录在 `docs/progress.md`。权限、报价、客户数据相关行为变更必须补测试。
+
 - 开始前阅读 `docs/handoff.md` 和 `docs/multi-computer-development.md`，执行 `git status`、`git branch -vv`、`git fetch origin`。有未提交修改时先识别并保留，不覆盖、不自动清理。
 - `main` 保存已验证的合并版本。新任务从最新 `origin/main` 创建 `codex/<任务名>` 分支；接手未完成任务时使用交接指定的同一任务分支。任务分支不要按电脑长期划分。
 - 同一任务分支同一时间只由一台电脑继续修改。并行任务使用不同分支，并提前说明文件范围；仍须检查合并后的兼容性。

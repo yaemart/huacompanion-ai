@@ -55,7 +55,27 @@ export function ExhibitionPage({
     return `${base}?${params}`;
   }
   function enquiry(contentKey: string, project?: string) {
-    return `/${locale}/request?${new URLSearchParams({ exhibition: contentKey, service: "business", ...(project ? { project, projectRevision: String(localItems.find((d) => d.kind === "service-project" && d.contentKey === project)?.publicationRevision || 0), ...(localItems.find((d) => d.kind === "service-project" && d.contentKey === project)?.catalog?.categories.includes("housekeeping") ? { service: "housekeeping" } : {}) } : {}) })}`;
+    return (
+      `/${locale}/request?` +
+      new URLSearchParams({
+        exhibition: contentKey,
+        service: "business",
+        ...(project
+          ? {
+              project,
+              projectRevision: String(
+                localItems.find((d) => d.kind === "service-project" && d.contentKey === project)
+                  ?.publicationRevision || 0,
+              ),
+              ...(localItems
+                .find((d) => d.kind === "service-project" && d.contentKey === project)
+                ?.catalog?.categories.includes("housekeeping")
+                ? { service: "housekeeping" }
+                : {}),
+            }
+          : {}),
+      })
+    );
   }
   const e = selected?.exhibition;
   const status = e ? effectiveExhibitionStatus(e) : undefined;

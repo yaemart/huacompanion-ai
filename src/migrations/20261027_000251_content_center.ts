@@ -106,7 +106,8 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "content_events_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "content_media_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "content_agent_tasks_id" integer;
-  ALTER TABLE "_content_drafts_v" ADD CONSTRAINT "_content_drafts_v_parent_id_content_drafts_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "_content_drafts_v" ADD CONSTRAINT "_content_drafts_v_parent_id_content_drafts_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."content_drafts"("id") \
+ON DELETE set null ON UPDATE no action;
   CREATE UNIQUE INDEX "content_drafts_identity_idx" ON "content_drafts" USING btree ("identity");
   CREATE UNIQUE INDEX "content_drafts_route_key_idx" ON "content_drafts" USING btree ("route_key");
   CREATE INDEX "content_drafts_updated_at_idx" ON "content_drafts" USING btree ("updated_at");
@@ -129,11 +130,16 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "content_media_created_at_idx" ON "content_media" USING btree ("created_at");
   CREATE INDEX "content_agent_tasks_updated_at_idx" ON "content_agent_tasks" USING btree ("updated_at");
   CREATE INDEX "content_agent_tasks_created_at_idx" ON "content_agent_tasks" USING btree ("created_at");
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_drafts_fk" FOREIGN KEY ("content_drafts_id") REFERENCES "public"."content_drafts"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_published_fk" FOREIGN KEY ("content_published_id") REFERENCES "public"."content_published"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_events_fk" FOREIGN KEY ("content_events_id") REFERENCES "public"."content_events"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_media_fk" FOREIGN KEY ("content_media_id") REFERENCES "public"."content_media"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_agent_tasks_fk" FOREIGN KEY ("content_agent_tasks_id") REFERENCES "public"."content_agent_tasks"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_drafts_fk" FOREIGN KEY ("content_drafts_id") REFERENCES \
+"public"."content_drafts"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_published_fk" FOREIGN KEY ("content_published_id") REFERENCES \
+"public"."content_published"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_events_fk" FOREIGN KEY ("content_events_id") REFERENCES \
+"public"."content_events"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_media_fk" FOREIGN KEY ("content_media_id") REFERENCES \
+"public"."content_media"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_agent_tasks_fk" FOREIGN KEY ("content_agent_tasks_id") REFERENCES \
+"public"."content_agent_tasks"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "payload_locked_documents_rels_content_drafts_id_idx" ON "payload_locked_documents_rels" USING btree ("content_drafts_id");
   CREATE INDEX "payload_locked_documents_rels_content_published_id_idx" ON "payload_locked_documents_rels" USING btree ("content_published_id");
   CREATE INDEX "payload_locked_documents_rels_content_events_id_idx" ON "payload_locked_documents_rels" USING btree ("content_events_id");

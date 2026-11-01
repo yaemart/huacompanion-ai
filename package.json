@@ -48,7 +48,7 @@
     "test:quality": "tsx tests/integration/quality.ts",
     "test:customer": "tsx tests/integration/customer.ts",
     "test:business:ai": "tsx tests/integration/business-ai.ts",
-    "lint": "eslint .",
+    "lint": "eslint . && prettier --check . && node scripts/check-source-style.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run lint && npm run typecheck && npm test"

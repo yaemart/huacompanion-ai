@@ -2,7 +2,34 @@ import { intakeEnabled } from "../../lib/deployment";
 import { supportFeatures, requireSupportFeature } from "./features";
 import { supportAssignmentToken } from "../../cms/support/trusted";
 import { createHash } from "node:crypto";
-import type { Payload } from "payload";
+import type { Payload, PayloadRequest, RequiredDataFromCollectionSlug } from "payload";
+import type { SupportConversation, SupportMessage, Inquiry } from "../../../payload-types";
+import type { Staff } from "../../cms/access";
+import { transactionSession, type SupportInquiryLink } from "../db-types";
+type ConversationChange = Partial<SupportConversation>;
+type MessageData = Omit<RequiredDataFromCollectionSlug<"support-messages">, "conversation">;
+interface VisitorActionInput {
+  action: string;
+  id?: unknown;
+  key?: unknown;
+  locale?: unknown;
+  topic?: string;
+  aiConsent?: unknown;
+  text?: unknown;
+  payload?: { kind?: unknown; values: { name: string; email: string } };
+}
+interface StaffActionInput {
+  action: string;
+  id?: unknown;
+  key?: unknown;
+  revision?: unknown;
+  text?: unknown;
+  locale?: unknown;
+  message?: unknown;
+  at?: string | null;
+  team?: unknown;
+  owner?: unknown;
+}
 import { isOperator, isAdmin, isManager, relationID } from "../../cms/access";
 import { validOwner } from "../../cms/staff-guards";
 import { isLocale } from "../../lib/locales";
@@ -31,11 +58,14 @@ export function keyOf(v: unknown) {
     throw new ContentError("Invalid request key");
   return v;
 }
-export async function supportTransaction<T>(p: Payload, fn: (req: any) => Promise<T>): Promise<T> {
+export async function supportTransaction<T>(
+  p: Payload,
+  fn: (req: Partial<PayloadRequest>) => Promise<T>,
+): Promise<T> {
   const id = await p.db.beginTransaction();
   if (!id) throw Error("Transaction required");
   try {
-    await (p.db.sessions as any)[id].db.execute("SELECT pg_advisory_xact_lock(726280)");
+    await transactionSession(p, id).db.execute("SELECT pg_advisory_xact_lock(726280)");
     const r = await fn({ transactionID: id });
     await p.db.commitTransaction(id);
     return r;
@@ -44,7 +74,7 @@ export async function supportTransaction<T>(p: Payload, fn: (req: any) => Promis
     throw e;
   }
 }
-export async function owned(p: Payload, hash: string, id: unknown, req?: any) {
+export async function owned(p: Payload, hash: string, id: unknown, req?: Partial<PayloadRequest>) {
   const c = await p.findByID({
     collection: "support-conversations",
     id: validID(id),
@@ -55,7 +85,12 @@ export async function owned(p: Payload, hash: string, id: unknown, req?: any) {
   if (c.visitorHash !== hash) throw new ContentError("Conversation unavailable", 404);
   return c;
 }
-export async function scoped(p: Payload, user: any, id: unknown, req?: any) {
+export async function scoped(
+  p: Payload,
+  user: NonNullable<Staff>,
+  id: unknown,
+  req?: Partial<PayloadRequest>,
+) {
   if (!isOperator(user) || (user.collection && user.collection !== "staff"))
     throw new ContentError("Staff access required", 403);
   return p.findByID({
@@ -67,7 +102,7 @@ export async function scoped(p: Payload, user: any, id: unknown, req?: any) {
     req,
   });
 }
-export async function messages(p: Payload, id: number, req?: any) {
+export async function messages(p: Payload, id: number, req?: Partial<PayloadRequest>) {
   return (
     await p.find({
       collection: "support-messages",
@@ -80,19 +115,24 @@ export async function messages(p: Payload, id: number, req?: any) {
     })
   ).docs;
 }
-export async function append(p: Payload, c: any, data: any, req: any) {
+export async function append(
+  p: Payload,
+  c: { id: ReturnType<typeof relationID> },
+  data: MessageData,
+  req: Partial<PayloadRequest>,
+) {
   return p.create({
     collection: "support-messages",
-    data: { conversation: c.id, ...data },
+    data: { conversation: c.id as number, ...data },
     overrideAccess: true,
     req,
   });
 }
 export async function updateConversation(
   p: Payload,
-  c: any,
-  data: any,
-  req: any,
+  c: SupportConversation,
+  data: ConversationChange,
+  req: Partial<PayloadRequest>,
   aiChanged = false,
 ) {
   return p.update({
@@ -109,7 +149,7 @@ export async function updateConversation(
     req,
   });
 }
-async function queue(p: Payload, c: any, req: any) {
+async function queue(p: Payload, c: SupportConversation, req: Partial<PayloadRequest>) {
   if (c.mode === "ai" && c.aiConsent && (await supportFeatures(p, req)).aiReception.available)
     await p.create({
       collection: "support-runs",
@@ -122,7 +162,7 @@ async function queue(p: Payload, c: any, req: any) {
       req,
     });
 }
-async function cap(p: Payload, c: any, req: any) {
+async function cap(p: Payload, c: SupportConversation, req: Partial<PayloadRequest>) {
   const all = await messages(p, c.id, req);
   if (all.length >= 900)
     throw new ContentError("Conversation limit reached; start a new conversation", 429);
@@ -132,7 +172,31 @@ async function cap(p: Payload, c: any, req: any) {
   if (recent.length >= 12)
     throw new ContentError("Please wait before sending another message", 429);
 }
-export async function visitorRead(p: Payload, hash: string, id?: unknown): Promise<any> {
+type VisitorDetail = {
+  conversation: ReturnType<typeof publicConversation<SupportConversation>>;
+  messages: NonNullable<
+    ReturnType<typeof publicMessage<import("../../../payload-types").SupportMessage>>
+  >[];
+  inquiries: {
+    reference: string;
+    status: import("../../../payload-types").Inquiry["status"];
+    stage: import("../../../payload-types").Inquiry["coordinationStage"];
+  }[];
+  aiAvailable: boolean;
+};
+type VisitorList = {
+  features: Awaited<ReturnType<typeof supportFeatures>>;
+  conversations: ReturnType<typeof publicConversation<SupportConversation>>[];
+  aiAvailable: boolean;
+};
+export function visitorRead(p: Payload, hash: string, id: string | number): Promise<VisitorDetail>;
+export function visitorRead(p: Payload, hash: string): Promise<VisitorList>;
+export function visitorRead(
+  p: Payload,
+  hash: string,
+  id?: unknown,
+): Promise<VisitorDetail | VisitorList>;
+export async function visitorRead(p: Payload, hash: string, id?: unknown) {
   if (!id)
     return {
       features: await supportFeatures(p),
@@ -149,7 +213,7 @@ export async function visitorRead(p: Payload, hash: string, id?: unknown): Promi
     };
   const c = await owned(p, hash, id);
   const inquiries = [];
-  for (const link of (c.inquiryLinks as any[]) || []) {
+  for (const link of (c.inquiryLinks as SupportInquiryLink[]) || []) {
     const q = (
       await p.find({
         collection: "inquiries",
@@ -167,7 +231,26 @@ export async function visitorRead(p: Payload, hash: string, id?: unknown): Promi
     aiAvailable: (await supportFeatures(p)).aiReception.available,
   };
 }
-export async function visitorAction(p: Payload, hash: string, input: any): Promise<any> {
+export function visitorAction(
+  p: Payload,
+  hash: string,
+  input: VisitorActionInput & { action: "start" },
+): Promise<ReturnType<typeof publicConversation<SupportConversation>>>;
+export function visitorAction(
+  p: Payload,
+  hash: string,
+  input: VisitorActionInput & { action: "confirm" },
+): ReturnType<typeof saveIntake>;
+export function visitorAction(
+  p: Payload,
+  hash: string,
+  input: VisitorActionInput,
+): Promise<
+  | ReturnType<typeof publicConversation<SupportConversation>>
+  | Awaited<ReturnType<typeof saveIntake>>
+  | { ok: boolean }
+>;
+export async function visitorAction(p: Payload, hash: string, input: VisitorActionInput) {
   if (!hash) throw new ContentError("Session required", 403);
   return supportTransaction(p, async (req) => {
     if (["start", "message", "confirm"].includes(input.action))
@@ -185,7 +268,10 @@ export async function visitorAction(p: Payload, hash: string, input: any): Promi
         })
       ).docs[0];
       if (old) return publicConversation(old);
-      if (!isLocale(input.locale) || !["general", "business", "housekeeping"].includes(input.topic))
+      if (
+        !isLocale(input.locale) ||
+        !["general", "business", "housekeeping"].includes(input.topic!)
+      )
         throw new ContentError("Invalid conversation");
       const recent = await p.count({
         collection: "support-conversations",
@@ -205,7 +291,7 @@ export async function visitorAction(p: Payload, hash: string, input: any): Promi
           visitorHash: hash,
           startKey,
           locale: input.locale,
-          topic: input.topic,
+          topic: input.topic!,
           aiConsent: input.aiConsent === true,
           consentAt: input.aiConsent === true ? new Date().toISOString() : null,
           mode:
@@ -288,8 +374,8 @@ export async function visitorAction(p: Payload, hash: string, input: any): Promi
       if (!intakeEnabled(process.env))
         throw new ContentError("Intake is not enabled for this environment", 503);
       if (
-        ((c.inquiryLinks as any[]) || []).length >= 20 &&
-        !(c.inquiryLinks as any[]).some((l) => l.key === input.key)
+        ((c.inquiryLinks as SupportInquiryLink[]) || []).length >= 20 &&
+        !(c.inquiryLinks as SupportInquiryLink[]).some((l) => l.key === input.key)
       )
         throw new ContentError("Request limit reached", 429);
       if (input.payload?.kind !== "request")
@@ -298,7 +384,7 @@ export async function visitorAction(p: Payload, hash: string, input: any): Promi
       const digest = createHash("sha256").update(`${hash}:${c.id}:${key}`).digest("hex");
       const uuid = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-a${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
       const result = await saveIntake(input.payload, uuid);
-      const links = (c.inquiryLinks as any[]) || [];
+      const links = (c.inquiryLinks as SupportInquiryLink[]) || [];
       if (!links.some((l) => l.reference === result.reference)) {
         const customer =
           c.customer ||
@@ -306,8 +392,8 @@ export async function visitorAction(p: Payload, hash: string, input: any): Promi
             await p.create({
               collection: "support-customers",
               data: {
-                name: input.payload.values.name,
-                email: input.payload.values.email,
+                name: input.payload!.values.name,
+                email: input.payload!.values.email,
                 locale: c.locale,
                 verified: false,
               },
@@ -369,12 +455,39 @@ export async function visitorAction(p: Payload, hash: string, input: any): Promi
     throw new ContentError("Unknown action");
   });
 }
-export async function staffRead(p: Payload, user: any, id?: unknown): Promise<any> {
+type StaffDetail = {
+  conversation: SupportConversation;
+  messages: SupportMessage[];
+  inquiries: Inquiry[];
+};
+type StaffList = {
+  features: Awaited<ReturnType<typeof supportFeatures>>;
+  conversations: SupportConversation[];
+  teams: { id: number; name: string }[];
+  staff: { id: number; name: string; team: ReturnType<typeof relationID> }[];
+  user: { id: string | number; isAdmin: boolean; isManager: boolean };
+};
+export function staffRead(
+  p: Payload,
+  user: NonNullable<Staff>,
+  id: string | number,
+): Promise<StaffDetail>;
+export function staffRead(p: Payload, user: NonNullable<Staff>): Promise<StaffList>;
+export function staffRead(
+  p: Payload,
+  user: NonNullable<Staff>,
+  id?: unknown,
+): Promise<StaffDetail | StaffList>;
+export async function staffRead(
+  p: Payload,
+  user: NonNullable<Staff>,
+  id?: unknown,
+): Promise<StaffDetail | StaffList> {
   if (!isOperator(user)) throw new ContentError("Staff access required", 403);
   if (id) {
     const c = await scoped(p, user, id);
     const inquiries = [];
-    for (const l of (c.inquiryLinks as any[]) || []) {
+    for (const l of (c.inquiryLinks as SupportInquiryLink[]) || []) {
       const found = await p.find({
         collection: "inquiries",
         where: { reference: { equals: l.reference } },
@@ -409,7 +522,7 @@ export async function staffRead(p: Payload, user: any, id?: unknown): Promise<an
     user: { id: user.id, isAdmin: isAdmin(user), isManager: isManager(user) },
   };
 }
-export async function staffAction(p: Payload, user: any, input: any) {
+export async function staffAction(p: Payload, user: NonNullable<Staff>, input: StaffActionInput) {
   return supportTransaction(p, async (req) => {
     const c = await scoped(p, user, input.id, req);
     // Retry public/internal replies safely even after revision advances.
@@ -434,7 +547,7 @@ export async function staffAction(p: Payload, user: any, input: any) {
     }
     if (c.revision !== input.revision)
       throw new ContentError("Conversation changed; refresh and retry", 409);
-    let change: any = {};
+    let change: ConversationChange = {};
     if (["reply", "note"].includes(input.action)) {
       await append(
         p,
@@ -442,7 +555,7 @@ export async function staffAction(p: Payload, user: any, input: any) {
         {
           dedupe: `staff:${c.id}:${user.id}:${keyOf(input.key)}`,
           author: "staff",
-          staff: user.id,
+          staff: user.id as number,
           visibility: input.action === "note" ? "internal" : "public",
           text: validateMessage(input.text),
         },
@@ -508,7 +621,7 @@ export async function staffAction(p: Payload, user: any, input: any) {
       }
       change = { team, owner };
       // Unassigned inquiries from this authenticated conversation may be assigned with it.
-      for (const l of (c.inquiryLinks as any[]) || []) {
+      for (const l of (c.inquiryLinks as SupportInquiryLink[]) || []) {
         const q = (
           await p.find({
             collection: "inquiries",
@@ -524,7 +637,7 @@ export async function staffAction(p: Payload, user: any, input: any) {
             id: q.id,
             data: { team, owner },
             user,
-            req: { ...req, user },
+            req: { ...req, user: user as PayloadRequest["user"] },
             overrideAccess: true,
           });
       }
@@ -537,7 +650,7 @@ export async function staffAction(p: Payload, user: any, input: any) {
         {
           dedupe: `event:${c.id}:${next.revision}`,
           author: "system",
-          staff: user.id,
+          staff: user.id as number,
           visibility: "internal",
           text: JSON.stringify({ action: input.action, change }),
         },

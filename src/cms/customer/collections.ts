@@ -1,4 +1,5 @@
 import type { CollectionConfig, GlobalConfig, Field } from "payload";
+import type { PostgresAdapter } from "@payloadcms/db-postgres";
 import { isAdmin } from "../access";
 const privateAccess = {
   create: () => false,
@@ -69,11 +70,10 @@ export const customerSettings: GlobalConfig = {
     beforeChange: [
       async ({ req, data }) => {
         const id = await req.transactionID;
-        if (!id || (req.payload.db as any).sessions?.[id] === undefined)
+        const { sessions } = req.payload.db as Pick<PostgresAdapter, "sessions">;
+        if (!id || sessions?.[id] === undefined)
           throw Error("Customer settings require a transaction");
-        await (req.payload.db as any).sessions[id].db.execute(
-          "SELECT pg_advisory_xact_lock(726281)",
-        );
+        await sessions[id].db.execute("SELECT pg_advisory_xact_lock(726281)");
         return data;
       },
     ],

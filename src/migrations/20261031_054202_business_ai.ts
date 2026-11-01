@@ -31,18 +31,24 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "service_quotes" ADD COLUMN "reviewed_at" timestamp(3) with time zone;
   ALTER TABLE "service_quotes" ADD COLUMN "review_reason" varchar;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "business_ai_tasks_id" integer;
-  ALTER TABLE "business_ai_tasks" ADD CONSTRAINT "business_ai_tasks_service_case_id_service_cases_id_fk" FOREIGN KEY ("service_case_id") REFERENCES "public"."service_cases"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "business_ai_tasks" ADD CONSTRAINT "business_ai_tasks_created_by_id_staff_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "business_ai_tasks" ADD CONSTRAINT "business_ai_tasks_adopted_quote_id_service_quotes_id_fk" FOREIGN KEY ("adopted_quote_id") REFERENCES "public"."service_quotes"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "business_ai_tasks" ADD CONSTRAINT "business_ai_tasks_service_case_id_service_cases_id_fk" FOREIGN KEY ("service_case_id") REFERENCES \
+"public"."service_cases"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "business_ai_tasks" ADD CONSTRAINT "business_ai_tasks_created_by_id_staff_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."staff"("id") ON DELETE \
+set null ON UPDATE no action;
+  ALTER TABLE "business_ai_tasks" ADD CONSTRAINT "business_ai_tasks_adopted_quote_id_service_quotes_id_fk" FOREIGN KEY ("adopted_quote_id") REFERENCES \
+"public"."service_quotes"("id") ON DELETE set null ON UPDATE no action;
   CREATE INDEX "business_ai_tasks_service_case_idx" ON "business_ai_tasks" USING btree ("service_case_id");
   CREATE INDEX "business_ai_tasks_created_by_idx" ON "business_ai_tasks" USING btree ("created_by_id");
   CREATE UNIQUE INDEX "business_ai_tasks_dedupe_idx" ON "business_ai_tasks" USING btree ("dedupe");
   CREATE INDEX "business_ai_tasks_adopted_quote_idx" ON "business_ai_tasks" USING btree ("adopted_quote_id");
   CREATE INDEX "business_ai_tasks_updated_at_idx" ON "business_ai_tasks" USING btree ("updated_at");
   CREATE INDEX "business_ai_tasks_created_at_idx" ON "business_ai_tasks" USING btree ("created_at");
-  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_ai_task_id_business_ai_tasks_id_fk" FOREIGN KEY ("ai_task_id") REFERENCES "public"."business_ai_tasks"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_reviewed_by_id_staff_id_fk" FOREIGN KEY ("reviewed_by_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_business_ai_tasks_fk" FOREIGN KEY ("business_ai_tasks_id") REFERENCES "public"."business_ai_tasks"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_ai_task_id_business_ai_tasks_id_fk" FOREIGN KEY ("ai_task_id") REFERENCES "public"."business_ai_tasks"("id") \
+ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_reviewed_by_id_staff_id_fk" FOREIGN KEY ("reviewed_by_id") REFERENCES "public"."staff"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_business_ai_tasks_fk" FOREIGN KEY ("business_ai_tasks_id") REFERENCES \
+"public"."business_ai_tasks"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "service_quotes_ai_task_idx" ON "service_quotes" USING btree ("ai_task_id");
   CREATE INDEX "service_quotes_reviewed_by_idx" ON "service_quotes" USING btree ("reviewed_by_id");
   CREATE INDEX "payload_locked_documents_rels_business_ai_tasks_id_idx" ON "payload_locked_documents_rels" USING btree ("business_ai_tasks_id");`);

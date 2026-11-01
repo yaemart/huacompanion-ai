@@ -255,7 +255,16 @@ export function lifeInquiryPath(
   projectRevision?: number,
   service = "travel",
 ) {
-  return `/${d.locale}/request?${new URLSearchParams({ life: d.contentKey, lifeKind: d.kind, lifeRevision: String(d.publicationRevision || 0), service, ...(project ? { project, projectRevision: String(projectRevision || 0) } : {}) })}`;
+  return (
+    `/${d.locale}/request?` +
+    new URLSearchParams({
+      life: d.contentKey,
+      lifeKind: d.kind,
+      lifeRevision: String(d.publicationRevision || 0),
+      service,
+      ...(project ? { project, projectRevision: String(projectRevision || 0) } : {}),
+    })
+  );
 }
 export const lifeTranslationFields = [
   "subcategory",

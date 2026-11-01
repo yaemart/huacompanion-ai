@@ -70,17 +70,32 @@ export const starterProjects: Project[] = [
       audience:
         "First-time visitors, late arrivals, travellers with substantial luggage, and individuals or families who want help communicating with transport and accommodation providers.",
       includes:
-        "Review flight details, terminal, hotel address and luggage; coordinate pickup instructions and contact arrangements; provide remote communication or in-person accompaniment as agreed; help express check-in and room requests; hand over information for the next part of the visit.",
+        "Review flight details, terminal, hotel address and luggage; coordinate pickup " +
+        "instructions and contact arrangements; provide remote communication or in-person " +
+        "accompaniment as agreed; help express check-in and room requests; hand over " +
+        "information for the next part of the visit.",
       excludes:
-        "Flights, accommodation, vehicles, parking and tolls are not included unless stated. No immigration processing or passport custody. Early check-in, late checkout and particular room types are not guaranteed. No unrestricted around-the-clock on-call service.",
+        "Flights, accommodation, vehicles, parking and tolls are not included unless stated. No " +
+        "immigration processing or passport custody. Early check-in, late checkout and " +
+        "particular room types are not guaranteed. No unrestricted around-the-clock on-call " +
+        "service.",
       process:
-        "1. Collect arrival and accommodation requirements.\n2. Check arrangements with the transport provider and hotel.\n3. Confirm meeting point, waiting rules, service start/end and charges.\n4. Deliver the agreed communication or accompaniment.\n5. Confirm arrival at the agreed handover point and outstanding actions.",
+        "1. Collect arrival and accommodation requirements.\n2. Check arrangements with the " +
+        "transport provider and hotel.\n3. Confirm meeting point, waiting rules, service " +
+        "start/end and charges.\n4. Deliver the agreed communication or accompaniment.\n5. " +
+        "Confirm arrival at the agreed handover point and outstanding actions.",
       deliverables:
-        "A bilingual arrival brief with the destination address, pickup identification, agreed contact window and disruption steps; a closing summary of check-in communication and any remaining customer actions.",
+        "A bilingual arrival brief with the destination address, pickup identification, agreed " +
+        "contact window and disruption steps; a closing summary of check-in communication and " +
+        "any remaining customer actions.",
       materials:
-        "Flight number and date, airport and terminal if known, group size, luggage count, hotel name/address and check-in requests. Identity documents or complete booking confirmations are not needed for the initial enquiry.",
+        "Flight number and date, airport and terminal if known, group size, luggage count, " +
+        "hotel name/address and check-in requests. Identity documents or complete booking " +
+        "confirmations are not needed for the initial enquiry.",
       bookingNotice:
-        "Acceptance is confirmed after reviewing flight details. Late arrivals, large luggage, child seats, accessible vehicles and in-person accompaniment require separate advance checks. City coverage, vehicles and personnel remain subject to confirmation.",
+        "Acceptance is confirmed after reviewing flight details. Late arrivals, large luggage, " +
+        "child seats, accessible vehicles and in-person accompaniment require separate advance " +
+        "checks. City coverage, vehicles and personnel remain subject to confirmation.",
       duration:
         "Remote coordination and in-person accompaniment are quoted separately. The proposal defines when time starts, the waiting allowance and overtime terms.",
       people:
@@ -140,17 +155,27 @@ export const starterProjects: Project[] = [
       audience:
         "Buyers and business teams exploring products, suppliers or partnerships who need Chinese-English communication support.",
       includes:
-        "Organize target products and exhibitors; assist with meeting requests; provide agreed accompaniment and interpretation; record specifications, quotation conditions and unresolved questions; consolidate leads and next steps.",
+        "Organize target products and exhibitors; assist with meeting requests; provide agreed " +
+        "accompaniment and interpretation; record specifications, quotation conditions and " +
+        "unresolved questions; consolidate leads and next steps.",
       excludes:
-        "Admission eligibility, tickets, transport and meals are not included unless stated. No promise of exhibitor responses or sales. This is not supplier due diligence, product testing, certification or contract review, and Hua does not make purchasing decisions.",
+        "Admission eligibility, tickets, transport and meals are not included unless stated. No " +
+        "promise of exhibitor responses or sales. This is not supplier due diligence, product " +
+        "testing, certification or contract review, and Hua does not make purchasing decisions.",
       process:
-        "1. Define sourcing goals and screening criteria.\n2. Have the customer confirm exhibitors and route.\n3. Verify dates, admission and meeting requirements.\n4. Discuss the question list and record responses.\n5. Consolidate leads and unresolved issues.",
+        "1. Define sourcing goals and screening criteria.\n2. Have the customer confirm " +
+        "exhibitors and route.\n3. Verify dates, admission and meeting requirements.\n4. Discuss " +
+        "the question list and record responses.\n5. Consolidate leads and unresolved issues.",
       deliverables:
         "A pre-visit exhibitor list, conversation notes, a supplier lead sheet with consistent fields, and follow-up actions showing information sources and items still to verify.",
       materials:
-        "Product category, intended use, destination market, essential specifications, quantity range, quotation conditions to compare, shareable drawings/images, exhibition name and dates.",
+        "Product category, intended use, destination market, essential specifications, quantity " +
+        "range, quotation conditions to compare, shareable drawings/images, exhibition name and " +
+        "dates.",
       bookingNotice:
-        "Confirm the event and product field before checking personnel and terminology preparation. Admission and exhibitor appointments require confirmation by the relevant parties; an enquiry is not a reservation.",
+        "Confirm the event and product field before checking personnel and terminology " +
+        "preparation. Admission and exhibitor appointments require confirmation by the relevant " +
+        "parties; an enquiry is not a reservation.",
       duration:
         "Enquire for an agreed half-day, full-day or multi-day scope. Working hours, breaks, transfers and overtime rules are set out in the proposal.",
       people:
@@ -209,23 +234,42 @@ export const starterProjects: Project[] = [
       audience:
         "Overseas buyers and product teams sourcing hardware, tools, electrical goods or related components who want detailed discussions with prospective factories.",
       includes:
-        "Prepare requirements and questions; coordinate visits with customer-nominated or separately agreed organizations; arrange itinerary and interpretation; accompany visits within authorized areas; record specification differences, sample terms, quotation assumptions and follow-up owners.",
+        "Prepare requirements and questions; coordinate visits with customer-nominated or " +
+        "separately agreed organizations; arrange itinerary and interpretation; accompany " +
+        "visits within authorized areas; record specification differences, sample terms, " +
+        "quotation assumptions and follow-up owners.",
       excludes:
-        "Not an independent factory audit, quality inspection, certification check, legal review or supplier credit guarantee. Factory identity, capacity, lead times and compliance are not guaranteed. Transport, testing, samples and shipping require separate agreement.",
+        "Not an independent factory audit, quality inspection, certification check, legal " +
+        "review or supplier credit guarantee. Factory identity, capacity, lead times and " +
+        "compliance are not guaranteed. Transport, testing, samples and shipping require " +
+        "separate agreement.",
       process:
-        "1. Organize requirements and shareable material.\n2. Confirm the candidate list and where it came from.\n3. Agree access, agenda, photography and confidentiality.\n4. Support discussions and take notes.\n5. Have the customer check the minutes before producing verification and follow-up actions.",
+        "1. Organize requirements and shareable material.\n2. Confirm the candidate list and " +
+        "where it came from.\n3. Agree access, agenda, photography and confidentiality.\n4. " +
+        "Support discussions and take notes.\n5. Have the customer check the minutes before " +
+        "producing verification and follow-up actions.",
       deliverables:
-        "A visit agenda, bilingual key-question list, meeting notes and actions grouped by specifications, samples, quotation and delivery; supplier statements are distinguished from evidence obtained.",
+        "A visit agenda, bilingual key-question list, meeting notes and actions grouped by " +
+        "specifications, samples, quotation and delivery; supplier statements are distinguished " +
+        "from evidence obtained.",
       materials:
-        "Intended use, destination market, drawings/photos, specifications and tolerances, estimated quantities, sample requirements, factory candidates, confidentiality limits and non-negotiable conditions.",
+        "Intended use, destination market, drawings/photos, specifications and tolerances, " +
+        "estimated quantities, sample requirements, factory candidates, confidentiality limits " +
+        "and non-negotiable conditions.",
       bookingNotice:
-        "Factory reception, access and suitable interpreters require individual confirmation. Allow time to review technical material. Specialist testing needs separately engaged competent organizations.",
+        "Factory reception, access and suitable interpreters require individual confirmation. " +
+        "Allow time to review technical material. Specialist testing needs separately engaged " +
+        "competent organizations.",
       duration:
-        "Scope depends on factory count, distance, technical preparation and documentation. Cross-city transfers, long journeys and extra discussions are not automatically included in accompaniment time.",
+        "Scope depends on factory count, distance, technical preparation and documentation. " +
+        "Cross-city transfers, long journeys and extra discussions are not automatically " +
+        "included in accompaniment time.",
       people:
         "Group size, parallel agendas and site safety requirements determine staffing. Factory reception rules govern access to production areas.",
       changes:
-        "If a factory changes, declines reception or extends the agenda, Hua confirms alternatives and costs with the customer. Visit targets are not substituted without customer agreement.",
+        "If a factory changes, declines reception or extends the agenda, Hua confirms " +
+        "alternatives and costs with the customer. Visit targets are not substituted without " +
+        "customer agreement.",
       quotation:
         "Separate coordination, terminology preparation, interpretation, transport and minutes. Audits, testing, samples and logistics must be explicitly addressed.",
       options:
@@ -274,17 +318,28 @@ export const starterProjects: Project[] = [
       audience:
         "Individuals and teams holding Chinese-English business discussions, product presentations, partnership talks or remote meetings.",
       includes:
-        "Review meeting goals and terminology; coordinate agendas and participants; provide agreed consecutive interpretation or communication support; record key points with permission; prepare actions for participant review.",
+        "Review meeting goals and terminology; coordinate agendas and participants; provide " +
+        "agreed consecutive interpretation or communication support; record key points with " +
+        "permission; prepare actions for participant review.",
       excludes:
-        "Simultaneous interpretation, equipment hire, certified translation and full contract translation are not included by default. No legal, financial or technical professional decisions. No recording without permission, and no signing on a participant's behalf.",
+        "Simultaneous interpretation, equipment hire, certified translation and full contract " +
+        "translation are not included by default. No legal, financial or technical professional " +
+        "decisions. No recording without permission, and no signing on a participant's behalf.",
       process:
-        "1. Confirm subject, language direction and technical depth.\n2. Check interpreter suitability and confidentiality.\n3. Have the customer review agenda, terminology and scope.\n4. Interpret and clarify during the meeting.\n5. Check key points and actions afterwards.",
+        "1. Confirm subject, language direction and technical depth.\n2. Check interpreter " +
+        "suitability and confidentiality.\n3. Have the customer review agenda, terminology and " +
+        "scope.\n4. Interpret and clarify during the meeting.\n5. Check key points and actions " +
+        "afterwards.",
       deliverables:
         "A terminology/question brief and, if agreed, bilingual key points or action notes. Notes do not automatically constitute a contract or commitments accepted by the parties.",
       materials:
-        "Agenda, participant roles, product material, discussion questions, terminology, confidentiality requirements and venue or online platform details. Share authorized materials only.",
+        "Agenda, participant roles, product material, discussion questions, terminology, " +
+        "confidentiality requirements and venue or online platform details. Share authorized " +
+        "materials only.",
       bookingNotice:
-        "Confirm the subject and material volume before allocating personnel. Specialist topics and consecutive meetings need additional preparation; Hua confirms staffing and support format.",
+        "Confirm the subject and material volume before allocating personnel. Specialist topics " +
+        "and consecutive meetings need additional preparation; Hua confirms staffing and " +
+        "support format.",
       duration:
         "Preparation, meeting time and documentation are scoped separately. Half-day/full-day options are enquiry formats; actual hours, breaks and overtime require agreement.",
       people:
@@ -294,7 +349,9 @@ export const starterProjects: Project[] = [
       quotation:
         "Itemize preparation, interpretation, notes, travel and necessary equipment. Specify which written outputs are included and which need a separate translation quote.",
       options:
-        "Remote business communication, on-site meeting interpretation or interpretation with notes. Other formats, including simultaneous interpretation, require separate resource confirmation.",
+        "Remote business communication, on-site meeting interpretation or interpretation with " +
+        "notes. Other formats, including simultaneous interpretation, require separate resource " +
+        "confirmation.",
       combinations:
         "Available as a standalone scope or as part of exhibition visits, factory visits and partnership discussions.",
     },
@@ -339,17 +396,30 @@ export const starterProjects: Project[] = [
       audience:
         "First-time visitors and people planning a work visit or longer stay who want to become familiar with daily life.",
       includes:
-        "Explore the accommodation area, transport and shopping options; explain basic use of maps, ride-hailing and translation tools; accompany enquiries about connectivity; help communicate shopping or delivery needs; prepare bilingual addresses and a task checklist.",
+        "Explore the accommodation area, transport and shopping options; explain basic use of " +
+        "maps, ride-hailing and translation tools; accompany enquiries about connectivity; help " +
+        "communicate shopping or delivery needs; prepare bilingual addresses and a task " +
+        "checklist.",
       excludes:
-        "No guarantee of account activation, payment linking, telecom registration or eligibility approval. Hua does not hold passwords, verification codes, cards or funds, or confirm transactions for the customer. Long-term errands and unlimited remote support are not included.",
+        "No guarantee of account activation, payment linking, telecom registration or " +
+        "eligibility approval. Hua does not hold passwords, verification codes, cards or funds, " +
+        "or confirm transactions for the customer. Long-term errands and unlimited remote " +
+        "support are not included.",
       process:
-        "1. Prioritize everyday tasks.\n2. Check relevant shop or institution requirements and hours.\n3. Agree the route and scope.\n4. The customer operates accounts, signs and pays while the companion helps with understanding.\n5. Record useful resources and unfinished tasks.",
+        "1. Prioritize everyday tasks.\n2. Check relevant shop or institution requirements and " +
+        "hours.\n3. Agree the route and scope.\n4. The customer operates accounts, signs and pays " +
+        "while the companion helps with understanding.\n5. Record useful resources and " +
+        "unfinished tasks.",
       deliverables:
         "A personalized orientation checklist, bilingual place names and addresses, and a record of explained steps and outstanding questions.",
       materials:
-        "Accommodation area, length of stay, phone operating system, communication language and three to five priority tasks. Do not supply passwords, verification codes or bank-card details in the initial enquiry.",
+        "Accommodation area, length of stay, phone operating system, communication language and " +
+        "three to five priority tasks. Do not supply passwords, verification codes or bank-card " +
+        "details in the initial enquiry.",
       bookingNotice:
-        "Confirm institutional requirements and appointment availability for the chosen tasks. The customer verifies and presents any required identity documents directly; Hua does not collect unnecessary copies in advance.",
+        "Confirm institutional requirements and appointment availability for the chosen tasks. " +
+        "The customer verifies and presents any required identity documents directly; Hua does " +
+        "not collect unnecessary copies in advance.",
       duration:
         "Quote for a single session or staged tasks. Area, task count, travel time and any follow-up question window are specified in the proposal.",
       people:
@@ -357,7 +427,9 @@ export const starterProjects: Project[] = [
       changes:
         "If requirements or shop arrangements change, agree alternatives first. Unfinished tasks are recorded as such; extra tasks or repeat visits need separate confirmation.",
       quotation:
-        "Based on task complexity, accompaniment time, travel and documentation. The customer confirms and pays for telecom plans, purchases and platform charges separately unless explicitly stated.",
+        "Based on task complexity, accompaniment time, travel and documentation. The customer " +
+        "confirms and pays for telecom plans, purchases and platform charges separately unless " +
+        "explicitly stated.",
       options:
         "Can be split into neighbourhood orientation, learning phone and everyday tools, and communication for connectivity or household purchases.",
       combinations:
@@ -404,23 +476,38 @@ export const starterProjects: Project[] = [
       audience:
         "Visiting families with children, older relatives or differing walking, rest, dietary and transport preferences.",
       includes:
-        "Collect interests and functional requirements; coordinate transport, activity timing and breaks; check conditions with venues and providers; deliver agreed remote coordination or in-person communication support; assist with contacting parties when plans change.",
+        "Collect interests and functional requirements; coordinate transport, activity timing " +
+        "and breaks; check conditions with venues and providers; deliver agreed remote " +
+        "coordination or in-person communication support; assist with contacting parties when " +
+        "plans change.",
       excludes:
-        "No childcare, professional care or medical supervision. Accessibility, child-seat supply and reservations are not guaranteed. Tickets, meals and vehicles are not included by default. Professional guiding or travel-agency products require confirmation by appropriate providers.",
+        "No childcare, professional care or medical supervision. Accessibility, child-seat " +
+        "supply and reservations are not guaranteed. Tickets, meals and vehicles are not " +
+        "included by default. Professional guiding or travel-agency products require " +
+        "confirmation by appropriate providers.",
       process:
-        "1. Confirm interests, age ranges, walking tolerance and breaks.\n2. Prepare options at a suitable pace.\n3. Check reservations, transport and facilities with the actual parties.\n4. Obtain customer agreement on sequence, costs and alternatives.\n5. Coordinate or accompany as agreed and record changes.",
+        "1. Confirm interests, age ranges, walking tolerance and breaks.\n2. Prepare options at " +
+        "a suitable pace.\n3. Check reservations, transport and facilities with the actual " +
+        "parties.\n4. Obtain customer agreement on sequence, costs and alternatives.\n5. " +
+        "Coordinate or accompany as agreed and record changes.",
       deliverables:
         "A family outing brief covering activity order, transport, agreed rest stops, verified and unresolved conditions, and alternatives for weather or energy levels where applicable.",
       materials:
-        "City, dates, group size, children's age ranges, interests, walking/rest preferences, necessary facilities and dietary communication needs. Provide only planning-relevant information; detailed medical histories are not requested.",
+        "City, dates, group size, children's age ranges, interests, walking/rest preferences, " +
+        "necessary facilities and dietary communication needs. Provide only planning-relevant " +
+        "information; detailed medical histories are not requested.",
       bookingNotice:
-        "Check child seats, accessible transport and specific reservations in advance. Identify the actual provider and responsibilities for professional guiding, travel-agency or care services before confirming.",
+        "Check child seats, accessible transport and specific reservations in advance. Identify " +
+        "the actual provider and responsibilities for professional guiding, travel-agency or " +
+        "care services before confirming.",
       duration:
         "Enquire for half-day, full-day or separate coordination segments. Actual time, breaks, transfers and on-site accompaniment are defined in the confirmed proposal.",
       people:
         "Adult/child count, vehicle capacity and separate groups determine arrangements. Guardians remain responsible for children; accompaniment does not replace supervision.",
       changes:
-        "Agree adjustments when weather, energy levels, venues or transport change. Extra activities, replacement vehicles, cancellations and non-refundable third-party costs follow written terms.",
+        "Agree adjustments when weather, energy levels, venues or transport change. Extra " +
+        "activities, replacement vehicles, cancellations and non-refundable third-party costs " +
+        "follow written terms.",
       quotation:
         "Itemize coordination, accompaniment, transport and third-party activities. Confirm the availability, additional cost and cancellation terms of any specialist facilities.",
       options:
@@ -438,7 +525,10 @@ export function buildStarterProjects(): ContentBody[] {
       const planning =
         locale === "zh"
           ? `拟拓展城市：${catalogCities.map((c) => c.zh).join("、")}。本项目为待审核方案；尚未确认任何城市的具体承接资源。发布前请选择实际可承接的城市，确认服务方、服务窗口及条款。`
-          : `Planned cities: ${catalogCities.map((c) => c.en).join(", ")}. This is a draft offering; local delivery resources are not confirmed. Before publication, select only confirmed service cities and approve providers, service windows and terms.`;
+          : `Planned cities: ${catalogCities.map((c) => c.en).join(", ")}. ` +
+            "This is a draft offering; local delivery resources are not confirmed. " +
+            "Before publication, select only confirmed service cities and approve providers, " +
+            "service windows and terms.";
       return {
         kind: "service-project",
         contentKey: "hua-project-" + project.slug,

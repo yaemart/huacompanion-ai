@@ -15,6 +15,7 @@ import type {
   CollectionAfterChangeHook,
   Access,
   AccessResult,
+  FieldAccess,
 } from "payload";
 import {
   isAdmin,
@@ -30,13 +31,13 @@ import { guardStaffChange, guardBusinessAssignment } from "./staff-guards";
 const admin: Access = ({ req }) => isAdmin(req.user);
 const providersAssigned: Access = ({ req }) => providerScope(req.user);
 const assigned: Access = ({ req }) => inquiryScope(req.user);
-const fieldAdmin = {
-  create: ({ req }: any) => isAdmin(req.user),
-  update: ({ req }: any) => isAdmin(req.user),
+const fieldAdmin: { create: FieldAccess; update: FieldAccess } = {
+  create: ({ req }) => isAdmin(req.user),
+  update: ({ req }) => isAdmin(req.user),
 };
-const ownerAccess = {
-  create: ({ req }: any) => isManager(req.user),
-  update: ({ req }: any) => isManager(req.user),
+const ownerAccess: { create: FieldAccess; update: FieldAccess } = {
+  create: ({ req }) => isManager(req.user),
+  update: ({ req }) => isManager(req.user),
 };
 const protectedField = { create: () => false, update: () => false };
 const categoryOptions = [

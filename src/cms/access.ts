@@ -1,15 +1,15 @@
 import type { Where } from "payload";
+import type { Staff as StaffDocument } from "../../payload-types";
 /** Shared server-side staff capabilities. JWT authentication loads these from the DB. */
 export type Staff =
-  | {
-      id: number | string;
+  | (Pick<StaffDocument, "active"> & {
+      id: StaffDocument["id"] | string;
       collection?: string;
       role?: string;
       additionalRoles?: string[] | null;
-      active?: boolean | null;
       team?: number | string | { id: number | string } | null;
       contentKinds?: string[] | null;
-    }
+    })
   | null
   | undefined;
 export const staffRoles = ["admin", "manager", "operations", "editor", "reviewer"] as const;
@@ -26,6 +26,11 @@ export const contentKinds = [
   "venue",
   "activity",
 ] as const;
+export function relationID<T extends string | number>(value: T | { id: T }): T;
+export function relationID<T extends string | number>(
+  value: T | { id: T } | null | undefined,
+): T | undefined;
+export function relationID(value: unknown): string | number | undefined;
 export function relationID(value: unknown): string | number | undefined {
   if (typeof value === "string" || typeof value === "number") return value;
   if (value && typeof value === "object" && "id" in value) return relationID(value.id);

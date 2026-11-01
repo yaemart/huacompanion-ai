@@ -72,12 +72,18 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "support_conversations_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "support_messages_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "support_runs_id" integer;
-  ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_customer_id_support_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."support_customers"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_messages" ADD CONSTRAINT "support_messages_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_messages" ADD CONSTRAINT "support_messages_staff_id_staff_id_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "support_runs" ADD CONSTRAINT "support_runs_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_customer_id_support_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES \
+"public"."support_customers"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_messages" ADD CONSTRAINT "support_messages_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "support_messages" ADD CONSTRAINT "support_messages_staff_id_staff_id_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "support_runs" ADD CONSTRAINT "support_runs_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
   CREATE INDEX "support_customers_updated_at_idx" ON "support_customers" USING btree ("updated_at");
   CREATE INDEX "support_customers_created_at_idx" ON "support_customers" USING btree ("created_at");
   CREATE INDEX "support_conversations_visitor_hash_idx" ON "support_conversations" USING btree ("visitor_hash");
@@ -98,10 +104,14 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "support_runs_day_idx" ON "support_runs" USING btree ("day");
   CREATE INDEX "support_runs_updated_at_idx" ON "support_runs" USING btree ("updated_at");
   CREATE INDEX "support_runs_created_at_idx" ON "support_runs" USING btree ("created_at");
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_customers_fk" FOREIGN KEY ("support_customers_id") REFERENCES "public"."support_customers"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_conversations_fk" FOREIGN KEY ("support_conversations_id") REFERENCES "public"."support_conversations"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_messages_fk" FOREIGN KEY ("support_messages_id") REFERENCES "public"."support_messages"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_runs_fk" FOREIGN KEY ("support_runs_id") REFERENCES "public"."support_runs"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_customers_fk" FOREIGN KEY ("support_customers_id") REFERENCES \
+"public"."support_customers"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_conversations_fk" FOREIGN KEY ("support_conversations_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_messages_fk" FOREIGN KEY ("support_messages_id") REFERENCES \
+"public"."support_messages"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_support_runs_fk" FOREIGN KEY ("support_runs_id") REFERENCES \
+"public"."support_runs"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "payload_locked_documents_rels_support_customers_id_idx" ON "payload_locked_documents_rels" USING btree ("support_customers_id");
   CREATE INDEX "payload_locked_documents_rels_support_conversations_id_idx" ON "payload_locked_documents_rels" USING btree ("support_conversations_id");
   CREATE INDEX "payload_locked_documents_rels_support_messages_id_idx" ON "payload_locked_documents_rels" USING btree ("support_messages_id");

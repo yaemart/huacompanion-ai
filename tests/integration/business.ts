@@ -107,7 +107,8 @@ try {
     "Unsent withdrawn draft must remain private",
   );
   await act("quote", { quote: offer });
-  let quote = (await read()).quotes.find((q: any) => q.status === "draft");
+  const quote = (await read()).quotes.find((q: any) => q.status === "draft");
+  assert.ok(quote);
   await assert.rejects(() => confirmQuote(p, customer, { quote: quote.id, key: randomUUID() }));
   await act("send", { quote: quote.id });
   await assert.rejects(() => confirmQuote(p, outsider, { quote: quote.id, key: randomUUID() }));
@@ -115,7 +116,8 @@ try {
   assert.equal(view.cases[0].quotes[0].totalMinor, 30000);
   assert.equal("internalCostMinor" in view.cases[0].quotes[0], false);
   await act("quote", { quote: { ...offer, title: "Revised support" } });
-  let updated = (await read()).quotes.find((x: any) => x.status === "draft");
+  const updated = (await read()).quotes.find((x: any) => x.status === "draft");
+  assert.ok(updated);
   await act("send", { quote: updated.id });
   await assert.rejects(() => confirmQuote(p, customer, { quote: quote.id, key: randomUUID() }));
   const confirmations = await Promise.all([
@@ -136,6 +138,7 @@ try {
   assert.ok((await customerBusinessRead(p, customer)).cases[0].publicArrangement);
   await act("quote", { quote: { ...offer, title: "Changed after arrangement" } });
   const replacement = (await read()).quotes.find((x: any) => x.status === "draft");
+  assert.ok(replacement);
   await act("send", { quote: replacement.id });
   const resetView = (await customerBusinessRead(p, customer)).cases[0];
   assert.equal(resetView.publicArrangement, "");

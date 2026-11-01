@@ -246,24 +246,42 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
 
-  ALTER TABLE "staff_sessions" ADD CONSTRAINT "staff_sessions_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."staff"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "inquiries_categories" ADD CONSTRAINT "inquiries_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."inquiries"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "_inquiries_v_version_categories" ADD CONSTRAINT "_inquiries_v_version_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."_inquiries_v"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "_inquiries_v" ADD CONSTRAINT "_inquiries_v_parent_id_inquiries_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "_inquiries_v" ADD CONSTRAINT "_inquiries_v_version_owner_id_staff_id_fk" FOREIGN KEY ("version_owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "providers_categories" ADD CONSTRAINT "providers_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."providers"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "_providers_v_version_categories" ADD CONSTRAINT "_providers_v_version_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."_providers_v"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "_providers_v" ADD CONSTRAINT "_providers_v_parent_id_providers_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."providers"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "audit_events" ADD CONSTRAINT "audit_events_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."payload_locked_documents"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_staff_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_inquiries_fk" FOREIGN KEY ("inquiries_id") REFERENCES "public"."inquiries"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_providers_fk" FOREIGN KEY ("providers_id") REFERENCES "public"."providers"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_notifications_fk" FOREIGN KEY ("notifications_id") REFERENCES "public"."notifications"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_audit_events_fk" FOREIGN KEY ("audit_events_id") REFERENCES "public"."audit_events"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_preferences_rels" ADD CONSTRAINT "payload_preferences_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."payload_preferences"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_preferences_rels" ADD CONSTRAINT "payload_preferences_rels_staff_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "staff_sessions" ADD CONSTRAINT "staff_sessions_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."staff"("id") ON DELETE cascade ON UPDATE no \
+action;
+  ALTER TABLE "inquiries_categories" ADD CONSTRAINT "inquiries_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."inquiries"("id") ON DELETE cascade ON \
+UPDATE no action;
+  ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no \
+action;
+  ALTER TABLE "_inquiries_v_version_categories" ADD CONSTRAINT "_inquiries_v_version_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES \
+"public"."_inquiries_v"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "_inquiries_v" ADD CONSTRAINT "_inquiries_v_parent_id_inquiries_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "_inquiries_v" ADD CONSTRAINT "_inquiries_v_version_owner_id_staff_id_fk" FOREIGN KEY ("version_owner_id") REFERENCES "public"."staff"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "providers_categories" ADD CONSTRAINT "providers_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."providers"("id") ON DELETE cascade ON \
+UPDATE no action;
+  ALTER TABLE "_providers_v_version_categories" ADD CONSTRAINT "_providers_v_version_categories_parent_fk" FOREIGN KEY ("parent_id") REFERENCES \
+"public"."_providers_v"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "_providers_v" ADD CONSTRAINT "_providers_v_parent_id_providers_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."providers"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "audit_events" ADD CONSTRAINT "audit_events_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no \
+action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES \
+"public"."payload_locked_documents"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_staff_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE \
+cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_inquiries_fk" FOREIGN KEY ("inquiries_id") REFERENCES \
+"public"."inquiries"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_providers_fk" FOREIGN KEY ("providers_id") REFERENCES \
+"public"."providers"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_notifications_fk" FOREIGN KEY ("notifications_id") REFERENCES \
+"public"."notifications"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_audit_events_fk" FOREIGN KEY ("audit_events_id") REFERENCES \
+"public"."audit_events"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_preferences_rels" ADD CONSTRAINT "payload_preferences_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."payload_preferences"("id") ON \
+DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_preferences_rels" ADD CONSTRAINT "payload_preferences_rels_staff_fk" FOREIGN KEY ("staff_id") REFERENCES "public"."staff"("id") ON DELETE cascade \
+ON UPDATE no action;
   CREATE INDEX "staff_sessions_order_idx" ON "staff_sessions" USING btree ("_order");
   CREATE INDEX "staff_sessions_parent_id_idx" ON "staff_sessions" USING btree ("_parent_id");
   CREATE INDEX "staff_updated_at_idx" ON "staff" USING btree ("updated_at");

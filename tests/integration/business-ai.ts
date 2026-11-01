@@ -373,7 +373,9 @@ try {
   }
   assert.deepEqual(findings, []);
   console.log(
-    "PASS business AI: disabled/no call, confirmed pricing, private context, editable adoption, idempotency, mandatory human review, customer privacy, stale source, cancellation, budget, malformed output, timeout and revoked actor",
+    "PASS business AI: disabled/no call, confirmed pricing, private context, editable " +
+      "adoption, idempotency, mandatory human review, customer privacy, stale source, " +
+      "cancellation, budget, malformed output, timeout and revoked actor",
   );
 } finally {
   if (settings)
