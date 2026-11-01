@@ -12,7 +12,8 @@ import { validateInstitutionPublication } from "../../lib/institutions";
 import { validateExhibitionPublication, effectiveExhibitionStatus } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
 import { eligibleProvider, allSnapshots, suspendProjectsForKey } from "../catalog/eligibility";
-import type { Payload } from "payload";
+import type { Payload, PayloadRequest } from "payload";
+import type { ContentDraft, ContentPublished } from "../../../payload-types";
 import {
   canEditContent,
   validateContent,
@@ -20,6 +21,21 @@ import {
   type ContentBody,
   type ContentUser,
 } from "../../lib/content-model";
+type PublishedSnapshot = Omit<ContentPublished, "body"> & { body: ContentBody };
+interface ContentActionInput {
+  action: string;
+  id?: unknown;
+  revision?: unknown;
+  versionId?: unknown;
+  body?: unknown;
+  providerRef?: unknown;
+  overrideReason?: unknown;
+  note?: unknown;
+  exhibitionReviewed?: unknown;
+  institutionReviewed?: unknown;
+  lifeReviewed?: unknown;
+  catalogReviewed?: unknown;
+}
 export class ContentError extends Error {
   status: number;
   constructor(message: string, status = 400) {
@@ -50,8 +66,8 @@ export async function contentTransaction<T>(
 export async function readPublished(p: Payload, kind: string, locale: string, slug: string) {
   return (await listPublished(p, locale)).find((d) => d.kind === kind && d.slug === slug) || null;
 }
-export async function listPublished(p: Payload, locale: string, req?: any) {
-  const snapshots = await allSnapshots(p, req);
+export async function listPublished(p: Payload, locale: string, req?: Partial<PayloadRequest>) {
+  const snapshots: PublishedSnapshot[] = await allSnapshots(p, req);
   const eligible = new Map<string, boolean>();
   for (const s of snapshots)
     if (
@@ -115,13 +131,13 @@ export async function listPublished(p: Payload, locale: string, req?: any) {
         ...b,
         publicationRevision: s.revision,
         publishedAt: s.publishedAt,
-        qualityReview: publicQualityMetadata((s as any).qualityReview, s.revision),
+        qualityReview: publicQualityMetadata(s.qualityReview, s.revision),
       };
     })
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
-export async function mutateContent(p: Payload, user: ContentUser, input: any) {
+export async function mutateContent(p: Payload, user: ContentUser, input: ContentActionInput) {
   if (!canManageContent(user)) throw new ContentError("无内容管理权限", 403);
   if (["save", "restore", "submit"].includes(input.action) && !canEditContent(user))
     throw new ContentError("只有内容编辑可修改或提交工作稿", 403);
@@ -158,7 +174,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       throw new ContentError("不能审核自己编辑或提交的内容；管理员须填写例外原因", 403);
     if (current && current.revision !== input.revision)
       throw new ContentError("内容已经更新，请刷新后重试", 409);
-    let body = input.body;
+    let rawBody = input.body;
     if (input.action === "restore") {
       if (!current) throw new ContentError("请选择内容");
       const versions = await p.findVersions({
@@ -170,12 +186,12 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         req,
       });
       if (!versions.docs[0]) throw new ContentError("历史版本不存在", 404);
-      body = versions.docs[0].version.body;
+      rawBody = versions.docs[0].version.body;
     }
     if (["save", "restore"].includes(input.action)) {
-      validateContent(body);
-      if (!canAccessContentKind(user, body.kind)) throw new ContentError("无此板块权限", 403);
-      body = publicBody(body);
+      validateContent(rawBody);
+      if (!canAccessContentKind(user, rawBody.kind)) throw new ContentError("无此板块权限", 403);
+      const body = publicBody(rawBody);
       if (current) {
         const old = current.body as unknown as ContentBody;
         if (
@@ -197,7 +213,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
           collection: "content-media",
           id: mediaId,
           overrideAccess: false,
-          user: user as any,
+          user,
           req,
         });
       let providerRef = current?.providerRef;
@@ -208,7 +224,9 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         if (!isAdmin(user)) throw new ContentError("只有管理员可关联内部服务商", 403);
         if (
           input.providerRef !== null &&
-          (!Number.isSafeInteger(input.providerRef) || input.providerRef < 1)
+          (typeof input.providerRef !== "number" ||
+            !Number.isSafeInteger(input.providerRef) ||
+            input.providerRef < 1)
         )
           throw new ContentError("内部服务商编号无效");
         if (
@@ -232,7 +250,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         slug: body.slug,
         identity: `${body.contentKey}:${body.locale}`,
         routeKey: `${body.kind}:${body.locale}:${body.slug}`,
-        body,
+        body: body as unknown as ContentDraft["body"],
         revision: (current?.revision || 0) + 1,
         contributors: [
           ...new Set(
@@ -256,7 +274,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
             req,
           })
         : await p.create({ collection: "content-drafts", data, req });
-      if (!isAdmin(user)) delete (saved as any).providerRef;
+      if (!isAdmin(user)) delete saved.providerRef;
       return saved;
     }
     if (!current) throw new ContentError("内容不存在", 404);
@@ -360,7 +378,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         }
       }
       const quality = (
-        await (p as any).find({
+        await p.find({
           collection: "content-quality",
           where: { draftId: { equals: current.id } },
           limit: 1,
@@ -387,7 +405,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         routeKey: current.routeKey,
         active: true,
         revision: current.revision,
-        body: clean as any,
+        body: clean as unknown as ContentPublished["body"],
         publishedBy: Number(user!.id),
         publishedAt: new Date().toISOString(),
       };
@@ -415,7 +433,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         action: input.action,
         actor: Number(user!.id),
         revision: current.revision,
-        snapshot: clean as any,
+        snapshot: clean as unknown as ContentPublished["body"],
         overrideReason: selfReview ? overrideReason : "",
       },
       req,
@@ -436,6 +454,6 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
       req,
     });
   });
-  if (!isAdmin(user)) delete (result as any).providerRef;
+  if (!isAdmin(user)) delete result.providerRef;
   return result;
 }
