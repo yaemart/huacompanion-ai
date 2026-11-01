@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   validatePolicyPublication,
   publicPolicy,
+  validatePublicPolicy,
   type PolicyPublicationData,
 } from "../src/lib/immigration-policy.ts";
 
@@ -29,6 +30,26 @@ test("publication accepts complete policies and an explicitly absent expiry", ()
   validatePolicyPublication({ ...policy, internalNotes: null }, "2026-11-01");
 });
 
+test("public snapshot validation needs no private verification fields", () => {
+  const facts = publicPolicy(policy);
+  validatePublicPolicy(facts, "2026-11-01");
+  validatePublicPolicy({ ...facts, validUntil: null }, "2026-11-01");
+  assert.throws(() => validatePolicyPublication(facts, "2026-11-01"));
+});
+
+test("public snapshots reject invalid facts and future verification", () => {
+  const facts = publicPolicy(policy);
+  for (const fields of [
+    { countryCode: "FRA" },
+    { validFrom: "2026-02-29" },
+    { validUntil: "2025-01-01" },
+    { lastVerifiedOn: "2026-11-02" },
+    { officialSourceUrl: "https://user:secret@example.invalid" },
+    { portsAndRegions: [7] },
+  ])
+    assert.throws(() => validatePublicPolicy({ ...facts, ...fields }, "2026-11-01"));
+});
+
 test("publication rejects malformed or incomplete policy facts", () => {
   for (const fields of [
     { countryCode: "fra" },
@@ -45,6 +66,7 @@ test("publication rejects malformed or incomplete policy facts", () => {
     { officialSourceUrl: "https://user:secret@example.invalid" },
     { portsAndRegions: [7] },
     { publicNotes: { unsafe: true } },
+    { internalNotes: { unsafe: true } },
   ])
     assert.throws(() => validatePolicyPublication({ ...policy, ...fields }, "2026-11-01"));
   for (const value of [null, [], "policy", 2])
