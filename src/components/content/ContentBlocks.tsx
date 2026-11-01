@@ -1,3 +1,4 @@
+import { PolicyBanner } from "../immigration/PolicyBanner";
 import { qualityStatusLabel } from "../../lib/quality";
 import type { Locale } from "../../lib/locales";
 import type { Block } from "@/lib/content-model";
@@ -16,7 +17,11 @@ export function ContentBlocks({
         <p className="notice">{qualityStatusLabel(locale, quality)}</p>
       )}
       {blocks.map((b, i) =>
-        b.type === "heading" ? (
+        b.type === "policy-banner" ? (
+          locale ? (
+            <PolicyBanner key={i} block={b} locale={locale} />
+          ) : null
+        ) : b.type === "heading" ? (
           <h2 key={i}>{b.text}</h2>
         ) : b.type === "list" ? (
           <ul key={i}>

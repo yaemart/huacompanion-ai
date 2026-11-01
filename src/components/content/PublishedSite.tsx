@@ -211,7 +211,7 @@ export function PublishedSite({
             {faqs.map((f) => (
               <details key={f.contentKey} id={`faq-${f.contentKey}`}>
                 <summary>{f.title}</summary>
-                <ContentBlocks blocks={f.blocks} />
+                <ContentBlocks blocks={f.blocks} locale={locale} />
               </details>
             ))}
           </section>

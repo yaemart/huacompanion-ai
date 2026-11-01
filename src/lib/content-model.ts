@@ -1,4 +1,5 @@
 import { publicPolicy, type PublicPolicyData } from "./immigration-policy.ts";
+import { parsePolicyBannerBlock } from "./immigration-policy-banner.ts";
 import { homeTexts } from "./housekeeping.ts";
 import {
   type Lifestyle,
@@ -15,10 +16,11 @@ import { hasRole, isAdmin, type Staff } from "../cms/access.ts";
 export type ContentUser = Staff;
 export const canEditContent = (user: ContentUser) => isAdmin(user) || hasRole(user, "editor");
 export type Block = {
-  type: "heading" | "paragraph" | "list" | "image" | "link";
+  type: "heading" | "paragraph" | "list" | "image" | "link" | "policy-banner";
   text?: string;
   url?: string;
   mediaId?: number;
+  policyUnconfirmed?: boolean;
 };
 export type Source = {
   id: string;
@@ -76,9 +78,11 @@ export function safeURL(value: unknown) {
 function checkBlocks(blocks: unknown) {
   if (!Array.isArray(blocks) || blocks.length > 200) throw Error("正文格式无效");
   for (const b of blocks) {
-    if (!b || !["heading", "paragraph", "list", "image", "link"].includes(b.type))
+    if (!b || !["heading", "paragraph", "list", "image", "link", "policy-banner"].includes(b.type))
       throw Error("不支持的正文类型");
-    if (b.type === "image") {
+    if (b.type === "policy-banner") {
+      if (!parsePolicyBannerBlock(b)) throw Error("政策横幅需有效内容标识及待确认选项");
+    } else if (b.type === "image") {
       if (!Number.isSafeInteger(b.mediaId) || b.mediaId < 1) throw Error("请选择图片");
     } else if (typeof b.text !== "string" || b.text.length > 10000) throw Error("正文过长或无效");
     if (b.type === "link" && !safeURL(b.url)) throw Error("链接必须为 http/https");
@@ -170,7 +174,8 @@ export function validateCandidate(value: unknown, allowed: string[]): asserts va
         throw Error("AI仅可翻译允许的文字字段");
   }
   checkBlocks(r.blocks);
-  if (r.blocks.some((b) => b.type === "image")) throw Error("AI不能自行引用图片");
+  if (r.blocks.some((b) => b.type === "image" || b.type === "policy-banner"))
+    throw Error("AI不能自行引用图片或政策横幅");
   if (!Array.isArray(r.sourceIds) || r.sourceIds.some((id) => !allowed.includes(id)))
     throw Error("AI引用了未提供的来源");
   if (
@@ -202,6 +207,7 @@ export function publicBody(d: ContentBody): ContentBody {
       text: b.text,
       url: b.url,
       mediaId: b.mediaId,
+      ...(b.type === "policy-banner" ? { policyUnconfirmed: b.policyUnconfirmed === true } : {}),
     })),
     sources: d.sources.map((s) => ({
       id: s.id,

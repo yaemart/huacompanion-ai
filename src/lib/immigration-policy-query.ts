@@ -45,7 +45,10 @@ export function safeVisaGuide(value: unknown): VisaGuide | null {
   return { href: guide.href, title: guide.title };
 }
 
-function cleanPolicy(value: unknown, verifiedOnOrBefore: string): PublicPolicyData | null {
+export function cleanPublicPolicy(
+  value: unknown,
+  verifiedOnOrBefore: string,
+): PublicPolicyData | null {
   try {
     validatePublicPolicy(value, verifiedOnOrBefore);
     const clean = publicPolicy(value);
@@ -109,7 +112,7 @@ export function queryImmigrationPolicies(
   if (!errors.length && typeof arrivalDate === "string" && nationality !== null) {
     const applicable: PublicPolicyData[] = [];
     for (const candidate of policies) {
-      const policy = cleanPolicy(candidate, context.verifiedOnOrBefore);
+      const policy = cleanPublicPolicy(candidate, context.verifiedOnOrBefore);
       if (
         policy &&
         policy.countryCode === nationality &&

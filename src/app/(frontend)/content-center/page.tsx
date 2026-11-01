@@ -23,5 +23,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
     if (!canAccessContentKind(auth.user, kind)) notFound();
     return <PolicyWorkbench />;
   }
-  return <ContentCenter key={kind || "all"} initialKind={kind} />;
+  return (
+    <ContentCenter
+      key={kind || "all"}
+      initialKind={kind}
+      policyBannersEnabled={visaCheckerEnabled()}
+    />
+  );
 }
