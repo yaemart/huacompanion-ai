@@ -1,3 +1,5 @@
+import { policyLabels } from "@/lib/immigration-policy-editor";
+import { readContentPreview } from "@/server/content/preview";
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { CatalogDetails } from "@/components/catalog/CatalogPage";
@@ -19,14 +21,9 @@ export default async function Preview({ params }: { params: Promise<{ id: string
     redirect("/admin/login");
   }
   const { id } = await params;
-  const d = await auth.p
-    .findByID({
-      collection: "content-drafts",
-      id: Number(id),
-      overrideAccess: false,
-      user: auth.user,
-    })
-    .catch(() => notFound());
+  const { draft: d, policy } = await readContentPreview(auth.p, auth.user, Number(id)).catch(() =>
+    notFound(),
+  );
   const body = d.body as unknown as ContentBody;
   return (
     <main className="section article" lang={body.locale} dir={body.locale === "ar" ? "rtl" : "ltr"}>
@@ -133,6 +130,21 @@ export default async function Preview({ params }: { params: Promise<{ id: string
                 <dd style={{ whiteSpace: "pre-wrap" }}>{value || "未填写"}</dd>
               </div>
             ))}
+          </dl>
+        </section>
+      )}
+      {policy && (
+        <section>
+          <dl>
+            {Object.entries(policyLabels).map(([key, label]) => {
+              const value = policy[key as keyof typeof policyLabels];
+              return (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd>{Array.isArray(value) ? value.join("；") : String(value ?? "未填写")}</dd>
+                </div>
+              );
+            })}
           </dl>
         </section>
       )}

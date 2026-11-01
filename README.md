@@ -2,7 +2,7 @@
 
 面向来华客户的服务信息、咨询和员工协作平台。当前已完成收敛代码与本机部署准备，**尚未在真实托管环境试运行或正式发布**。公开语言默认为英文、中文，根路径进入英文首页；其余五语与高级模块保留代码并关闭入口。完整状态见[功能清单](docs/feature-inventory.md)。
 
-当前开发以[流量入口分阶段任务书](docs/traffic-entry-task.md)为准；停止点A已确认[Render托管](docs/hosting-options.md)与[Cloudflare加站内汇总](docs/analytics-options.md)，当前仅继续本地开发测试。此前的收敛工作作为基础复用，新功能按步骤独立 PR。[阶段1完整开发任务书与实施顺序](docs/traffic-entry-phase1-plan.md)已整理，1.1a契约、1.1b私有集合/版本及1.1c1审核发布事务已本地验证；下一步补后台字段界面，公开工具尚未实现。
+当前开发以[流量入口分阶段任务书](docs/traffic-entry-task.md)为准；停止点A已确认[Render托管](docs/hosting-options.md)与[Cloudflare加站内汇总](docs/analytics-options.md)，当前仅继续本地开发测试。此前的收敛工作作为基础复用，新功能按步骤独立 PR。[阶段1完整开发任务书与实施顺序](docs/traffic-entry-phase1-plan.md)已整理，1.1a契约、1.1b私有集合/版本及1.1c审核事务/后台字段表单已本地验证；下一步仅草稿种子与专用公开投影，公开工具尚未实现。
 
 ## 已完成
 

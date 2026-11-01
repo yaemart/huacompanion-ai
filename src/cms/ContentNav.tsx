@@ -1,3 +1,4 @@
+import { visaCheckerEnabled } from "../lib/immigration-policy-flags";
 import {
   isOperator,
   canAccessContentKind,
@@ -26,6 +27,7 @@ export function ContentNav({ user }: { user?: Staff }) {
     ["provider-profile", "服务商展示内容"],
     ["service-project", "华伴服务项目"],
   ];
+  if (visaCheckerEnabled()) links.push(["immigration-policy", "入境政策"]);
   return (
     <section aria-label="内容管理" style={{ marginBottom: 24 }}>
       {isOperator(user) && (
