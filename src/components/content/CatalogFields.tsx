@@ -139,9 +139,7 @@ export function CatalogFields({
       {kind === "provider-profile" ? (
         <>
           <h3>可公开的核验项目</h3>
-          <p>
-            仅填写实际核验过的事项，不等于服务效果保证。详细证件仍留在内部。
-          </p>
+          <p>仅填写实际核验过的事项，不等于服务效果保证。详细证件仍留在内部。</p>
           {c.verification.map((v, i) => (
             <div className="row" key={i}>
               <label>
@@ -151,9 +149,7 @@ export function CatalogFields({
                   onChange={(e) =>
                     set(
                       "verification",
-                      c.verification.map((x, j) =>
-                        j === i ? { ...x, label: e.target.value } : x,
-                      ),
+                      c.verification.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
                     )
                   }
                 />
@@ -188,12 +184,7 @@ export function CatalogFields({
           ))}
           <button
             type="button"
-            onClick={() =>
-              set("verification", [
-                ...c.verification,
-                { label: "", checkedAt: "" },
-              ])
-            }
+            onClick={() => set("verification", [...c.verification, { label: "", checkedAt: "" }])}
           >
             ＋ 核验事项
           </button>
@@ -237,19 +228,14 @@ export function CatalogFields({
                     </option>
                   ))}
               </select>
-              <small>
-                选择不代表已获准发布；发布时重新检查服务商许可与正式版本。
-              </small>
+              <small>选择不代表已获准发布；发布时重新检查服务商许可与正式版本。</small>
             </label>
           )}
         </>
       )}
       <label>
         计价方式
-        <select
-          value={c.price.mode}
-          onChange={(e) => set("price", { mode: e.target.value })}
-        >
+        <select value={c.price.mode} onChange={(e) => set("price", { mode: e.target.value })}>
           <option value="quote">按需求询价</option>
           <option value="fixed">固定价（按适用条件）</option>
           <option value="from">起价</option>
@@ -290,9 +276,7 @@ export function CatalogFields({
               计价单位
               <input
                 value={c.price.unit || ""}
-                onChange={(e) =>
-                  set("price", { ...c.price, unit: e.target.value })
-                }
+                onChange={(e) => set("price", { ...c.price, unit: e.target.value })}
               />
             </label>
           </div>
@@ -300,9 +284,7 @@ export function CatalogFields({
             价格适用条件
             <textarea
               value={c.price.conditions || ""}
-              onChange={(e) =>
-                set("price", { ...c.price, conditions: e.target.value })
-              }
+              onChange={(e) => set("price", { ...c.price, conditions: e.target.value })}
             />
           </label>
         </>

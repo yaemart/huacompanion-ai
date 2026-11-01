@@ -1,10 +1,84 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';
-import {postponeDate,reminderKey,customerNotificationText} from '../src/lib/workflow.ts';
-import {sendConfiguredMail} from '../src/server/workflow/mail.ts';
-test('postpone requires reason and future date',()=>{assert.throws(()=>postponeDate('2099-01-01',''));assert.throws(()=>postponeDate('2000-01-01','reason'));assert.equal(postponeDate('2099-01-01','reason'),'2099-01-01T00:00:00.000Z');});
-test('reminders dedupe same deadline, renew on changed deadline',()=>{assert.equal(reminderKey(1,'2026-01-01'),reminderKey(1,'2026-01-01T00:00:00Z'));assert.notEqual(reminderKey(1,'2026-01-01'),reminderKey(1,'2026-01-02'));});
-test('mail disabled without explicit configuration',async()=>{const r=await sendConfiguredMail({to:'test@example.invalid',subject:'test',text:'test',idempotencyKey:'test'},{env:{},fetch:()=>{throw Error('must not send');}});assert.equal(r.status,'disabled');});
-test('mail timeout never claims sent and keeps idempotency key',async()=>{let key;const r=await sendConfiguredMail({to:'test@example.invalid',subject:'test',text:'test',idempotencyKey:'stable'},{env:{WORKFLOW_MAIL_ENABLED:'true',WORKFLOW_MAIL_API_KEY:'fake',WORKFLOW_MAIL_FROM:'staff@example.invalid'},fetch:async(_url,opts)=>{key=new Headers(opts?.headers).get('Idempotency-Key');throw Error('timeout');}});assert.equal(r.status,'uncertain');assert.equal(key,'stable');});
-test('mail provider response is bounded and explicit success required',async()=>{const env={WORKFLOW_MAIL_ENABLED:'true',WORKFLOW_MAIL_API_KEY:'fake',WORKFLOW_MAIL_FROM:'staff@example.invalid'};const message={to:'test@example.invalid',subject:'test',text:'test',idempotencyKey:'bounded'};assert.equal((await sendConfiguredMail(message,{env,fetch:async()=>new Response('x'.repeat(20000))})).status,'uncertain');assert.deepEqual(await sendConfiguredMail(message,{env,fetch:async()=>Response.json({id:'provider-id'})}),{status:'sent',providerId:'provider-id'});assert.equal((await sendConfiguredMail(message,{env,fetch:async()=>new Response('',{status:429,headers:{'retry-after':'120'}})})).retryAfterMs,120000);});
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { postponeDate, reminderKey, customerNotificationText } from "../src/lib/workflow.ts";
+import { sendConfiguredMail } from "../src/server/workflow/mail.ts";
+test("postpone requires reason and future date", () => {
+  assert.throws(() => postponeDate("2099-01-01", ""));
+  assert.throws(() => postponeDate("2000-01-01", "reason"));
+  assert.equal(postponeDate("2099-01-01", "reason"), "2099-01-01T00:00:00.000Z");
+});
+test("reminders dedupe same deadline, renew on changed deadline", () => {
+  assert.equal(reminderKey(1, "2026-01-01"), reminderKey(1, "2026-01-01T00:00:00Z"));
+  assert.notEqual(reminderKey(1, "2026-01-01"), reminderKey(1, "2026-01-02"));
+});
+test("mail disabled without explicit configuration", async () => {
+  const r = await sendConfiguredMail(
+    { to: "test@example.invalid", subject: "test", text: "test", idempotencyKey: "test" },
+    {
+      env: {},
+      fetch: () => {
+        throw Error("must not send");
+      },
+    },
+  );
+  assert.equal(r.status, "disabled");
+});
+test("mail timeout never claims sent and keeps idempotency key", async () => {
+  let key;
+  const r = await sendConfiguredMail(
+    { to: "test@example.invalid", subject: "test", text: "test", idempotencyKey: "stable" },
+    {
+      env: {
+        WORKFLOW_MAIL_ENABLED: "true",
+        WORKFLOW_MAIL_API_KEY: "fake",
+        WORKFLOW_MAIL_FROM: "staff@example.invalid",
+      },
+      fetch: async (_url, opts) => {
+        key = new Headers(opts?.headers).get("Idempotency-Key");
+        throw Error("timeout");
+      },
+    },
+  );
+  assert.equal(r.status, "uncertain");
+  assert.equal(key, "stable");
+});
+test("mail provider response is bounded and explicit success required", async () => {
+  const env = {
+    WORKFLOW_MAIL_ENABLED: "true",
+    WORKFLOW_MAIL_API_KEY: "fake",
+    WORKFLOW_MAIL_FROM: "staff@example.invalid",
+  };
+  const message = {
+    to: "test@example.invalid",
+    subject: "test",
+    text: "test",
+    idempotencyKey: "bounded",
+  };
+  assert.equal(
+    (await sendConfiguredMail(message, { env, fetch: async () => new Response("x".repeat(20000)) }))
+      .status,
+    "uncertain",
+  );
+  assert.deepEqual(
+    await sendConfiguredMail(message, {
+      env,
+      fetch: async () => Response.json({ id: "provider-id" }),
+    }),
+    { status: "sent", providerId: "provider-id" },
+  );
+  assert.equal(
+    (
+      await sendConfiguredMail(message, {
+        env,
+        fetch: async () => new Response("", { status: 429, headers: { "retry-after": "120" } }),
+      })
+    ).retryAfterMs,
+    120000,
+  );
+});
 
-test('customer mail covers all seven site locales',()=>{for(const locale of ['zh','en','es','fr','de','it','ar'])assert.equal(customerNotificationText(locale).locale,locale);assert.equal(customerNotificationText('unknown').locale,'en');});
+test("customer mail covers all seven site locales", () => {
+  for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"])
+    assert.equal(customerNotificationText(locale).locale, locale);
+  assert.equal(customerNotificationText("unknown").locale, "en");
+});

@@ -1,34 +1,389 @@
-import {requiresPrivateHandling} from '../../lib/support-privacy';
-import {randomUUID,createHash} from 'node:crypto';
-import type {Payload} from 'payload';
-import {relationID} from '../../cms/access';
-import {inspectVoiceWav,MAX_VOICE_BYTES} from '../../lib/voice';
-import {ContentError} from '../content/service';
-import {supportTransaction,keyOf} from './service';
-import {voiceScope,type VoiceActor} from './voice';
-import {voiceFeatures} from './voice-config';
-import {requireSupportFeature} from './features';
-export type SpeechInput={kind:'transcribe'|'synthesize';locale:string;audio?:string;text?:string;signal:AbortSignal};
-export type SpeechOutput={text?:string;audio?:string};
-export type SpeechAdapter={run:(input:SpeechInput)=>Promise<SpeechOutput>};
-export function speechAdapter():SpeechAdapter|undefined{if(!voiceFeatures().transcription)return;return {async run({signal,...input}){const response=await fetch(process.env.SUPPORT_SPEECH_ENDPOINT!,{method:'POST',redirect:'error',signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${process.env.SUPPORT_SPEECH_KEY}`},body:JSON.stringify({...input,format:'wav-pcm16-mono',maxSeconds:60,maxCharacters:8000})});if(!response.ok)throw Error('Speech provider failed');const reader=response.body?.getReader();if(!reader)throw Error('Empty speech response');let length=0;const chunks:Uint8Array[]=[];while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>MAX_VOICE_BYTES*1.4){await reader.cancel();throw Error('Speech response too large');}chunks.push(value);}return JSON.parse(Buffer.concat(chunks).toString('utf8'));}};}
-export async function queueVoiceJob(p:Payload,actor:VoiceActor,input:any){const db=p as any;return supportTransaction(p,async req=>{if(!['transcribe','synthesize'].includes(input.kind)||input.consent!==true)throw new ContentError('Explicit speech-processing consent required');await requireSupportFeature(p,input.kind==='transcribe'?'transcription':'speechPlayback',req);const c=await voiceScope(p,actor,input.conversation,req);if(!c.aiConsent)throw new ContentError('Customer AI consent required',403);const message=await db.findByID({collection:'support-messages',id:input.message,depth:0,req});if(relationID(message.conversation)!==c.id||message.visibility!=='public')throw new ContentError('Message unavailable',404);if(input.kind==='transcribe'&&!message.voiceAudio||input.kind==='synthesize'&&(!message.text||message.text==='🎤'||message.text.length>4000))throw new ContentError('Message cannot be processed');const dedupe=`${c.id}:${actor.user?.id||'visitor'}:${keyOf(input.key)}`;const old=(await db.find({collection:'support-voice-jobs',where:{dedupe:{equals:dedupe}},limit:1,req})).docs[0];if(old){if(relationID(old.message)!==message.id||old.kind!==input.kind)throw new ContentError('Request key conflict',409);return {job:old.id,status:old.status};}const recent=await db.count({collection:'support-voice-jobs',where:{and:[{conversation:{equals:c.id}},{createdAt:{greater_than:new Date(Date.now()-60000).toISOString()}}]},req});if(recent.totalDocs>=4)throw new ContentError('Speech job limit reached',429);const job=await db.create({collection:'support-voice-jobs',data:{conversation:c.id,message:message.id,dedupe,kind:input.kind,status:'queued',consentAt:new Date().toISOString(),actor:actor.user?.id},req});return {job:job.id,status:job.status};});}
-export async function readVoiceJob(p:Payload,actor:VoiceActor,id:number){const j=await (p as any).findByID({collection:'support-voice-jobs',id,depth:0});await voiceScope(p,actor,relationID(j.conversation));return {job:j.id,status:j.status,audio:relationID(j.audio)||null,error:j.error||null};}
+import { requiresPrivateHandling } from "../../lib/support-privacy";
+import { randomUUID, createHash } from "node:crypto";
+import type { Payload } from "payload";
+import { relationID } from "../../cms/access";
+import { inspectVoiceWav, MAX_VOICE_BYTES } from "../../lib/voice";
+import { ContentError } from "../content/service";
+import { supportTransaction, keyOf } from "./service";
+import { voiceScope, type VoiceActor } from "./voice";
+import { voiceFeatures } from "./voice-config";
+import { requireSupportFeature } from "./features";
+export type SpeechInput = {
+  kind: "transcribe" | "synthesize";
+  locale: string;
+  audio?: string;
+  text?: string;
+  signal: AbortSignal;
+};
+export type SpeechOutput = { text?: string; audio?: string };
+export type SpeechAdapter = { run: (input: SpeechInput) => Promise<SpeechOutput> };
+export function speechAdapter(): SpeechAdapter | undefined {
+  if (!voiceFeatures().transcription) return;
+  return {
+    async run({ signal, ...input }) {
+      const response = await fetch(process.env.SUPPORT_SPEECH_ENDPOINT!, {
+        method: "POST",
+        redirect: "error",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SUPPORT_SPEECH_KEY}`,
+        },
+        body: JSON.stringify({
+          ...input,
+          format: "wav-pcm16-mono",
+          maxSeconds: 60,
+          maxCharacters: 8000,
+        }),
+      });
+      if (!response.ok) throw Error("Speech provider failed");
+      const reader = response.body?.getReader();
+      if (!reader) throw Error("Empty speech response");
+      let length = 0;
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        length += value.length;
+        if (length > MAX_VOICE_BYTES * 1.4) {
+          await reader.cancel();
+          throw Error("Speech response too large");
+        }
+        chunks.push(value);
+      }
+      return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    },
+  };
+}
+export async function queueVoiceJob(p: Payload, actor: VoiceActor, input: any) {
+  const db = p as any;
+  return supportTransaction(p, async (req) => {
+    if (!["transcribe", "synthesize"].includes(input.kind) || input.consent !== true)
+      throw new ContentError("Explicit speech-processing consent required");
+    await requireSupportFeature(
+      p,
+      input.kind === "transcribe" ? "transcription" : "speechPlayback",
+      req,
+    );
+    const c = await voiceScope(p, actor, input.conversation, req);
+    if (!c.aiConsent) throw new ContentError("Customer AI consent required", 403);
+    const message = await db.findByID({
+      collection: "support-messages",
+      id: input.message,
+      depth: 0,
+      req,
+    });
+    if (relationID(message.conversation) !== c.id || message.visibility !== "public")
+      throw new ContentError("Message unavailable", 404);
+    if (
+      (input.kind === "transcribe" && !message.voiceAudio) ||
+      (input.kind === "synthesize" &&
+        (!message.text || message.text === "🎤" || message.text.length > 4000))
+    )
+      throw new ContentError("Message cannot be processed");
+    const dedupe = `${c.id}:${actor.user?.id || "visitor"}:${keyOf(input.key)}`;
+    const old = (
+      await db.find({
+        collection: "support-voice-jobs",
+        where: { dedupe: { equals: dedupe } },
+        limit: 1,
+        req,
+      })
+    ).docs[0];
+    if (old) {
+      if (relationID(old.message) !== message.id || old.kind !== input.kind)
+        throw new ContentError("Request key conflict", 409);
+      return { job: old.id, status: old.status };
+    }
+    const recent = await db.count({
+      collection: "support-voice-jobs",
+      where: {
+        and: [
+          { conversation: { equals: c.id } },
+          { createdAt: { greater_than: new Date(Date.now() - 60000).toISOString() } },
+        ],
+      },
+      req,
+    });
+    if (recent.totalDocs >= 4) throw new ContentError("Speech job limit reached", 429);
+    const job = await db.create({
+      collection: "support-voice-jobs",
+      data: {
+        conversation: c.id,
+        message: message.id,
+        dedupe,
+        kind: input.kind,
+        status: "queued",
+        consentAt: new Date().toISOString(),
+        actor: actor.user?.id,
+      },
+      req,
+    });
+    return { job: job.id, status: job.status };
+  });
+}
+export async function readVoiceJob(p: Payload, actor: VoiceActor, id: number) {
+  const j = await (p as any).findByID({ collection: "support-voice-jobs", id, depth: 0 });
+  await voiceScope(p, actor, relationID(j.conversation));
+  return {
+    job: j.id,
+    status: j.status,
+    audio: relationID(j.audio) || null,
+    error: j.error || null,
+  };
+}
 /** Serialized claims reserve a worst-case budget before network work. Expired leases fail closed, never duplicate provider requests. */
-export async function runVoiceJob(p:Payload,adapter:SpeechAdapter|undefined=speechAdapter()){
- const db=p as any;const claimed=await supportTransaction(p,async req=>{
- const expired=(await db.find({collection:'support-voice-jobs',where:{and:[{status:{equals:'running'}},{leaseUntil:{less_than:new Date().toISOString()}}]},limit:100,req})).docs;for(const j of expired)await db.update({collection:'support-voice-jobs',id:j.id,data:{status:'failed',error:'Speech processing timed out; submit a new request'},req});
- const job=(await db.find({collection:'support-voice-jobs',where:{status:{equals:'queued'}},sort:'id',limit:1,depth:0,req})).docs[0];if(!job)return null;
- const fail=async(error:string)=>{await db.update({collection:'support-voice-jobs',id:job.id,data:{status:'failed',error},req});return null;};
- if(!adapter)return fail('Speech provider is not configured');const c=await db.findByID({collection:'support-conversations',id:relationID(job.conversation),depth:0,req});if(!c.aiConsent)return fail('Customer consent was withdrawn');try{await requireSupportFeature(p,job.kind==='transcribe'?'transcription':'speechPlayback',req);if(job.actor){const user=await db.findByID({collection:'staff',id:relationID(job.actor),req});await voiceScope(p,{user},c.id,req);}}catch{return fail('Speech feature or actor access unavailable');}
- const m=await db.findByID({collection:'support-messages',id:relationID(job.message),depth:0,req});if(m.visibility!=='public'||relationID(m.conversation)!==c.id)return fail('Message unavailable');
- let audio:any; if(job.kind==='transcribe'){audio=await db.findByID({collection:'support-voice-audio',id:relationID(m.voiceAudio),depth:0,req});if(relationID(audio.conversation)!==c.id)return fail('Audio unavailable');}
- if(job.kind==='synthesize'&&requiresPrivateHandling(m.text))return fail('This message requires private staff handling');
- const reserve=job.kind==='transcribe'?Math.ceil(audio.seconds):m.text.length;const day=new Date().toISOString().slice(0,10);const used=(await db.find({collection:'support-voice-jobs',where:{day:{equals:day}},limit:10000,pagination:false,req})).docs.reduce((sum:number,j:any)=>sum+(j.reserved||0),0);const budget=Number(process.env.SUPPORT_SPEECH_DAILY_UNITS||0);if(!Number.isFinite(budget)||budget<=0||used+reserve>budget)return fail('Daily speech budget exhausted');const lease=randomUUID();await db.update({collection:'support-voice-jobs',id:job.id,data:{status:'running',lease,leaseUntil:new Date(Date.now()+60000).toISOString(),day,reserved:reserve},req});return {job,c,m,audio,lease};
- });if(!claimed)return false;
- const {job,c,m,audio,lease}=claimed;const controller=new AbortController();let timer:ReturnType<typeof setTimeout>|undefined;
- try{const timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('Speech timeout'));},25000);});const output=await Promise.race([adapter!.run({kind:job.kind,locale:c.locale,...(job.kind==='transcribe'?{audio:audio.body}:{text:m.text}),signal:controller.signal}),timeout]);let wav:Buffer|undefined,info:ReturnType<typeof inspectVoiceWav>|undefined;if(job.kind==='transcribe'){if(typeof output.text!=='string'||!output.text.trim()||output.text.length>8000)throw Error('Invalid transcript');}else {if(typeof output.audio!=='string'||output.audio.length>MAX_VOICE_BYTES*1.4||!/^[A-Za-z0-9+/]*={0,2}$/.test(output.audio))throw Error('Invalid speech audio');wav=Buffer.from(output.audio,'base64');info=inspectVoiceWav(wav);}
- await supportTransaction(p,async req=>{const current=await db.findByID({collection:'support-voice-jobs',id:job.id,depth:0,req});if(current.status!=='running'||current.lease!==lease||Date.parse(current.leaseUntil)<Date.now())return;const latest=await db.findByID({collection:'support-conversations',id:c.id,depth:0,req});let allowed=latest.aiConsent;try{await requireSupportFeature(p,job.kind==='transcribe'?'transcription':'speechPlayback',req);if(job.actor){const user=await db.findByID({collection:'staff',id:relationID(job.actor),req});await voiceScope(p,{user},c.id,req);}}catch{allowed=false;}if(!allowed){await db.update({collection:'support-voice-jobs',id:job.id,data:{status:'discarded',error:'Consent or access changed'},req});return;}
- let resultAudio:number|undefined;if(wav&&info){const settings:any=await p.findGlobal({slug:'support-settings',req});if(info.seconds>Math.min(60,settings.voiceMaxSeconds||60)||wav.length>Math.min(MAX_VOICE_BYTES,settings.voiceMaxBytes||MAX_VOICE_BYTES))throw Error('Speech audio exceeds configured limits');const result=await db.create({collection:'support-voice-audio',data:{conversation:c.id,dedupe:`speech:${job.id}`,digest:createHash('sha256').update(wav).digest('hex'),body:wav.toString('base64'),seconds:info.seconds},req});resultAudio=result.id;}else {await db.update({collection:'support-messages',id:m.id,data:{voiceTranscript:output.text!.trim()},req});if(requiresPrivateHandling(output.text!))await db.update({collection:'support-conversations',id:c.id,data:{mode:latest.mode==='human'?'human':'waiting',revision:latest.revision+1,aiRevision:(latest.aiRevision||1)+1},req});}await db.update({collection:'support-voice-jobs',id:job.id,data:{status:'succeeded',audio:resultAudio},req});});
- }catch{await supportTransaction(p,async req=>{const current=await db.findByID({collection:'support-voice-jobs',id:job.id,req});if(current.status==='running'&&current.lease===lease)await db.update({collection:'support-voice-jobs',id:job.id,data:{status:'failed',error:'Speech processing failed; please retry'},req});});}finally{clearTimeout(timer);}return true;
+export async function runVoiceJob(
+  p: Payload,
+  adapter: SpeechAdapter | undefined = speechAdapter(),
+) {
+  const db = p as any;
+  const claimed = await supportTransaction(p, async (req) => {
+    const expired = (
+      await db.find({
+        collection: "support-voice-jobs",
+        where: {
+          and: [
+            { status: { equals: "running" } },
+            { leaseUntil: { less_than: new Date().toISOString() } },
+          ],
+        },
+        limit: 100,
+        req,
+      })
+    ).docs;
+    for (const j of expired)
+      await db.update({
+        collection: "support-voice-jobs",
+        id: j.id,
+        data: { status: "failed", error: "Speech processing timed out; submit a new request" },
+        req,
+      });
+    const job = (
+      await db.find({
+        collection: "support-voice-jobs",
+        where: { status: { equals: "queued" } },
+        sort: "id",
+        limit: 1,
+        depth: 0,
+        req,
+      })
+    ).docs[0];
+    if (!job) return null;
+    const fail = async (error: string) => {
+      await db.update({
+        collection: "support-voice-jobs",
+        id: job.id,
+        data: { status: "failed", error },
+        req,
+      });
+      return null;
+    };
+    if (!adapter) return fail("Speech provider is not configured");
+    const c = await db.findByID({
+      collection: "support-conversations",
+      id: relationID(job.conversation),
+      depth: 0,
+      req,
+    });
+    if (!c.aiConsent) return fail("Customer consent was withdrawn");
+    try {
+      await requireSupportFeature(
+        p,
+        job.kind === "transcribe" ? "transcription" : "speechPlayback",
+        req,
+      );
+      if (job.actor) {
+        const user = await db.findByID({ collection: "staff", id: relationID(job.actor), req });
+        await voiceScope(p, { user }, c.id, req);
+      }
+    } catch {
+      return fail("Speech feature or actor access unavailable");
+    }
+    const m = await db.findByID({
+      collection: "support-messages",
+      id: relationID(job.message),
+      depth: 0,
+      req,
+    });
+    if (m.visibility !== "public" || relationID(m.conversation) !== c.id)
+      return fail("Message unavailable");
+    let audio: any;
+    if (job.kind === "transcribe") {
+      audio = await db.findByID({
+        collection: "support-voice-audio",
+        id: relationID(m.voiceAudio),
+        depth: 0,
+        req,
+      });
+      if (relationID(audio.conversation) !== c.id) return fail("Audio unavailable");
+    }
+    if (job.kind === "synthesize" && requiresPrivateHandling(m.text))
+      return fail("This message requires private staff handling");
+    const reserve = job.kind === "transcribe" ? Math.ceil(audio.seconds) : m.text.length;
+    const day = new Date().toISOString().slice(0, 10);
+    const used = (
+      await db.find({
+        collection: "support-voice-jobs",
+        where: { day: { equals: day } },
+        limit: 10000,
+        pagination: false,
+        req,
+      })
+    ).docs.reduce((sum: number, j: any) => sum + (j.reserved || 0), 0);
+    const budget = Number(process.env.SUPPORT_SPEECH_DAILY_UNITS || 0);
+    if (!Number.isFinite(budget) || budget <= 0 || used + reserve > budget)
+      return fail("Daily speech budget exhausted");
+    const lease = randomUUID();
+    await db.update({
+      collection: "support-voice-jobs",
+      id: job.id,
+      data: {
+        status: "running",
+        lease,
+        leaseUntil: new Date(Date.now() + 60000).toISOString(),
+        day,
+        reserved: reserve,
+      },
+      req,
+    });
+    return { job, c, m, audio, lease };
+  });
+  if (!claimed) return false;
+  const { job, c, m, audio, lease } = claimed;
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(Error("Speech timeout"));
+      }, 25000);
+    });
+    const output = await Promise.race([
+      adapter!.run({
+        kind: job.kind,
+        locale: c.locale,
+        ...(job.kind === "transcribe" ? { audio: audio.body } : { text: m.text }),
+        signal: controller.signal,
+      }),
+      timeout,
+    ]);
+    let wav: Buffer | undefined, info: ReturnType<typeof inspectVoiceWav> | undefined;
+    if (job.kind === "transcribe") {
+      if (typeof output.text !== "string" || !output.text.trim() || output.text.length > 8000)
+        throw Error("Invalid transcript");
+    } else {
+      if (
+        typeof output.audio !== "string" ||
+        output.audio.length > MAX_VOICE_BYTES * 1.4 ||
+        !/^[A-Za-z0-9+/]*={0,2}$/.test(output.audio)
+      )
+        throw Error("Invalid speech audio");
+      wav = Buffer.from(output.audio, "base64");
+      info = inspectVoiceWav(wav);
+    }
+    await supportTransaction(p, async (req) => {
+      const current = await db.findByID({
+        collection: "support-voice-jobs",
+        id: job.id,
+        depth: 0,
+        req,
+      });
+      if (
+        current.status !== "running" ||
+        current.lease !== lease ||
+        Date.parse(current.leaseUntil) < Date.now()
+      )
+        return;
+      const latest = await db.findByID({
+        collection: "support-conversations",
+        id: c.id,
+        depth: 0,
+        req,
+      });
+      let allowed = latest.aiConsent;
+      try {
+        await requireSupportFeature(
+          p,
+          job.kind === "transcribe" ? "transcription" : "speechPlayback",
+          req,
+        );
+        if (job.actor) {
+          const user = await db.findByID({ collection: "staff", id: relationID(job.actor), req });
+          await voiceScope(p, { user }, c.id, req);
+        }
+      } catch {
+        allowed = false;
+      }
+      if (!allowed) {
+        await db.update({
+          collection: "support-voice-jobs",
+          id: job.id,
+          data: { status: "discarded", error: "Consent or access changed" },
+          req,
+        });
+        return;
+      }
+      let resultAudio: number | undefined;
+      if (wav && info) {
+        const settings: any = await p.findGlobal({ slug: "support-settings", req });
+        if (
+          info.seconds > Math.min(60, settings.voiceMaxSeconds || 60) ||
+          wav.length > Math.min(MAX_VOICE_BYTES, settings.voiceMaxBytes || MAX_VOICE_BYTES)
+        )
+          throw Error("Speech audio exceeds configured limits");
+        const result = await db.create({
+          collection: "support-voice-audio",
+          data: {
+            conversation: c.id,
+            dedupe: `speech:${job.id}`,
+            digest: createHash("sha256").update(wav).digest("hex"),
+            body: wav.toString("base64"),
+            seconds: info.seconds,
+          },
+          req,
+        });
+        resultAudio = result.id;
+      } else {
+        await db.update({
+          collection: "support-messages",
+          id: m.id,
+          data: { voiceTranscript: output.text!.trim() },
+          req,
+        });
+        if (requiresPrivateHandling(output.text!))
+          await db.update({
+            collection: "support-conversations",
+            id: c.id,
+            data: {
+              mode: latest.mode === "human" ? "human" : "waiting",
+              revision: latest.revision + 1,
+              aiRevision: (latest.aiRevision || 1) + 1,
+            },
+            req,
+          });
+      }
+      await db.update({
+        collection: "support-voice-jobs",
+        id: job.id,
+        data: { status: "succeeded", audio: resultAudio },
+        req,
+      });
+    });
+  } catch {
+    await supportTransaction(p, async (req) => {
+      const current = await db.findByID({ collection: "support-voice-jobs", id: job.id, req });
+      if (current.status === "running" && current.lease === lease)
+        await db.update({
+          collection: "support-voice-jobs",
+          id: job.id,
+          data: { status: "failed", error: "Speech processing failed; please retry" },
+          req,
+        });
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  return true;
 }

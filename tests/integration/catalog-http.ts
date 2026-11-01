@@ -107,7 +107,8 @@ try {
   assert.equal((await fetch(base + "/en/providers/" + key)).status, 404);
   d = await post({ action: "submit", id: d.id, revision: d.revision });
   await post({
-    action: "publish", overrideReason:"Local regression fixture review and cleanup",
+    action: "publish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: d.id,
     revision: d.revision,
     catalogReviewed: true,
@@ -118,24 +119,15 @@ try {
   assert.equal(data.items[0].path, "/en/providers/" + key);
   assert.ok(!JSON.stringify(data).includes("private-phone-marker"));
   assert.equal(data.items[0].providerRef, undefined);
-  assert.equal(
-    (await fetch(base + "/api/content-media/" + media.id)).status,
-    200,
-  );
+  assert.equal((await fetch(base + "/api/content-media/" + media.id)).status, 200);
   let html = await (await fetch(base + "/en/providers/" + key)).text();
   assert.ok(html.includes("application/ld+json"));
   assert.ok(html.includes("Fictional HTTP provider"));
   assert.ok(!html.includes("private-phone-marker"));
-  html = await (
-    await fetch(base + "/en/request?provider=" + key + "&service=business")
-  ).text();
+  html = await (await fetch(base + "/en/request?provider=" + key + "&service=business")).text();
   assert.ok(html.includes("Fictional HTTP provider"));
   assert.equal((await fetch(base + "/zh/providers/" + key)).status, 404);
-  assert.ok(
-    (await (await fetch(base + "/sitemap.xml")).text()).includes(
-      "/en/providers/" + key,
-    ),
-  );
+  assert.ok((await (await fetch(base + "/sitemap.xml")).text()).includes("/en/providers/" + key));
   for (const path of [
     "/api/public/catalog?locale=bad",
     "/api/public/catalog?page=0",
@@ -143,11 +135,7 @@ try {
   ])
     assert.equal((await fetch(base + path)).status, 400);
   assert.equal(
-    (
-      await fetch(
-        base + "/api/public/catalog?locale=en&city=unknown&key=" + key,
-      )
-    ).status,
+    (await fetch(base + "/api/public/catalog?locale=en&city=unknown&key=" + key)).status,
     404,
   );
   const body = {
@@ -181,7 +169,8 @@ try {
     revision: project.revision,
   });
   await post({
-    action: "publish", overrideReason:"Local regression fixture review and cleanup",
+    action: "publish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: project.id,
     revision: project.revision,
     catalogReviewed: true,
@@ -215,35 +204,20 @@ try {
   let r = await send(request, id);
   assert.equal(r.status, 201, await r.text());
   assert.equal((await send(request, id)).status, 200);
-  assert.equal(
-    (await send({ ...request, source: { provider: key } }, id)).status,
-    409,
-  );
+  assert.equal((await send({ ...request, source: { provider: key } }, id)).status, 409);
   await p.update({
     collection: "providers",
     id: provider.id,
     data: { publicApproved: false, status: "paused" },
   });
   assert.equal((await fetch(base + "/en/providers/" + key)).status, 404);
-  assert.equal(
-    (await fetch(base + "/api/content-media/" + media.id)).status,
-    404,
-  );
-  assert.equal(
-    (await fetch(base + "/api/public/catalog?locale=en&key=" + key)).status,
-    404,
-  );
-  assert.ok(
-    !(await (await fetch(base + "/sitemap.xml")).text()).includes(
-      "/en/providers/" + key,
-    ),
-  );
+  assert.equal((await fetch(base + "/api/content-media/" + media.id)).status, 404);
+  assert.equal((await fetch(base + "/api/public/catalog?locale=en&key=" + key)).status, 404);
+  assert.ok(!(await (await fetch(base + "/sitemap.xml")).text()).includes("/en/providers/" + key));
   assert.equal((await send(request, randomUUID())).status, 400);
   html = await (await fetch(base + "/en/request?provider=" + key)).text();
   assert.ok(html.includes("unavailable or incompatible"));
-  html = await (
-    await fetch(base + "/en/services/projects/" + key + "-project")
-  ).text();
+  html = await (await fetch(base + "/en/services/projects/" + key + "-project")).text();
   assert.ok(html.includes("Enquiries for this arrangement are paused"));
   console.log(
     "PASS catalog HTTP: publication, JSON-LD, source prefill, linked submission, retries, media revocation, sitemap and locale isolation",
@@ -251,7 +225,12 @@ try {
 } finally {
   for (const id of drafts) {
     const d = await p.findByID({ collection: "content-drafts", id });
-    await post({ action: "unpublish", overrideReason:"Local regression fixture review and cleanup", id, revision: d.revision });
+    await post({
+      action: "unpublish",
+      overrideReason: "Local regression fixture review and cleanup",
+      id,
+      revision: d.revision,
+    });
   }
   await p.update({
     collection: "providers",

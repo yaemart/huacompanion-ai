@@ -7,6 +7,7 @@ Publication requires admin review, explicit exhibitionReviewed and a source matc
 Enquiry render reads publication consistently under the same lock as content writes. Submission requires the displayed publication revision, revalidates current publication/status and service compatibility, and stores authoritative dates/city/title/revision rather than trusting client metadata. Changing/removing an exhibition resets the form session. Idempotent accepted submissions remain retryable after withdrawal.
 
 Verification:
+
 - 52 unit tests passed; TypeScript and production build passed.
 - tests/integration/exhibitions.ts passed: draft privacy, editor rejection, publication review/source checks, seven-locale isolation, authoritative snapshot, revision changes, service compatibility, status/withdrawal and idempotency.
 - tests/integration/exhibitions-http.ts passed: list/detail and safe JSON-LD, public APIs, sitemap, enquiry prefill/revision, authenticated preview boundary, seven language routes, cancellation and withdrawal. Fictional published fixtures withdrawn in finally.
@@ -14,6 +15,7 @@ Verification:
 - Browser confirmed Chinese exhibition navigation, filters and empty state. Existing browser admin session had expired, so authenticated backend verification used the local admin HTTP session without printing credentials.
 
 Seeded three bilingual editorial drafts, never overwriting existing records or publishing:
+
 - CIHF 2027: https://www.hardware-fair.com/p/Introduction.html
 - CIHS 2027: https://www.hardwareshow-china.com/about/ and venue https://www.hardwareshow-china.com/about/100.html
 - Canton Fair 140 / Phase 1 / 2026 (archive): https://is.mofcom.gov.cn/ExhibitionInfo/art/2026/art_b6ce9bedf8f04544b62fa44ed0f5add0.html ; venue address https://365.cantonfair.org.cn/

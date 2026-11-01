@@ -1,10 +1,13 @@
-import {businessLock,inquiryWorkflowHook} from '../server/business/hooks';
-import {housekeepingApplication,housekeepingVerification,homeFulfilment,homeSharingLog,guardHomeWorkflow} from "./housekeeping-fields";
-import { catalogLanguages } from "../lib/catalog-options";
+import { businessLock, inquiryWorkflowHook } from "../server/business/hooks";
 import {
-  catalogLock,
-  suspendProviderProjects,
-} from "../server/catalog/eligibility";
+  housekeepingApplication,
+  housekeepingVerification,
+  homeFulfilment,
+  homeSharingLog,
+  guardHomeWorkflow,
+} from "./housekeeping-fields";
+import { catalogLanguages } from "../lib/catalog-options";
+import { catalogLock, suspendProviderProjects } from "../server/catalog/eligibility";
 import { Forbidden } from "payload";
 import type {
   CollectionConfig,
@@ -12,23 +15,33 @@ import type {
   CollectionAfterChangeHook,
   Access,
   AccessResult,
+  FieldAccess,
 } from "payload";
-import { isAdmin, isManager, isActiveStaff, hasRole, relationID, inquiryScope, providerScope, contentKinds } from "./access";
+import {
+  isAdmin,
+  isManager,
+  isActiveStaff,
+  hasRole,
+  relationID,
+  inquiryScope,
+  providerScope,
+  contentKinds,
+} from "./access";
 import { guardStaffChange, guardBusinessAssignment } from "./staff-guards";
 const admin: Access = ({ req }) => isAdmin(req.user);
 const providersAssigned: Access = ({ req }) => providerScope(req.user);
 const assigned: Access = ({ req }) => inquiryScope(req.user);
-const fieldAdmin = {
-  create: ({ req }: any) => isAdmin(req.user),
-  update: ({ req }: any) => isAdmin(req.user),
+const fieldAdmin: { create: FieldAccess; update: FieldAccess } = {
+  create: ({ req }) => isAdmin(req.user),
+  update: ({ req }) => isAdmin(req.user),
 };
-const ownerAccess = {
-  create: ({ req }: any) => isManager(req.user),
-  update: ({ req }: any) => isManager(req.user),
+const ownerAccess: { create: FieldAccess; update: FieldAccess } = {
+  create: ({ req }) => isManager(req.user),
+  update: ({ req }) => isManager(req.user),
 };
 const protectedField = { create: () => false, update: () => false };
 const categoryOptions = [
-  {label:"家政与居家服务",value:"housekeeping"},
+  { label: "家政与居家服务", value: "housekeeping" },
   { label: "医疗机构对接", value: "medical" },
   { label: "展会与商务访问", value: "business" },
   { label: "接送机与交通", value: "transport" },
@@ -47,8 +60,17 @@ const audit: CollectionAfterChangeHook = async ({
   if (req.context.skipAudit) return doc;
   const changed = Object.keys(doc).filter(
     (k) =>
-      !["updatedAt", "createdAt", "_status", "sessions", "hash", "salt", "password", "resetPasswordToken", "resetPasswordExpiration"].includes(k) &&
-      JSON.stringify(doc[k]) !== JSON.stringify(previousDoc?.[k]),
+      ![
+        "updatedAt",
+        "createdAt",
+        "_status",
+        "sessions",
+        "hash",
+        "salt",
+        "password",
+        "resetPasswordToken",
+        "resetPasswordExpiration",
+      ].includes(k) && JSON.stringify(doc[k]) !== JSON.stringify(previousDoc?.[k]),
   );
   await req.payload.create({
     collection: "audit-events",
@@ -60,8 +82,50 @@ const audit: CollectionAfterChangeHook = async ({
       action: operation,
       actor: req.user?.id,
       fields: changed.join(", "),
-      before: Object.fromEntries(changed.filter((key) => ["role", "additionalRoles", "active", "team", "contentKinds", "owner", "status", "publicApproved", "coordinationStage", "nextFollowUp"].includes(key)).map((key) => [key, ["owner", "team"].includes(key) ? relationID(previousDoc?.[key]) ?? null : previousDoc?.[key] ?? null])),
-      after: Object.fromEntries(changed.filter((key) => ["role", "additionalRoles", "active", "team", "contentKinds", "owner", "status", "publicApproved", "coordinationStage", "nextFollowUp"].includes(key)).map((key) => [key, ["owner", "team"].includes(key) ? relationID(doc[key]) ?? null : doc[key] ?? null])),
+      before: Object.fromEntries(
+        changed
+          .filter((key) =>
+            [
+              "role",
+              "additionalRoles",
+              "active",
+              "team",
+              "contentKinds",
+              "owner",
+              "status",
+              "publicApproved",
+              "coordinationStage",
+              "nextFollowUp",
+            ].includes(key),
+          )
+          .map((key) => [
+            key,
+            ["owner", "team"].includes(key)
+              ? (relationID(previousDoc?.[key]) ?? null)
+              : (previousDoc?.[key] ?? null),
+          ]),
+      ),
+      after: Object.fromEntries(
+        changed
+          .filter((key) =>
+            [
+              "role",
+              "additionalRoles",
+              "active",
+              "team",
+              "contentKinds",
+              "owner",
+              "status",
+              "publicApproved",
+              "coordinationStage",
+              "nextFollowUp",
+            ].includes(key),
+          )
+          .map((key) => [
+            key,
+            ["owner", "team"].includes(key) ? (relationID(doc[key]) ?? null) : (doc[key] ?? null),
+          ]),
+      ),
     },
   });
   return doc;
@@ -153,10 +217,7 @@ export const Staff: CollectionConfig = {
       path: "/first-register",
       method: "post",
       handler: async () =>
-        Response.json(
-          { error: "Public employee registration is disabled." },
-          { status: 403 },
-        ),
+        Response.json({ error: "Public employee registration is disabled." }, { status: 403 }),
     },
   ],
   labels: { singular: "员工账号", plural: "员工账号" },
@@ -173,7 +234,11 @@ export const Staff: CollectionConfig = {
     cookies: { sameSite: "Strict", secure: process.env.APP_ENV !== "local" },
   },
   access: {
-    admin: ({ req }) => isActiveStaff(req.user) && ["admin", "manager", "operations", "editor", "reviewer"].some((role) => hasRole(req.user, role)),
+    admin: ({ req }) =>
+      isActiveStaff(req.user) &&
+      ["admin", "manager", "operations", "editor", "reviewer"].some((role) =>
+        hasRole(req.user, role),
+      ),
     create: admin,
     read: ({ req }): AccessResult => {
       if (isAdmin(req.user)) return true;
@@ -181,7 +246,23 @@ export const Staff: CollectionConfig = {
       const self = { id: { equals: req.user!.id } };
       const team = relationID(req.user?.team);
       if (hasRole(req.user, "manager") && team !== undefined)
-        return { or: [self, { and: [{ team: { equals: team } }, { active: { not_equals: false } }, { or: [{ role: { equals: "operations" } }, { additionalRoles: { contains: "operations" } }] }] }] };
+        return {
+          or: [
+            self,
+            {
+              and: [
+                { team: { equals: team } },
+                { active: { not_equals: false } },
+                {
+                  or: [
+                    { role: { equals: "operations" } },
+                    { additionalRoles: { contains: "operations" } },
+                  ],
+                },
+              ],
+            },
+          ],
+        };
       return self;
     },
     update: admin,
@@ -190,10 +271,53 @@ export const Staff: CollectionConfig = {
   fields: [
     { name: "name", label: "姓名", type: "text", required: true },
     { name: "active", label: "账号启用", type: "checkbox", defaultValue: true, access: fieldAdmin },
-    { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
-    { name: "contentKinds", label: "允许管理的内容类型", type: "select", hasMany: true, defaultValue: [], options: contentKinds.map((value) => ({ value, label: ({ service: "服务介绍", guide: "实用指南", faq: "常见问题", page: "网站页面", partner: "合作伙伴", "provider-profile": "服务商介绍", "service-project": "服务项目", exhibition: "展会", institution: "医疗机构", venue: "体验场所与餐馆", activity: "体验活动" })[value] })), access: fieldAdmin,
-      admin: { description: "新员工默认不授权内容；编辑与审核均只允许操作所选内容类型。" } },
-    { name: "additionalRoles", label: "兼任角色", type: "select", hasMany: true, defaultValue: [], options: [{ value: "admin", label: "管理员" }, { value: "manager", label: "业务主管" }, { value: "operations", label: "客户运营" }, { value: "editor", label: "内容编辑" }, { value: "reviewer", label: "内容审核" }], access: fieldAdmin },
+    {
+      name: "team",
+      label: "所属团队",
+      type: "relationship",
+      relationTo: "teams",
+      access: fieldAdmin,
+    },
+    {
+      name: "contentKinds",
+      label: "允许管理的内容类型",
+      type: "select",
+      hasMany: true,
+      defaultValue: [],
+      options: contentKinds.map((value) => ({
+        value,
+        label: {
+          service: "服务介绍",
+          guide: "实用指南",
+          faq: "常见问题",
+          page: "网站页面",
+          partner: "合作伙伴",
+          "provider-profile": "服务商介绍",
+          "service-project": "服务项目",
+          exhibition: "展会",
+          institution: "医疗机构",
+          venue: "体验场所与餐馆",
+          activity: "体验活动",
+        }[value],
+      })),
+      access: fieldAdmin,
+      admin: { description: "新员工默认不授权内容；编辑与审核均只允许操作所选内容类型。" },
+    },
+    {
+      name: "additionalRoles",
+      label: "兼任角色",
+      type: "select",
+      hasMany: true,
+      defaultValue: [],
+      options: [
+        { value: "admin", label: "管理员" },
+        { value: "manager", label: "业务主管" },
+        { value: "operations", label: "客户运营" },
+        { value: "editor", label: "内容编辑" },
+        { value: "reviewer", label: "内容审核" },
+      ],
+      access: fieldAdmin,
+    },
     {
       name: "role",
       label: "角色",
@@ -212,11 +336,13 @@ export const Staff: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeLogin: [({ user }) => {
-      if (!isActiveStaff(user)) throw new Forbidden();
-      return user;
-    }],
-    beforeChange: [businessLock,guardStaffChange],
+    beforeLogin: [
+      ({ user }) => {
+        if (!isActiveStaff(user)) throw new Forbidden();
+        return user;
+      },
+    ],
+    beforeChange: [businessLock, guardStaffChange],
     afterChange: [audit],
   },
 };
@@ -226,15 +352,7 @@ export const Inquiries: CollectionConfig = {
   admin: {
     useAsTitle: "reference",
     group: "业务运营",
-    defaultColumns: [
-      "reference",
-      "name",
-      "city",
-      "status",
-      "owner",
-      "nextFollowUp",
-      "createdAt",
-    ],
+    defaultColumns: ["reference", "name", "city", "status", "owner", "nextFollowUp", "createdAt"],
     listSearchableFields: ["reference", "name", "email", "city"],
   },
   access: {
@@ -247,8 +365,15 @@ export const Inquiries: CollectionConfig = {
   versions: { maxPerDoc: 30 },
   fields: [
     ...intakeFields,
-    homeFulfilment,homeSharingLog,
-    { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
+    homeFulfilment,
+    homeSharingLog,
+    {
+      name: "team",
+      label: "所属团队",
+      type: "relationship",
+      relationTo: "teams",
+      access: fieldAdmin,
+    },
     {
       name: "catalogSource",
       label: "咨询来源（机构／展会／服务商／服务项目）",
@@ -281,8 +406,8 @@ export const Inquiries: CollectionConfig = {
         { label: "联系客户", value: "contacting" },
         { label: "与机构／服务商确认", value: "confirming" },
         { label: "方案待确认", value: "proposal" },
-        {label:"已确认人员与预约",value:"scheduled"},
-        {label:"售后跟进",value:"aftercare"},
+        { label: "已确认人员与预约", value: "scheduled" },
+        { label: "售后跟进", value: "aftercare" },
         { label: "已完成", value: "completed" },
         { label: "已关闭", value: "closed" },
       ],
@@ -307,7 +432,10 @@ export const Inquiries: CollectionConfig = {
       maxLength: 10000,
     },
   ],
-  hooks: { beforeChange: [businessLock,guardBusinessAssignment,guardHomeWorkflow], afterChange: [audit,inquiryWorkflowHook] },
+  hooks: {
+    beforeChange: [businessLock, guardBusinessAssignment, guardHomeWorkflow],
+    afterChange: [audit, inquiryWorkflowHook],
+  },
 };
 export const Providers: CollectionConfig = {
   slug: "providers",
@@ -315,13 +443,7 @@ export const Providers: CollectionConfig = {
   admin: {
     useAsTitle: "organisation",
     group: "业务运营",
-    defaultColumns: [
-      "organisation",
-      "reference",
-      "city",
-      "status",
-      "publicApproved",
-    ],
+    defaultColumns: ["organisation", "reference", "city", "status", "publicApproved"],
   },
   access: {
     create: () => false,
@@ -334,9 +456,22 @@ export const Providers: CollectionConfig = {
   versions: { maxPerDoc: 30 },
   fields: [
     ...intakeFields,
-    housekeepingApplication,housekeepingVerification,
-    { name: "team", label: "所属团队", type: "relationship", relationTo: "teams", access: fieldAdmin },
-    { name: "owner", label: "负责人", type: "relationship", relationTo: "staff", access: ownerAccess },
+    housekeepingApplication,
+    housekeepingVerification,
+    {
+      name: "team",
+      label: "所属团队",
+      type: "relationship",
+      relationTo: "teams",
+      access: fieldAdmin,
+    },
+    {
+      name: "owner",
+      label: "负责人",
+      type: "relationship",
+      relationTo: "staff",
+      access: ownerAccess,
+    },
     { name: "organisation", label: "机构名称", type: "text", required: true },
     { name: "phone", label: "电话", type: "text", required: true },
     { name: "languages", label: "支持语言", type: "text", required: true },
@@ -358,7 +493,7 @@ export const Providers: CollectionConfig = {
       access: fieldAdmin,
       options: [
         { label: "已申请", value: "applied" },
-        {label:"待补资料",value:"needs-info"},
+        { label: "待补资料", value: "needs-info" },
         { label: "已核实", value: "verified" },
         { label: "已签约", value: "contracted" },
         { label: "暂停合作", value: "paused" },
@@ -379,15 +514,15 @@ export const Providers: CollectionConfig = {
         await catalogLock(req);
         return data;
       },
-      businessLock,guardBusinessAssignment,guardHomeWorkflow,
+      businessLock,
+      guardBusinessAssignment,
+      guardHomeWorkflow,
     ],
     beforeValidate: [
       ({ data, originalDoc }) => {
         if (
           (data?.publicApproved ?? originalDoc?.publicApproved) &&
-          !["verified", "contracted"].includes(
-            data?.status || originalDoc?.status,
-          )
+          !["verified", "contracted"].includes(data?.status || originalDoc?.status)
         )
           throw new Error("只有已核实或已签约机构可以批准展示。");
         return data;
@@ -471,6 +606,7 @@ export const AuditEvents: CollectionConfig = {
 const IntakeLimits: CollectionConfig = {
   slug: "intake-limits",
   admin: { hidden: true },
+  indexes: [{ fields: ["bucket", "clientKey"], unique: true }],
   access: {
     create: () => false,
     read: () => false,
@@ -478,7 +614,8 @@ const IntakeLimits: CollectionConfig = {
     delete: () => false,
   },
   fields: [
-    { name: "bucket", type: "number", required: true, unique: true },
+    { name: "bucket", type: "number", required: true },
+    { name: "clientKey", type: "text", required: true, defaultValue: "global" },
     { name: "count", type: "number", required: true, defaultValue: 0 },
   ],
 };
@@ -487,8 +624,15 @@ export const Teams: CollectionConfig = {
   labels: { singular: "团队", plural: "团队" },
   admin: { group: "系统管理", useAsTitle: "name" },
   access: {
-    create: admin, update: admin, delete: () => false,
-    read: ({ req }) => isAdmin(req.user) ? true : isActiveStaff(req.user) && relationID(req.user?.team) !== undefined ? { id: { equals: relationID(req.user?.team) } } : false,
+    create: admin,
+    update: admin,
+    delete: () => false,
+    read: ({ req }) =>
+      isAdmin(req.user)
+        ? true
+        : isActiveStaff(req.user) && relationID(req.user?.team) !== undefined
+          ? { id: { equals: relationID(req.user?.team) } }
+          : false,
   },
   fields: [{ name: "name", label: "团队名称", type: "text", required: true, unique: true }],
   hooks: { afterChange: [audit] },

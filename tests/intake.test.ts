@@ -37,9 +37,7 @@ test("server rejects malformed category and consent types", () => {
       values: { ...valid.values, categories: ["invented"] },
     }),
   );
-  assert.throws(() =>
-    parseIntake({ ...valid, values: { ...valid.values, consent: "true" } }),
-  );
+  assert.throws(() => parseIntake({ ...valid, values: { ...valid.values, consent: "true" } }));
 });
 test("server rejects impossible dates and excessive text", () => {
   assert.throws(() =>
@@ -60,9 +58,7 @@ test("server rejects impossible dates and excessive text", () => {
   );
 });
 test("server enforces all step checks, not just consent", () => {
-  assert.throws(() =>
-    parseIntake({ ...valid, values: { ...valid.values, name: " " } }),
-  );
+  assert.throws(() => parseIntake({ ...valid, values: { ...valid.values, name: " " } }));
 });
 
 test("server ignores stale dates from hidden fields", () => {
@@ -76,7 +72,6 @@ test("server ignores stale dates from hidden fields", () => {
 
 test("intake preserves each supported locale rather than coercing it", () => {
   for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"])
-    assert.equal(parseIntake({...valid, locale}).locale, locale);
-  for (const locale of ["ja", "", null])
-    assert.throws(() => parseIntake({...valid, locale}));
+    assert.equal(parseIntake({ ...valid, locale }).locale, locale);
+  for (const locale of ["ja", "", null]) assert.throws(() => parseIntake({ ...valid, locale }));
 });

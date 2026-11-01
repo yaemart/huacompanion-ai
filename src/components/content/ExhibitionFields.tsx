@@ -46,10 +46,7 @@ export function ExhibitionFields({
       <div className="row">
         <label>
           举办城市
-          <select
-            value={value.city}
-            onChange={(e) => set("city", e.target.value)}
-          >
+          <select value={value.city} onChange={(e) => set("city", e.target.value)}>
             <option value="">请选择城市</option>
             {catalogCities.map((c) => (
               <option key={c.code} value={c.code}>
@@ -62,9 +59,7 @@ export function ExhibitionFields({
           展会状态
           <select
             value={value.status}
-            onChange={(e) =>
-              set("status", e.target.value as Exhibition["status"])
-            }
+            onChange={(e) => set("status", e.target.value as Exhibition["status"])}
           >
             {Object.entries(exhibitionStatusLabels).map(([v, l]) => (
               <option key={v} value={v}>
@@ -74,9 +69,7 @@ export function ExhibitionFields({
           </select>
         </label>
       </div>
-      <p>
-        状态独立于发布审核。结束日期过后按北京时间显示“已结束”；取消和延期保留人工状态。
-      </p>
+      <p>状态独立于发布审核。结束日期过后按北京时间显示“已结束”；取消和延期保留人工状态。</p>
       <div className="row">
         <label>
           开始日期
@@ -95,16 +88,11 @@ export function ExhibitionFields({
           />
         </label>
       </div>
-      <small>
-        只有待公布或延期可以将两个日期同时留空；日期已知时请完整填写。
-      </small>
+      <small>只有待公布或延期可以将两个日期同时留空；日期已知时请完整填写。</small>
       <fieldset>
         <legend>所属行业（可多选）</legend>
         {Object.entries(exhibitionIndustryLabels).map(([code, label]) => (
-          <label
-            key={code}
-            style={{ display: "inline-flex", gap: 8, marginRight: 20 }}
-          >
+          <label key={code} style={{ display: "inline-flex", gap: 8, marginRight: 20 }}>
             <input
               type="checkbox"
               style={{ width: "auto" }}
@@ -127,9 +115,7 @@ export function ExhibitionFields({
           {label}
           <textarea
             value={value[key as keyof typeof textFields]}
-            onChange={(e) =>
-              set(key as keyof typeof textFields, e.target.value)
-            }
+            onChange={(e) => set(key as keyof typeof textFields, e.target.value)}
           />
         </label>
       ))}
@@ -189,8 +175,7 @@ export function ExhibitionFields({
         </select>
       </label>
       <small>
-        可关联工作稿；公众页面仅展示符合公开条件的正式项目。使用 Ctrl／Command
-        多选或取消选择。
+        可关联工作稿；公众页面仅展示符合公开条件的正式项目。使用 Ctrl／Command 多选或取消选择。
       </small>
     </section>
   );

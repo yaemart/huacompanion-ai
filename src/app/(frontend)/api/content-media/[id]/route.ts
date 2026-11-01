@@ -4,34 +4,38 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getPayload } from "payload";
 import config from "@/payload.config";
+import { isStaticSEOImage } from "@/server/seo";
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const id = Number((await params).id);
-    if (!Number.isSafeInteger(id) || id < 1)
-      return new Response(null, { status: 404 });
+    if (!Number.isSafeInteger(id) || id < 1) return new Response(null, { status: 404 });
     const p = await getPayload({ config });
     const { user } = await p.auth({ headers: req.headers });
     let allowed = false;
     if (user?.collection === "staff") {
-      try { await p.findByID({ collection: "content-media", id, overrideAccess: false, user, depth: 0 }); allowed = true; } catch {}
+      try {
+        await p.findByID({
+          collection: "content-media",
+          id,
+          overrideAccess: false,
+          user,
+          depth: 0,
+        });
+        allowed = true;
+      } catch {}
     }
     if (!allowed) {
-      const docs = (await Promise.all(locales.map(locale => listPublished(p, locale)))).flat();
-      allowed = docs.some((d) =>
-        d.blocks.some((b) => b.type === "image" && b.mediaId === id),
+      const docs = (await Promise.all(locales.map((locale) => listPublished(p, locale)))).flat();
+      allowed = docs.some(
+        (d) => d.seoImage === id || d.blocks.some((b) => b.type === "image" && b.mediaId === id),
       );
+      if (!allowed) allowed = await isStaticSEOImage(p, id);
     }
     if (!allowed) return new Response(null, { status: 404 });
     const media = await p.findByID({ collection: "content-media", id });
-    if (!/^[a-f0-9-]+\.webp$/.test(media.filename))
-      return new Response(null, { status: 404 });
-    const file = await readFile(
-      path.resolve(".local/content-media", media.filename),
-    );
+    if (!/^[a-f0-9-]+\.webp$/.test(media.filename)) return new Response(null, { status: 404 });
+    const file = await readFile(path.resolve(".local/content-media", media.filename));
     return new Response(file, {
       headers: {
         "Content-Type": "image/webp",

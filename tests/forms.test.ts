@@ -1,10 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  errorStep,
-  validateStep,
-  visibleReviewValues,
-} from "../src/lib/forms.ts";
+import { errorStep, validateStep, visibleReviewValues } from "../src/lib/forms.ts";
 const valid = {
   categories: ["business"],
   city: "Shanghai",
@@ -55,9 +51,7 @@ test("accepts an approximate visit without invented dates", () =>
   assert.deepEqual(validateStep("request", 1, valid, "en"), {}));
 test("provider contact requires phone and capability description", () => {
   assert.ok(validateStep("apply", 1, {}, "en").capabilities);
-  assert.ok(
-    validateStep("apply", 2, { name: "A", email: "a@b.com" }, "en").phone,
-  );
+  assert.ok(validateStep("apply", 2, { name: "A", email: "a@b.com" }, "en").phone);
 });
 test("hidden short-stay dates do not block a long stay or removed category", () => {
   const dates = {
@@ -80,10 +74,7 @@ test("hidden short-stay dates do not block a long stay or removed category", () 
     ),
     {},
   );
-  assert.deepEqual(
-    validateStep("request", 1, { ...dates, categories: ["business"] }, "en"),
-    {},
-  );
+  assert.deepEqual(validateStep("request", 1, { ...dates, categories: ["business"] }, "en"), {});
 });
 
 test("review omits unselected category fields without deleting recoverable input", () => {

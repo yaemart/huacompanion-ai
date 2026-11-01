@@ -2,10 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { switchLocale, isKnownRoute } from "../src/lib/routes.ts";
 test("language switch retains a deep service path", () => {
-  assert.equal(
-    switchLocale("/en/services/medical", "zh"),
-    "/zh/services/medical",
-  );
+  assert.equal(switchLocale("/en/services/medical", "zh"), "/zh/services/medical");
   assert.equal(switchLocale("/zh", "en"), "/en");
 });
 test("routes include service details and reject invented pages", () => {

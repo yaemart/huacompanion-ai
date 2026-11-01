@@ -56,10 +56,7 @@ export function InstitutionFields({
         </label>
         <label>
           所在城市
-          <select
-            value={value.city}
-            onChange={(e) => set("city", e.target.value)}
-          >
+          <select value={value.city} onChange={(e) => set("city", e.target.value)}>
             <option value="">请选择城市</option>
             {catalogCities.map((c) => (
               <option key={c.code} value={c.code}>
@@ -73,10 +70,7 @@ export function InstitutionFields({
           <select
             value={value.foreignAcceptance}
             onChange={(e) =>
-              set(
-                "foreignAcceptance",
-                e.target.value as Institution["foreignAcceptance"],
-              )
+              set("foreignAcceptance", e.target.value as Institution["foreignAcceptance"])
             }
           >
             {Object.entries(institutionAcceptanceLabels).map(([v, l]) => (
@@ -87,16 +81,11 @@ export function InstitutionFields({
           </select>
         </label>
       </div>
-      <p>
-        接待状态与发布状态独立。待确认不等于不接待；只有已确认接待的公开机构可以提交机构咨询。
-      </p>
+      <p>接待状态与发布状态独立。待确认不等于不接待；只有已确认接待的公开机构可以提交机构咨询。</p>
       <fieldset>
         <legend>机构可提供的服务语言（与此篇内容语言独立）</legend>
         {catalogLanguages.map((l) => (
-          <label
-            key={l.code}
-            style={{ display: "inline-flex", gap: 8, marginRight: 20 }}
-          >
+          <label key={l.code} style={{ display: "inline-flex", gap: 8, marginRight: 20 }}>
             <input
               type="checkbox"
               style={{ width: "auto" }}
@@ -122,9 +111,7 @@ export function InstitutionFields({
           {label}
           <textarea
             value={value[key as keyof typeof textFields]}
-            onChange={(e) =>
-              set(key as keyof typeof textFields, e.target.value)
-            }
+            onChange={(e) => set(key as keyof typeof textFields, e.target.value)}
           />
         </label>
       ))}
@@ -148,9 +135,7 @@ export function InstitutionFields({
           onChange={(e) => set("verifiedAt", e.target.value)}
         />
       </label>
-      <small>
-        下方来源需包含与官方网站完全一致的网址，以及与此日期一致的实际人工核查日期。
-      </small>
+      <small>下方来源需包含与官方网站完全一致的网址，以及与此日期一致的实际人工核查日期。</small>
       <label>
         关联华伴服务项目（当前语言，可多选）
         <select
@@ -178,8 +163,7 @@ export function InstitutionFields({
         </select>
       </label>
       <small>
-        可关联工作稿；公开页面仅展示符合公开条件的正式项目。使用 Ctrl／Command
-        多选或取消选择。
+        可关联工作稿；公开页面仅展示符合公开条件的正式项目。使用 Ctrl／Command 多选或取消选择。
       </small>
     </section>
   );

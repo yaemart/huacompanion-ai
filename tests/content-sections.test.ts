@@ -1,10 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  contentSections,
-  sectionFor,
-  filterContent,
-} from "../src/lib/content-sections.ts";
+import { contentSections, sectionFor, filterContent } from "../src/lib/content-sections.ts";
 test("eight sections preserve existing category identifiers", () => {
   assert.equal(contentSections.length, 8);
   assert.equal(contentSections.find((s) => s.id === 2)?.key, "business");

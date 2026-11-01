@@ -1,10 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  canEditContent,
-  validateContent,
-  validateCandidate,
-} from "../src/lib/content-model.ts";
+import { canEditContent, validateContent, validateCandidate } from "../src/lib/content-model.ts";
 const doc = {
   contentKey: "guide-a",
   kind: "guide",
@@ -24,9 +20,7 @@ test("only administrators and editors may manage content", () => {
 });
 test("content permits safe blocks and sources", () => {
   assert.doesNotThrow(() => validateContent(doc));
-  assert.throws(() =>
-    validateContent({ ...doc, blocks: [{ type: "html", text: "<script/>" }] }),
-  );
+  assert.throws(() => validateContent({ ...doc, blocks: [{ type: "html", text: "<script/>" }] }));
   assert.throws(() =>
     validateContent({
       ...doc,
@@ -72,17 +66,13 @@ test("AI candidate must use provided source identifiers and safe body", () => {
 });
 test("page content rejects unreachable routes and supports privacy and terms", () => {
   assert.throws(() => validateContent({ ...doc, kind: "page", slug: "team" }));
-  assert.doesNotThrow(() =>
-    validateContent({ ...doc, kind: "page", slug: "privacy" }),
-  );
-  assert.doesNotThrow(() =>
-    validateContent({ ...doc, kind: "page", slug: "terms" }),
-  );
+  assert.doesNotThrow(() => validateContent({ ...doc, kind: "page", slug: "privacy" }));
+  assert.doesNotThrow(() => validateContent({ ...doc, kind: "page", slug: "terms" }));
 });
 
 test("content accepts all seven explicit locales and rejects unsupported language codes", () => {
   for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"])
-    assert.doesNotThrow(() => validateContent({...doc, locale}));
+    assert.doesNotThrow(() => validateContent({ ...doc, locale }));
   for (const locale of ["ja", "", "EN", null])
-    assert.throws(() => validateContent({...doc, locale}));
+    assert.throws(() => validateContent({ ...doc, locale }));
 });

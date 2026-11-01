@@ -5,7 +5,7 @@ import { ContentError } from "./service";
 export async function contentAuth(headers: Headers) {
   const p = await getPayload({ config });
   const { user } = await p.auth({ headers });
-  if (user?.collection !== "staff" || (!canManageContent(user) || contentScope(user) === false))
+  if (user?.collection !== "staff" || !canManageContent(user) || contentScope(user) === false)
     throw new ContentError("请使用有内容权限的员工账号登录", 403);
   return { p, user: user! };
 }
@@ -37,10 +37,7 @@ export async function limitedJSON(req: Request, limit = 150000) {
 export function failure(e: unknown) {
   return Response.json(
     {
-      error:
-        e instanceof ContentError
-          ? e.message
-          : "操作未完成，请检查内容或刷新后重试",
+      error: e instanceof ContentError ? e.message : "操作未完成，请检查内容或刷新后重试",
     },
     {
       status: e instanceof ContentError ? e.status : 400,
