@@ -21,7 +21,7 @@ const admin = (
     limit: 1,
   })
 ).docs[0];
-const editor = { ...admin, role: "editor" as const };
+const editor = { ...admin, role: "editor" as const, additionalRoles: [], contentKinds: ["guide"] };
 const key = `test-${Date.now()}`;
 const body = {
   contentKey: key,

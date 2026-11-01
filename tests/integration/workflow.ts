@@ -32,3 +32,4 @@ try{
  for(const collection of ['workflow-notifications','workflow-tasks','workflow-events'])await p.delete({collection,where:{inquiry:{in:inquiries}}});
  for(const item of created.reverse())await p.delete({...item});await p.destroy();
 }
+process.exit(0);
