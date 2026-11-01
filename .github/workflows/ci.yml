@@ -95,3 +95,4 @@ jobs:
           npm run test:trial
           npm run test:policies
           npm run test:policies:workflow
+          npm run test:policies:editor

@@ -366,7 +366,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     validateContent(clean);
     if (input.action === "publish") {
       if (current.reviewState !== "review") throw new ContentError("请先提交审核");
-      if (!clean.blocks.length) throw new ContentError("正文不能为空");
+      if (!clean.blocks.length && clean.kind !== "immigration-policy")
+        throw new ContentError("正文不能为空");
       if (clean.kind === "immigration-policy")
         clean.policy = await publishPolicy(p, req, current, input.policyReviewed);
       if (clean.kind === "guide" && !clean.sources.length)

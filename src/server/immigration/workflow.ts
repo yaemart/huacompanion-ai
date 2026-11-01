@@ -17,15 +17,20 @@ export async function policyActor(p: Payload, req: Req, user: ContentUser, actio
   const actor = await p.findByID({ collection: "staff", id: Number(user?.id), depth: 0, req });
   if (
     !canAccessContentKind(actor, "immigration-policy") ||
-    (["save", "restore", "submit"].includes(action)
-      ? !canEditContent(actor)
-      : !canReviewContent(actor))
+    (action !== "read" &&
+      (["save", "restore", "submit"].includes(action)
+        ? !canEditContent(actor)
+        : !canReviewContent(actor)))
   )
     throw new ContentError("需要有效的政策板块编辑或审核权限", 403);
   return actor;
 }
 
-async function referencedPolicy(p: Payload, req: Req, current: ContentDraft) {
+export async function referencedPolicy(
+  p: Payload,
+  req: Req,
+  current: Pick<ContentDraft, "body" | "identity">,
+) {
   const ref = (current.body as unknown as ContentBody).policyRef;
   if (!ref || !Number.isSafeInteger(ref.id) || !Number.isSafeInteger(ref.revision))
     throw new ContentError("政策引用缺失，请刷新工作稿", 409);
