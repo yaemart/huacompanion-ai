@@ -5,7 +5,7 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支codex/visa-policy-banner，依赖草稿[PR14](https://github.com/yaemart/huacompanion-ai/pull/14)的5b106e2b2304996f8b8903073dd45685abdbb21e；基准push/PR CI已成功（41317987176、41317991206）。本步草稿PR及当前head完整SHA/CI见最终交接，不能沿用基准结果。依赖顺序PR2→3→4→5→6→7→8→9→10→11→12→13→14→本步，前置合并后改指main重验，不自动合并。
+- 当前分支codex/visa-policy-banner，依赖草稿[PR14](https://github.com/yaemart/huacompanion-ai/pull/14)的5b106e2b2304996f8b8903073dd45685abdbb21e；基准push/PR CI已成功（41317987176、41317991206）。本步草稿[PR15](https://github.com/yaemart/huacompanion-ai/pull/15)，当前head完整SHA/CI见最终交接，不能沿用基准结果。依赖顺序PR2→3→4→5→6→7→8→9→10→11→12→13→14→15，前置合并后改指main重验，不自动合并。
 - 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付。1.1政策流程、1.2纯查询及1.3a/b/c SSR/浏览器查询/正式FAQ与本机移动审计已验证。后台入口/content-center?kind=immigration-policy仍需开关和显式授权，通用集合CRUD仍关闭。工具默认404/noindex，无公共原始数据API。1.4正文政策横幅已本地验证；下一步1.5站内复核提醒；现实内容/部署/恢复及公开B仍待完成。
 - **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 

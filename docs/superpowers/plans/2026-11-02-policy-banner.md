@@ -51,5 +51,5 @@
 
 - [x] check、相关content/permissions:content/policies:workflow DB及policy/query/trial HTTP回归；生产build与开/关HTTP通过，源码行长/any核对。
 - [x] CUA虚构数据桌面/手机/无JS横幅截图及后台引用编辑检查；夹具清理/原稿116/实际flagfalse核对，恢复默认dev和两个worker。
-- [ ] 代码与证据提交后一次独立只读整轮复核；重要问题一轮RED→GREEN，不重派复核；所有裁定和验证限制记录。
+- [x] 代码与证据提交后一次独立只读整轮复核；重要问题一轮RED→GREEN，不重派复核；所有裁定和验证限制记录。
 - [ ] 最终提交推送草稿PR并关联，fetch完整SHA/clean tree/当前head push与PR CI实核；仅本地，下一步1.5，不自动合并/部署。
