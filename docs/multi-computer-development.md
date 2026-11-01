@@ -83,7 +83,7 @@ git rev-parse '@{upstream}'
 
 每个任务尽早建立面向 `main` 的草稿 PR。之后向该任务分支推送新提交，PR 会自动重新运行 CI；不必为了同步电脑提前合并未完成工作。
 
-CI 在 PR、`main` 推送和手动运行时触发。只有分支推送而没有 PR 时不会自动运行，以减少重复消耗。检查包括：
+CI 在每次分支推送、面向 `main` 的 PR 和手动运行时触发。推送时运行 `npm run check`（lint、类型检查、单元测试）；数据库检查继续使用独立临时库。检查包括：
 
 - Node.js 24.22.1 下的单元测试和 TypeScript 检查。
 - 临时 PostgreSQL 15 空库上的迁移与生产构建（关闭自动 schema push）。

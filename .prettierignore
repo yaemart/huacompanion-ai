@@ -1,0 +1,7 @@
+node_modules
+.next
+.local
+.superpowers
+backups
+package-lock.json
+next-env.d.ts
