@@ -31,7 +31,7 @@ const priority: Record<PublicPolicyData["policyType"], number> = {
   "transit-240h": 3,
 };
 
-function safeGuide(value: unknown): VisaGuide | null {
+export function safeVisaGuide(value: unknown): VisaGuide | null {
   if (!value || typeof value !== "object") return null;
   const guide = value as Record<string, unknown>;
   if (
@@ -130,6 +130,6 @@ export function queryImmigrationPolicies(
     errors,
     notice: { ...policyQueryCopy.notices[status] },
     matches,
-    visaGuide: safeGuide(context.visaGuide),
+    visaGuide: safeVisaGuide(context.visaGuide),
   };
 }

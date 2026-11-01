@@ -3,6 +3,9 @@ import { getPayload } from "payload";
 import config from "@/payload.config";
 import { Header } from "@/components/Header";
 import { PolicyTable } from "@/components/immigration/PolicyTable";
+import { PolicyQuery } from "@/components/immigration/PolicyQuery";
+import { selectPolicyVisaGuide } from "@/lib/immigration-policy-browser";
+import { listPublished } from "@/server/content/service";
 import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
 import { policyPageCopy } from "@/lib/immigration-policy-page-copy";
 import { buildPolicyTable } from "@/lib/immigration-policy-table";
@@ -10,6 +13,7 @@ import { contentMetadata } from "@/lib/seo";
 import { listPublicPolicies } from "@/server/immigration/public";
 import { isSiteLocale } from "@/server/site-config";
 import "@/components/immigration/policy-table.css";
+import "@/components/immigration/policy-query.css";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ locale: string }> };
@@ -34,7 +38,12 @@ export async function generateMetadata({ params }: Props) {
 export default async function VisaCheckerPage({ params }: Props) {
   const locale = await pageLocale(params);
   const c = policyPageCopy[locale];
-  const policies = await listPublicPolicies(await getPayload({ config }), locale);
+  const payload = await getPayload({ config });
+  const policies = await listPublicPolicies(payload, locale);
+  const guideKey = process.env.VISA_GUIDE_CONTENT_KEY;
+  const visaGuide = guideKey?.trim()
+    ? selectPolicyVisaGuide(await listPublished(payload, locale), locale, guideKey)
+    : null;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const rows = buildPolicyTable(policies, today);
   return (
@@ -68,12 +77,18 @@ export default async function VisaCheckerPage({ params }: Props) {
         <p>
           {c.referenceDate} <time dateTime={today}>{today}</time>
         </p>
+        <PolicyQuery
+          locale={locale}
+          policies={policies}
+          verifiedOnOrBefore={today}
+          visaGuide={visaGuide}
+        />
         <PolicyTable rows={rows} locale={locale} />
         <aside className="policy-disclaimer">
           <p>{c.disclaimer}</p>
         </aside>
         <div className="policy-next-steps">
-          <a href={`/${locale}/guides`}>{c.guide}</a>
+          <a href={visaGuide?.href || `/${locale}/guides`}>{visaGuide?.title || c.guide}</a>
           <a className="button" href={`/${locale}/request`}>
             {c.service} ↗
           </a>
