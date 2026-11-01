@@ -74,7 +74,8 @@
     "test:policies:editor": "tsx tests/integration/immigration-editor.ts",
     "test:policies:editor:http": "tsx tests/integration/immigration-editor-http.ts",
     "seed:policies": "tsx scripts/seed-policies.ts",
-    "test:policies:data": "tsx tests/integration/immigration-data.ts"
+    "test:policies:data": "tsx tests/integration/immigration-data.ts",
+    "test:policies:query": "tsx tests/integration/immigration-query.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
