@@ -67,7 +67,10 @@
     "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "test:policies": "tsx tests/integration/immigration-policies.ts",
     "test:policies:http": "tsx tests/integration/immigration-policies-http.ts",
-    "test:policies:migration": "tsx tests/integration/immigration-migration.ts"
+    "test:policies:migration": "tsx tests/integration/immigration-migration.ts",
+    "test:policies:workflow": "tsx tests/integration/immigration-workflow.ts",
+    "test:policies:workflow:http": "tsx tests/integration/immigration-workflow-http.ts",
+    "test:policies:workflow:migration": "tsx tests/integration/immigration-workflow-migration.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

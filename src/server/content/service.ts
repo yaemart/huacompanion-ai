@@ -1,3 +1,11 @@
+import { ContentError } from "./error";
+import {
+  policyActor,
+  savePolicyDraft,
+  checkPolicyDraft,
+  publishPolicy,
+  unpublishPolicy,
+} from "../immigration/workflow";
 import { versionOf } from "../../cms/quality/hooks";
 import { publicQualityMetadata } from "../../lib/quality";
 import { houseProviderCovers } from "../../lib/housekeeping";
@@ -35,14 +43,10 @@ interface ContentActionInput {
   institutionReviewed?: unknown;
   lifeReviewed?: unknown;
   catalogReviewed?: unknown;
+  policyReviewed?: unknown;
+  policy?: unknown;
 }
-export class ContentError extends Error {
-  status: number;
-  constructor(message: string, status = 400) {
-    super(message);
-    this.status = status;
-  }
-}
+export { ContentError } from "./error";
 // All content writes use this transaction lock; generic collection mutations are denied.
 export async function contentTransaction<T>(
   p: Payload,
@@ -85,8 +89,9 @@ export async function listPublished(p: Payload, locale: string, req?: Partial<Pa
       );
   const available = snapshots.filter(
     (s) =>
-      (s.body as ContentBody).kind !== "provider-profile" ||
-      eligible.get(`${s.providerRef}:${!!s.body.catalog?.categories.includes("housekeeping")}`),
+      s.body.kind !== "immigration-policy" &&
+      ((s.body as ContentBody).kind !== "provider-profile" ||
+        eligible.get(`${s.providerRef}:${!!s.body.catalog?.categories.includes("housekeeping")}`)),
   );
   const providerKeys = new Set(
     available
@@ -143,7 +148,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     throw new ContentError("只有内容编辑可修改或提交工作稿", 403);
   if (["publish", "unpublish", "return"].includes(input.action) && !canReviewContent(user))
     throw new ContentError("只有内容审核员可审核发布", 403);
-  const result = await contentTransaction(p, async (req) => {
+  const result = await contentTransaction(p, async (tx) => {
+    const req = { ...tx, context: { policyWorkflow: true } };
     const current = input.id
       ? await p.findByID({
           collection: "content-drafts",
@@ -152,6 +158,14 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
           depth: 0,
         })
       : null;
+    if (
+      current?.kind === "immigration-policy" ||
+      (input.body &&
+        typeof input.body === "object" &&
+        "kind" in input.body &&
+        input.body.kind === "immigration-policy")
+    )
+      user = await policyActor(p, req, user, input.action);
     if (current && !canAccessContentKind(user, current.kind))
       throw new ContentError("无此板块权限", 403);
     if (current?.reviewState === "review" && ["save", "restore", "submit"].includes(input.action))
@@ -191,7 +205,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     if (["save", "restore"].includes(input.action)) {
       validateContent(rawBody);
       if (!canAccessContentKind(user, rawBody.kind)) throw new ContentError("无此板块权限", 403);
-      const body = publicBody(rawBody);
+      const body = publicBody({ ...rawBody, policy: undefined });
       if (current) {
         const old = current.body as unknown as ContentBody;
         if (
@@ -239,6 +253,19 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
           await p.findByID({ collection: "providers", id: input.providerRef, req, depth: 0 });
         providerRef = input.providerRef;
       }
+      if (body.kind === "immigration-policy") {
+        body.policyRef = await savePolicyDraft(
+          p,
+          req,
+          current,
+          input.action === "restore"
+            ? { ...body, policyRef: (rawBody as ContentBody).policyRef }
+            : body,
+          input.policy,
+          input.action === "restore",
+        );
+        delete body.policy;
+      }
       const data = {
         ...(["provider-profile", "institution", "venue", "activity"].includes(body.kind)
           ? { providerRef }
@@ -278,7 +305,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
       return saved;
     }
     if (!current) throw new ContentError("内容不存在", 404);
-    if (input.action === "submit")
+    if (input.action === "submit") {
+      await checkPolicyDraft(p, req, current);
       return p.update({
         collection: "content-drafts",
         id: current.id,
@@ -300,6 +328,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         },
         req,
       });
+    }
     if (input.action === "return") {
       if (current.reviewState !== "review") throw new ContentError("仅待审核内容可以退回");
       await p.create({
@@ -338,6 +367,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     if (input.action === "publish") {
       if (current.reviewState !== "review") throw new ContentError("请先提交审核");
       if (!clean.blocks.length) throw new ContentError("正文不能为空");
+      if (clean.kind === "immigration-policy")
+        clean.policy = await publishPolicy(p, req, current, input.policyReviewed);
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
       if (clean.kind === "exhibition")
@@ -424,6 +455,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         data: { active: false },
         req,
       });
+    if (input.action === "unpublish" && clean.kind === "immigration-policy")
+      await unpublishPolicy(p, req, current);
     if (input.action === "unpublish" && clean.kind === "provider-profile")
       await suspendProjectsForKey(p, clean.contentKey, clean.locale, req);
     await p.create({

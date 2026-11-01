@@ -30,7 +30,12 @@ export const ContentDrafts: CollectionConfig = {
   hooks: {
     afterChange: [contentQualityHook],
     beforeChange: [
-      ({ data, originalDoc }) => {
+      ({ data, originalDoc, req }) => {
+        if (
+          (data.kind || originalDoc?.kind) === "immigration-policy" &&
+          !req.context.policyWorkflow
+        )
+          throw Error("政策工作稿必须通过审核发布服务修改");
         const body = data.body || originalDoc?.body || {};
         data.sectionLabel = contentSections.find((s) => s.id === sectionFor(body))!.zh;
         return data;

@@ -161,6 +161,7 @@ export const contentSections = [
   },
 ] as const;
 export function sectionFor(body: { category?: number; kind?: string; slug?: string }) {
+  if (body.kind === "immigration-policy") return 1;
   if (body.kind === "venue" || body.kind === "activity") return 6;
   if (body.category && contentSections.some((s) => s.id === body.category)) return body.category;
   const mapping: Record<string, number> = {
