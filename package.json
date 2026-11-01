@@ -64,7 +64,10 @@
     "compose:smoke": "docker compose --env-file .env.compose exec -T -e HUA_COMPOSE_SMOKE=true web node --import tsx scripts/smoke-compose.ts",
     "compose:backup": "node scripts/compose-backup.mjs backup",
     "compose:restore-test": "node scripts/compose-backup.mjs roundtrip",
-    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts"
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
+    "test:policies": "tsx tests/integration/immigration-policies.ts",
+    "test:policies:http": "tsx tests/integration/immigration-policies-http.ts",
+    "test:policies:migration": "tsx tests/integration/immigration-migration.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

@@ -26,6 +26,7 @@ test("publication accepts complete policies and an explicitly absent expiry", ()
   validatePolicyPublication(policy, "2026-11-01");
   validatePolicyPublication({ ...policy, validUntil: null }, "2026-11-01");
   validatePolicyPublication({ ...policy, validUntil: undefined }, "2026-11-01");
+  validatePolicyPublication({ ...policy, internalNotes: null }, "2026-11-01");
 });
 
 test("publication rejects malformed or incomplete policy facts", () => {
