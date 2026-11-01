@@ -32,9 +32,9 @@
 
 **Interfaces:** 复用导出的isPolicyCalendarDate(value)。queryImmigrationPolicies(input, policies:readonly unknown[], context)；input为nationalityISO/arrivalDate未知输入，null国籍明确表示未列出；context为verifiedOnOrBefore日历日和调用方提供的已发布visaGuide或null。返回status（matched/unconfirmed/invalid-input）、字段错误代码、中英文notice、独立matches及visaGuide/null，不回显查询输入。每项matches保留公开字段（去maxStayDays），以stay区分days或hours，附conditions-unchecked、expiry-not-stated、transit-itinerary-unchecked警示代码。guide只接受中英文站内指南路径及文本标题，调用方负责从listPublished取已发布内容。
 
-- [ ] 写失败用例并观察RED：截止前/当/后、生效前/当天、空截止、未知/未列出、非法类型/日期与闰年。
-- [ ] 实现最小查询与copy；校验数据用显式verifiedOnOrBefore，不读时钟；非公开字段对象拒绝参与。固定排序unilateral→bilateral→other→transit，再核实日降序/公开字段指纹，保留全部记录。
-- [ ] 用例验证两类免签/过境叠加、分别时长、240h单位/条件、来源/核实日期、不变性及无私有字段；所有新纯测试与完整单元通过。
+- [x] 写失败用例并观察RED：截止前/当/后、生效前/当天、空截止、未知/未列出、非法类型/日期与闰年。
+- [x] 实现最小查询与copy；校验数据用显式verifiedOnOrBefore，不读时钟；非公开字段对象拒绝参与。固定排序unilateral→bilateral→other→transit，再核实日降序/公开字段指纹，保留全部记录。
+- [x] 用例验证两类免签/过境叠加、分别时长、240h单位/条件、来源/核实日期、不变性及无私有字段；所有新纯测试与完整单元通过。
 
 ### Task 2: 隔离验证与正式数据管线
 
@@ -42,14 +42,14 @@
 
 **Interfaces:** query只消费listPublicPolicies结果；签证guide从listPublished正式指南解析，仍不新增公开路由或页面。
 
-- [ ] 在隔离子进程以UTC、上海、洛杉矶时区运行同一夹具，禁止隐式时钟/网络/存储；结果一致且无额外日志。
-- [ ] 真实DB验证草稿/待审不参与，审核后可匹配，改稿仍旧快照，下架后尚未确认，私有字段无泄露；真实已发布指南可附加，未发布指南不提供。清理夹具。
-- [ ] 原policies:data回归、check通过；新query DB套件加入CI。无schema和既有业务权限变化。
+- [x] 在隔离子进程以UTC、上海、洛杉矶时区运行同一夹具，禁止隐式时钟/网络/存储；结果一致且无额外日志。
+- [x] 真实DB验证草稿/待审不参与，审核后可匹配，改稿仍旧快照，下架后尚未确认，私有字段无泄露；真实已发布指南可附加，未发布指南不提供。清理夹具。
+- [x] 原policies:data回归、check通过；新query DB套件加入CI。无schema和既有业务权限变化。
 
 ### Task 3: 复核与交接
 
 **Files:** docs/progress.md、handoff.md、immigration-policies.md、feature-inventory.md、traffic-entry-phase1-plan.md、README.md。
 
-- [ ] 独立只读整轮复核，Important/Critical补RED→GREEN；记录范围与剩余事项。
-- [ ] 更新实测记录、源码any与行长，原稿116/flag/夹具核实，本地进程恢复。无新界面，截图不适用。
-- [ ] check后提交推送草稿PR，核对完整远端SHA/本head CI；下一步1.3a中英SSR和无JS表格，不自动合并或部署。
+- [x] 独立只读整轮复核，无Important/Critical/Minor；记录范围与剩余事项。
+- [x] 更新实测记录、源码any与行长，原稿116/flag/夹具核实，本地进程恢复。无新界面，截图不适用。
+- [x] check后提交推送草稿PR11；完整远端SHA/本head CI按最终交接实核。下一步1.3a中英SSR和无JS表格，不自动合并或部署。

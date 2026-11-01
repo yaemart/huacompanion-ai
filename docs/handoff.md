@@ -5,7 +5,7 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支codex/visa-policy-query，本轮1.2依赖[PR10](https://github.com/yaemart/huacompanion-ai/pull/10)的b72e106f4a1540324e03abe6e1da6e2857d02f70。PR10的push/PR CI均成功（41302402453、41302473045）。依赖顺序PR2→3→4→5→6→7→8→9→10→本轮查询PR；前置合并后改指main重验，不自动合并。当前head的PR/完整SHA/CI以最终交接实际核实，不能沿用依赖的绿色结果。
+- 当前分支codex/visa-policy-query，草稿[PR11](https://github.com/yaemart/huacompanion-ai/pull/11)依赖[PR10](https://github.com/yaemart/huacompanion-ai/pull/10)的b72e106f4a1540324e03abe6e1da6e2857d02f70。PR10的push/PR CI均成功（41302402453、41302473045）。依赖顺序PR2→3→4→5→6→7→8→9→10→11；前置合并后改指main重验，不自动合并。当前head的完整SHA/CI以最终交接及PR说明实际核实，不能沿用依赖的绿色结果。
 - 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付。1.1政策事务/表单/仅草稿导入/正式投影及1.2纯查询已本地验证。后台入口/content-center?kind=immigration-policy，需VISA_CHECKER_ENABLED=true和显式板块授权；默认隐藏。通用集合CRUD仍关闭，仅管理员直接读；工作台读取对授权编辑/审核开放，核实人仅姓名/ID。无新增公网接口。下一步1.3a中英SSR与无JS表格，工具尚未实现，见[政策约定](immigration-policies.md)。
 - **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 
@@ -29,7 +29,7 @@
 
 ## 环境与数据
 
-- 1.2无新迁移/依赖/环境值变化。check通过177项单元；新增test:policies:query与原test:policies:data两套DB及trial HTTP通过。查询显式日期基准，只消费正式投影；指南必须由调用方从listPublished提供，无真实指南时null。只读核实政策/版本/工作稿/正式快照/临时账号和授权均0，原稿116保留，实际flag关闭。此步无界面，截图不适用。独立复核、最终进程与当前head的远端/CI证据见最终交接和progress。
+- 1.2无新迁移/依赖/环境值变化。check通过177项单元；新增test:policies:query与原test:policies:data两套DB及trial HTTP通过。查询显式日期基准，只消费正式投影；指南必须由调用方从listPublished提供，无真实指南时null。只读核实政策/版本/工作稿/正式快照/临时账号和授权均0，原稿116保留，实际flag关闭。此步无界面，截图不适用。独立复核无Critical/Important/Minor，另跑纯13/13；未代跑DB/HTTP/build/CI。网站及两个worker已恢复，support无模型转人工，workflow为0提醒/0处理。当前head远端/CI证据见最终交接及PR11说明。
 
 - Node24.22.1、PostgreSQL15；本机系统默认Node版本不等于项目版本，先按 `.nvmrc` 配置并确认 `node -v`。本轮验证明确使用Node24。开发网站3000，专用虚构测试库55438。
 - `npm run dev` 保留Next Fast Refresh、关闭Payload HMR；CMS配置／集合／字段／权限配置修改后重启。构建与check串行，避免生成Next类型竞争。
