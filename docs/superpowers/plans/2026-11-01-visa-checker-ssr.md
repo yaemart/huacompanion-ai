@@ -33,9 +33,9 @@
 
 **Interfaces:** buildPolicyTable(policies:readonly unknown[], verifiedOnOrBefore:string)返回PolicyTableRow[]（policy:PolicyQueryMatch,dateStatus:within-dates/upcoming/unconfirmed）。用单条政策生效日查询复用时长与警示，日期基准仍显式；国家按ISO代码排序并展示本地名称、同国使用既有comparePublicPolicies。PolicyTable({rows,locale})完整SSR，无分页/JS/网络/输入。
 
-- [ ] 写RED测试：全部日期状态/截止当天、国家排序/同国优先、小时与空截止、私有/损坏排除、201条完整及输入不变。
-- [ ] 实现模型/结构化中英文copy和语义表格；导出既有排序不改行为；纯测试及原query回归通过。
-- [ ] renderToStaticMarkup验证表头/caption/行数、来源/日期/条件、恶意文本转义、空态及无脚本/表单；纯套件通过。
+- [x] 写RED测试：全部日期状态/截止当天、国家排序/同国优先、小时与空截止、私有/损坏排除、201条完整及输入不变。
+- [x] 实现模型/结构化中英文copy和语义表格；导出既有排序不改行为；纯测试及原query回归通过。
+- [x] renderToStaticMarkup验证表头/caption/行数、来源/日期/条件、恶意文本转义、空态及无脚本/表单；纯套件通过。
 
 ### Task 2: App Router 与真实 HTTP
 
@@ -43,14 +43,14 @@
 
 **Interfaces:** 具体页面params为Promise，页面与generateMetadata同一flag/en-zh/site-locale门禁，门禁在政策读取前。force-dynamic、正式投影与中国日期；复用Header，提供无JS中英链接及既有指南/咨询入口。强制noindex直到后续搜索/发布步骤。
 
-- [ ] 默认关闭态HTTP红/绿：en/zh404且无工具入口；开启本机临时进程后空态/两语/其他五语拒绝/noindex断言。
-- [ ] 真实虚构工作流HTTP：草稿和待审不显示，发布后初始HTML有来源/核实日期/时长/警示，新草稿隔离，下架消失，私有标记不出现；finally清理夹具。
-- [ ] 生产build及check通过；生产本地HTTP开关矩阵；无JS桌面/手机截图，表格可读且body无溢出。原trial HTTP回归，恢复默认进程。
+- [x] 默认关闭态HTTP红/绿：en/zh404且无工具入口；开启本机临时进程后空态/两语/其他五语拒绝/noindex断言。
+- [x] 真实虚构工作流HTTP：草稿和待审不显示，发布后初始HTML有来源/核实日期/时长/警示，新草稿隔离，下架消失，私有标记不出现；finally清理夹具。
+- [x] 生产build及check通过；生产本地HTTP开关矩阵；无JS桌面/手机截图，表格可读且body无溢出。原trial HTTP回归，恢复默认进程。
 
 ### Task 3: 复核与交接
 
 **Files:** README.md、docs/progress.md、handoff.md、feature-inventory.md、immigration-policies.md、traffic-entry-phase1-plan.md及截图。
 
-- [ ] 一次独立只读整轮复核，重要问题一轮RED→GREEN，记录裁定。
-- [ ] check、行长/any及夹具/原稿116/关闭flag核实；记录实测和限制，更新交接。
-- [ ] 独立提交/推送草稿PR、关联、完整SHA远端核对和本head CI实际结果。下一步1.3b浏览器查询，不自动合并/部署。
+- [x] 一次独立只读整轮复核，无Critical/Important/Minor，记录裁定。
+- [x] check、行长/any及夹具/原稿116/关闭flag核实；记录实测和限制，更新交接。
+- [x] 独立提交/推送草稿PR12并关联；完整SHA远端核对和本head CI按最终交接实际结果报告。下一步1.3b浏览器查询，不自动合并/部署。
