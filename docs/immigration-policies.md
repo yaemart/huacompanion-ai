@@ -103,3 +103,13 @@ queryImmigrationPolicies(input, policies, context)接收nationalityISO、arrival
 查询重新验证政策并拒绝携带任何非公开自有字段的对象，防止误传原始主记录/草稿；但纯事实对象本身不能证明已经发布。发布状态仍由正式投影负责，调用方不得手工剥字段后绕过工作流。visaGuide须调用方从listPublished中选择已发布指南，仅接受/en或/zh/guides/下的规范路径及有效标题；未配置/未发布返回null，不造链接。阶段1.3须实际选择签证指南，公开前须准备核实内容。
 
 test:policies:query用本地虚构数据验证草稿/待审排除、发布匹配、改稿保留旧快照、下架及指南发布链路；已加入CI串行DB套件。纯测试在UTC、上海、洛杉矶子进程禁止隐式时钟/网络/存储并比较结果。本轮无页面、路由、数据库结构或实际.env变更；下一步1.3a SSR与无JS完整表格。
+
+## 1.3a SSR参考表
+
+具体路由为/en/tools/china-visa-free-checker及/zh/tools/china-visa-free-checker，页面和generateMetadata共同先检查字面true开关及中英/公开语言范围。关闭和其他五语404；沿用force-dynamic，不缓存政策下架结果。默认实际.env未改，不在全站导航/sitemap/llms新增入口；搜索配置与发现留1.6，页面当前强制noindex。
+
+页面只从listPublicPolicies读取正式投影。buildPolicyTable再次校验，以每条政策生效日调用1.2纯查询复用时长/条件，使用显式页面中国日期作核实基准；表格保留全部已发布日期窗口，不按当前日期删除过期或未来政策。国家按ISO排序并显示本地名称，同国复用查询排序；日期标签为within-dates/upcoming/unconfirmed，范围内仍需核实条件，不能据此保证访客资格。
+
+初始HTML完整输出国家、方式、最长时间、有效期/状态、条件/公开备注、官方来源及核实日期；空截止/240小时提示复用原query copy。React转义正文，非法/私有对象不能形成行。无记录显示待核实，不填充假政策；既有指南目录和咨询入口不是伪造的签证办理指南链接。浏览器输入及特定签证指南接入留1.3b，FAQ和Lighthouse留1.3c。
+
+表格caption、行/列表头、可聚焦区域与说明支持无JS阅读。手机页面不横向溢出，仅表格局部横滚，键盘右移可读来源和日期。test:policies:table静态渲染及test:policies:page:http -- --enabled真实发布链路已验证；不带--enabled验证关闭矩阵。HTTP套件仅本机3000且APP_ENV=local，CI以同一生产构建串行启动关闭/开启两种进程，临时七语配置证明工具仍只中英可用。截图为虚构政策，见screenshots/visa-checker-ssr。

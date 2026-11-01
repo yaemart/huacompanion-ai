@@ -57,7 +57,7 @@ function cleanPolicy(value: unknown, verifiedOnOrBefore: string): PublicPolicyDa
   }
 }
 
-function comparePolicies(a: PublicPolicyData, b: PublicPolicyData): number {
+export function comparePublicPolicies(a: PublicPolicyData, b: PublicPolicyData): number {
   const rank = priority[a.policyType] - priority[b.policyType];
   if (rank) return rank;
   if (a.lastVerifiedOn !== b.lastVerifiedOn) return a.lastVerifiedOn > b.lastVerifiedOn ? -1 : 1;
@@ -118,7 +118,7 @@ export function queryImmigrationPolicies(
       )
         applicable.push(policy);
     }
-    matches.push(...applicable.sort(comparePolicies).map(match));
+    matches.push(...applicable.sort(comparePublicPolicies).map(match));
   }
   const status: QueryStatus = errors.length
     ? "invalid-input"
