@@ -51,6 +51,6 @@
 
 **Files:** README.md、docs/progress.md/handoff.md/feature-inventory.md/immigration-policies.md/traffic-entry-phase1-plan.md及截图。
 
-- [ ] 一次独立只读复核，重要问题一轮RED→GREEN；记录裁定及实际验证限度。
-- [ ] check、any/行长、夹具/原稿116/实际flag及进程恢复核实；更新文档。
-- [ ] 提交推送草稿PR并关联，fetch核对完整SHA，核实当前head的push/PR CI；下一步1.3c，不自动合并/部署。
+- [x] 一次独立只读复核，重要问题一轮RED→GREEN；记录裁定及实际验证限度。
+- [x] check、any/行长、夹具/原稿116/实际flag及进程恢复核实；更新文档。
+- [x] 提交推送草稿PR并关联，fetch核对完整SHA，核实当前head的push/PR CI；下一步1.3c，不自动合并/部署。

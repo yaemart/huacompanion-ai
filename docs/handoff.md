@@ -5,7 +5,7 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支codex/visa-checker-browser，依赖草稿[PR12](https://github.com/yaemart/huacompanion-ai/pull/12)的ee38900373d73b7df1776113d00b8a74424f0118；该基准push/PR CI已成功（41311968718、41311975140）。本步草稿PR及当前head完整SHA/CI见最终交接，不沿用基准结果。依赖顺序PR2→3→4→5→6→7→8→9→10→11→12→本步，前置合并后改指main重验，不自动合并。
+- 当前分支codex/visa-checker-browser，依赖草稿[PR12](https://github.com/yaemart/huacompanion-ai/pull/12)的ee38900373d73b7df1776113d00b8a74424f0118；该基准push/PR CI已成功（41311968718、41311975140）。本步草稿[PR13](https://github.com/yaemart/huacompanion-ai/pull/13)，当前head完整SHA/CI见最终交接，不沿用基准结果。依赖顺序PR2→3→4→5→6→7→8→9→10→11→12→13，前置合并后改指main重验，不自动合并。
 - 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付。1.1政策流程、1.2纯查询及1.3a/b中英SSR与浏览器查询已本地验证。后台入口/content-center?kind=immigration-policy仍需开关和显式授权，通用集合CRUD仍关闭。工具路径/en或/zh/tools/china-visa-free-checker仅显式true时可读正式资料，默认404/noindex；没有公共原始数据API。下一步1.3c FAQ与完整可访问性/生产移动Lighthouse，见[政策约定](immigration-policies.md)。
 - **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 
@@ -29,7 +29,7 @@
 
 ## 环境与数据
 
-- 1.3b无新迁移/依赖/服务/实际.env变化；.env.example新增可选VISA_GUIDE_CONTENT_KEY，只从listPublished精确匹配同语言guide，未配置/未发布/下架没有特定链接，不能随便选文章。国籍/入境日只在浏览器局部state，水合前禁用且无form/name，输入改变清空旧结果，SSR表保留。check186单元、静态控件/结果渲染、生产build、生产开/关HTTP及真实指南发布/下架、query DB和trial HTTP已通过。实际浏览器中英键盘/未知/过期/无JS及390手机通过，0查询网络/日志/异常，网址及非敏感存储摘要不变；未读取保留完整Cookie/存储值，限制见screenshots/visa-checker-browser。临时政策/版本/草稿/快照/指南/账号/授权0，原稿116保留、实际flag关闭；默认dev及两worker恢复，support转人工，workflow0提醒/处理。AST any仍290/38。FAQ/Lighthouse未完成，公开B未到，不部署。
+- 1.3b无新迁移/依赖/服务/实际.env变化；.env.example新增可选VISA_GUIDE_CONTENT_KEY，只从listPublished精确匹配同语言guide，未配置/未发布/下架没有特定链接，不能随便选文章。国籍/入境日只在浏览器局部state，水合前禁用且无form/name，输入改变清空旧结果，SSR表保留。check186单元、静态控件/结果渲染、生产build、生产开/关HTTP及真实指南发布/下架、query DB和trial HTTP已通过。实际浏览器中英键盘/未知/过期/无JS及390手机通过，0查询网络/日志/异常，网址及非敏感存储摘要不变；未读取保留完整Cookie/存储值，限制见screenshots/visa-checker-browser。临时政策/版本/草稿/快照/指南/账号/授权0，原稿116保留、实际flag关闭；默认dev及两worker恢复，support转人工，workflow0提醒/处理。AST any仍290/38。独立复核无Critical/Important/Minor，另跑186单元及控件渲染；未代跑DB/HTTP/build/浏览器/CI。页面快照不实时更新，发布/下架后须重新加载。FAQ/Lighthouse未完成，公开B未到，不部署。
 
 - 1.3a无新迁移/依赖/实际.env变化；业务源码369行。check182项单元、静态表格渲染、生产build、生产开/关七语HTTP矩阵和发布/改稿/下架链路、原query DB/trial HTTP回归已通过，源码AST any仍290/38文件。无JS桌面/手机截图均是虚构资料并已清理；页面宽度无溢出，表格可键盘横滚。独立复核无Critical/Important/Minor，另跑表格渲染及纯18/18；未代跑DB/HTTP/build/浏览器/CI。最终串行核实政策/版本/工作稿/快照/临时账号/授权0，原稿116保留，实际flag关闭。默认dev和两个worker已恢复，support转人工、workflow0提醒/处理。当前head远端CI见最终交接及PR12。
 
