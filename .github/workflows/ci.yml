@@ -35,6 +35,7 @@ jobs:
       - run: npm run test:policies:table
       - run: npm run test:policies:browser
       - run: npm run test:policies:faq
+      - run: npm run test:policies:banner:render
 
   database:
     name: Migrations, build and integration
@@ -101,6 +102,7 @@ jobs:
           npm run test:policies:editor
           npm run test:policies:data
           npm run test:policies:query
+          npm run test:policies:banner
       - name: Verify production policy pages with feature off and on
         env:
           APP_ENV: local
@@ -111,8 +113,10 @@ jobs:
           policy_server_pid=$!
           trap 'kill "$policy_server_pid" 2>/dev/null || true' EXIT
           npm run test:policies:page:http
+          npm run test:policies:banner -- --http --disabled
           kill "$policy_server_pid"
           wait "$policy_server_pid" || true
           APP_ENV=trial VISA_CHECKER_ENABLED=true SITE_LOCALES=en,zh,es,fr,de,it,ar node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
           policy_server_pid=$!
           npm run test:policies:page:http -- --enabled
+          npm run test:policies:banner -- --http

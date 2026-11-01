@@ -148,7 +148,7 @@ export default async function Preview({ params }: { params: Promise<{ id: string
           </dl>
         </section>
       )}
-      <ContentBlocks blocks={body.blocks} />
+      <ContentBlocks blocks={body.blocks} locale={body.locale} />
       <h2>来源</h2>
       {body.sources.map((s) => (
         <p key={s.id}>

@@ -1,0 +1,11 @@
+.policy-banner {
+  color: var(--ink);
+  border-inline-start: 3px solid var(--green);
+  overflow-wrap: anywhere;
+}
+.policy-banner p {
+  color: inherit;
+}
+.policy-banner a {
+  text-decoration: underline;
+}

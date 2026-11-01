@@ -1,5 +1,6 @@
 "use client";
 import "./content-center.css";
+import { PolicyBannerFields } from "./PolicyBannerFields";
 import type { ContentMedia } from "../../../payload-types";
 import { catalogLanguages } from "@/lib/catalog-options";
 import { contentSections, sectionFor, filterContent } from "@/lib/content-sections";
@@ -61,7 +62,13 @@ const states: Record<string, string> = {
   failed: "失败",
   cancelled: "已取消",
 };
-export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
+export function ContentCenter({
+  initialKind = "",
+  policyBannersEnabled = false,
+}: {
+  initialKind?: string;
+  policyBannersEnabled?: boolean;
+}) {
   const [data, setData] = useState<any>({
     drafts: [],
     published: [],
@@ -984,6 +991,9 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       ["list", "列表（每行一项）"],
                       ["link", "链接"],
                       ["image", "图片"],
+                      ...(policyBannersEnabled || b.type === "policy-banner"
+                        ? [["policy-banner", "政策状态横幅"]]
+                        : []),
                     ].map(([v, l]) => (
                       <option key={v} value={v}>
                         {l}
@@ -1004,11 +1014,15 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                       ))}
                     </select>
                   )}
-                  <textarea
-                    aria-label={`段落${i + 1}内容`}
-                    value={b.text || ""}
-                    onChange={(e) => block(i, { text: e.target.value })}
-                  />
+                  {b.type === "policy-banner" ? (
+                    <PolicyBannerFields value={b} onChange={(patch) => block(i, patch)} />
+                  ) : (
+                    <textarea
+                      aria-label={`段落${i + 1}内容`}
+                      value={b.text || ""}
+                      onChange={(e) => block(i, { text: e.target.value })}
+                    />
+                  )}
                   {b.type === "link" && (
                     <input
                       aria-label="链接网址"
