@@ -2,7 +2,7 @@
 
 面向来华客户的服务信息、咨询和员工协作平台。当前已完成收敛代码与本机部署准备，**尚未在真实托管环境试运行或正式发布**。公开语言默认为英文、中文，根路径进入英文首页；其余五语与高级模块保留代码并关闭入口。完整状态见[功能清单](docs/feature-inventory.md)。
 
-当前开发以[流量入口分阶段任务书](docs/traffic-entry-task.md)为准；停止点A已确认[Render托管](docs/hosting-options.md)与[Cloudflare加站内汇总](docs/analytics-options.md)，当前仅继续本地开发测试。此前的收敛工作作为基础复用，新功能按步骤独立 PR。[阶段1完整开发任务书与实施顺序](docs/traffic-entry-phase1-plan.md)已整理，1.1政策数据/审核/正式投影、1.2纯查询及1.3a/b中英文SSR与浏览器查询已本地验证；下一步1.3c FAQ与可访问性/性能验收，完整工具尚待验收。
+当前开发以[流量入口分阶段任务书](docs/traffic-entry-task.md)为准；停止点A已确认[Render托管](docs/hosting-options.md)与[Cloudflare加站内汇总](docs/analytics-options.md)，当前仅继续本地开发测试。此前的收敛工作作为基础复用，新功能按步骤独立 PR。[阶段1完整开发任务书与实施顺序](docs/traffic-entry-phase1-plan.md)已整理，1.1政策数据/审核/正式投影、1.2纯查询及1.3a/b/c中英文SSR、浏览器查询及正式FAQ已本地验证；下一步1.4政策横幅，完整工具尚待验收。
 
 ## 已完成
 
@@ -15,7 +15,7 @@
 - Docker 网站、两个后台任务、PostgreSQL 和图片持久卷；本机实际冒烟、匿名／低权限隔离及配套数据库／图片恢复演练。
 - 入境政策编辑审核、版本恢复、仅草稿JSON导入及正式快照白名单投影；默认关闭。导入步骤见[政策说明](docs/immigration-policies.md)。
 - 国籍/入境日查询纯函数、日期边界/三时区隔离测试与正式发布链路集成；各政策时长分列，过境按240小时提示条件。仍需人工核实的现实政策和已发布签证指南。
-- 中英文 `/en/tools/china-visa-free-checker`、`/zh/tools/china-visa-free-checker` SSR参考表，关闭时404；无JS完整表格、来源/日期/条件及空态已在生产构建本机验收。国籍/日期仅在浏览器查询，改输入清除旧结果，已发布指南可精确配置；FAQ和Lighthouse留1.3c。[浏览器截图与隐私证据](docs/screenshots/visa-checker-browser/README.md)为虚构资料。
+- 中英文 `/en/tools/china-visa-free-checker`、`/zh/tools/china-visa-free-checker` SSR参考表，关闭时404；无JS完整表格、来源/日期/条件及空态已在生产构建本机验收。国籍/日期仅在浏览器查询，改输入清除旧结果，已发布指南可精确配置；正式FAQ与一致FAQPage已接入，中英生产移动Lighthouse性能/可访问性均100；[报告与手工验证范围](docs/screenshots/visa-checker-accessibility/README.md)。[浏览器截图与隐私证据](docs/screenshots/visa-checker-browser/README.md)为虚构资料。
 
 “已完成”指代码和本机证据，不代表真实邮件、云端恢复或正式部署验收。测试结果及剩余 290 处显式 any 原因见[实施记录](docs/progress.md)。依赖审计仍有低／中危告警，运行时依赖也受影响，见[安全与部署边界](docs/trial-deployment.md)。
 

@@ -4,6 +4,7 @@ import { setTimeout } from "node:timers/promises";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import { mutateContent } from "../../src/server/content/service";
+import { verifyPolicyFAQHTTP } from "../helpers/policy-faq-http";
 import { policyFixture, policyFacts } from "../helpers/policy-workflow-fixture";
 
 const base = process.env.APP_URL || "http://127.0.0.1:3000";
@@ -131,6 +132,8 @@ if (enabled) {
       console.log(
         "PASS real SSR lifecycle: drafts hidden, sources/dates/hours/conditions, language isolation, unchanged snapshot and unpublish",
       );
+      const faqKey = process.env.VISA_FAQ_CONTENT_KEYS;
+      if (faqKey) await verifyPolicyFAQHTTP(p, admin, read, faqKey, today);
       const guideKey = process.env.VISA_GUIDE_CONTENT_KEY;
       if (guideKey) {
         assert.match(guideKey, /^policy-browser-fixture-[a-z-]+$/);

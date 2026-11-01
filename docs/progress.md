@@ -1,5 +1,19 @@
 # 实施记录
 
+## 2026-11-01 本地阶段1.3c：正式FAQ、可访问性与生产移动审计
+
+从核对的PR13 231e2c94d2dcd29b9374ec66361fe810c2148b92建立codex/visa-checker-accessibility，基准push/PR CI 41314484133/41314489200成功，本head另验。复用现有faq审核发布，新增纯文本/来源核实投影、SSR可见FAQ及同源FAQPage；可选VISA_FAQ_CONTENT_KEYS精确选同语言正式身份，缺配置/重复/未发布/下架/不完整不造数据，空态不输出schema。不新增数据库结构、业务规则或权限变化，不接统计/邮件/模型，不改实际.env。新增项目依赖须确认的规则保持，用户本轮另明确批准临时官方Lighthouse13.6.0，安装在忽略.local/lighthouse-tool，根package/锁依赖未改。
+
+TDD缺投影/组件模块RED→4项纯测试及中英静态渲染GREEN。首轮单元因测试helper默认参数把显式undefined替换为测试key，定位后改直接调用，无放宽产品条件。测试覆盖精确身份/语言/类型/重复、安全HTTPS/凭据/核实日期、完整纯文本/不支持块拒绝、不变性/白名单、可见schema一致、恶意script/HTML安全及空态。原生details/summary无需JS，来源和核实日可读；JSON-LD中的<转unicode，问答文本不改写。路由按需一次listPublished服务读取，工作稿从未传入控件。
+
+真实生产HTTP（临时七语）政策/指南原链路继续GREEN；新增FAQ草稿/待审隐藏→发布HTML问答与schema相等→中文隔离→改稿保留原正式答案→下架消失，固定虚构key无原记录断言且finally清理。静态FAQ渲染及真实FAQ HTTP链路加入CI。test:policies:query与trial HTTP回归、默认关闭HTTP均退出0。FAQ源仍受既有通用已发布内容消费，首页行为未改，不把工具开关当所有FAQ全站私密开关。
+
+APP_ENV=trial生产构建退出0。官方CLI mobile412×823/dpr1.75、模拟移动网络RTT150ms/1638.4Kbps、CPU4倍放慢，完整performance/accessibility两类别且skipAudits=null。英文初始100/97，报告发现color-contrast0（正文4.39:1<4.5）和label-content-name-mismatch0；局部工具--muted改用既有--ink，Header移除覆盖可见品牌的aria-label（视觉不变），重新生产build，两项审计均1。最终英文/中文性能与可访问性均100/100，无runWarnings；没有关审计、降节流或用空数据换分数。完整初始/最终JSON及设置/时间见[报告证据](screenshots/visa-checker-accessibility/README.md)，HTML原件在忽略.local目录。构建源码随后提交，关联源码提交/指纹与远端head分开记录，不能拿前一步分数冒充本步。
+
+CUA实际桌面键盘：跳转、英文后Tab到中文、国籍后Tab到日期、空查询两项错误与字段关联、FAQ Enter展开，summary焦点3px；中文Space展开、390与320CSS像素文档宽等于scrollWidth，禁用脚本重载后查询禁用、完整政策3行与FAQ保留且可Space展开。设备/脚本覆盖撤销、自己创建的临时标签关闭，未操作用户原标签。手机viewport截屏曾有缩放异常，改用完整页截图并核实CSS视口，不作为产品问题改代码。未实跑VoiceOver/NVDA端到端或所有字体缩放/浏览器组合，不宣称全面WCAG认证；分数仅小型虚构样本，本地通过不代表托管与真实资料通过。
+
+check190/190、Prettier/typecheck和行长门禁通过，源码AST any仍290/38文件，无新增，债务原因沿用任务1/1.1a。DB夹具期停worker、构建停dev且与check串行；最终政策/版本/工作稿/正式快照/FAQ/指南/临时账号/授权均0，原稿116保留，flag关闭。默认开发站及两worker恢复，support无模型转人工，workflow0提醒/处理。未购买/部署/公开，下一步1.4政策横幅，当前无需账户或费用，现实政策/指南/FAQ仍需工作人员核实发布。
+
 ## 2026-11-01 本地阶段1.3b：浏览器国籍与入境日期查询
 
 从核对的PR12 ee38900373d73b7df1776113d00b8a74424f0118建立codex/visa-checker-browser；基准push/PR CI分别41311968718/41311975140成功，本步head须另验。国籍选项由完整正式数据去重排序（含过期/未来），新增浏览器局部查询、两语结果卡片/错误/状态播报、可选精确正式指南引用及局部CSS，复用1.2逻辑；新增业务源码282行，原路由/导出小改，总计低于400行。无新依赖/服务/schema/实际.env变化，仍默认关闭、强制noindex，不添加全站发现入口。

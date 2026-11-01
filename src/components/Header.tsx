@@ -40,7 +40,7 @@ export function Header({
             )}
       </div>
       <header className="site-header">
-        <Link className="brand" href={`/${locale}`} aria-label="Hua Companion">
+        <Link className="brand" href={`/${locale}`}>
           <span className="brand-mark">伴</span>
           <span>
             <b>

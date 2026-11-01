@@ -1,0 +1,88 @@
+{
+  "sourceBase": "231e2c94d2dcd29b9374ec66361fe810c2148b92",
+  "sourceCommit": "See final handoff; built source unchanged before commit",
+  "productionBuild": true,
+  "recordsPerLocale": {
+    "policies": 3,
+    "faq": 1,
+    "guide": 1
+  },
+  "runs": [
+    {
+      "report": "en-initial.report.json",
+      "url": "http://127.0.0.1:3000/en/tools/china-visa-free-checker",
+      "fetchedAt": "2026-11-01T14:33:19.228Z",
+      "lighthouseVersion": "13.6.0",
+      "performance": 100,
+      "accessibility": 97.0,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "warnings": []
+    },
+    {
+      "report": "en-final.report.json",
+      "url": "http://127.0.0.1:3000/en/tools/china-visa-free-checker",
+      "fetchedAt": "2026-11-01T14:35:28.330Z",
+      "lighthouseVersion": "13.6.0",
+      "performance": 100,
+      "accessibility": 100,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "warnings": []
+    },
+    {
+      "report": "zh-final.report.json",
+      "url": "http://127.0.0.1:3000/zh/tools/china-visa-free-checker",
+      "fetchedAt": "2026-11-01T14:36:17.495Z",
+      "lighthouseVersion": "13.6.0",
+      "performance": 100,
+      "accessibility": 100,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "warnings": []
+    }
+  ],
+  "sourceFingerprintSha256": "b1137a7f63e9b4dbde24844f106f89ffe11b62e40961976a5a54775b0d5ddd82"
+}
