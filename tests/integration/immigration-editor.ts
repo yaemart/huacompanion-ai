@@ -4,6 +4,7 @@ import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import { readPolicyEditor } from "../../src/server/immigration/editor";
 import { mutateContent } from "../../src/server/content/service";
+import { readContentPreview } from "../../src/server/content/preview";
 import { policyFixture, policyFacts } from "../helpers/policy-workflow-fixture";
 if (process.env.APP_ENV !== "local") throw Error("Local only");
 const p = await getPayload({ config });
@@ -29,6 +30,40 @@ try {
     assert.equal(view.policy.countryCode, "XY");
     assert.equal(view.policy.internalNotes, "Private verification fixture");
     assert.ok(!JSON.stringify(view).includes("@example.invalid"));
+    const oldRevision = draft.revision;
+    let changed = false;
+    const concurrent = new Proxy(p, {
+      get(target, property, receiver) {
+        if (property !== "findByID") return Reflect.get(target, property, receiver);
+        return (async (args: Parameters<typeof p.findByID>[0]) => {
+          const old = await p.findByID(args);
+          if (!changed && args.collection === "content-drafts" && Number(args.id) === draft.id) {
+            changed = true;
+            draft = await mutateContent(p, editor, {
+              action: "save",
+              id: draft.id,
+              revision: draft.revision,
+              body: { ...body, title: "Concurrent preview revision", blocks: [] },
+              policy: { ...policyFacts(editor.id), maxStayDays: 7 },
+            });
+          }
+          return old;
+        }) as typeof p.findByID;
+      },
+    });
+    const oldFlag = process.env.VISA_CHECKER_ENABLED;
+    try {
+      process.env.VISA_CHECKER_ENABLED = "true";
+      const preview = await readContentPreview(concurrent, reviewer, draft.id);
+      assert.ok(changed, "A real DB save occurred between the two preview reads");
+      assert.equal(preview.draft.revision, oldRevision + 1);
+      assert.equal((preview.draft.body as { title: string }).title, "Concurrent preview revision");
+      assert.equal(preview.policy?.maxStayDays, 7);
+      await assert.rejects(() => readContentPreview(p, outsider, draft.id));
+    } finally {
+      if (oldFlag === undefined) delete process.env.VISA_CHECKER_ENABLED;
+      else process.env.VISA_CHECKER_ENABLED = oldFlag;
+    }
     await p.update({ collection: "staff", id: editor.id, user: admin, data: { active: false } });
     await assert.rejects(() => readPolicyEditor(p, editor, draft.id), { status: 403 });
     await p.update({ collection: "staff", id: editor.id, user: admin, data: { active: true } });
