@@ -1,0 +1,28 @@
+# Disposable verification target only. No ports or original volumes are attached.
+services:
+  db:
+    image: postgres:15-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hua}
+      POSTGRES_DB: ${POSTGRES_DB:-hua_companion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Local Compose environment required}
+    volumes:
+      - restore-database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  verify:
+    image: hua-companion:trial-local
+    env_file: ../.env.compose
+    environment:
+      APP_ENV: trial
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hua}:${POSTGRES_PASSWORD:?Local Compose environment required}@db:5432/${POSTGRES_DB:-hua_companion}
+    command: ["node", "scripts/backup-inventory.mjs"]
+    volumes:
+      - restore-media:/app/.local/content-media
+volumes:
+  restore-database:
+  restore-media:

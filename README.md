@@ -1,79 +1,94 @@
 # 华伴 · Hua Companion
 
-面向来华客户的服务信息、咨询和协作平台，客户界面支持中文、英文、西班牙语、法语、德语、意大利语、阿拉伯语。当前为本地开发测试版本，尚未部署 Replit 或发布手机 App。
+面向来华客户的服务信息、咨询和员工协作平台。当前已完成收敛代码与本机部署准备，**尚未在真实托管环境试运行或正式发布**。公开语言默认中文、英文；其余五语与高级模块保留代码并关闭入口。完整状态见[功能清单](docs/feature-inventory.md)。
 
-## 本地运行
+## 已完成
+
+- Prettier／ESLint、`npm run check` 和每次 push／PR 的 GitHub Actions；核心服务及 CMS 权限类型清理，源码行长门禁，无压缩书写。
+- 中英官网、咨询与服务商两表单、中文后台、内容编辑审核发布、私有图片、团队与负责人数据范围。
+- 基础服务单／报价版本和人工审核、站内通知；客户数据和内部成本沿用原权限边界。
+- 中文[经营概览](http://127.0.0.1:3000/operations-overview)、权限范围统计、筛选 CSV／BOM／公式转义／管理员敏感字段和导出审计。
+- 页面 SEO 标题／描述／分享图、robots、真实多语 hreflang；试运行 noindex、`SITE_LOCALES=zh,en`。
+- 客户端与全站两层限流、认证代理头、honeypot；原有数据库锁容量及 AI 检索限制记录。
+- Docker 网站、两个后台任务、PostgreSQL 和图片持久卷；本机实际冒烟、匿名／低权限隔离及配套数据库／图片恢复演练。
+
+“已完成”指代码和本机证据，不代表真实邮件、云端恢复或正式部署验收。测试结果及剩余 299 处显式 any 原因见[实施记录](docs/progress.md)。依赖审计仍有低／中危告警，运行时依赖也受影响，见[安全与部署边界](docs/trial-deployment.md)。
+
+## 待接入
+
+- 你批准托管方案、地域与费用，并提供平台／托管数据库／DNS 授权；[推荐和备选方案](docs/hosting-options.md)。
+- Resend 已验证发件域名和指定收件人；实际发一封通知并确认送达。
+- 真实试运行环境的数据库与图片配套恢复、未登录／低权限访问拒绝、HTTPS／网关防绕过及失败告警。
+- 隐私说明主体、联系渠道、保留策略与值班责任；完成验收前 `INTAKE_ENABLED=false`，不开放真实收集。
+
+需要的具体信息和下一步见[上线账户清单](docs/launch-accounts.md)。没有购买账户、接通模型或改动正式 DNS；正式发布和搜索收录需要另行决定。
+
+## 后续功能
+
+- 客户中心、七语客户能力、语音消息／转写／播放、实时通话、AI 文字客服、AI 报价及内容 AI：**已实现、未启用**，本阶段保留原开关，不接真实账户或扩展能力。
+- 其他五语的实际内容翻译、知识检索改进、客服锁粒度优化：后续单独评估和补并发测试。
+- 支付、App、自动抓取、自动预订／派单、视觉改版：本阶段不做。
+
+## 本地继续开发
+
+使用 Node 24.22.1，PostgreSQL 15，按 `.env.example` 单独配置秘密。不要把其他电脑的 `.env` 或数据库复制进 Git。
 
 ```sh
+nvm install
+nvm use
 npm ci
 npm run local:db
 npm run local:init
+npm run trial:configure
+npm run trial:configure -- --apply
 npm run dev
 ```
 
-数据库脚本使用独立 PostgreSQL 15 实例（端口 55438），其他电脑通过 `PG_BIN` 指定 PostgreSQL 工具目录。`local:init` 不重置已有管理员密码。初始凭据位于 `.local/admin-credentials.txt`，不得分享或提交。测试库包含虚构资料，不可直接作为生产库。
+数据库使用独立实例 55438；其他电脑可用 `PG_BIN` 指定 PostgreSQL 工具目录。`local:init` 不改已有密码；首位本地管理员凭据位于忽略的 `.local/admin-credentials.txt`。本地库只使用虚构资料，不能复制上线。`trial:configure` 默认预览，显式 `--apply` 才关闭已有高级开关并审计，不删业务资料或员工权限。
 
-- 网站：<http://127.0.0.1:3000/zh>
-- 后台：<http://127.0.0.1:3000/admin>
-- 内容管理：`/content-center`，内容复核：`/quality-center`
-- 客服工作台：`/support-center`
-- 业务服务单：`/business-center`，通知待办：`/workflow-center`
-- 客户中心：`/zh/account`（默认关闭，启用前配置验证邮件）
+网站：[中文首页](http://127.0.0.1:3000/zh)，后台：[中文管理](http://127.0.0.1:3000/admin)。工作台有 `/content-center`、`/business-center`、`/workflow-center`、`/operations-overview`；具体访问沿用角色权限。
 
-## 当前业务功能
+`npm run dev` 保留 Next Fast Refresh，关闭 Payload HMR；修改 CMS 配置／集合／字段／权限配置后手动重启，避免数据库映射热重载竞争。生产构建前停止 dev，再依次 `npm run build`、`npm run check`；不要同时清理／生成 Next 类型。
 
-网站提供指南、服务商、自建服务、展会、医疗康养和城市生活内容；公开展示遵循审核发布与资料有效性检查。客户联系统一经华伴咨询或客服。
-
-员工按团队、角色、数据范围与字段权限工作。业务工作台将咨询转为服务单，保存报价版本、发出报价、客户确认、落实安排、记录履约和售后。内部成本和交接说明不对客户展示。客户只能查看员工核验并明确关联的记录，不能凭相同邮箱自动取得历史资料。
-
-通知待办支持认领、分派、延期原因、截止提醒和邮件状态检查。内容复核记录来源、责任人和复核期限；编辑草稿不会改写公开快照。客服包含文字、语音消息和通话接口及开关；外部模型、语音识别和通话网关需另行配置并实测。
-
-邮件、客户验证登录和外部 AI 服务不因代码存在而自动启用；AI 方案助手可保存生成任务、整理为报价草稿并经主管审核后发出；模型未配置时保持关闭。不包含支付、自动订票或服务商自动派单。客户界面七种语言不代表每篇内容已经完成七语翻译。
-
-## 后台任务与验证
-
-另外的终端启动任务进程：
+两个后台任务另开终端，使用同一套本地环境：
 
 ```sh
 npm run support:worker
 npm run workflow:worker
 ```
 
-正式构建使用 `npm run build`，随后 `npm run start`。切换运行模式前停止占用 3000 端口的旧进程。
+## 验证与本地容器
 
 ```sh
-npm test
-npm run typecheck
-npm run test:business
-npm run test:workflow
-npm run test:quality
-npm run test:customer
-npm run test:content
-npm run test:support
+npm run check
+npm run test:permissions:business
+npm run test:permissions:content
+npm run test:reporting
+npm run test:intake
+npm run test:trial
 npm run test:migrations
-npm run backup:test
 ```
 
-数据库集成测试需串行执行，部分测试保留虚构记录；不要对生产库运行。备份位于 `backups/`，内容图片在 `.local/content-media`，数据库和图片必须配套备份恢复。`npm run export:local` 提供本地导出。
+数据库集成测试必须串行，HTTP 测试还需正在运行的网站；部分会保留虚构记录，绝不指向真实客户库。每项开发提交前运行 check 和相关集成测试，并在 progress 记录实际结果。全部历史回归入口保留在 package.json。
 
-## 操作说明
+安装并启动 Docker Desktop 后：
 
-- [试运行部署与验收](docs/trial-deployment.md)
-- [AI 服务方案与报价草稿](docs/business-ai.md)
-- [通知与待办](docs/workflow.md)
-- [客户中心与验证](docs/customer-center.md)
-- [内容复核](docs/content-quality.md)
-- [客服系统](docs/customer-support.md)
-- [语音消息](docs/support-voice.md)、[通话](docs/support-calls.md)、[客服运营](docs/support-operations.md)
+```sh
+npm run compose:init
+docker compose --env-file .env.compose up --build -d
+npm run compose:smoke
+npm run compose:restore-test
+docker compose --env-file .env.compose stop
+```
 
-本地→Replit试运行→按业务需要迁移云服务器。外部账户、域名、持久化存储与邮件/AI供应商配置尚需运营阶段落实，当前不声称已上线。
+容器网站为 [3001](http://127.0.0.1:3001/zh)，数据库仅绑定本机 55439，使用独立命名卷；不覆盖开发库或图片。备份保存在忽略的 `backups/compose`，恢复验证使用临时新卷。详细初始化、恢复和中断处理见[容器说明](docker/README.md)。不带 `-v` 的停止／移除保留数据；不要随意删除卷。
 
-## GitHub 代码交接
+## 多电脑与操作文档
 
-多电脑开发请先阅读 [协作流程](docs/multi-computer-development.md) 和 [当前交接记录](docs/handoff.md)。Node.js 版本见 `.nvmrc`，Codex 开始工作时读取根目录 `AGENTS.md`。任务尽早建立草稿 PR，后续推送由 GitHub Actions 检查测试、类型、迁移与构建；CI 不部署或自动合并。
+先读[当前交接](docs/handoff.md)和[协作流程](docs/multi-computer-development.md)：同一任务分支同一时间仅一台电脑修改；接手先检查工作区、fetch、`pull --ff-only`，切换前提交并 push。`main` 只接收验证后的 PR，CI 不部署或自动合并。环境、数据库、图片和账户分别配置，各本地副本不共用试运行库。
 
-代码仓库应保持私有。GitHub 管理源代码、依赖锁文件、迁移和文档，不保存 `.env`、`.local`、数据库备份、客户上传文件或模型密钥。提交前检查 `git status`，不要使用强制添加把已忽略的文件纳入版本管理。
+- [试运行部署与验收](docs/trial-deployment.md)、[功能清单](docs/feature-inventory.md)、[账户清单](docs/launch-accounts.md)
+- [通知待办](docs/workflow.md)、[内容复核](docs/content-quality.md)、[员工权限](docs/staff-permissions-verification.md)
+- 已实现未启用的[客户中心](docs/customer-center.md)、[AI 报价](docs/business-ai.md)、[客服](docs/customer-support.md)、[语音](docs/support-voice.md)、[通话](docs/support-calls.md)
 
-其他电脑获取代码后，按上方本地运行步骤建立自己的测试数据库；环境变量单独配置。每项开发使用独立分支，测试后合并。切换电脑前提交并推送，接手电脑先获取最新版本。不要让各本地开发副本连接同一个试运行数据库。
-
-Replit 获取代码后仍需完成数据库、图片存储和后台任务适配；导入仓库不等于已部署。当前操作说明见 `docs/trial-deployment.md`。
+GitHub 仅保存源代码、依赖锁、迁移和文档；`.env*`、`.local`、客户资料、上传图片、备份和密钥不入仓库。接手电脑需要单独建立测试库与秘密配置，导入仓库不等于已部署。

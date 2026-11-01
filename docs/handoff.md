@@ -1,53 +1,47 @@
 # 当前开发交接
 
-日期：2026-11-01（Asia/Shanghai）。这是仓库中的当前交接入口，后续任务完成或换电脑前更新。
+日期：2026-11-01（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
 ## 当前任务与版本
 
-- 当前任务：收敛功能范围并准备试运行；完整说明与计划见 `superpowers/specs/2026-11-01-trial-readiness-design.md`、`superpowers/plans/2026-11-01-trial-readiness.md`。
-- 当前任务分支：`codex/trial-readiness`。同一时间只由一台电脑修改此分支。
-- 当前草稿 PR：<https://github.com/yaemart/huacompanion-ai/pull/2>，不自动合并或部署。
-- 分支包含尚未合并的 PR #1 协作/CI 基线。Task 1 已确认推送版本 `f5ea0e3a7c0a47cf85eea5306f1e86c36f7d6050`，其 GitHub Actions push/PR 两次运行均成功；后续提交状态需重新核对，不能沿用旧 CI 结论。
-- 本文件随任务 2 提交；本提交自身完整哈希在 Git/交接消息确认，不在文件中虚构。
+- 分支 `codex/trial-readiness`，同一时间只由一台电脑修改；草稿 [PR #2](https://github.com/yaemart/huacompanion-ai/pull/2)，不自动合并或部署。
+- 本阶段按用户任务说明完成收敛代码与本机部署准备；真实试运行账户未提供，邮件实发、托管恢复、真实环境权限与网关仍待验收。不要将代码交付解释为正式上线。
+- 分支包含尚未合并的 PR #1 协作／CI 基线；任务1 f5ea0e3、任务2 388ea6a（迁移格式7c191cf）、任务3 c1e813b、任务4 01ee97a。纯格式化独立提交为 d24d7b3。
+- 最终任务5及补测提交以 `git log`／交接消息核实完整 hash，不在本文件虚构自引用 hash。每个 head 的 CI 需单独核对，不能沿用旧结果。
+- 完整需求／计划：`superpowers/specs/2026-11-01-trial-readiness-design.md`、`superpowers/plans/2026-11-01-trial-readiness.md`；实际验证见 `progress.md`。
 
-## 已完成与继续方向
+## 当前行为与剩余事项
 
-1. 任务 1：工具与检查门禁、独立纯格式化、核心服务生成类型、文案结构和行长清理。指定文件显式 any 为零，其余债务清单见 `progress.md`。
-2. 任务 2：经营概览、权限 CSV 导出/审计、SEO 和 sitemap/robots；实际验证明细见 `progress.md`。本地最终 check、生产构建、权限与 HTTP 验证通过；后续云端 CI 必须按对应 head 重新核对。
-3. 继续任务 3 安全稳定、任务 4 功能默认配置、任务 5 Docker 和部署准备；尚未声明这些任务完成。
-4. 禁止购买服务或正式发布。真实邮件、试运行数据库/图片恢复、云环境低权限验收仍等待用户账户和指定收件人。
+1. 可维护性门禁已建立：check 串行 lint、typecheck、单元测试；核心指定文件 any 清零，剩余 299 处／39文件原因列于 progress，无超过200字符的源码行例外。
+2. 中文 `/operations-overview` 按员工范围统计／导出，CSV敏感字段仅管理员显式选择，导出先审计；没有改报价规则或客户授权。
+3. SEO固定页由管理员在 `/admin/globals/seo-settings` 编辑，内容详情仍走草稿审核发布，图片沿用访问边界。trial默认noindex，正式环境也需显式收录开关。
+4. `SITE_LOCALES` 默认 zh,en，其余五语的公网URL/API关闭，后台与代码七语保留；客户中心、全部客服／语音／通话、AI报价、外发邮件默认关闭。已有库运行 `trial:configure` 先预览，`--apply` 才持锁关闭并审计；不是启动时反复重置。
+5. 表单客户端60／全站6000每十分钟；未配可信代理只用签名浏览器Cookie，能被清除重置。启用代理要求网关覆盖秘密头与权威IP并实际防绕过；目前没有宣称真实网关验证完成。
+6. Docker三应用进程／PG／图片卷已在本机隔离启动、冒烟与两次配套恢复（最终62表、2图）通过；测试容器已停止并保留卷。不得把虚构测试卷复制上线。
+7. 推荐 Render，备选 Railway + Neon，仅给方案／预算，未购买。账户、隐私主体、指定收件人及费用决定见 `launch-accounts.md`；真实验收条件到位后继续，不自行开放表单或正式发布。
 
-## 环境与数据库
+## 环境与数据
 
-- Node.js 24.22.1、PostgreSQL 15；本机专用库端口 55438，网站开发服务 3000。
-- support/workflow workers 为保证串行数据库测试暂时停止，开发任务结束时按当前功能设置恢复。进程状态不通过 Git 同步。
-- 新迁移 `20261101_022501_page_seo` 仅增加 SEO 设置表与枚举；其他电脑须应用迁移，不能只拉代码。迁移空库验证已通过。
-- 新环境变量 `SEARCH_ENGINE_INDEXING=false`；只有 `APP_ENV=production` 且显式设为 true 才允许收录。私有工作台和账号页始终 noindex。
-- 目录和表单 SEO 在 `/admin/globals/seo-settings` 由管理员维护；内容详情 SEO 在内容工作台编辑并审核发布。分享图片遵守发布与权限边界。
-- 统计/导出入口 `/operations-overview`；按当前员工权限取数，管理员才能显式包含成本/内部备注。CSV 导出先写审计再返回文件。
-- `.env`、管理员凭据、上传文件和备份都留在忽略目录，不进入 Git。每台电脑各自配置；数据库与 `.local/content-media` 配套迁移。保留本机现有内容，不从另一台电脑覆盖运行中目录。
+- Node24.22.1、PostgreSQL15；本机系统默认Node版本不等于项目版本，先按 `.nvmrc` 配置并确认 `node -v`。本轮验证明确使用Node24。开发网站3000，专用虚构测试库55438。
+- `npm run dev` 保留Next Fast Refresh、关闭Payload HMR；CMS配置／集合／字段／权限配置修改后重启。构建与check串行，避免生成Next类型竞争。
+- 两个本机worker在DB回归期间停止，全部回归结束后已恢复（support／workflow）；开发服务3000运行中，高级／邮件／模型开关仍关闭。进程与数据不通过Git同步，其他电脑需独立启动，不能同时指向一个试运行库。
+- 新迁移：`20261101_022501_page_seo`、`20261101_025904_intake_client_limits`、`20261101_030726_trial_feature_defaults`。其他电脑和trial先备份、执行迁移，再启动，不把trial改成local绕过schema迁移。
+- `.env.example` 新公开配置为 `SEARCH_ENGINE_INDEXING=false`、`SITE_LOCALES=zh,en`、`TRUSTED_PROXY`／`TRUSTED_PROXY_SECRET`；后两项未完成网关时留空。`INTAKE_ENABLED=false` 保持到隐私、HTTPS和验收落实。
+- Docker使用 `.env.compose`、3001／55439和独立命名卷，命令见 `../docker/README.md`；配套恢复只用随机新目标，不覆盖55438或现有图片目录。
+- `.env*`、`.local`凭据／媒体、数据库备份和容器测试备份不入Git。保留原本机内容；不从另一电脑覆盖运行中的目录，数据库和图片配套迁移。
 
-## 下次交接填写模板
+## 下次接手
+
+先检查 `git status`、`git branch -vv`、`git fetch origin`，确认工作区和远程head；同一任务用 `git pull --ff-only` 接手。有分叉先检查双方提交，不强推或清理未提交资料。先读账户清单，完成授权及实际环境条件后再做真实试运行验收。
 
 ```text
 日期与任务：
-当前任务分支：
-代码提交/已确认远程提交（最后的文档提交编号另在交接消息核验）：
-PR：
-已完成：
-未完成或阻塞：
-实际测试命令、结果和对应提交：
-CI 当前状态及链接：
-环境变量名称变化（无密钥）：
-数据库迁移与备份要求：
-内容/图片是否已单独迁移：
-下一步：
+当前分支／已确认远程提交：
+PR／对应head的CI状态：
+已完成／未完成或阻塞：
+实际测试命令与结果：
+环境变量变化（无秘密）：
+迁移／备份／媒体要求：
+本机服务和worker状态：
+下一步及需要用户提供的账户：
 ```
-
-## 收敛任务 3 交接补充（2026-11-01）
-
-按客户端限流、honeypot、技术计数迁移、Node 运行时移出依赖、稳定 dev 启动和依赖审计已实现。开发服务现通过 npm run dev 启动（预加载器关闭 Payload HMR），CMS 配置修改后重启。新增 test:intake 和 test:intake:http，DB 测试必须串行。真实网关防绕过与云环境容量未验收，剩余依赖告警不是纯开发依赖；详见 trial-deployment.md。后续继续任务 4、5，不开放真实收集、不启用高级功能、不合并或正式发布。
-
-## 收敛任务 4 交接补充（2026-11-01）
-
-公网语言默认 SITE_LOCALES=zh,en，其余代码和后台七语保留。高级功能开关本机已明确关闭，Header隐藏入口，客户／客服API关闭；后续集成测试自行开启并 finally 恢复。trial:configure默认预览，--apply会关闭高级设置并审计，非启动钩子。新增test:trial及test:trial:http，inventory列出全部功能状态。迁移只改数据库默认，旧库需要显式CLI收敛。当前仍未接入真实邮件／托管账户，继续Task5。

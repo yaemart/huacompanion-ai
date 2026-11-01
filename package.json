@@ -59,7 +59,12 @@
     "test:intake:http": "tsx tests/integration/intake-protection-http.ts",
     "trial:configure": "tsx scripts/configure-trial.ts",
     "test:trial": "tsx tests/integration/trial-defaults.ts",
-    "test:trial:http": "node scripts/check-trial-http.mjs"
+    "test:trial:http": "node scripts/check-trial-http.mjs",
+    "compose:init": "node scripts/init-compose.mjs",
+    "compose:smoke": "docker compose --env-file .env.compose exec -T -e HUA_COMPOSE_SMOKE=true web node --import tsx scripts/smoke-compose.ts",
+    "compose:backup": "node scripts/compose-backup.mjs backup",
+    "compose:restore-test": "node scripts/compose-backup.mjs roundtrip",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

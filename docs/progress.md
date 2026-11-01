@@ -6,6 +6,24 @@
 
 相关七入口串行全部通过：exhibitions-http、institutions-http、catalog-http、content-http、support-http、locales-http、check-routes（153项页面／404）。独立只读复核确认没有弱化原断言；typecheck、行长和diff检查通过。提交前完整check在含部署工具测试的工作区运行，146/146单元通过。完整原始结果保存在忽略目录 .local/task4-http-followup-*.log。
 
+## 2026-11-01 收敛与试运行准备：任务 5
+
+部署准备沿用现有技术，不接入新业务服务、不购买、不发布。hosting-options.md 给出一个推荐（Render Pro + 托管 PostgreSQL，按小型配置约 $86/月、建议预留 $100–120）和一个备选（Railway Pro + Neon Launch，按持续轮询假设约 $58/月、建议 $70–100），逐项列网站与两 worker、图片盘、自动备份、HTTPS、自定义域名和维护取舍，并链接当日核对的官方来源。明确 Render Pro 没有 Web 入站 IP 白名单，网关必须实际验收；Neon 因 worker 轮询不能按长期休眠估算。均为预算假设而非采购决定。
+
+新增 Dockerfile、多进程 Compose 和独立恢复 Compose；Node24.22.1／PostgreSQL15，网站 3001、DB仅本机55439，与现有3000／55438分离。镜像以 node 用户运行，运行层 omit=dev（tsx由Payload生产依赖保留）；migrate 成功后才启动三个应用，图片命名卷持久化、worker只读挂载。构建不使用真实秘密；随机本地秘密只写忽略的 .env.compose。
+
+增加受控首管理员 CLI（trial限定、默认dry-run、明确--apply、空staff二次检查与原advisory锁、审计、不输出密码），不开放公网注册或修改已有账户。compose:smoke仅允许隔离本机配置，虚构记录验证两表单入库服务、中文后台／中英网站／noindex、入口关闭、匿名／跨团队／停用访问拒绝、权限CSV/BOM/敏感拒绝与审计、真实私有WebP上传和访问隔离。
+
+配套备份先冻结全部三个 writer，包括 restarting 状态，确认停止后保存 dump／图片／manifest；finally尝试恢复原应运行进程。恢复只用随机隔离项目的新库新卷，无端口、不覆盖原数据；逐表行数和全部行内容指纹、图片字节哈希与引用核对。目录0700、文件0600，忽略不入Git。独立复核发现并修复 restarting遗漏和中断恢复；两项假Docker行为测试先失败再通过。SIGINT／TERM在当前同步命令结束后走恢复，强杀／掉电需要人工命令，文档没有承诺必然自动恢复。
+
+实际本地验证首轮：Docker build成功，migrate退出0，db和web healthy，两个worker均running。Compose冒烟通过；配套恢复通过，62张表、一张实际上传图片与原快照完全一致。验证目标清理后原四个常驻容器恢复运行；原开发库未作为恢复目标。本机一次空闲内存观察web约95MiB，两个worker各311–314MiB，不作为容量SLA。
+
+最终镜像重建后再次冒烟通过，原数据库与第一张图片保留；第二次配套恢复通过（62 张表、2 张图片，verifiedAt 2026-11-01T03:24:57.772Z），仅临时恢复卷被清理。新增工具单元 4 项及全套 146 项通过；源码／脚本／测试行长检查 313 文件、无例外；lint 0 error／474 旧 warning，类型检查通过。最终全量串行复核：原22个npm集成脚本、workflow-customer、reporting/intake/trial/SEO及相关HTTP均通过。旧七语HTTP假设失败已单独在任务4补测提交bac71c1修正并复验；原英文业务／权限断言保留。余下backend/catalog/content/locales/trial HTTP五入口均通过，153项页面／404也通过。最后提交门禁146/146单元、lint／格式／类型／行长均通过；独立复核无阻塞问题。
+
+最终源码any复核仍为299处／39文件，优先核心文件零any。验证后停止隔离Compose并保留卷；恢复原3000开发服务和support/workflow两个本机worker，高级／邮件／模型仍关闭。
+
+launch-accounts.md 明确待你提供托管／数据库／DNS／网关／Resend发件域名与指定邮箱、隐私主体、管理员及备份责任。README已按“已完成／待接入／后续功能”收敛。真实发信、真实托管配套恢复、真实匿名与低权限验收均未执行，不用本机演练冒充。
+
 ## 2026-11-01 收敛与试运行准备：任务 4
 
 新增 feature-inventory.md，逐模块列第一版范围、已验证／已实现未验证／未实现、外部依赖、试运行是否开启与开关。已实现的客户中心、语音、通话、AI 报价及内容 AI 等能力保留并明确未启用，真实邮件／模型／托管验收没有冒充本地通过。
@@ -18,7 +36,7 @@ SITE_LOCALES 默认 zh,en；显式错误配置拒绝启动，原七语模型、�
 
 本机实际运行 trial:configure --apply 成功，已将高级开关收敛为关闭并写审计（首次 ID1313）；后续并发测试也恢复为关闭。CI 加入纯 DB 的 test:trial。并发修复经独立复核无重要剩余发现。期间一次 check/build 并跑导致生成 types 文件被清理的临时 TS6053，已改为构建完成后串行 check 通过，未改配置掩盖。
 
-本任务不需要购买账户。邮件、托管、网关真实验证仍待账户；任务 5 继续本地隔离容器验证及上线资料。
+本任务不需要购买账户。任务4推送01ee97a的两次GitHub Actions 41268617300、41268613738均确认success；任务3 c1e813b对应41267766965、41267763821也均success。此证据不替代后续提交CI。邮件、托管、网关真实验证仍待账户；任务5继续本地隔离容器验证及上线资料。
 
 ## 2026-11-01 收敛与试运行准备：任务 3
 
