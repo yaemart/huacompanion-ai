@@ -79,6 +79,7 @@ export interface Config {
     'content-events': ContentEvent;
     'content-media': ContentMedia;
     'content-agent-tasks': ContentAgentTask;
+    'immigration-policies': ImmigrationPolicy;
     'support-customers': SupportCustomer;
     'support-conversations': SupportConversation;
     'support-messages': SupportMessage;
@@ -124,6 +125,7 @@ export interface Config {
     'content-events': ContentEventsSelect<false> | ContentEventsSelect<true>;
     'content-media': ContentMediaSelect<false> | ContentMediaSelect<true>;
     'content-agent-tasks': ContentAgentTasksSelect<false> | ContentAgentTasksSelect<true>;
+    'immigration-policies': ImmigrationPoliciesSelect<false> | ImmigrationPoliciesSelect<true>;
     'support-customers': SupportCustomersSelect<false> | SupportCustomersSelect<true>;
     'support-conversations': SupportConversationsSelect<false> | SupportConversationsSelect<true>;
     'support-messages': SupportMessagesSelect<false> | SupportMessagesSelect<true>;
@@ -617,6 +619,38 @@ export interface ContentAgentTask {
     | null;
   adoptedDraft?: number | null;
   createdBy: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * 当前为只读结构，录入和审核将在后续步骤接入内容工作流；尚未提供公开查询。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "immigration-policies".
+ */
+export interface ImmigrationPolicy {
+  id: number;
+  policyKey: string;
+  countryCode?: string | null;
+  countryNameEn?: string | null;
+  countryNameZh?: string | null;
+  policyType?: ('unilateral' | 'bilateral' | 'transit-240h' | 'other') | null;
+  maxStayDays?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  portsAndRegions?:
+    | {
+        label: string;
+        id?: string | null;
+      }[]
+    | null;
+  officialSourceUrl?: string | null;
+  lastVerifiedOn?: string | null;
+  verifiedBy?: (number | null) | Staff;
+  publicNotes?: string | null;
+  internalNotes?: string | null;
+  status: 'draft' | 'published';
+  revision: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -1335,6 +1369,10 @@ export interface PayloadLockedDocument {
         value: number | ContentAgentTask;
       } | null)
     | ({
+        relationTo: 'immigration-policies';
+        value: number | ImmigrationPolicy;
+      } | null)
+    | ({
         relationTo: 'support-customers';
         value: number | SupportCustomer;
       } | null)
@@ -1742,6 +1780,35 @@ export interface ContentAgentTasksSelect<T extends boolean = true> {
   usage?: T;
   adoptedDraft?: T;
   createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "immigration-policies_select".
+ */
+export interface ImmigrationPoliciesSelect<T extends boolean = true> {
+  policyKey?: T;
+  countryCode?: T;
+  countryNameEn?: T;
+  countryNameZh?: T;
+  policyType?: T;
+  maxStayDays?: T;
+  validFrom?: T;
+  validUntil?: T;
+  portsAndRegions?:
+    | T
+    | {
+        label?: T;
+        id?: T;
+      };
+  officialSourceUrl?: T;
+  lastVerifiedOn?: T;
+  verifiedBy?: T;
+  publicNotes?: T;
+  internalNotes?: T;
+  status?: T;
+  revision?: T;
   updatedAt?: T;
   createdAt?: T;
 }

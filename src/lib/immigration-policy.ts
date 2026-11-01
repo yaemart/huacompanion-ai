@@ -1,20 +1,33 @@
-export const policyTypes = ["unilateral", "bilateral", "transit-240h", "other"] as const;
+import type { ImmigrationPolicy } from "../../payload-types.ts";
+
+export const policyTypes = [
+  "unilateral",
+  "bilateral",
+  "transit-240h",
+  "other",
+] as const satisfies readonly NonNullable<ImmigrationPolicy["policyType"]>[];
+
+type PublicationFields = Pick<
+  ImmigrationPolicy,
+  | "countryCode"
+  | "countryNameEn"
+  | "countryNameZh"
+  | "policyType"
+  | "maxStayDays"
+  | "validFrom"
+  | "officialSourceUrl"
+  | "lastVerifiedOn"
+  | "publicNotes"
+>;
 
 /** Publication contract; partial drafts are handled by the future CMS collection. */
 export type PolicyPublicationData = {
-  countryCode: string;
-  countryNameEn: string;
-  countryNameZh: string;
-  policyType: (typeof policyTypes)[number];
-  maxStayDays: number;
-  validFrom: string;
-  validUntil?: string | null;
-  portsAndRegions: string[];
-  officialSourceUrl: string;
-  lastVerifiedOn: string;
-  verifiedBy: number;
-  publicNotes: string;
-  internalNotes?: string;
+  [Key in keyof PublicationFields]-?: NonNullable<PublicationFields[Key]>;
+} & {
+  validUntil?: ImmigrationPolicy["validUntil"];
+  portsAndRegions: NonNullable<ImmigrationPolicy["portsAndRegions"]>[number]["label"][];
+  verifiedBy: Extract<ImmigrationPolicy["verifiedBy"], number>;
+  internalNotes?: ImmigrationPolicy["internalNotes"];
 };
 
 export type PublicPolicyData = Omit<PolicyPublicationData, "verifiedBy" | "internalNotes">;
@@ -74,7 +87,7 @@ export function validatePolicyPublication(
     throw Error("过境政策需填写适用口岸或区域");
   if (
     !text(data.publicNotes, 4000, false) ||
-    (data.internalNotes !== undefined && !text(data.internalNotes, 4000, false))
+    (data.internalNotes != null && !text(data.internalNotes, 4000, false))
   )
     throw Error("政策备注格式无效");
   try {

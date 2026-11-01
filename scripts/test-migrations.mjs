@@ -71,6 +71,10 @@ try {
       "content_quality_events",
       "seo_settings",
       "seo_settings_pages",
+      "imm_policies",
+      "imm_policies_ports_and_regions",
+      "_imm_policies_v",
+      "_imm_policies_v_version_ports_and_regions",
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);

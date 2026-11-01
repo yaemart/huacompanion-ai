@@ -21,6 +21,7 @@ import * as migration_20261031_054202_business_ai from "./20261031_054202_busine
 import * as migration_20261101_022501_page_seo from "./20261101_022501_page_seo";
 import * as migration_20261101_025904_intake_client_limits from "./20261101_025904_intake_client_limits";
 import * as migration_20261101_030726_trial_feature_defaults from "./20261101_030726_trial_feature_defaults";
+import * as migration_20261101_082855_immigration_policies from "./20261101_082855_immigration_policies";
 
 export const migrations = [
   {
@@ -137,5 +138,10 @@ export const migrations = [
     up: migration_20261101_030726_trial_feature_defaults.up,
     down: migration_20261101_030726_trial_feature_defaults.down,
     name: "20261101_030726_trial_feature_defaults",
+  },
+  {
+    up: migration_20261101_082855_immigration_policies.up,
+    down: migration_20261101_082855_immigration_policies.down,
+    name: "20261101_082855_immigration_policies",
   },
 ];
