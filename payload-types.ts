@@ -449,6 +449,7 @@ export interface AuditEvent {
 export interface IntakeLimit {
   id: number;
   bucket: number;
+  clientKey: string;
   count: number;
   updatedAt: string;
   createdAt: string;
@@ -1646,6 +1647,7 @@ export interface AuditEventsSelect<T extends boolean = true> {
  */
 export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
+  clientKey?: T;
   count?: T;
   updatedAt?: T;
   createdAt?: T;

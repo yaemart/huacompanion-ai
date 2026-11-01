@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
 import pg from "pg";
 const url = new URL(process.env.DATABASE_URL || "");
 if (
@@ -23,7 +22,7 @@ execFileSync(bin + "/createdb", [database], { env, stdio: "pipe" });
 try {
   const target = new URL(url);
   target.pathname = "/" + database;
-  execFileSync(resolve("node_modules/node/bin/node"), ["node_modules/payload/bin.js", "migrate"], {
+  execFileSync(process.execPath, ["node_modules/payload/bin.js", "migrate"], {
     env: {
       ...env,
       DATABASE_URL: target.toString(),
@@ -75,6 +74,16 @@ try {
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);
+    const clientKey = await pool.query(
+      "SELECT column_name FROM information_schema.columns " +
+        "WHERE table_schema='public' AND table_name='intake_limits' AND column_name='client_key'",
+    );
+    if (clientKey.rowCount !== 1) throw Error("Missing intake client key");
+    const indexes = await pool.query(
+      "SELECT indexdef FROM pg_indexes WHERE schemaname='public' AND tablename='intake_limits'",
+    );
+    if (!indexes.rows.some((row) => /UNIQUE.*\(bucket, client_key\)/.test(row.indexdef)))
+      throw Error("Missing unique per-client intake quota index");
   } finally {
     await pool.end();
   }

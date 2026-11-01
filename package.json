@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "dev": "node --import ./scripts/dev-env.mjs node_modules/next/dist/bin/next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
@@ -54,7 +54,9 @@
     "check": "npm run lint && npm run typecheck && npm test",
     "test:reporting": "node --import tsx tests/integration/reporting.ts",
     "test:seo": "node --import tsx tests/integration/seo.ts",
-    "test:reporting:http": "node --import tsx tests/integration/reporting-http.ts"
+    "test:reporting:http": "node --import tsx tests/integration/reporting-http.ts",
+    "test:intake": "tsx tests/integration/intake-protection.ts",
+    "test:intake:http": "tsx tests/integration/intake-protection-http.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
@@ -63,7 +65,6 @@
     "dotenv": "^18.0.9",
     "graphql": "^16.14.2",
     "next": "^16.4.3",
-    "node": "^24.22.1",
     "payload": "^3.92.0",
     "pg": "^8.23.1",
     "react": "19.2.8",
@@ -83,7 +84,7 @@
     "typescript-eslint": "^8.72.1"
   },
   "engines": {
-    "node": ">=24.22.1"
+    "node": ">=24.22.1 <25"
   },
   "overrides": {
     "dompurify": "3.4.17"

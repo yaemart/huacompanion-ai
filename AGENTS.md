@@ -10,6 +10,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 多电脑开发与交接
 
+- 使用 `.nvmrc` 的 Node 24.22.1（`nvm install && nvm use`），不通过 npm 安装 Node 运行时。`npm run dev` 保留 Next Fast Refresh、关闭 Payload HMR；修改 CMS 配置、字段、集合或权限配置后须重启开发进程，避免映射重载期间的数据库并发错误。
+
 - 源码使用 Prettier（100 字符目标行宽）与 ESLint；一行一条语句，不压缩函数。源码行最长 200 字符，文案如需例外须在实施记录列明并显式调整检查，不能静默跳过。
 - 提交前必须运行 `npm run check`（lint、typecheck、单元测试）及相关集成测试，实际结果记录在 `docs/progress.md`。权限、报价、客户数据相关行为变更必须补测试。
 

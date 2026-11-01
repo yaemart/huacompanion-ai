@@ -606,6 +606,7 @@ export const AuditEvents: CollectionConfig = {
 const IntakeLimits: CollectionConfig = {
   slug: "intake-limits",
   admin: { hidden: true },
+  indexes: [{ fields: ["bucket", "clientKey"], unique: true }],
   access: {
     create: () => false,
     read: () => false,
@@ -613,7 +614,8 @@ const IntakeLimits: CollectionConfig = {
     delete: () => false,
   },
   fields: [
-    { name: "bucket", type: "number", required: true, unique: true },
+    { name: "bucket", type: "number", required: true },
+    { name: "clientKey", type: "text", required: true, defaultValue: "global" },
     { name: "count", type: "number", required: true, defaultValue: 0 },
   ],
 };

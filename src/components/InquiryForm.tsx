@@ -38,6 +38,7 @@ export function InquiryForm({
   catalogSelection?: CatalogSelection;
 }) {
   const localMode = ["local", "trial"].includes(process.env.NEXT_PUBLIC_FORM_MODE || "");
+  const [contactFax, setContactFax] = useState("");
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -204,6 +205,7 @@ export function InquiryForm({
           kind,
           locale,
           values,
+          ...(!supportConversation ? { contactFax } : {}),
           ...(catalogSelection?.source ? { source: catalogSelection.source } : {}),
         }),
       };
@@ -347,6 +349,20 @@ export function InquiryForm({
           </div>
         )}
         <form onSubmit={submit} noValidate>
+          {!supportConversation && (
+            <div hidden aria-hidden="true">
+              <label htmlFor="contactFax">Leave this field empty</label>
+              <input
+                id="contactFax"
+                name="contactFax"
+                type="text"
+                value={contactFax}
+                onChange={(event) => setContactFax(event.target.value)}
+                autoComplete="off"
+                tabIndex={-1}
+              />
+            </div>
+          )}
           <fieldset
             className="form-body"
             disabled={saving || !!receipt || attempted || !!catalogSelection?.error}

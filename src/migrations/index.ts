@@ -19,6 +19,7 @@ import * as migration_20261031_033746_business_platform from "./20261031_033746_
 import * as migration_20261031_034016_customer_notifications from "./20261031_034016_customer_notifications";
 import * as migration_20261031_054202_business_ai from "./20261031_054202_business_ai";
 import * as migration_20261101_022501_page_seo from "./20261101_022501_page_seo";
+import * as migration_20261101_025904_intake_client_limits from "./20261101_025904_intake_client_limits";
 
 export const migrations = [
   {
@@ -125,5 +126,10 @@ export const migrations = [
     up: migration_20261101_022501_page_seo.up,
     down: migration_20261101_022501_page_seo.down,
     name: "20261101_022501_page_seo",
+  },
+  {
+    up: migration_20261101_025904_intake_client_limits.up,
+    down: migration_20261101_025904_intake_client_limits.down,
+    name: "20261101_025904_intake_client_limits",
   },
 ];

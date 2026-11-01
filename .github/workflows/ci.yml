@@ -92,3 +92,4 @@ jobs:
           npm run test:customer
           npm run test:support
           npm run test:reporting
+          npm run test:intake
