@@ -5,9 +5,9 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支 `codex/traffic-entry-phase0` 补齐 0.2 的英文优先默认。依赖顺序为基础 PR #2 → [阶段0.1 PR #3](https://github.com/yaemart/huacompanion-ai/pull/3) → 本轮0.2；先审核前一步，再改指 main 并重验，不自动合并。
-- 用户已明确“先整理完整阶段1开发任务书和实施顺序”；已整理[阶段1计划](traffic-entry-phase1-plan.md)，仅文档，尚未实现。
-- **停止于 A，等待用户确认** [托管方案](hosting-options.md) 与 [统计方案及计数口径](analytics-options.md)。尚未开始阶段 1，不接统计代码、不新增依赖、不购买。
+- 当前分支 `codex/visa-policy-contracts`，继续1.1a本地开发。依赖顺序为基础PR #2 → 阶段0.1 PR #3 → [阶段0.2 PR #4](https://github.com/yaemart/huacompanion-ai/pull/4) → 本轮1.1a；先审核前一步，再改指main并重验，不自动合并。
+- 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付；本轮1.1a仅政策数据契约/纯函数和内容服务类型整理，见[映射约定](immigration-policies.md)。集合、迁移、录入与公开工具留到后续独立PR。
+- **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 
 ## 既有基础版本与证据
 
@@ -19,7 +19,7 @@
 
 ## 当前行为与剩余事项
 
-1. 可维护性门禁已建立：check 串行 lint、typecheck、单元测试；核心指定文件 any 清零，剩余 299 处／39文件原因列于 progress，无超过200字符的源码行例外。
+1. 可维护性门禁已建立：check 串行 lint、typecheck、单元测试；核心指定文件 any 清零；本轮又清理内容发布服务9处，剩余数量与原因见 progress，无超过200字符的源码行例外。
 2. 中文 `/operations-overview` 按员工范围统计／导出，CSV敏感字段仅管理员显式选择，导出先审计；没有改报价规则或客户授权。
 3. SEO固定页由管理员在 `/admin/globals/seo-settings` 编辑，内容详情仍走草稿审核发布，图片沿用访问边界。trial默认noindex，正式环境也需显式收录开关。
 4. `SITE_LOCALES` 默认 en,zh，其余五语的公网URL/API关闭，后台与代码七语保留；客户中心、全部客服／语音／通话、AI报价、外发邮件默认关闭。已有库运行 `trial:configure` 先预览，`--apply` 才持锁关闭并审计；不是启动时反复重置。
@@ -39,7 +39,7 @@
 
 ## 下次接手
 
-先检查 `git status`、`git branch -vv`、`git fetch origin`，确认工作区和远程head；同一任务用 `git pull --ff-only` 接手。有分叉先检查双方提交，不强推或清理未提交资料。先读最新任务书、阶段1计划和停止点A选项；A获用户确认前不开始阶段1或账户开通。确认后再核对账户清单与真实环境条件。
+先检查 `git status`、`git branch -vv`、`git fetch origin`，确认工作区和远程head；同一任务用 `git pull --ff-only` 接手。有分叉先检查双方提交，不强推或清理未提交资料。先读最新任务书、阶段1计划和停止点A选项；A已确认，但当前只做本地；继续下一独立步骤，不据此开通账户、购买、部署或接统计。真实环境阶段另核对账户与授权。
 
 ```text
 日期与任务：

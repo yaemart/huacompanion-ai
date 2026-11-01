@@ -70,6 +70,8 @@ export default defineConfig([
   {
     files: [
       "src/server/intake.ts",
+      "src/server/content/service.ts",
+      "src/lib/immigration-policy.ts",
       "src/server/customer/service.ts",
       "src/server/support/service.ts",
       "src/server/business/service.ts",
