@@ -1,0 +1,24 @@
+[
+  {
+    "contentKey": "unverified-policy-template",
+    "locale": "en",
+    "title": "Unverified policy template — complete and verify before review",
+    "policy": {
+      "countryCode": null,
+      "countryNameEn": null,
+      "countryNameZh": null,
+      "internalNotes": "Unverified placeholder. Supply official sources and verify every field."
+    }
+  },
+  {
+    "contentKey": "unverified-policy-template",
+    "locale": "zh",
+    "title": "未核实政策模板：填写并核实后再提交审核",
+    "policy": {
+      "countryCode": null,
+      "countryNameEn": null,
+      "countryNameZh": null,
+      "internalNotes": "未核实占位草稿。请逐项补充国家、政策条件和官方来源，再由工作人员核实。"
+    }
+  }
+]

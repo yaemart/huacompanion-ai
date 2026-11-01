@@ -46,10 +46,10 @@ function text(value: unknown, max: number, required = true): value is string {
 }
 
 /** `today` is supplied explicitly in China calendar dates; no clock or network side effects. */
-export function validatePolicyPublication(
+export function validatePublicPolicy(
   value: unknown,
   today: string,
-): asserts value is PolicyPublicationData {
+): asserts value is PublicPolicyData {
   if (!calendarDate(today)) throw Error("核实日期基准无效");
   if (!value || typeof value !== "object" || Array.isArray(value)) throw Error("入境政策格式无效");
   const data = value as Record<string, unknown>;
@@ -73,23 +73,13 @@ export function validatePolicyPublication(
     throw Error("截止日需为空或不早于生效日");
   if (data.lastVerifiedOn > today) throw Error("最后核实日期不能晚于今天");
   if (
-    typeof data.verifiedBy !== "number" ||
-    !Number.isSafeInteger(data.verifiedBy) ||
-    data.verifiedBy < 1
-  )
-    throw Error("请选择核实人");
-  if (
     !Array.isArray(data.portsAndRegions) ||
     data.portsAndRegions.length > 100 ||
     data.portsAndRegions.some((region: unknown) => !text(region, 2000)) ||
     (data.policyType === "transit-240h" && !data.portsAndRegions.length)
   )
     throw Error("过境政策需填写适用口岸或区域");
-  if (
-    !text(data.publicNotes, 4000, false) ||
-    (data.internalNotes != null && !text(data.internalNotes, 4000, false))
-  )
-    throw Error("政策备注格式无效");
+  if (!text(data.publicNotes, 4000, false)) throw Error("政策备注格式无效");
   try {
     if (!text(data.officialSourceUrl, 2000)) throw Error();
     const url = new URL(data.officialSourceUrl);
@@ -97,6 +87,22 @@ export function validatePolicyPublication(
   } catch {
     throw Error("请填写不含账户信息的官方 HTTPS 来源链接");
   }
+}
+
+export function validatePolicyPublication(
+  value: unknown,
+  today: string,
+): asserts value is PolicyPublicationData {
+  validatePublicPolicy(value, today);
+  const data = value as unknown as Record<string, unknown>;
+  if (
+    typeof data.verifiedBy !== "number" ||
+    !Number.isSafeInteger(data.verifiedBy) ||
+    data.verifiedBy < 1
+  )
+    throw Error("请选择核实人");
+  if (data.internalNotes != null && !text(data.internalNotes, 4000, false))
+    throw Error("政策备注格式无效");
 }
 
 /** Explicit field allowlist; this does not publish a draft or authorize a caller. */
