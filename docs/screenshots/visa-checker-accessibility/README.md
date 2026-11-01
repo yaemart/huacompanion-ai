@@ -12,7 +12,7 @@
 | en-final.report.json   | 2026-11-01T14:35:28.330Z |      100 |      100 |
 | zh-final.report.json   | 2026-11-01T14:36:17.495Z |      100 |      100 |
 
-实际URL为http://127.0.0.1:3000/en或/zh/tools/china-visa-free-checker，精确设置/版本/时间见lighthouse-summary.json及完整JSON。mobile412×823、deviceScaleFactor1.75、默认模拟移动网络RTT150ms/1638.4Kbps与CPU4倍放慢，throttlingMethod=simulate；只选择performance/accessibility两个完整类别，skipAudits=null，无自定义降节流。不是开发服务器/桌面分数。构建源码随后提交，最终交接提交在summary中关联，源码指纹涵盖src、package/锁和next.config.ts；构建后未更改这些文件再记录最终评分。
+实际URL为http://127.0.0.1:3000/en或/zh/tools/china-visa-free-checker，精确设置/版本/时间见lighthouse-summary.json及完整JSON。mobile412×823、deviceScaleFactor1.75、默认模拟移动网络RTT150ms/1638.4Kbps与CPU4倍放慢，throttlingMethod=simulate；只选择performance/accessibility两个完整类别，skipAudits=null，无自定义降节流。不是开发服务器/桌面分数。构建源码随后提交为2d1fb0664cb3bce3267cce14838151be0390492b，summary已关联该源码提交，源码指纹涵盖src、package/锁和next.config.mjs；构建后未更改这些文件再记录最终评分。
 
 初次对比度审计0：正文#6e7770在#faf9f5上4.39:1<4.5。局部.policy-reference内--muted改用既有--ink，不改其他页面配色。初次label-content-name-mismatch为0：Header的aria-label覆盖中文可见品牌，移除覆盖，让朗读名称由原可见文字生成；视觉不变。两项最终均1，没有跳过或修改审计。保留初始报告作为RED→GREEN证据，bf-cache的no-store诊断保持，不为得分放松快照缓存边界。
 

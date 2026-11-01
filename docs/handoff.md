@@ -5,7 +5,7 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支codex/visa-checker-accessibility，依赖草稿[PR13](https://github.com/yaemart/huacompanion-ai/pull/13)的231e2c94d2dcd29b9374ec66361fe810c2148b92；基准push/PR CI已成功（41314484133、41314489200）。本步草稿PR及当前head完整SHA/CI见最终交接，不能沿用基准结果。依赖顺序PR2→3→4→5→6→7→8→9→10→11→12→13→本步，前置合并后改指main重验，不自动合并。
+- 当前分支codex/visa-checker-accessibility，依赖草稿[PR13](https://github.com/yaemart/huacompanion-ai/pull/13)的231e2c94d2dcd29b9374ec66361fe810c2148b92；基准push/PR CI已成功（41314484133、41314489200）。本步草稿[PR14](https://github.com/yaemart/huacompanion-ai/pull/14)，当前head完整SHA/CI见最终交接，不能沿用基准结果。依赖顺序PR2→3→4→5→6→7→8→9→10→11→12→13→14，前置合并后改指main重验，不自动合并。
 - 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付。1.1政策流程、1.2纯查询及1.3a/b/c SSR/浏览器查询/正式FAQ与本机移动审计已验证。后台入口/content-center?kind=immigration-policy仍需开关和显式授权，通用集合CRUD仍关闭。工具默认404/noindex，无公共原始数据API。下一步1.4政策横幅；现实内容/部署/恢复及公开B仍待完成。
 - **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 
@@ -30,7 +30,7 @@
 ## 环境与数据
 
 - 1.3c无schema/新项目依赖/实际.env修改；新增可选VISA_FAQ_CONTENT_KEYS仅示例，逗号精确选择同语言正式faq；正文纯文本块、每来源HTTPS+核实日，未配置/未发布/下架/不完整不造数据，空FAQ无schema。FAQ仍是既有通用公开内容，不是全站保密开关。用户明确批准临时官方Lighthouse13.6.0，安装在.local/lighthouse-tool，不进入package/锁。生产中英mobile412×823、默认4G模拟/CPU4倍放慢性能/可访问性均100；初始英文100/97的对比度和品牌可见名称问题已实际修复复测。报告/手工键盘/390/320无JS截图见screenshots/visa-checker-accessibility；未实跑VoiceOver/NVDA或所有系统缩放/跨浏览器组合，真实内容和托管后重测。
-- 本步check190单元、三套静态渲染、生产build、七语开关HTTP及政策/指南/FAQ发布改稿下架、query DB/trial HTTP退出0；源码any仍290/38，行长无例外。虚构政策/版本/工作稿/快照/FAQ/指南/临时账号/授权0，原稿116保留、flag关闭。默认dev和两worker恢复，support无模型转人工，workflow0提醒/处理。当前head远端/CI另核，不能把本地审计当上线验收。
+- 本步check190单元、三套静态渲染、生产build、七语开关HTTP及政策/指南/FAQ发布改稿下架、query DB/trial HTTP退出0；源码any仍290/38，行长无例外。虚构政策/版本/工作稿/快照/FAQ/指南/临时账号/授权0，原稿116保留、flag关闭。默认dev和两worker恢复，support无模型转人工，workflow0提醒/处理。独立复核无Critical/Important/Minor，另跑190单元/三渲染并查看原始报告，未重跑DB/HTTP/build/浏览器/CI。源码提交2d1fb0664cb3bce3267cce14838151be0390492b已与构建源码指纹核对；最终文档提交不冒称重新跑过Lighthouse。当前head远端/CI另核，不能把本地审计当上线验收。
 
 - 1.3b无新迁移/依赖/服务/实际.env变化；.env.example新增可选VISA_GUIDE_CONTENT_KEY，只从listPublished精确匹配同语言guide，未配置/未发布/下架没有特定链接，不能随便选文章。国籍/入境日只在浏览器局部state，水合前禁用且无form/name，输入改变清空旧结果，SSR表保留。check186单元、静态控件/结果渲染、生产build、生产开/关HTTP及真实指南发布/下架、query DB和trial HTTP已通过。实际浏览器中英键盘/未知/过期/无JS及390手机通过，0查询网络/日志/异常，网址及非敏感存储摘要不变；未读取保留完整Cookie/存储值，限制见screenshots/visa-checker-browser。临时政策/版本/草稿/快照/指南/账号/授权0，原稿116保留、实际flag关闭；默认dev及两worker恢复，support转人工，workflow0提醒/处理。AST any仍290/38。独立复核无Critical/Important/Minor，另跑186单元及控件渲染；未代跑DB/HTTP/build/浏览器/CI。页面快照不实时更新，发布/下架后须重新加载。FAQ/Lighthouse未完成，公开B未到，不部署。
 

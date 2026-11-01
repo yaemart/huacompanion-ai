@@ -42,8 +42,8 @@
 
 **Interfaces:** 沿用Task1投影和1.3b查询；官方Lighthouse仅临时工具，报告记录URL/版本/构建SHA/时间/mobile节流配置/得分与手工检查限制。
 
-- [ ] 生产build，临时中英正式虚构政策+FAQ+指南，Lighthouse mobile两语性能/可访问性>=90；不通过先定位、补失败测试及最小修复后复测，原始失败报告也保留证据。
-- [ ] CUA桌面/390手机、键盘错误/焦点/FAQ展开/无JS/放大检查，截图；如有屏幕阅读器未实测须明示，不能冒称全面认证。
-- [ ] 生产开关HTTP/FAQ链路及原query DB/trial HTTP回归，清理夹具/原稿116/开关核对，恢复dev和两workers。
-- [ ] check及行长/any，更新文档，代码提交后一次独立整轮复核；重要问题一轮RED→GREEN，记录所有裁定。
-- [ ] 最终提交、推送草稿PR并关联；fetch核对SHA/clean tree，当前head push/PR CI实核。下一步1.4，部署和B仍未完成。
+- [x] 生产build，临时中英正式虚构政策+FAQ+指南，Lighthouse mobile两语性能/可访问性>=90；不通过先定位、补失败测试及最小修复后复测，原始失败报告也保留证据。
+- [x] CUA桌面/390手机、键盘错误/焦点/FAQ展开/无JS/放大检查，截图；如有屏幕阅读器未实测须明示，不能冒称全面认证。
+- [x] 生产开关HTTP/FAQ链路及原query DB/trial HTTP回归，清理夹具/原稿116/开关核对，恢复dev和两workers。
+- [x] check及行长/any，更新文档，代码提交后一次独立整轮复核；重要问题一轮RED→GREEN，记录所有裁定。
+- [x] 最终提交、推送草稿PR并关联；fetch核对SHA/clean tree，当前head push/PR CI实核。下一步1.4，部署和B仍未完成。

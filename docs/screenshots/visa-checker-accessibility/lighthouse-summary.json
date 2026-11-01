@@ -1,6 +1,6 @@
 {
   "sourceBase": "231e2c94d2dcd29b9374ec66361fe810c2148b92",
-  "sourceCommit": "See final handoff; built source unchanged before commit",
+  "sourceCommit": "2d1fb0664cb3bce3267cce14838151be0390492b",
   "productionBuild": true,
   "recordsPerLocale": {
     "policies": 3,
@@ -84,5 +84,7 @@
       "warnings": []
     }
   ],
-  "sourceFingerprintSha256": "b1137a7f63e9b4dbde24844f106f89ffe11b62e40961976a5a54775b0d5ddd82"
+  "sourceFingerprintSha256": "573c6b33cf682113687ed3f8d629d4538f998691d007a5cb9bc2027b4ad4b102",
+  "buildProvenance": "Production build ran before this commit; src/package/lock/next config fingerprint verified unchanged after commit.",
+  "sourceFingerprintScope": "All files in src plus package.json, package-lock.json, next.config.mjs; sorted paths, NUL, file bytes, NUL."
 }
