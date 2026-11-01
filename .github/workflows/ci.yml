@@ -19,6 +19,11 @@ jobs:
     name: Unit tests and types
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Some in-memory tests import Payload config without opening a DB.
+      PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:1/unused_unit_tests
+      APP_ENV: ci
     steps:
       - uses: actions/checkout@v6
         with:
