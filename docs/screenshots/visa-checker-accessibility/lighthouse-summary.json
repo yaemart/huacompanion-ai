@@ -1,0 +1,90 @@
+{
+  "sourceBase": "231e2c94d2dcd29b9374ec66361fe810c2148b92",
+  "sourceCommit": "2d1fb0664cb3bce3267cce14838151be0390492b",
+  "productionBuild": true,
+  "recordsPerLocale": {
+    "policies": 3,
+    "faq": 1,
+    "guide": 1
+  },
+  "runs": [
+    {
+      "report": "en-initial.report.json",
+      "url": "http://127.0.0.1:3000/en/tools/china-visa-free-checker",
+      "fetchedAt": "2026-11-01T14:33:19.228Z",
+      "lighthouseVersion": "13.6.0",
+      "performance": 100,
+      "accessibility": 97.0,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "warnings": []
+    },
+    {
+      "report": "en-final.report.json",
+      "url": "http://127.0.0.1:3000/en/tools/china-visa-free-checker",
+      "fetchedAt": "2026-11-01T14:35:28.330Z",
+      "lighthouseVersion": "13.6.0",
+      "performance": 100,
+      "accessibility": 100,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "warnings": []
+    },
+    {
+      "report": "zh-final.report.json",
+      "url": "http://127.0.0.1:3000/zh/tools/china-visa-free-checker",
+      "fetchedAt": "2026-11-01T14:36:17.495Z",
+      "lighthouseVersion": "13.6.0",
+      "performance": 100,
+      "accessibility": 100,
+      "formFactor": "mobile",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "screenEmulation": {
+        "mobile": true,
+        "width": 412,
+        "height": 823,
+        "deviceScaleFactor": 1.75,
+        "disabled": false
+      },
+      "warnings": []
+    }
+  ],
+  "sourceFingerprintSha256": "573c6b33cf682113687ed3f8d629d4538f998691d007a5cb9bc2027b4ad4b102",
+  "buildProvenance": "Production build ran before this commit; src/package/lock/next config fingerprint verified unchanged after commit.",
+  "sourceFingerprintScope": "All files in src plus package.json, package-lock.json, next.config.mjs; sorted paths, NUL, file bytes, NUL."
+}

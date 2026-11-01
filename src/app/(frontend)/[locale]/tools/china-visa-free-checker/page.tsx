@@ -3,6 +3,8 @@ import { getPayload } from "payload";
 import config from "@/payload.config";
 import { Header } from "@/components/Header";
 import { PolicyTable } from "@/components/immigration/PolicyTable";
+import { PolicyFAQ } from "@/components/immigration/PolicyFAQ";
+import { selectPolicyFAQs } from "@/lib/immigration-policy-faq";
 import { PolicyQuery } from "@/components/immigration/PolicyQuery";
 import { selectPolicyVisaGuide } from "@/lib/immigration-policy-browser";
 import { listPublished } from "@/server/content/service";
@@ -41,9 +43,9 @@ export default async function VisaCheckerPage({ params }: Props) {
   const payload = await getPayload({ config });
   const policies = await listPublicPolicies(payload, locale);
   const guideKey = process.env.VISA_GUIDE_CONTENT_KEY;
-  const visaGuide = guideKey?.trim()
-    ? selectPolicyVisaGuide(await listPublished(payload, locale), locale, guideKey)
-    : null;
+  const faqKeys = process.env.VISA_FAQ_CONTENT_KEYS;
+  const published = guideKey?.trim() || faqKeys?.trim() ? await listPublished(payload, locale) : [];
+  const visaGuide = selectPolicyVisaGuide(published, locale, guideKey);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const rows = buildPolicyTable(policies, today);
   return (
@@ -84,6 +86,7 @@ export default async function VisaCheckerPage({ params }: Props) {
           visaGuide={visaGuide}
         />
         <PolicyTable rows={rows} locale={locale} />
+        <PolicyFAQ items={selectPolicyFAQs(published, locale, faqKeys, today)} locale={locale} />
         <aside className="policy-disclaimer">
           <p>{c.disclaimer}</p>
         </aside>

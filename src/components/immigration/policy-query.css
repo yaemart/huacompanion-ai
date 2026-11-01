@@ -32,3 +32,20 @@
   padding: 1rem;
   min-width: 0;
 }
+
+.policy-faq {
+  margin-block: 2rem;
+  overflow-wrap: anywhere;
+}
+.policy-faq details {
+  border-block-end: 1px solid var(--line);
+  padding-block: 1rem;
+}
+.policy-faq summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.5rem;
+}
+.policy-faq-answer {
+  white-space: pre-wrap;
+}

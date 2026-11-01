@@ -1,0 +1,44 @@
+{
+  "english": {
+    "focusLanguage": {
+      "tag": "A",
+      "text": "中文"
+    },
+    "focusDate": "policy-arrival",
+    "enErrors": [
+      {
+        "error": "Choose a nationality or the not-listed option.",
+        "id": "policy-nationality"
+      },
+      {
+        "error": "Enter a valid arrival date.",
+        "id": "policy-arrival"
+      }
+    ],
+    "enFAQ": {
+      "answerVisible": true,
+      "focus": "SUMMARY",
+      "open": true,
+      "outline": "rgb(184, 139, 85) solid 3px"
+    }
+  },
+  "chinese": {
+    "narrowCheck": {
+      "faqWidth": 275.21875,
+      "scroll": 320,
+      "width": 320
+    },
+    "noJsCheck": {
+      "answer": "不是。这是本机虚构问答，仅供测试，不可用于出行决策。请核实官方最新要求。",
+      "disabled": true,
+      "faqOpen": true,
+      "rows": 3,
+      "scroll": 320,
+      "width": 320
+    }
+  },
+  "limits": [
+    "No VoiceOver/NVDA end-to-end test",
+    "320 CSS pixel reflow tested; not all OS font/zoom settings tested"
+  ]
+}

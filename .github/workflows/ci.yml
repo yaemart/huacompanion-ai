@@ -34,6 +34,7 @@ jobs:
       - run: npm run check
       - run: npm run test:policies:table
       - run: npm run test:policies:browser
+      - run: npm run test:policies:faq
 
   database:
     name: Migrations, build and integration
@@ -104,6 +105,7 @@ jobs:
         env:
           APP_ENV: local
           VISA_GUIDE_CONTENT_KEY: policy-browser-fixture-visa-guide
+          VISA_FAQ_CONTENT_KEYS: policy-faq-fixture-question
         run: |
           APP_ENV=trial VISA_CHECKER_ENABLED=false node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
           policy_server_pid=$!
