@@ -5,6 +5,7 @@ import config from "../../src/payload.config";
 import { emptyExhibition, shanghaiToday } from "../../src/lib/exhibitions";
 import { mutateContent } from "../../src/server/content/service";
 import { locales } from "../../src/lib/locales";
+import { parseSiteLocales } from "../../src/lib/site-locales";
 
 const database = new URL(process.env.DATABASE_URL || "http://invalid");
 if (
@@ -18,6 +19,7 @@ if (
   );
 }
 const base = "http://127.0.0.1:3000";
+const activeLocales = parseSiteLocales(process.env.SITE_LOCALES);
 const p = await getPayload({ config });
 let draftId: number | undefined;
 let admin: any;
@@ -144,9 +146,24 @@ try {
   assert.ok([303, 307, 308].includes(preview.status));
   assert.equal(new URL(preview.headers.get("location")!, base).pathname, "/admin/login");
   for (const locale of locales) {
+    if (!activeLocales.includes(locale)) {
+      await html(`/${locale}/exhibitions`, 404);
+      await html(`/${locale}/exhibitions/${key}`, 404);
+      await json(`/api/public/exhibitions?locale=${locale}`, 400);
+      await json(`/api/public/exhibitions?locale=${locale}&key=${key}`, 400);
+      assert.ok(!detail.includes(`href="/${locale}/exhibitions/${key}"`));
+      continue;
+    }
+    const publicList = await json(`/api/public/exhibitions?locale=${locale}`);
+    assert.equal(publicList.locale, locale);
+    assert.ok(publicList.items.every((item: { locale: string }) => item.locale === locale));
     const page = await html(`/${locale}/exhibitions`);
     assert.match(page, new RegExp(`<html[^>]*lang="${locale === "zh" ? "zh-CN" : locale}"`));
     assert.match(page, new RegExp(`<html[^>]*dir="${locale === "ar" ? "rtl" : "ltr"}"`));
+    const switcher = page.match(/<select[^>]*class="language"[^>]*>[\s\S]*?<\/select>/)?.[0];
+    assert.ok(switcher);
+    for (const option of locales)
+      assert.equal(switcher.includes(`value="${option}"`), activeLocales.includes(option));
   }
   await publish({ ...body, exhibition: { ...event, status: "cancelled" } });
   const cancelled = await html(`/en/request?exhibition=${key}`);
@@ -164,7 +181,7 @@ try {
   await json(`/api/public/exhibitions?locale=en&key=${key}`, 404);
   await html(`/en/exhibitions/${key}`, 404);
   console.log(
-    "PASS exhibitions HTTP: escaped list/detail, API sources, public paths, sitemap, attributed prefill, private preview, seven locales, cancellation and withdrawal",
+    "PASS exhibitions HTTP: escaped list/detail, API sources, public paths, sitemap, attributed prefill, private preview, active locales, inactive rejection, cancellation and withdrawal",
   );
 } finally {
   try {

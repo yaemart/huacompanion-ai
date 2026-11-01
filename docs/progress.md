@@ -1,5 +1,11 @@
 # 实施记录
 
+## 2026-11-01 任务 4 补测：旧 HTTP 七语假设
+
+最终串行回归在 exhibitions-http 的 /es/exhibitions 复现旧测试仍要求200；新公开配置正确返回404。补修四个HTTP脚本（展会、机构、客服、路线），保留原英文业务／权限／隐私／缺失译文断言，启用语言验证200、lang/dir、API语言与切换器，关闭语言明确验证目录／详情404、公开API400；没有修改生产逻辑或缩小七语代码测试。
+
+相关七入口串行全部通过：exhibitions-http、institutions-http、catalog-http、content-http、support-http、locales-http、check-routes（153项页面／404）。独立只读复核确认没有弱化原断言；typecheck、行长和diff检查通过。提交前完整check在含部署工具测试的工作区运行，146/146单元通过。完整原始结果保存在忽略目录 .local/task4-http-followup-*.log。
+
 ## 2026-11-01 收敛与试运行准备：任务 4
 
 新增 feature-inventory.md，逐模块列第一版范围、已验证／已实现未验证／未实现、外部依赖、试运行是否开启与开关。已实现的客户中心、语音、通话、AI 报价及内容 AI 等能力保留并明确未启用，真实邮件／模型／托管验收没有冒充本地通过。

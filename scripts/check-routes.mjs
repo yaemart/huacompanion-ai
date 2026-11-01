@@ -1,3 +1,7 @@
+import "dotenv/config";
+import { locales } from "../src/lib/locales.ts";
+import { parseSiteLocales } from "../src/lib/site-locales.ts";
+const activeLocales = parseSiteLocales(process.env.SITE_LOCALES);
 const pages = [
   "",
   "services",
@@ -18,14 +22,21 @@ const pages = [
   "account",
 ];
 let count = 0;
-for (const locale of ["en", "zh", "es", "fr", "de", "it", "ar"])
+for (const locale of locales)
   for (const page of pages) {
     const url = `http://127.0.0.1:3000/${locale}/${page}`;
     const res = await fetch(url);
     const html = await res.text();
+    if (!activeLocales.includes(locale)) {
+      if (res.status !== 404 || !html.includes("<html") || !html.includes("<body>"))
+        throw Error(`Inactive locale must return a document 404: ${url} ${res.status}`);
+      count++;
+      continue;
+    }
     if (
       res.status !== 200 ||
       !html.includes(`<html lang="${locale === "zh" ? "zh-CN" : locale}"`) ||
+      !html.includes(`dir="${locale === "ar" ? "rtl" : "ltr"}"`) ||
       !html.includes("<body>") ||
       !html.includes("noindex")
     )
@@ -39,6 +50,8 @@ const sitemap = await sitemapResponse.text();
 for (const match of sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)) {
   const url = new URL(match[1].replaceAll("&amp;", "&"));
   if (url.origin !== "http://127.0.0.1:3000") throw Error("Unexpected sitemap origin");
+  const locale = url.pathname.split("/")[1];
+  if (!activeLocales.includes(locale)) throw Error(`Inactive locale in sitemap: ${url.pathname}`);
   const res = await fetch(url);
   if (res.status !== 200) throw Error(`Published URL unavailable: ${url.pathname} ${res.status}`);
   count++;

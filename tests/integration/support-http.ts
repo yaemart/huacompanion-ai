@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
+import { locales } from "../../src/lib/locales";
 import { parseSiteLocales } from "../../src/lib/site-locales";
 if (process.env.APP_ENV !== "local") throw Error("Local fixture database required");
 const p = await getPayload({ config });
@@ -56,8 +57,15 @@ try {
     403,
   );
   assert.equal((await fetch(base + "/api/support/staff")).status, 403);
-  for (const locale of parseSiteLocales(process.env.SITE_LOCALES))
-    assert.equal((await fetch(base + "/" + locale + "/support")).status, 200);
+  const activeLocales = parseSiteLocales(process.env.SITE_LOCALES);
+  for (const locale of locales) {
+    const response = await fetch(`${base}/${locale}/support`);
+    assert.equal(response.status, activeLocales.includes(locale) ? 200 : 404);
+    if (!activeLocales.includes(locale)) continue;
+    const page = await response.text();
+    assert.match(page, new RegExp(`<html[^>]*lang="${locale === "zh" ? "zh-CN" : locale}"`));
+    assert.match(page, new RegExp(`<html[^>]*dir="${locale === "ar" ? "rtl" : "ltr"}"`));
+  }
   for (const route of [
     "/api/support/calls/staff",
     "/api/support/operations",

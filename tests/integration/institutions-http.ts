@@ -6,6 +6,7 @@ import { emptyInstitution } from "../../src/lib/institutions";
 import { shanghaiToday } from "../../src/lib/exhibitions";
 import { mutateContent } from "../../src/server/content/service";
 import { locales } from "../../src/lib/locales";
+import { parseSiteLocales } from "../../src/lib/site-locales";
 import { institutionText } from "../../src/lib/institution-copy";
 import { coreText } from "../../src/lib/core-copy";
 
@@ -21,6 +22,7 @@ if (
   );
 }
 const base = "http://127.0.0.1:3000";
+const activeLocales = parseSiteLocales(process.env.SITE_LOCALES);
 const p = await getPayload({ config });
 let draftId: number | undefined;
 let admin: any;
@@ -178,9 +180,24 @@ try {
   assert.ok([303, 307, 308].includes(preview.status));
   assert.equal(new URL(preview.headers.get("location")!, base).pathname, "/admin/login");
   for (const locale of locales) {
+    if (!activeLocales.includes(locale)) {
+      await html(`/${locale}/institutions`, 404);
+      await html(`/${locale}/institutions/${key}`, 404);
+      await json(`/api/public/institutions?locale=${locale}`, 400);
+      await json(`/api/public/institutions?locale=${locale}&key=${key}`, 400);
+      assert.ok(!detail.includes(`href="/${locale}/institutions/${key}"`));
+      continue;
+    }
+    const publicList = await json(`/api/public/institutions?locale=${locale}`);
+    assert.equal(publicList.locale, locale);
+    assert.ok(publicList.items.every((item: { locale: string }) => item.locale === locale));
     const page = await html(`/${locale}/institutions?q=no-match-${key}`);
     assert.match(page, new RegExp(`<html[^>]*lang="${locale === "zh" ? "zh-CN" : locale}"`));
     assert.match(page, new RegExp(`<html[^>]*dir="${locale === "ar" ? "rtl" : "ltr"}"`));
+    const switcher = page.match(/<select[^>]*class="language"[^>]*>[\s\S]*?<\/select>/)?.[0];
+    assert.ok(switcher);
+    for (const option of locales)
+      assert.equal(switcher.includes(`value="${option}"`), activeLocales.includes(option));
     assert.ok(page.includes(institutionText(locale, "empty")));
     assert.ok(page.includes(`href="/${locale}/institutions"`));
     assert.ok(page.includes(coreText(locale, "Institutions")));
@@ -217,7 +234,7 @@ try {
   await html(`/en/institutions/${key}`, 404);
   console.log(
     "PASS institutions HTTP: escaped public pages, sources/privacy, filters, sitemap, " +
-      "attributed medical prefill, revision, private preview, seven locales/RTL, exact " +
+      "attributed medical prefill, revision, private preview, active locales/RTL, inactive rejection, exact " +
       "translation identity, pending/paused and withdrawal",
   );
 } finally {
