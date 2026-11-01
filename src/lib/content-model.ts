@@ -59,6 +59,7 @@ export type ContentBody = {
   expiresAt?: string;
   seoTitle?: string;
   seoDescription?: string;
+  seoImage?: number;
 };
 export function safeURL(value: unknown) {
   try {
@@ -103,6 +104,8 @@ export function validateContent(value: unknown): asserts value is ContentBody {
     throw Error("网址标识只允许小写英文、数字和连字符");
   if (!d.title?.trim() || d.title.length > 200 || (d.summary?.length || 0) > 2000)
     throw Error("请填写有效标题与摘要");
+  if (d.seoImage !== undefined && (!Number.isSafeInteger(d.seoImage) || d.seoImage < 1))
+    throw Error("请选择有效分享图片");
   if (
     d.kind === "page" &&
     !["home", "about", "contact", "partners", "privacy", "terms"].includes(d.slug)
@@ -205,6 +208,7 @@ export function publicBody(d: ContentBody): ContentBody {
     author: d.author || "",
     seoTitle: (d.seoTitle || "").slice(0, 200),
     seoDescription: (d.seoDescription || "").slice(0, 500),
+    ...(d.seoImage ? { seoImage: d.seoImage } : {}),
     expiresAt: d.expiresAt || undefined,
   };
 }

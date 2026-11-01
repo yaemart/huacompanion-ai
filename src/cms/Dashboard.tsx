@@ -31,6 +31,7 @@ export function Dashboard({ user }: { user?: Staff }) {
       )}
       {isOperator(user) && (
         <p>
+          <a href="/operations-overview">经营概览与导出</a> ·{" "}
           <a href="/business-center">方案报价与履约</a> · <a href="/workflow-center">通知与待办</a>{" "}
           · <a href="/admin/collections/inquiries">客户咨询</a> ·{" "}
           <a href="/admin/collections/providers">机构与服务商合作档案</a>

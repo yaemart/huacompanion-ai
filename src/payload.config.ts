@@ -6,6 +6,7 @@ import { voiceCollections } from "./cms/support/voice";
 import { callCollections } from "./cms/support/callCollections";
 import { operationsCollections } from "./cms/support/operations";
 import { supportSettings } from "./cms/support/settings";
+import { SEOSettings } from "./cms/seo";
 import { supportCollections } from "./cms/support/collections";
 import "dotenv/config";
 import { buildConfig } from "payload";
@@ -39,7 +40,7 @@ export default buildConfig({
     push: process.env.APP_ENV === "local",
     migrationDir: path.resolve("src/migrations"),
   }),
-  globals: [supportSettings, workflowSettings, customerSettings],
+  globals: [supportSettings, workflowSettings, customerSettings, SEOSettings],
   collections: [
     ...collections,
     ...contentCollections,

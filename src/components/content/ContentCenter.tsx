@@ -1,5 +1,6 @@
 "use client";
 import "./content-center.css";
+import type { ContentMedia } from "../../../payload-types";
 import { catalogLanguages } from "@/lib/catalog-options";
 import { contentSections, sectionFor, filterContent } from "@/lib/content-sections";
 import { catalogCities } from "@/lib/catalog-options";
@@ -884,6 +885,22 @@ export function ContentCenter({ initialKind = "" }: { initialKind?: string }) {
                     maxLength={500}
                     onChange={(e) => field("seoDescription", e.target.value)}
                   />
+                </label>
+                <label>
+                  分享图片（可选，保存草稿后仍须审核发布）
+                  <select
+                    value={body.seoImage || ""}
+                    onChange={(event) =>
+                      field("seoImage", event.target.value ? Number(event.target.value) : undefined)
+                    }
+                  >
+                    <option value="">不指定分享图</option>
+                    {data.media.map((media: ContentMedia) => (
+                      <option key={media.id} value={media.id}>
+                        {media.alt || media.filename}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   信息适用截止日（可选，不会自动下架）

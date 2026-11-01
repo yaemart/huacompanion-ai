@@ -70,6 +70,8 @@ try {
       "customer_inquiry_links",
       "content_quality",
       "content_quality_events",
+      "seo_settings",
+      "seo_settings_pages",
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);

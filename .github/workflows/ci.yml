@@ -91,3 +91,4 @@ jobs:
           npm run test:quality
           npm run test:customer
           npm run test:support
+          npm run test:reporting

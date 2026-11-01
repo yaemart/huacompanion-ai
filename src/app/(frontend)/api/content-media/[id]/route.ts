@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getPayload } from "payload";
 import config from "@/payload.config";
+import { isStaticSEOImage } from "@/server/seo";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,7 +27,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
     if (!allowed) {
       const docs = (await Promise.all(locales.map((locale) => listPublished(p, locale)))).flat();
-      allowed = docs.some((d) => d.blocks.some((b) => b.type === "image" && b.mediaId === id));
+      allowed = docs.some(
+        (d) => d.seoImage === id || d.blocks.some((b) => b.type === "image" && b.mediaId === id),
+      );
+      if (!allowed) allowed = await isStaticSEOImage(p, id);
     }
     if (!allowed) return new Response(null, { status: 404 });
     const media = await p.findByID({ collection: "content-media", id });

@@ -1,5 +1,34 @@
 # 实施记录
 
+## 2026-11-01 收敛与试运行准备：任务 2
+
+已增加中文经营概览 `/operations-overview`，从中文后台导航进入；周（北京时间周一）、服务类别、状态、来源和服务商申请状态均按当前员工数据范围统计。多类别咨询在各类别分别计一次；总数和漏斗按咨询去重。漏斗入口为筛选创建批次的全部咨询，已报价包括报价发出历史／quoted 或 won，已成交包括 won 或经客户确认的历史报价。没有改动原咨询状态和报价业务规则。
+
+首次响应取咨询创建后最早的报价发出操作记录 sentAt（不表示邮件实际送达），或权限内关联客服会话中有员工身份的人工公开消息；不使用内部备注、AI 消息、普通状态更新时间推断响应。缺失历史不补零，界面显示中位数与有记录样本数／咨询总数。该指标覆盖系统可核实记录，不代表线下或未接入邮件的完整响应历史。
+
+CSV 支持北京时间日期（首尾日均包含）、状态、类别。查询重新加载员工并沿用 Payload 原 scope，完整分页，十万条以上明确拒绝而不静默截断；统计只返回汇总。默认白名单不含内部备注、成本或原始 details/家政 JSON；仅管理员可显式包含内部备注和咨询关联报价版本／币种／最小货币单位的内部成本，服务商申请没有虚构成本字段。UTF-8 BOM、CRLF、引号/换行转义、公式注入转义均已测试。导出先写审计（员工、createdAt、筛选、字段、实际条数），审计失败不返回 CSV。
+
+内容详情 SEO 标题、摘要、分享图仍通过内容工作台保存草稿并审核发布。新管理员设置 `/admin/globals/seo-settings` 覆盖 15 个固定页面／目录／表单，留空沿用默认内容；界面明确保存生效和所选分享图将公开。此设置仅管理员可读写，没有放宽内容编辑员的原权限。分享图沿用可见草稿的素材范围，草稿改图不影响公开快照；下架和移除固定页选择后立即撤销无其他公开引用的图片访问。
+
+新增 `robots.txt`、canonical、分享元数据，sitemap 用真实内容身份和翻译网址生成 hreflang，不为不存在的译文伪造链接。`SEARCH_ENGINE_INDEXING` 默认 false；只有 `APP_ENV=production` 且显式为 true 才允许收录，私有后台／账号／客服页面即使正式环境也保留 noindex。新迁移 `20261101_022501_page_seo` 只增加 SEO 设置表、子表和两项枚举；已在一次性空库实际应用验证。
+
+实际验证：
+
+- 新 reporting 单元 4 项、SEO 单元 4 项；全套单元 132 项通过。
+- `test:reporting` 真实 PostgreSQL：跨负责人／团队、停用及角色撤销、禁止非管理员敏感导出、默认字段不泄露、公式、日期边界、漏斗／响应口径和审计失败均通过；原 permissions:business 8 项及报价套件通过。
+- `test:reporting:http`：匿名拒绝、真实 JWT、停用立即生效、Origin、CSV 实际 BOM 字节、默认字段和导出审计通过。
+- `test:seo` 六项 PostgreSQL/HTTP 检查通过：管理员设置权限、素材板块权限、实际渲染、草稿隔离、静态页覆盖、noindex/hreflang 和图片访问撤销。夹具按原有正文／来源／管理员自审要求补齐，没有放宽发布规则。
+- 最终串行 12 个回归入口全部退出 0：permissions:business、permissions:content、content、reporting、catalog、exhibitions-http、institutions-http、support-http、backend-http、catalog-http、content-http、locales-http。记录在忽略目录 `.local/task2-verification-results.json`。
+- 两个独立复核分别覆盖统计导出和 SEO／权限／迁移，没有剩余发现。CI 数据库套件加入 reporting；SEO HTTP 用例需要正在运行的网站，保留为本地/部署验收入口。
+
+已定位任务 1 的开发环境临时错误：实际捕获 TypeError `Symbol(drizzle:Columns)`，Payload HMR 重载期间数据库映射被重建；近期会话数为 0，排除了限流。开发服务临时以 `DISABLE_PAYLOAD_HMR=true` 启动后，完全相同的 12 入口顺序全部通过，未加测试重试或修改断言。临时诊断代码已移除。任务 3 将固化稳定开发启动及 CMS 配置变更后重启说明；生产模式本身不运行该 HMR。
+
+任务 1 推送提交 f5ea0e3 的 GitHub Actions 已确认成功：push/PR 两次运行 41264600055、41264645631。该结论仅针对这个 head，不作为后续任务 CI 结果。
+
+最终 `npm run check` 通过（lint 0 error、474 个遗留 warning，Prettier 与 290 个源码／脚本／测试文件行长检查通过，typecheck 通过，132/132 单元测试通过）；`npm run build` 生产构建通过。统计 HTTP 另验证实际浏览器同源 Cookie 可打开中文概览、页面始终 noindex；保留 Payload 的 Sec-Fetch-Site／Origin CSRF 校验。
+
+本任务不需要购买或提供账户。Task 3–5 和真实托管环境验收继续执行。
+
 ## 2026-11-01 收敛与试运行准备：任务 1
 
 本阶段分支 `codex/trial-readiness` 从已验证的协作配置 c3607ae 建立，保留尚未合并的 PR #1 修正，不自动合并 main。任务说明见 `superpowers/specs/2026-11-01-trial-readiness-design.md`。

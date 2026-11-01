@@ -10,7 +10,7 @@ export function ContentNav({ user }: { user?: Staff }) {
     return isOperator(user) ? (
       <span>
         <a href="/support-center">客服工作台</a> · <a href="/business-center">报价与履约</a> ·{" "}
-        <a href="/workflow-center">通知待办</a>
+        <a href="/workflow-center">通知待办</a> · <a href="/operations-overview">经营概览与导出</a>
       </span>
     ) : null;
   const links = [
@@ -31,7 +31,8 @@ export function ContentNav({ user }: { user?: Staff }) {
       {isOperator(user) && (
         <span>
           <a href="/support-center">客服工作台</a> · <a href="/business-center">报价与履约</a> ·{" "}
-          <a href="/workflow-center">通知待办</a>
+          <a href="/workflow-center">通知待办</a> ·{" "}
+          <a href="/operations-overview">经营概览与导出</a>
         </span>
       )}
       <p>

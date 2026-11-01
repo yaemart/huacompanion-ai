@@ -19,6 +19,8 @@ import config from "@/payload.config";
 import { listPublished, contentTransaction } from "@/server/content/service";
 import { PublishedSite } from "@/components/content/PublishedSite";
 import { cache } from "react";
+import { contentMetadata } from "@/lib/seo";
+import { pageSEO } from "@/server/seo";
 const content = cache(async (locale: string) =>
   listPublished(await getPayload({ config }), locale),
 );
@@ -87,8 +89,14 @@ export async function generateMetadata({ params }: Props) {
       : undefined) ||
     docs.find(
       (d) =>
-        d.kind === (slug[0] === "services" ? "service" : slug[0] === "guides" ? "guide" : "page") &&
-        d.slug === (slug[1] || slug[0] || "home"),
+        d.kind ===
+          (slug[0] === "services"
+            ? "service"
+            : slug[0] === "guides"
+              ? "guide"
+              : slug[0] === "partners" && slug[1]
+                ? "partner"
+                : "page") && d.slug === (slug[1] || slug[0] || "home"),
     );
   const titles: Record<string, string> = {
     institutions: "Medical & wellness institutions",
@@ -115,13 +123,15 @@ export async function generateMetadata({ params }: Props) {
           : "Hua service projects"
         : titles[slug[0]] || "Your local companion in China.",
     );
-  return {
-    ...(catalogKind || slug[0] === "exhibitions" || slug[0] === "institutions" || slug[0] === "life"
-      ? { alternates: { canonical: `/${l}/${slug.join("/")}` } }
-      : {}),
-    description: detail?.seoDescription || detail?.summary,
-    title: `${title} | Hua Companion · 华伴`,
-  };
+  const override = await pageSEO(await getPayload({ config }), l, slug.join("/") || "home");
+  const origin = new URL(process.env.APP_URL || "http://127.0.0.1:3000").origin;
+  return contentMetadata(origin, `/${l}${slug.length ? "/" + slug.join("/") : ""}`, {
+    title,
+    summary: detail?.summary,
+    seoTitle: override?.seoTitle || detail?.seoTitle,
+    seoDescription: override?.seoDescription || detail?.seoDescription,
+    seoImage: override?.seoImage || detail?.seoImage,
+  });
 }
 export default async function Page({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;

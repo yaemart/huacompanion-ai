@@ -23,7 +23,9 @@ export async function mediaScope(
       page,
     });
     for (const draft of drafts.docs) {
-      for (const block of (draft.body as unknown as ContentBody).blocks || [])
+      const body = draft.body as unknown as ContentBody;
+      if (body.seoImage) ids.add(body.seoImage);
+      for (const block of body.blocks || [])
         if (block.type === "image" && block.mediaId) ids.add(block.mediaId);
     }
     if (!drafts.hasNextPage) break;

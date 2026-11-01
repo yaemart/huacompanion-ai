@@ -163,11 +163,13 @@ export interface Config {
     'support-settings': SupportSetting;
     'workflow-settings': WorkflowSetting;
     'customer-settings': CustomerSetting;
+    'seo-settings': SeoSetting;
   };
   globalsSelect: {
     'support-settings': SupportSettingsSelect<false> | SupportSettingsSelect<true>;
     'workflow-settings': WorkflowSettingsSelect<false> | WorkflowSettingsSelect<true>;
     'customer-settings': CustomerSettingsSelect<false> | CustomerSettingsSelect<true>;
+    'seo-settings': SeoSettingsSelect<false> | SeoSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -2320,6 +2322,45 @@ export interface CustomerSetting {
   createdAt?: string | null;
 }
 /**
+ * 管理员维护目录、表单及固定页面的 SEO。保存后生效；留空沿用已发布内容及默认值。内容详情页的 SEO 请在内容工作台编辑并审核发布。试运行仍禁止收录。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seo-settings".
+ */
+export interface SeoSetting {
+  id: number;
+  pages?:
+    | {
+        path:
+          | 'home'
+          | 'services'
+          | 'services/projects'
+          | 'providers'
+          | 'guides'
+          | 'exhibitions'
+          | 'institutions'
+          | 'life'
+          | 'partners'
+          | 'about'
+          | 'contact'
+          | 'request'
+          | 'apply'
+          | 'privacy'
+          | 'terms';
+        locale: 'zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar';
+        seoTitle?: string | null;
+        seoDescription?: string | null;
+        /**
+         * 此处明确选择的图片会作为公开分享图片提供访问。
+         */
+        seoImage?: (number | null) | ContentMedia;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "support-settings_select".
  */
@@ -2362,6 +2403,25 @@ export interface WorkflowSettingsSelect<T extends boolean = true> {
  */
 export interface CustomerSettingsSelect<T extends boolean = true> {
   enabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seo-settings_select".
+ */
+export interface SeoSettingsSelect<T extends boolean = true> {
+  pages?:
+    | T
+    | {
+        path?: T;
+        locale?: T;
+        seoTitle?: T;
+        seoDescription?: T;
+        seoImage?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

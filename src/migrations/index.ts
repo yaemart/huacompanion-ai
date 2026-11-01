@@ -18,6 +18,7 @@ import * as migration_20261030_233618_support_multimodal from "./20261030_233618
 import * as migration_20261031_033746_business_platform from "./20261031_033746_business_platform";
 import * as migration_20261031_034016_customer_notifications from "./20261031_034016_customer_notifications";
 import * as migration_20261031_054202_business_ai from "./20261031_054202_business_ai";
+import * as migration_20261101_022501_page_seo from "./20261101_022501_page_seo";
 
 export const migrations = [
   {
@@ -119,5 +120,10 @@ export const migrations = [
     up: migration_20261031_054202_business_ai.up,
     down: migration_20261031_054202_business_ai.down,
     name: "20261031_054202_business_ai",
+  },
+  {
+    up: migration_20261101_022501_page_seo.up,
+    down: migration_20261101_022501_page_seo.down,
+    name: "20261101_022501_page_seo",
   },
 ];

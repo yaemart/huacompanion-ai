@@ -1,5 +1,6 @@
 import { isLocale } from "./lib/locales";
 import { NextResponse, type NextRequest } from "next/server";
+import { indexingAllowed, privateSearchPath } from "./lib/seo";
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname.replace(/\/+$/, "");
   if (pathname === "/api/staff/first-register")
@@ -12,6 +13,9 @@ export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   const locale = request.nextUrl.pathname.split("/")[1];
   headers.set("x-hua-locale", isLocale(locale) ? locale : "zh");
-  return NextResponse.next({ request: { headers } });
+  const response = NextResponse.next({ request: { headers } });
+  if (!indexingAllowed() || privateSearchPath(pathname))
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
 }
 export const config = { matcher: ["/((?!_next|favicon.ico|shanghai.svg).*)"] };

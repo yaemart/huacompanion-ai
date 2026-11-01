@@ -187,15 +187,19 @@ export async function mutateContent(p: Payload, user: ContentUser, input: any) {
         if (current.everPublished && old.slug !== body.slug)
           throw new ContentError("已发布的网址不能修改");
       }
-      for (const block of body.blocks)
-        if (block.type === "image")
-          await p.findByID({
-            collection: "content-media",
-            id: block.mediaId!,
-            overrideAccess: false,
-            user: user as any,
-            req,
-          });
+      const imageBlocks: ContentBody["blocks"] = body.blocks;
+      const imageIDs = new Set<number>(
+        imageBlocks.filter((block) => block.type === "image").map((block) => block.mediaId!),
+      );
+      if (body.seoImage) imageIDs.add(body.seoImage);
+      for (const mediaId of imageIDs)
+        await p.findByID({
+          collection: "content-media",
+          id: mediaId,
+          overrideAccess: false,
+          user: user as any,
+          req,
+        });
       let providerRef = current?.providerRef;
       if (
         ["provider-profile", "institution", "venue", "activity"].includes(body.kind) &&
