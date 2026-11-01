@@ -1,3 +1,4 @@
+import { publicPolicy, type PublicPolicyData } from "./immigration-policy.ts";
 import { homeTexts } from "./housekeeping.ts";
 import {
   type Lifestyle,
@@ -39,13 +40,16 @@ export type ContentBody = {
     | "exhibition"
     | "institution"
     | "venue"
-    | "activity";
+    | "activity"
+    | "immigration-policy";
   locale: Locale;
   slug: string;
   title: string;
   summary?: string;
   blocks: Block[];
   sources: Source[];
+  policyRef?: { id: number; revision: number };
+  policy?: PublicPolicyData;
   catalog?: Catalog;
   exhibition?: Exhibition;
   institution?: Institution;
@@ -96,6 +100,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
       "institution",
       "venue",
       "activity",
+      "immigration-policy",
     ].includes(d.kind) ||
     !isLocale(d.locale)
   )
@@ -177,6 +182,7 @@ export function validateCandidate(value: unknown, allowed: string[]): asserts va
 }
 export function publicBody(d: ContentBody): ContentBody {
   return {
+    ...(d.kind === "immigration-policy" && d.policy ? { policy: publicPolicy(d.policy) } : {}),
     ...(isLife(d.kind) && d.lifestyle ? { lifestyle: publicLifestyle(d.lifestyle) } : {}),
     ...(d.kind === "institution" && d.institution
       ? { institution: publicInstitution(d.institution) }

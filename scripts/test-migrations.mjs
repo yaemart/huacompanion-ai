@@ -78,6 +78,11 @@ try {
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);
+    const policyGrant = await pool.query(
+      "SELECT enumlabel FROM pg_enum e JOIN pg_type t ON e.enumtypid=t.oid " +
+        "WHERE t.typname='enum_staff_content_kinds' AND enumlabel='immigration-policy'",
+    );
+    if (policyGrant.rowCount !== 1) throw Error("Missing policy content board enum");
     const textChatDefault = await pool.query(
       "SELECT column_default FROM information_schema.columns " +
         "WHERE table_schema='public' AND table_name='support_settings' AND column_name='text_chat'",

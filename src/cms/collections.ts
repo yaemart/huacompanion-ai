@@ -298,6 +298,7 @@ export const Staff: CollectionConfig = {
           institution: "医疗机构",
           venue: "体验场所与餐馆",
           activity: "体验活动",
+          "immigration-policy": "入境政策",
         }[value],
       })),
       access: fieldAdmin,

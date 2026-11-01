@@ -94,3 +94,4 @@ jobs:
           npm run test:intake
           npm run test:trial
           npm run test:policies
+          npm run test:policies:workflow

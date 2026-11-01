@@ -236,6 +236,7 @@ export interface Staff {
         | 'institution'
         | 'venue'
         | 'activity'
+        | 'immigration-policy'
       )[]
     | null;
   additionalRoles?: ('admin' | 'manager' | 'operations' | 'editor' | 'reviewer')[] | null;

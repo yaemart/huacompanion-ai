@@ -25,6 +25,7 @@ export const contentKinds = [
   "institution",
   "venue",
   "activity",
+  "immigration-policy",
 ] as const;
 export function relationID<T extends string | number>(value: T | { id: T }): T;
 export function relationID<T extends string | number>(

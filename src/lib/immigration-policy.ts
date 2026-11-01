@@ -100,7 +100,7 @@ export function validatePolicyPublication(
 }
 
 /** Explicit field allowlist; this does not publish a draft or authorize a caller. */
-export function publicPolicy(data: PolicyPublicationData): PublicPolicyData {
+export function publicPolicy(data: PublicPolicyData): PublicPolicyData {
   return {
     countryCode: data.countryCode,
     countryNameEn: data.countryNameEn,
