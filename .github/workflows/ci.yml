@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Unit tests and types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run typecheck
+
+  database:
+    name: Migrations, build and integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: hua
+          POSTGRES_PASSWORD: hua_ci_only
+          POSTGRES_DB: hua_companion
+        ports:
+          - 55438:5432
+        options: >-
+          --health-cmd "pg_isready -U hua -d hua_companion"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Disposable CI credentials, never a local/trial/production database.
+      DATABASE_URL: postgresql://hua:hua_ci_only@127.0.0.1:55438/hua_companion
+      PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
+      APP_ENV: ci
+      APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_FORM_MODE: local
+      NEXT_TELEMETRY_DISABLED: '1'
+      WORKFLOW_MAIL_ENABLED: 'false'
+      BUSINESS_AI_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Apply migrations to an empty database
+        env:
+          NODE_ENV: production
+        run: npm run payload -- migrate
+      - name: Build with automatic schema push disabled
+        run: npm run build
+      - name: Create disposable test administrator
+        env:
+          APP_ENV: local
+        run: npm run local:init
+      - name: Run database integration suites serially
+        env:
+          APP_ENV: local
+        run: |
+          npm run test:content
+          npm run test:business
+          npm run test:workflow
+          npm run test:quality
+          npm run test:customer
+          npm run test:support
