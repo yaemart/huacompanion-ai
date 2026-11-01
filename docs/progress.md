@@ -10,7 +10,9 @@
 
 实际验证：契约测试先因模块缺失失败，再5/5通过；原单元基线146项通过，新增后151/151通过；类型检查通过。更改前test:content通过；更改后8个真实本地DB套件串行均退出0：content、permissions:content、catalog、exhibitions、institutions、life、housekeeping、quality。包括编辑/审核分离、跨板块/停用拒绝、自审限制及管理员例外审计、版本与稳定URL、正式快照不被草稿改动、目录关联、内容复核和提醒幂等。quality套件出现既有pg客户端并发query弃用警告，未影响通过，不修改原并发流程来消除告警。测试期间停止本机两个worker；本轮无迁移、无新增依赖、无环境变量变更。
 
-完整npm run check通过：lint 0 error / 465既有warning，Prettier通过，315源码/脚本/测试文件无超过200字符行且无例外，typecheck通过，151/151单元通过。content HTTP通过，覆盖登录、草稿预览保护、元数据、旧正式快照、语言隔离、私有/公开图片、下架和未配置AI拒绝。本步无界面变化，桌面/手机截图不适用；前一步实际截图保留在screenshots/traffic-entry-phase0。下一步是独立PR的1.1b集合/版本/关闭开关与安全迁移，当前工具尚不可使用。独立复核及最终交接结果待补记。
+完整npm run check通过：lint 0 error / 465既有warning，Prettier通过，315源码/脚本/测试文件无超过200字符行且无例外，typecheck通过，151/151单元通过。content HTTP通过，覆盖登录、草稿预览保护、元数据、旧正式快照、语言隔离、私有/公开图片、下架和未配置AI拒绝。trial HTTP也通过，确认英文入口、两种公开语言及高级功能/API仍关闭。独立只读复核无Critical/Important/Minor，另行运行政策5项测试通过；后续集合权限/迁移/UI及现实政策事实不在本步可验证范围，须在后续步骤补齐和人工核实，不得据此公开政策。两个本机worker已恢复，workflow记录reminders/processed均为0，网站3000继续运行。
+
+草稿[PR #5](https://github.com/yaemart/huacompanion-ai/pull/5)以PR #4分支为基线，本轮业务源码差异小于400行，未自动合并。本步无界面变化，桌面/手机截图不适用；前一步实际截图保留在screenshots/traffic-entry-phase0。下一步是独立PR的1.1b集合/版本/关闭开关与安全迁移，当前工具尚不可使用。推送后核对远程head，CI按最新提交实际状态单独报告。
 
 ## 2026-11-01 流量入口：阶段 0 核对、0.2 补齐与停止点 A
 

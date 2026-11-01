@@ -5,7 +5,7 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支 `codex/visa-policy-contracts`，继续1.1a本地开发。依赖顺序为基础PR #2 → 阶段0.1 PR #3 → [阶段0.2 PR #4](https://github.com/yaemart/huacompanion-ai/pull/4) → 本轮1.1a；先审核前一步，再改指main并重验，不自动合并。
+- 当前分支 `codex/visa-policy-contracts`，1.1a本地验证完成，草稿[PR #5](https://github.com/yaemart/huacompanion-ai/pull/5)。依赖顺序为基础PR #2 → 阶段0.1 PR #3 → [阶段0.2 PR #4](https://github.com/yaemart/huacompanion-ai/pull/4) → 本轮1.1a；先审核前一步，再改指main并重验，不自动合并。
 - 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付；本轮1.1a仅政策数据契约/纯函数和内容服务类型整理，见[映射约定](immigration-policies.md)。集合、迁移、录入与公开工具留到后续独立PR。
 - **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 
@@ -31,7 +31,7 @@
 
 - Node24.22.1、PostgreSQL15；本机系统默认Node版本不等于项目版本，先按 `.nvmrc` 配置并确认 `node -v`。本轮验证明确使用Node24。开发网站3000，专用虚构测试库55438。
 - `npm run dev` 保留Next Fast Refresh、关闭Payload HMR；CMS配置／集合／字段／权限配置修改后重启。构建与check串行，避免生成Next类型竞争。
-- 两个本机worker在DB回归期间停止，全部回归结束后已恢复（support／workflow）；开发服务3000运行中，高级／邮件／模型开关仍关闭。进程与数据不通过Git同步，其他电脑需独立启动，不能同时指向一个试运行库。
+- 两个本机worker在DB回归期间停止，1.1a回归结束后已恢复（support／workflow）；开发服务3000运行中，高级／邮件／模型开关仍关闭。进程与数据不通过Git同步，其他电脑需独立启动，不能同时指向一个试运行库。本轮151项单元、8个DB套件及content/trial HTTP通过，独立复核无重要问题；无新迁移/环境变量，下步1.1b。
 - 新迁移：`20261101_022501_page_seo`、`20261101_025904_intake_client_limits`、`20261101_030726_trial_feature_defaults`。其他电脑和trial先备份、执行迁移，再启动，不把trial改成local绕过schema迁移。
 - `.env.example` 新公开配置为 `SEARCH_ENGINE_INDEXING=false`、`SITE_LOCALES=en,zh`、`TRUSTED_PROXY`／`TRUSTED_PROXY_SECRET`；后两项未完成网关时留空。`INTAKE_ENABLED=false` 保持到隐私、HTTPS和验收落实。
 - Docker使用 `.env.compose`、3001／55439和独立命名卷，命令见 `../docker/README.md`；配套恢复只用随机新目标，不覆盖55438或现有图片目录。
