@@ -51,7 +51,7 @@ for (const path of ["/en", "/zh", "/sitemap.xml", "/llms.txt"]) {
 if (enabled) {
   const p = await getPayload({ config });
   try {
-    await policyFixture(p, async ({ key, body, editor, reviewer }) => {
+    await policyFixture(p, async ({ key, body, editor, reviewer, admin }) => {
       const visible = `Visible-${key}`;
       const secret = `Private-${key}`;
       const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(
@@ -131,6 +131,76 @@ if (enabled) {
       console.log(
         "PASS real SSR lifecycle: drafts hidden, sources/dates/hours/conditions, language isolation, unchanged snapshot and unpublish",
       );
+      const guideKey = process.env.VISA_GUIDE_CONTENT_KEY;
+      if (guideKey) {
+        assert.match(guideKey, /^policy-browser-fixture-[a-z-]+$/);
+        assert.equal(
+          (
+            await p.count({
+              collection: "content-drafts",
+              where: { contentKey: { equals: guideKey } },
+            })
+          ).totalDocs,
+          0,
+          "Guide fixture must not overwrite existing content",
+        );
+        let guide: Awaited<ReturnType<typeof mutateContent>> | undefined;
+        const title = `Fictional visa guide ${key}`;
+        const slug = `${key}-visa-guide`;
+        try {
+          guide = await mutateContent(p, admin, {
+            action: "save",
+            body: {
+              ...body,
+              kind: "guide",
+              contentKey: guideKey,
+              slug,
+              title,
+              sources: [
+                { id: "fictional", title: "Fixture source", url: "https://example.invalid/visa" },
+              ],
+            },
+          });
+          assert.ok(!(await read()).includes(title));
+          guide = await mutateContent(p, admin, {
+            action: "submit",
+            id: guide.id,
+            revision: guide.revision,
+          });
+          assert.ok(!(await read()).includes(title));
+          guide = await mutateContent(p, admin, {
+            action: "publish",
+            id: guide.id,
+            revision: guide.revision,
+            overrideReason: "Fictional browser guide test",
+          });
+          const withGuide = await read();
+          assert.ok(withGuide.includes(`href="/en/guides/${slug}"`));
+          assert.ok(withGuide.includes(title));
+          assert.ok(!(await read("zh")).includes(title));
+          await mutateContent(p, admin, {
+            action: "unpublish",
+            id: guide.id,
+            revision: guide.revision,
+            overrideReason: "Fictional browser guide test cleanup",
+          });
+          assert.ok(!(await read()).includes(title));
+          console.log(
+            "PASS configured visa guide: draft/review hidden, published reference only, language isolation and unpublish",
+          );
+        } finally {
+          if (guide) {
+            for (const collection of [
+              "content-published",
+              "content-events",
+              "content-quality",
+              "content-quality-events",
+            ] as const)
+              await p.delete({ collection, where: { draftId: { equals: guide.id } } });
+            await p.delete({ collection: "content-drafts", id: guide.id });
+          }
+        }
+      }
     });
   } finally {
     await p.destroy();
