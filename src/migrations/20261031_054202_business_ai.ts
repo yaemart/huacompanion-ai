@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -45,7 +45,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_business_ai_tasks_fk" FOREIGN KEY ("business_ai_tasks_id") REFERENCES "public"."business_ai_tasks"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "service_quotes_ai_task_idx" ON "service_quotes" USING btree ("ai_task_id");
   CREATE INDEX "service_quotes_reviewed_by_idx" ON "service_quotes" USING btree ("reviewed_by_id");
-  CREATE INDEX "payload_locked_documents_rels_business_ai_tasks_id_idx" ON "payload_locked_documents_rels" USING btree ("business_ai_tasks_id");`)
+  CREATE INDEX "payload_locked_documents_rels_business_ai_tasks_id_idx" ON "payload_locked_documents_rels" USING btree ("business_ai_tasks_id");`);
 }
 
-export async function down(): Promise<void> { throw new Error('Restore a verified matching database backup instead of deleting business AI audit data.'); }
+export async function down(): Promise<void> {
+  throw new Error(
+    "Restore a verified matching database backup instead of deleting business AI audit data.",
+  );
+}

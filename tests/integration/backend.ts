@@ -25,14 +25,16 @@ const base = {
     consent: true,
   },
 };
-const admin = (await payload.find({
-  collection: "staff",
-  where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
-  sort: "createdAt",
-  limit: 1,
-})).docs[0];
+const admin = (
+  await payload.find({
+    collection: "staff",
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+    sort: "createdAt",
+    limit: 1,
+  })
+).docs[0];
 assert.ok(admin);
-const fixtures: typeof admin[] = [];
+const fixtures: (typeof admin)[] = [];
 let passed = 0;
 const check = (name: string) => {
   passed++;
@@ -53,10 +55,7 @@ try {
   );
   check("staff hook blocks unauthorized bootstrap even with access override");
   const key = randomUUID();
-  const receipts = await Promise.all([
-    saveIntake(base, key),
-    saveIntake(base, key),
-  ]);
+  const receipts = await Promise.all([saveIntake(base, key), saveIntake(base, key)]);
   assert.equal(receipts[0].reference, receipts[1].reference);
   check("concurrent retries produce one reference");
   const docs = await payload.find({
@@ -79,8 +78,7 @@ try {
   );
   check("inquiry and one pending notification persist");
   await assert.rejects(
-    () =>
-      saveIntake({ ...base, values: { ...base.values, name: "Changed" } }, key),
+    () => saveIntake({ ...base, values: { ...base.values, name: "Changed" } }, key),
     IntakeConflict,
   );
   check("idempotency key cannot be reused for changed input");
@@ -225,10 +223,7 @@ try {
     collection: "audit-events",
     overrideAccess: true,
     where: {
-      and: [
-        { entity: { equals: "inquiries" } },
-        { recordId: { equals: String(inquiry.id) } },
-      ],
+      and: [{ entity: { equals: "inquiries" } }, { recordId: { equals: String(inquiry.id) } }],
     },
   });
   assert.ok(logs.totalDocs >= 2);
@@ -241,7 +236,12 @@ try {
   process.exitCode = 1;
 } finally {
   for (const user of fixtures)
-    await payload.update({ collection: "staff", id: user.id, user: admin, data: { active: false } });
+    await payload.update({
+      collection: "staff",
+      id: user.id,
+      user: admin,
+      data: { active: false },
+    });
   await payload.destroy();
   process.exit(process.exitCode || 0);
 }

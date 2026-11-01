@@ -8,11 +8,13 @@
 **Spec:** docs/superpowers/specs/2026-10-31-business-platform.md
 
 ## Global Constraints
+
 - Retain all prior uncommitted support work; no real external sends/payments/deployment.
 - Shared registration/types/migrations only root; DB integration tests serial.
 - Seven client locales, staff Chinese, default deny, reuse existing access.
 
 ## Review Focus
+
 - Stale quote accepted concurrently with replacement: reject or one serialized result.
 - Revoked staff/client associations immediately remove read/write access.
 - Email timeout after provider success: dedupe delivery, no false sent.
@@ -20,35 +22,44 @@
 - Customer email authentication must not merge unverified historical email matches.
 
 ### 1 Business flow (root)
+
 Files: src/cms/business/collections.ts, src/server/business/service.ts, src/lib/business.ts, src/components/business/BusinessDesk.tsx, api/business routes, tests/business.test.ts, tests/integration/business.ts.
 Interfaces: businessCollections; businessRead(p,user,id?), businessAction(p,user,input); customerBusinessRead(p,customer), confirmQuote(p,customer,input).
+
 - [x] RED tests for transitions, currency integer totals, public field whitelist and stale versions.
 - [x] Implement private service cases/quote snapshots/audit, scoped workflow and AI draft boundaries (no fabricated adapter output).
 - [x] Implement desk and customer confirmation contract; connect inquiry links.
 - [x] GREEN unit/real DB tests.
 
 ### 2 Notifications/tasks (scoped agent)
+
 Files: cms/workflow, server/workflow, components/workflow, api/workflow, scripts/workflow-worker.ts, tests workflow.
 Interfaces: workflowCollections, workflowSettings; enqueueWorkflowEvent(p,event,req?), runWorkflowJobs(p); safe public methods documented by implementer.
+
 - [x] Tests for scope, dedupe, retries, delay reasons and unavailable email.
 - [x] Implement tasks/alerts, bounded real HTTPS mail adapter, inbox/worklists, event integration contract.
 - [x] Test and document external configuration.
 
 ### 3 Content quality (scoped agent)
+
 Files: cms/quality, server/quality, components/quality, api/quality, tests quality.
 Interfaces: qualityCollections; contentQualityHook on content-drafts; runQualityReview(p).
+
 - [x] Tests for content scope, revision/translation staleness and no automatic publication.
 - [x] Implement per-content owner/check dates/source quality, overview/review tasks and frontend-safe metadata helpers.
 - [x] Test and document.
 
 ### 4 Customer identity (scoped agent)
+
 Files: cms/customer, server/customer, components/customer, api/customer, localized account page, tests customer.
 Interfaces: customerCollections/customerSettings; customerSession(p,headers), email delivery via mail adapter; staff explicit record linking.
+
 - [x] Tests for email verification token expiry/replay, sessions, enumeration and association isolation.
 - [x] Implement verified identities + safe portal shell integrating root business read/confirm and customer linked records.
 - [x] Test and document.
 
 ### 5 Integration, deployment readiness (root)
+
 - [x] Register collections/globals, menus and routes, event hooks, seven-language links.
 - [x] Backup first; generate types/additive migration, run isolated migration and serial integration.
 - [x] Run regression/tests/build/HTTP/browser review; fresh independent code review and fixes.

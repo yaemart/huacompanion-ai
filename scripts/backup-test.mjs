@@ -65,13 +65,34 @@ try {
     "content_events",
     "content_media",
     "content_agent_tasks",
-    "service_cases", "service_quotes", "service_events", "business_ai_tasks",
-    "workflow_events", "workflow_notifications", "workflow_tasks", "workflow_mail_jobs", "workflow_customer_notifications", "workflow_settings",
-    "customer_accounts", "customer_challenges", "customer_sessions", "customer_inquiry_links", "customer_settings",
-    "content_quality", "content_quality_events",
-    "support_conversations", "support_messages", "support_runs", "support_settings",
-    "support_voice_audio", "support_voice_jobs", "support_calls", "support_call_presence",
-    "support_feedback", "support_reviews", "support_retention_audits",
+    "service_cases",
+    "service_quotes",
+    "service_events",
+    "business_ai_tasks",
+    "workflow_events",
+    "workflow_notifications",
+    "workflow_tasks",
+    "workflow_mail_jobs",
+    "workflow_customer_notifications",
+    "workflow_settings",
+    "customer_accounts",
+    "customer_challenges",
+    "customer_sessions",
+    "customer_inquiry_links",
+    "customer_settings",
+    "content_quality",
+    "content_quality_events",
+    "support_conversations",
+    "support_messages",
+    "support_runs",
+    "support_settings",
+    "support_voice_audio",
+    "support_voice_jobs",
+    "support_calls",
+    "support_call_presence",
+    "support_feedback",
+    "support_reviews",
+    "support_retention_audits",
   ]) {
     const query = `SELECT count(*)::int AS count FROM "${table}"`;
     const before = (await source.query(query)).rows[0].count;
@@ -88,23 +109,17 @@ try {
   const mediaBackup = backup + ".media";
   const restoreMedia = ".local/" + name + "-media";
   mkdirSync(mediaBackup, { recursive: true, mode: 0o700 });
-  const media = (await restored.query("SELECT filename FROM content_media"))
-    .rows;
+  const media = (await restored.query("SELECT filename FROM content_media")).rows;
   try {
     for (const { filename } of media) {
-      if (!/^[a-f0-9-]+\.webp$/.test(filename))
-        throw Error("Invalid media filename");
+      if (!/^[a-f0-9-]+\.webp$/.test(filename)) throw Error("Invalid media filename");
       cpSync(".local/content-media/" + filename, mediaBackup + "/" + filename);
       chmodSync(mediaBackup + "/" + filename, 0o600);
     }
     cpSync(mediaBackup, restoreMedia, { recursive: true });
     for (const { filename } of media) {
-      const digest = (p) =>
-        createHash("sha256").update(readFileSync(p)).digest("hex");
-      if (
-        digest(".local/content-media/" + filename) !==
-        digest(restoreMedia + "/" + filename)
-      )
+      const digest = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
+      if (digest(".local/content-media/" + filename) !== digest(restoreMedia + "/" + filename))
         throw Error("Restored media mismatch");
     }
     results.push({

@@ -20,7 +20,8 @@ const p = await getPayload({ config });
 const admin = (
   await p.find({
     collection: "staff",
-    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+    sort: "createdAt",
     limit: 1,
   })
 ).docs[0];
@@ -104,10 +105,7 @@ try {
           })),
           {
             type: "heading",
-            text:
-              locale === "zh"
-                ? "服务边界与待确认事项"
-                : "Limits and matters to confirm",
+            text: locale === "zh" ? "服务边界与待确认事项" : "Limits and matters to confirm",
           },
           {
             type: "paragraph",

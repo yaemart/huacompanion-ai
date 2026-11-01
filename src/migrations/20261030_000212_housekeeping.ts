@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -80,7 +80,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_home_fulfilment_provider_id_providers_id_fk" FOREIGN KEY ("home_fulfilment_provider_id") REFERENCES "public"."providers"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "_inquiries_v" ADD CONSTRAINT "_inquiries_v_version_home_fulfilment_provider_id_providers_id_fk" FOREIGN KEY ("version_home_fulfilment_provider_id") REFERENCES "public"."providers"("id") ON DELETE set null ON UPDATE no action;
   CREATE INDEX "inquiries_home_fulfilment_home_fulfilment_provider_idx" ON "inquiries" USING btree ("home_fulfilment_provider_id");
-  CREATE INDEX "_inquiries_v_version_home_fulfilment_version_home_fulfil_idx" ON "_inquiries_v" USING btree ("version_home_fulfilment_provider_id");`)
+  CREATE INDEX "_inquiries_v_version_home_fulfilment_version_home_fulfil_idx" ON "_inquiries_v" USING btree ("version_home_fulfilment_provider_id");`);
 }
 
-export async function down(_args:MigrateDownArgs):Promise<void>{throw new Error("Housekeeping customer and review data must be preserved; review rollback manually.");}
+export async function down(_args: MigrateDownArgs): Promise<void> {
+  throw new Error(
+    "Housekeeping customer and review data must be preserved; review rollback manually.",
+  );
+}

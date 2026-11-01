@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -76,9 +76,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     SELECT ordinality, staff.id, kind::"enum_staff_content_kinds" FROM "staff"
     CROSS JOIN unnest(ARRAY['service','guide','faq','page','partner','provider-profile','service-project','exhibition','institution']) WITH ORDINALITY AS k(kind, ordinality)
     WHERE staff.role IN ('admin','editor');
-  `)
+  `);
 }
 
 export async function down(_args: MigrateDownArgs): Promise<void> {
-  throw new Error("Permission assignments and audit history require explicit review before rollback.");
+  throw new Error(
+    "Permission assignments and audit history require explicit review before rollback.",
+  );
 }

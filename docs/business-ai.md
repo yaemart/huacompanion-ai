@@ -52,7 +52,7 @@ POST 配置的 HTTPS 地址；`Authorization: Bearer <server secret>`；禁止�
     "questions": ["需要人工补充的事实"],
     "warnings": ["需要人工核实的风险"]
   },
-  "usage": {"inputTokens": 100, "outputTokens": 200}
+  "usage": { "inputTokens": 100, "outputTokens": 200 }
 }
 ```
 

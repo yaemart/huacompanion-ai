@@ -34,21 +34,22 @@ export async function GET() {
       response: {
         schemaVersion: "Contract version",
         total: "Number matching current filters",
-        items:
-          "Only currently eligible published snapshots; no language fallback",
+        items: "Only currently eligible published snapshots; no language fallback",
       },
       fields: {
         contentKey: "Stable public identifier shared across translations",
         path: "Canonical relative page link",
-        publicationRevision: "Preserve returned inquiryPath and its providerRevision/projectRevision for housekeeping; stale versions are refused.",
+        publicationRevision:
+          "Preserve returned inquiryPath and its providerRevision/projectRevision for housekeeping; stale versions are refused.",
         publishedAt: "Timestamp of the published version",
         catalog: {
           categories: "Stable service category codes",
           cities: "Objects with stable code and localized name",
-          languages: "General language codes; housekeeping uses separate customerLanguages/workerLanguages. Language filtering for housekeeping means verified worker languages.",
-          housekeeping: "Public scope, exclusions, staffing, district coverage, pricing, tools, entry, aftercare and insurance explanation. No private contacts or addresses. Unknown language arrays mean unconfirmed, not all languages.",
-          verification:
-            "Specific checked items and dates only; not an outcome guarantee",
+          languages:
+            "General language codes; housekeeping uses separate customerLanguages/workerLanguages. Language filtering for housekeeping means verified worker languages.",
+          housekeeping:
+            "Public scope, exclusions, staffing, district coverage, pricing, tools, entry, aftercare and insurance explanation. No private contacts or addresses. Unknown language arrays mean unconfirmed, not all languages.",
+          verification: "Specific checked items and dates only; not an outcome guarantee",
           price: {
             mode: ["quote", "fixed", "from"],
             amount: "Positive number only for fixed/from; omitted for quote",
@@ -58,8 +59,7 @@ export async function GET() {
           },
           fulfillment:
             "arranged: Hua confirms provider after enquiry; specified: named required providers",
-          providerKeys:
-            "Currently visible public provider identifiers, never private IDs",
+          providerKeys: "Currently visible public provider identifiers, never private IDs",
           guideKeys:
             "Associated knowledge article contentKey values; resolve against published content in this locale",
         },

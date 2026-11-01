@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -191,9 +191,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "payload_locked_documents_rels_support_call_presence_id_idx" ON "payload_locked_documents_rels" USING btree ("support_call_presence_id");
   CREATE INDEX "payload_locked_documents_rels_support_feedback_id_idx" ON "payload_locked_documents_rels" USING btree ("support_feedback_id");
   CREATE INDEX "payload_locked_documents_rels_support_reviews_id_idx" ON "payload_locked_documents_rels" USING btree ("support_reviews_id");
-  CREATE INDEX "payload_locked_documents_rels_support_retention_audits_i_idx" ON "payload_locked_documents_rels" USING btree ("support_retention_audits_id");`)
+  CREATE INDEX "payload_locked_documents_rels_support_retention_audits_i_idx" ON "payload_locked_documents_rels" USING btree ("support_retention_audits_id");`);
 }
 
 export async function down(_args: MigrateDownArgs): Promise<void> {
-  throw new Error('Restore a verified backup to roll back support multimodal data; automatic destructive rollback is disabled.');
+  throw new Error(
+    "Restore a verified backup to roll back support multimodal data; automatic destructive rollback is disabled.",
+  );
 }

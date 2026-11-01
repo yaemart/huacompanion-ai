@@ -40,9 +40,7 @@ export function isKnownRoute(slug: string[]): boolean {
       "privacy",
       "terms",
     ].includes(slug[0]);
-  if (slug.length === 2 && slug[0] === "services")
-    return serviceSlugs.includes(slug[1]);
-  if (slug.length === 2 && slug[0] === "guides")
-    return guideSlugs.includes(slug[1]);
+  if (slug.length === 2 && slug[0] === "services") return serviceSlugs.includes(slug[1]);
+  if (slug.length === 2 && slug[0] === "guides") return guideSlugs.includes(slug[1]);
   return false;
 }

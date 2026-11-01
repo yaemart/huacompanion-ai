@@ -1,14 +1,22 @@
-import {type Housekeeping,validateHousekeeping,publicHousekeeping} from "./housekeeping.ts";
+import { type Housekeeping, validateHousekeeping, publicHousekeeping } from "./housekeeping.ts";
 import type { Locale } from "./locales.ts";
-import {
-  catalogCities,
-  catalogLanguages,
-  cityLabel,
-} from "./catalog-options.ts";
+import { catalogCities, catalogLanguages, cityLabel } from "./catalog-options.ts";
 import { serviceSlugs } from "./routes.ts";
-export type CatalogSource = { provider?: string; providerRevision?:number; project?: string; projectRevision?:number; exhibition?: string; exhibitionRevision?: number; institution?: string; institutionRevision?: number; life?: string; lifeKind?: "venue"|"activity"; lifeRevision?: number };
+export type CatalogSource = {
+  provider?: string;
+  providerRevision?: number;
+  project?: string;
+  projectRevision?: number;
+  exhibition?: string;
+  exhibitionRevision?: number;
+  institution?: string;
+  institutionRevision?: number;
+  life?: string;
+  lifeKind?: "venue" | "activity";
+  lifeRevision?: number;
+};
 export type Catalog = {
-  housekeeping?:Housekeeping;
+  housekeeping?: Housekeeping;
   categories: string[];
   cities: { code: string; name: string }[];
   languages: string[];
@@ -35,8 +43,7 @@ export type Catalog = {
     conditions?: string;
   };
 };
-export const isCatalog = (kind: string) =>
-  ["provider-profile", "service-project"].includes(kind);
+export const isCatalog = (kind: string) => ["provider-profile", "service-project"].includes(kind);
 export const emptyCatalog = (): Catalog => ({
   categories: [],
   cities: [],
@@ -71,34 +78,51 @@ export function parseCatalogSource(value: unknown): CatalogSource | undefined {
         throw Error("Invalid service selection");
       out[k] = raw[k];
     }
-  for(const k of ["provider","project"] as const){const r=raw[k+"Revision"];if(r!==undefined){if(!out[k]||!Number.isSafeInteger(r)||Number(r)<1)throw Error("Invalid source revision");out[(k+"Revision") as "providerRevision"|"projectRevision"]=Number(r);}}
+  for (const k of ["provider", "project"] as const) {
+    const r = raw[k + "Revision"];
+    if (r !== undefined) {
+      if (!out[k] || !Number.isSafeInteger(r) || Number(r) < 1)
+        throw Error("Invalid source revision");
+      out[(k + "Revision") as "providerRevision" | "projectRevision"] = Number(r);
+    }
+  }
   if (raw.exhibitionRevision !== undefined) {
-    if (!out.exhibition || !Number.isSafeInteger(raw.exhibitionRevision) || Number(raw.exhibitionRevision) < 1) throw Error("Invalid exhibition revision");
+    if (
+      !out.exhibition ||
+      !Number.isSafeInteger(raw.exhibitionRevision) ||
+      Number(raw.exhibitionRevision) < 1
+    )
+      throw Error("Invalid exhibition revision");
     out.exhibitionRevision = Number(raw.exhibitionRevision);
   }
   if (raw.institutionRevision !== undefined) {
-    if (!out.institution || !Number.isSafeInteger(raw.institutionRevision) || Number(raw.institutionRevision) < 1) throw Error("Invalid institution revision");
+    if (
+      !out.institution ||
+      !Number.isSafeInteger(raw.institutionRevision) ||
+      Number(raw.institutionRevision) < 1
+    )
+      throw Error("Invalid institution revision");
     out.institutionRevision = Number(raw.institutionRevision);
   }
   if (raw.lifeKind !== undefined) {
-    if(!out.life || !['venue','activity'].includes(String(raw.lifeKind))) throw Error('Invalid life kind');
-    out.lifeKind=raw.lifeKind as 'venue'|'activity';
+    if (!out.life || !["venue", "activity"].includes(String(raw.lifeKind)))
+      throw Error("Invalid life kind");
+    out.lifeKind = raw.lifeKind as "venue" | "activity";
   }
-  if(out.life && !out.lifeKind) throw Error('Life kind required');
-  if(raw.lifeRevision !== undefined){
-    if(!out.life || !Number.isSafeInteger(raw.lifeRevision) || Number(raw.lifeRevision)<1) throw Error('Invalid life revision');
-    out.lifeRevision=Number(raw.lifeRevision);
+  if (out.life && !out.lifeKind) throw Error("Life kind required");
+  if (raw.lifeRevision !== undefined) {
+    if (!out.life || !Number.isSafeInteger(raw.lifeRevision) || Number(raw.lifeRevision) < 1)
+      throw Error("Invalid life revision");
+    out.lifeRevision = Number(raw.lifeRevision);
   }
-  if(out.life && (out.provider||out.institution||out.exhibition)) throw Error('Incompatible source selection');
+  if (out.life && (out.provider || out.institution || out.exhibition))
+    throw Error("Incompatible source selection");
   if (out.institution && out.exhibition) throw Error("Incompatible source selection");
-  if (!out.provider && !out.project && !out.exhibition && !out.institution && !out.life) throw Error("Empty service selection");
+  if (!out.provider && !out.project && !out.exhibition && !out.institution && !out.life)
+    throw Error("Empty service selection");
   return out;
 }
-export function validateCatalog(
-  kind: string,
-  c: Catalog | undefined,
-  publishing = false,
-) {
+export function validateCatalog(kind: string, c: Catalog | undefined, publishing = false) {
   if (
     !c ||
     !Array.isArray(c.categories) ||
@@ -126,11 +150,7 @@ export function validateCatalog(
   )
     throw Error("请选择有效服务语言（中文、英文、西班牙文、法文、德文、意大利文或阿拉伯文）");
   for (const k of ["providerKeys", "guideKeys"] as const)
-    if (
-      !Array.isArray(c[k]) ||
-      c[k].length > 100 ||
-      c[k].some((x) => !keyPattern.test(x))
-    )
+    if (!Array.isArray(c[k]) || c[k].length > 100 || c[k].some((x) => !keyPattern.test(x)))
       throw Error("关联内容编号无效");
   for (const k of [
     "capabilities",
@@ -145,8 +165,7 @@ export function validateCatalog(
     "people",
     "changes",
   ] as const)
-    if (typeof c[k] !== "string" || c[k].length > 5000)
-      throw Error("服务说明格式无效");
+    if (typeof c[k] !== "string" || c[k].length > 5000) throw Error("服务说明格式无效");
   if (
     !Array.isArray(c.verification) ||
     c.verification.length > 30 ||
@@ -163,10 +182,8 @@ export function validateCatalog(
     )
   )
     throw Error("核验项目需要名称与有效核验日期");
-  if (!["arranged", "specified"].includes(c.fulfillment))
-    throw Error("请选择履约方式");
-  if (!c.price || !["quote", "fixed", "from"].includes(c.price.mode))
-    throw Error("请选择计价方式");
+  if (!["arranged", "specified"].includes(c.fulfillment)) throw Error("请选择履约方式");
+  if (!c.price || !["quote", "fixed", "from"].includes(c.price.mode)) throw Error("请选择计价方式");
   if (
     c.price.mode !== "quote" &&
     (!Number.isFinite(c.price.amount) ||
@@ -178,14 +195,16 @@ export function validateCatalog(
   )
     throw Error("价格需要正数金额、币种、单位和适用条件");
   for (const s of [c.price.unit, c.price.conditions])
-    if (s !== undefined && (typeof s !== "string" || s.length > 2000))
-      throw Error("价格说明无效");
-  if(c.categories.includes("housekeeping"))validateHousekeeping(c.housekeeping,publishing);
+    if (s !== undefined && (typeof s !== "string" || s.length > 2000)) throw Error("价格说明无效");
+  if (c.categories.includes("housekeeping")) validateHousekeeping(c.housekeeping, publishing);
   if (publishing) {
-    if (!c.categories.length || !c.cities.length || (!c.categories.includes("housekeeping")&&!c.languages.length))
+    if (
+      !c.categories.length ||
+      !c.cities.length ||
+      (!c.categories.includes("housekeeping") && !c.languages.length)
+    )
       throw Error("发布前请填写分类、城市及语言");
-    if (kind === "provider-profile" && !c.capabilities.trim())
-      throw Error("请填写服务能力");
+    if (kind === "provider-profile" && !c.capabilities.trim()) throw Error("请填写服务能力");
     if (kind === "service-project") {
       for (const k of [
         "audience",
@@ -199,8 +218,7 @@ export function validateCatalog(
         "people",
         "changes",
       ] as const)
-        if (!c[k].trim())
-          throw Error("发布前请完整填写项目范围、流程、预约和变更说明");
+        if (!c[k].trim()) throw Error("发布前请完整填写项目范围、流程、预约和变更说明");
       if (c.fulfillment === "specified" && !c.providerKeys.length)
         throw Error("指定履约项目必须关联服务商");
       if (c.fulfillment === "arranged" && c.providerKeys.length)
@@ -225,7 +243,8 @@ export function publicCatalog(c: Catalog, locale: Locale = "zh"): Catalog {
   ] as const)
     out[k] = c[k];
   out.categories = [...c.categories];
-  if(c.categories.includes("housekeeping") && c.housekeeping)out.housekeeping=publicHousekeeping(c.housekeeping);
+  if (c.categories.includes("housekeeping") && c.housekeeping)
+    out.housekeeping = publicHousekeeping(c.housekeeping);
   out.cities = c.cities.map((x) => ({
     code: x.code,
     name: cityLabel(x.code, locale),
@@ -265,7 +284,9 @@ export function catalogFilter<
   q: {
     kind?: string;
     category?: string;
-    homeService?:string; district?:string; equipment?:string;
+    homeService?: string;
+    district?: string;
+    equipment?: string;
     city?: string;
     language?: string;
     q?: string;
@@ -277,10 +298,14 @@ export function catalogFilter<
       (!q.kind || d.kind === q.kind) &&
       (!q.category || d.catalog?.categories.includes(q.category)) &&
       (!q.city || d.catalog?.cities.some((c) => c.code === q.city)) &&
-      (!q.language || (d.catalog?.categories.includes("housekeeping") ? d.catalog.housekeeping?.workerLanguages.includes(q.language) : d.catalog?.languages.includes(q.language))) &&
+      (!q.language ||
+        (d.catalog?.categories.includes("housekeeping")
+          ? d.catalog.housekeeping?.workerLanguages.includes(q.language)
+          : d.catalog?.languages.includes(q.language))) &&
       (!q.homeService || !!d.catalog?.housekeeping?.services.includes(q.homeService)) &&
-      (!q.district || !!d.catalog?.housekeeping?.districts.toLowerCase().includes(q.district.toLowerCase())) &&
-      (!q.equipment || d.catalog?.housekeeping?.equipmentBy===q.equipment) &&
+      (!q.district ||
+        !!d.catalog?.housekeeping?.districts.toLowerCase().includes(q.district.toLowerCase())) &&
+      (!q.equipment || d.catalog?.housekeeping?.equipmentBy === q.equipment) &&
       (!q.q ||
         `${d.title} ${d.summary || ""} ${d.catalog?.capabilities || ""}`
           .toLowerCase()
@@ -289,12 +314,16 @@ export function catalogFilter<
 }
 export function priceText(c: Catalog, locale: Locale) {
   const labels: Record<Locale, [string, string]> = {
-    zh: ["按需求询价", " 起"], en: ["Quote on request", " and up"],
-    es: ["Presupuesto a medida", " en adelante"], fr: ["Sur devis", " et plus"],
-    de: ["Preis auf Anfrage", " aufwärts"], it: ["Preventivo su richiesta", " e oltre"],
+    zh: ["按需求询价", " 起"],
+    en: ["Quote on request", " and up"],
+    es: ["Presupuesto a medida", " en adelante"],
+    fr: ["Sur devis", " et plus"],
+    de: ["Preis auf Anfrage", " aufwärts"],
+    it: ["Preventivo su richiesta", " e oltre"],
     ar: ["السعر عند الطلب", " فأكثر"],
   };
-  return c.price.mode === "quote" ? labels[locale][0]
+  return c.price.mode === "quote"
+    ? labels[locale][0]
     : `${c.price.currency} ${c.price.amount} / ${c.price.unit}${c.price.mode === "from" ? labels[locale][1] : ""}`;
 }
 export function inquiryFormKey(
@@ -305,11 +334,15 @@ export function inquiryFormKey(
   return JSON.stringify([
     locale,
     service || "",
-    source?.provider || "", source?.providerRevision||"",source?.projectRevision||"",
+    source?.provider || "",
+    source?.providerRevision || "",
+    source?.projectRevision || "",
     source?.project || "",
     source?.exhibition || "",
     source?.exhibitionRevision || "",
-    source?.life || "", source?.lifeKind || "", source?.lifeRevision || "",
+    source?.life || "",
+    source?.lifeKind || "",
+    source?.lifeRevision || "",
     source?.institution || "",
     source?.institutionRevision || "",
   ]);

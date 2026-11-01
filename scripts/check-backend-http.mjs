@@ -16,12 +16,7 @@ for (const suffix of ["first-register", "FIRST-REGISTER", "%66irst-register"]) {
   assert.equal(res.status, 403);
 }
 check("all first-registration aliases are blocked");
-for (const collection of [
-  "inquiries",
-  "providers",
-  "notifications",
-  "audit-events",
-]) {
+for (const collection of ["inquiries", "providers", "notifications", "audit-events"]) {
   const res = await fetch(`${base}/api/${collection}`);
   assert.equal(res.status, 403);
 }

@@ -56,10 +56,10 @@ test("catalog projection never includes internal data or query price amounts", (
   assert.equal(c.price.amount, undefined);
 });
 test("source parsing only accepts public keys and rejects malformed selections", () => {
-  assert.deepEqual(
-    parseCatalogSource({ provider: "vendor-a", project: "visit-a" }),
-    { provider: "vendor-a", project: "visit-a" },
-  );
+  assert.deepEqual(parseCatalogSource({ provider: "vendor-a", project: "visit-a" }), {
+    provider: "vendor-a",
+    project: "visit-a",
+  });
   assert.throws(() => parseCatalogSource({ provider: 15 }));
   assert.throws(() => parseCatalogSource({ project: "../../internal" }));
   assert.deepEqual(parseCatalogSource(undefined), undefined);
@@ -72,14 +72,8 @@ test("source parsing only accepts public keys and rejects malformed selections",
 test("removing or changing a source starts a fresh inquiry session", () => {
   const selected = inquiryFormKey("en", "business", { provider: "vendor" });
   assert.notEqual(selected, inquiryFormKey("en", "business", undefined));
-  assert.notEqual(
-    selected,
-    inquiryFormKey("en", "business", { provider: "other" }),
-  );
-  assert.equal(
-    selected,
-    inquiryFormKey("en", "business", { provider: "vendor" }),
-  );
+  assert.notEqual(selected, inquiryFormKey("en", "business", { provider: "other" }));
+  assert.equal(selected, inquiryFormKey("en", "business", { provider: "vendor" }));
 });
 
 test("catalog only accepts the initial eight cities and seven service languages", () => {
@@ -111,19 +105,28 @@ test("catalog option labels stay consistent across all website languages", () =>
 test("catalog projection localizes cities without inventing service languages", () => {
   const c = emptyCatalog();
   c.languages = ["zh", "en"];
-  c.cities = [{code: "beijing", name: "北京"}];
+  c.cities = [{ code: "beijing", name: "北京" }];
   for (const locale of ["zh", "en", "es", "fr", "de", "it", "ar"] as const) {
     const projected = publicCatalog(c, locale);
     assert.deepEqual(projected.languages, ["zh", "en"]);
-    assert.equal(projected.cities[0].name, catalogCities.find(city => city.code === "beijing")![locale]);
+    assert.equal(
+      projected.cities[0].name,
+      catalogCities.find((city) => city.code === "beijing")![locale],
+    );
     for (const language of catalogLanguages) assert.ok(language[locale]);
   }
   assert.equal(publicCatalog(c, "ar").cities[0].name, "بكين");
 });
 
-test("exhibition selection accepts only valid revision and resets inquiry session",()=>{
-  assert.deepEqual(parseCatalogSource({exhibition:"hardware-2027",exhibitionRevision:4,forgedTitle:"fake"}),{exhibition:"hardware-2027",exhibitionRevision:4});
-  assert.throws(()=>parseCatalogSource({exhibition:"hardware-2027",exhibitionRevision:"4"}));
-  assert.throws(()=>parseCatalogSource({project:"project",exhibitionRevision:4}));
-  assert.notEqual(inquiryFormKey("en","business",{exhibition:"hardware-2027",exhibitionRevision:4}),inquiryFormKey("en","business",{exhibition:"hardware-2027",exhibitionRevision:5}));
+test("exhibition selection accepts only valid revision and resets inquiry session", () => {
+  assert.deepEqual(
+    parseCatalogSource({ exhibition: "hardware-2027", exhibitionRevision: 4, forgedTitle: "fake" }),
+    { exhibition: "hardware-2027", exhibitionRevision: 4 },
+  );
+  assert.throws(() => parseCatalogSource({ exhibition: "hardware-2027", exhibitionRevision: "4" }));
+  assert.throws(() => parseCatalogSource({ project: "project", exhibitionRevision: 4 }));
+  assert.notEqual(
+    inquiryFormKey("en", "business", { exhibition: "hardware-2027", exhibitionRevision: 4 }),
+    inquiryFormKey("en", "business", { exhibition: "hardware-2027", exhibitionRevision: 5 }),
+  );
 });

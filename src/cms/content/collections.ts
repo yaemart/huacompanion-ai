@@ -1,4 +1,4 @@
-import {contentQualityHook} from '../quality/hooks';
+import { contentQualityHook } from "../quality/hooks";
 import { catalogLanguages } from "../../lib/catalog-options";
 import type { CollectionConfig } from "payload";
 import { contentScope, isAdmin } from "../access";
@@ -28,13 +28,11 @@ export const ContentDrafts: CollectionConfig = {
   access,
   versions: { maxPerDoc: 30 },
   hooks: {
-    afterChange:[contentQualityHook],
+    afterChange: [contentQualityHook],
     beforeChange: [
       ({ data, originalDoc }) => {
         const body = data.body || originalDoc?.body || {};
-        data.sectionLabel = contentSections.find(
-          (s) => s.id === sectionFor(body),
-        )!.zh;
+        data.sectionLabel = contentSections.find((s) => s.id === sectionFor(body))!.zh;
         return data;
       },
     ],
@@ -153,10 +151,13 @@ export const AgentTasks: CollectionConfig = {
     useAsTitle: "title",
     description: "模型未配置时不会发起调用。使用内容工作台管理任务。",
   },
-  access: { ...access, read: ({ req }) => {
-    const scope = contentScope(req.user);
-    return typeof scope === "boolean" ? scope : { contentKind: scope.kind };
-  } },
+  access: {
+    ...access,
+    read: ({ req }) => {
+      const scope = contentScope(req.user);
+      return typeof scope === "boolean" ? scope : { contentKind: scope.kind };
+    },
+  },
   fields: [
     { name: "contentKind", type: "text", required: true },
     { name: "title", type: "text", required: true },

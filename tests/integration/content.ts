@@ -5,19 +5,39 @@ import config from "../../src/payload.config";
 import { mutateContent, readPublished, listPublished } from "../../src/server/content/service";
 if (process.env.APP_ENV !== "local") throw Error("Local tests only");
 const seenPages: number[] = [];
-const paginated = await listPublished({
-  find: async ({ page }: { page: number }) => {
-    seenPages.push(page);
-    return { docs: [{ body: { contentKey: String(page), kind: "guide", locale: "en", slug: String(page), title: "Page", blocks: [], sources: [] }, publishedAt: "2026-10-27" }], hasNextPage: page < 2 };
-  },
-} as any, "en");
+const paginated = await listPublished(
+  {
+    find: async ({ page }: { page: number }) => {
+      seenPages.push(page);
+      return {
+        docs: [
+          {
+            body: {
+              contentKey: String(page),
+              kind: "guide",
+              locale: "en",
+              slug: String(page),
+              title: "Page",
+              blocks: [],
+              sources: [],
+            },
+            publishedAt: "2026-10-27",
+          },
+        ],
+        hasNextPage: page < 2,
+      };
+    },
+  } as any,
+  "en",
+);
 assert.deepEqual(seenPages, [1, 2]);
 assert.equal(paginated.length, 2);
 const p = await getPayload({ config });
 const admin = (
   await p.find({
     collection: "staff",
-    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+    sort: "createdAt",
     limit: 1,
   })
 ).docs[0];
@@ -36,7 +56,8 @@ try {
   const d = await mutateContent(p, admin, { action: "save", body });
   await assert.rejects(() =>
     mutateContent(p, editor, {
-      action: "publish", overrideReason:"Local regression fixture review and cleanup",
+      action: "publish",
+      overrideReason: "Local regression fixture review and cleanup",
       id: d.id,
       revision: d.revision,
     }),
@@ -57,14 +78,12 @@ try {
     revision: d.revision,
   });
   await mutateContent(p, admin, {
-    action: "publish", overrideReason:"Local regression fixture review and cleanup",
+    action: "publish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: d.id,
     revision: review.revision,
   });
-  assert.equal(
-    (await readPublished(p, "guide", "en", key))?.title,
-    "Version one",
-  );
+  assert.equal((await readPublished(p, "guide", "en", key))?.title, "Version one");
   const latest = await p.findByID({ collection: "content-drafts", id: d.id });
   const changed = await mutateContent(p, editor, {
     action: "save",
@@ -72,13 +91,11 @@ try {
     revision: latest.revision,
     body: { ...body, title: "Version two" },
   });
-  assert.equal(
-    (await readPublished(p, "guide", "en", key))?.title,
-    "Version one",
-  );
+  assert.equal((await readPublished(p, "guide", "en", key))?.title, "Version one");
   await assert.rejects(() =>
     mutateContent(p, admin, {
-      action: "publish", overrideReason:"Local regression fixture review and cleanup",
+      action: "publish",
+      overrideReason: "Local regression fixture review and cleanup",
       id: d.id,
       revision: latest.revision,
     }),
@@ -97,29 +114,52 @@ try {
     revision: changed.revision,
   });
   await mutateContent(p, admin, {
-    action: "publish", overrideReason:"Local regression fixture review and cleanup",
+    action: "publish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: d.id,
     revision: reviewed.revision,
   });
-  assert.equal(
-    (await readPublished(p, "guide", "en", key))?.title,
-    "Version two",
-  );
+  assert.equal((await readPublished(p, "guide", "en", key))?.title, "Version two");
   assert.equal(await readPublished(p, "guide", "zh", key), null);
   const fresh = await p.findByID({ collection: "content-drafts", id: d.id });
   await mutateContent(p, admin, {
-    action: "unpublish", overrideReason:"Local regression fixture review and cleanup",
+    action: "unpublish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: d.id,
     revision: fresh.revision,
   });
   assert.equal(await readPublished(p, "guide", "en", key), null);
-  const last=await p.findByID({collection:'content-drafts',id:d.id});
-  const versions=await p.findVersions({collection:'content-drafts',where:{parent:{equals:d.id}},sort:'createdAt',limit:30});
-  const restored=await mutateContent(p,admin,{action:'restore',id:d.id,revision:last.revision,versionId:versions.docs[0].id});
-  assert.equal(restored.reviewState,'draft');assert.equal(await readPublished(p,'guide','en',key),null);
-  const writes=await Promise.allSettled([mutateContent(p,editor,{action:'save',id:d.id,revision:restored.revision,body:{...body,title:'Concurrent A'}}),mutateContent(p,editor,{action:'save',id:d.id,revision:restored.revision,body:{...body,title:'Concurrent B'}})]);
-  assert.equal(writes.filter(r=>r.status==='fulfilled').length,1);
-  assert.equal(writes.filter(r=>r.status==='rejected').length,1);
+  const last = await p.findByID({ collection: "content-drafts", id: d.id });
+  const versions = await p.findVersions({
+    collection: "content-drafts",
+    where: { parent: { equals: d.id } },
+    sort: "createdAt",
+    limit: 30,
+  });
+  const restored = await mutateContent(p, admin, {
+    action: "restore",
+    id: d.id,
+    revision: last.revision,
+    versionId: versions.docs[0].id,
+  });
+  assert.equal(restored.reviewState, "draft");
+  assert.equal(await readPublished(p, "guide", "en", key), null);
+  const writes = await Promise.allSettled([
+    mutateContent(p, editor, {
+      action: "save",
+      id: d.id,
+      revision: restored.revision,
+      body: { ...body, title: "Concurrent A" },
+    }),
+    mutateContent(p, editor, {
+      action: "save",
+      id: d.id,
+      revision: restored.revision,
+      body: { ...body, title: "Concurrent B" },
+    }),
+  ]);
+  assert.equal(writes.filter((r) => r.status === "fulfilled").length, 1);
+  assert.equal(writes.filter((r) => r.status === "rejected").length, 1);
   await assert.rejects(() =>
     p.find({ collection: "content-drafts", overrideAccess: false, user: null }),
   );

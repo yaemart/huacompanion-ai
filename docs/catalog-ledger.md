@@ -1,4 +1,5 @@
 # Catalog implementation ledger
+
 Base: bf40a40. User approved design and explicitly requested development.
 Execution: inline in existing local project, preserving the established local preview/database workflow; no deployment.
 Architecture: extend content kinds rather than create a second publishing system. Private provider binding stays outside public body.

@@ -1,14 +1,15 @@
-import {homeTexts} from "./housekeeping.ts";
-import { type Lifestyle, lifeTranslationFields, isLife, validateLifestyle, publicLifestyle } from "./lifestyle.ts";
+import { homeTexts } from "./housekeeping.ts";
+import {
+  type Lifestyle,
+  lifeTranslationFields,
+  isLife,
+  validateLifestyle,
+  publicLifestyle,
+} from "./lifestyle.ts";
 import { type Institution, validateInstitution, publicInstitution } from "./institutions.ts";
 import { type Exhibition, validateExhibition, publicExhibition } from "./exhibitions.ts";
 import { isLocale, type Locale } from "./locales.ts";
-import {
-  type Catalog,
-  isCatalog,
-  validateCatalog,
-  publicCatalog,
-} from "./catalog.ts";
+import { type Catalog, isCatalog, validateCatalog, publicCatalog } from "./catalog.ts";
 import { hasRole, isAdmin, type Staff } from "../cms/access.ts";
 export type ContentUser = Staff;
 export const canEditContent = (user: ContentUser) => isAdmin(user) || hasRole(user, "editor");
@@ -25,7 +26,7 @@ export type Source = {
   checkedAt?: string;
 };
 export type ContentBody = {
-  qualityReview?: {checkedAt?:string;nextReviewAt?:string};
+  qualityReview?: { checkedAt?: string; nextReviewAt?: string };
   contentKey: string;
   kind:
     | "service"
@@ -62,29 +63,20 @@ export type ContentBody = {
 export function safeURL(value: unknown) {
   try {
     const u = new URL(String(value));
-    return (
-      ["https:", "http:"].includes(u.protocol) && !u.username && !u.password
-    );
+    return ["https:", "http:"].includes(u.protocol) && !u.username && !u.password;
   } catch {
     return false;
   }
 }
 function checkBlocks(blocks: unknown) {
-  if (!Array.isArray(blocks) || blocks.length > 200)
-    throw Error("正文格式无效");
+  if (!Array.isArray(blocks) || blocks.length > 200) throw Error("正文格式无效");
   for (const b of blocks) {
-    if (
-      !b ||
-      !["heading", "paragraph", "list", "image", "link"].includes(b.type)
-    )
+    if (!b || !["heading", "paragraph", "list", "image", "link"].includes(b.type))
       throw Error("不支持的正文类型");
     if (b.type === "image") {
-      if (!Number.isSafeInteger(b.mediaId) || b.mediaId < 1)
-        throw Error("请选择图片");
-    } else if (typeof b.text !== "string" || b.text.length > 10000)
-      throw Error("正文过长或无效");
-    if (b.type === "link" && !safeURL(b.url))
-      throw Error("链接必须为 http/https");
+      if (!Number.isSafeInteger(b.mediaId) || b.mediaId < 1) throw Error("请选择图片");
+    } else if (typeof b.text !== "string" || b.text.length > 10000) throw Error("正文过长或无效");
+    if (b.type === "link" && !safeURL(b.url)) throw Error("链接必须为 http/https");
   }
 }
 export function validateContent(value: unknown): asserts value is ContentBody {
@@ -100,36 +92,28 @@ export function validateContent(value: unknown): asserts value is ContentBody {
       "provider-profile",
       "service-project",
       "exhibition",
-      "institution", "venue", "activity",
+      "institution",
+      "venue",
+      "activity",
     ].includes(d.kind) ||
     !isLocale(d.locale)
   )
     throw Error("内容类型或语言无效");
-  if (
-    !/^[a-z0-9][a-z0-9-]{0,99}$/.test(d.slug) ||
-    !/^[a-z0-9][a-z0-9-]{0,99}$/.test(d.contentKey)
-  )
+  if (!/^[a-z0-9][a-z0-9-]{0,99}$/.test(d.slug) || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(d.contentKey))
     throw Error("网址标识只允许小写英文、数字和连字符");
-  if (
-    !d.title?.trim() ||
-    d.title.length > 200 ||
-    (d.summary?.length || 0) > 2000
-  )
+  if (!d.title?.trim() || d.title.length > 200 || (d.summary?.length || 0) > 2000)
     throw Error("请填写有效标题与摘要");
   if (
     d.kind === "page" &&
-    !["home", "about", "contact", "partners", "privacy", "terms"].includes(
-      d.slug,
-    )
+    !["home", "about", "contact", "partners", "privacy", "terms"].includes(d.slug)
   )
     throw Error("网站页面仅支持 home/about/contact/partners/privacy/terms");
   if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
   if (d.kind === "exhibition") validateExhibition(d.exhibition);
-  if (isLife(d.kind)) validateLifestyle(d.lifestyle,d.kind);
+  if (isLife(d.kind)) validateLifestyle(d.lifestyle, d.kind);
   if (d.kind === "institution") validateInstitution(d.institution);
   checkBlocks(d.blocks);
-  if (!Array.isArray(d.sources) || d.sources.length > 30)
-    throw Error("来源格式无效");
+  if (!Array.isArray(d.sources) || d.sources.length > 30) throw Error("来源格式无效");
   const ids = new Set();
   for (const s of d.sources) {
     if (!s.id || ids.has(s.id) || !s.title || !safeURL(s.url))
@@ -148,36 +132,38 @@ export type Candidate = {
   blocks: Block[];
   sourceIds: string[];
   questions: string[];
-  housekeepingText?: Partial<Record<typeof homeTexts[number],string>>;
-  lifestyleText?: Partial<Record<typeof lifeTranslationFields[number],string>>;
+  housekeepingText?: Partial<Record<(typeof homeTexts)[number], string>>;
+  lifestyleText?: Partial<Record<(typeof lifeTranslationFields)[number], string>>;
 };
-export function validateCandidate(
-  value: unknown,
-  allowed: string[],
-): asserts value is Candidate {
+export function validateCandidate(value: unknown, allowed: string[]): asserts value is Candidate {
   const r = value as Candidate;
-  if (
-    !r ||
-    typeof r.title !== "string" ||
-    !r.title.trim() ||
-    r.title.length > 200
-  )
+  if (!r || typeof r.title !== "string" || !r.title.trim() || r.title.length > 200)
     throw Error("AI标题无效");
-  if(r.housekeepingText!==undefined){
-    if(!r.housekeepingText||typeof r.housekeepingText!=="object"||Array.isArray(r.housekeepingText))throw Error("家政翻译格式无效");
-    for(const [k,v] of Object.entries(r.housekeepingText))if(!(homeTexts as readonly string[]).includes(k)||typeof v!=="string"||v.length>5000)throw Error("家政翻译仅允许公开文字字段");
+  if (r.housekeepingText !== undefined) {
+    if (
+      !r.housekeepingText ||
+      typeof r.housekeepingText !== "object" ||
+      Array.isArray(r.housekeepingText)
+    )
+      throw Error("家政翻译格式无效");
+    for (const [k, v] of Object.entries(r.housekeepingText))
+      if (!(homeTexts as readonly string[]).includes(k) || typeof v !== "string" || v.length > 5000)
+        throw Error("家政翻译仅允许公开文字字段");
   }
-  if(r.lifestyleText!==undefined){
-    if(!r.lifestyleText || typeof r.lifestyleText!=='object' || Array.isArray(r.lifestyleText)) throw Error('AI结构化翻译格式无效');
-    for(const [k,v] of Object.entries(r.lifestyleText)) if(!(lifeTranslationFields as readonly string[]).includes(k)||typeof v!=='string'||v.length>5000) throw Error('AI仅可翻译允许的文字字段');
+  if (r.lifestyleText !== undefined) {
+    if (!r.lifestyleText || typeof r.lifestyleText !== "object" || Array.isArray(r.lifestyleText))
+      throw Error("AI结构化翻译格式无效");
+    for (const [k, v] of Object.entries(r.lifestyleText))
+      if (
+        !(lifeTranslationFields as readonly string[]).includes(k) ||
+        typeof v !== "string" ||
+        v.length > 5000
+      )
+        throw Error("AI仅可翻译允许的文字字段");
   }
   checkBlocks(r.blocks);
-  if (r.blocks.some((b) => b.type === "image"))
-    throw Error("AI不能自行引用图片");
-  if (
-    !Array.isArray(r.sourceIds) ||
-    r.sourceIds.some((id) => !allowed.includes(id))
-  )
+  if (r.blocks.some((b) => b.type === "image")) throw Error("AI不能自行引用图片");
+  if (!Array.isArray(r.sourceIds) || r.sourceIds.some((id) => !allowed.includes(id)))
     throw Error("AI引用了未提供的来源");
   if (
     !Array.isArray(r.questions) ||
@@ -188,12 +174,14 @@ export function validateCandidate(
 }
 export function publicBody(d: ContentBody): ContentBody {
   return {
-    ...(isLife(d.kind) && d.lifestyle ? {lifestyle:publicLifestyle(d.lifestyle)} : {}),
-    ...(d.kind === "institution" && d.institution ? { institution: publicInstitution(d.institution) } : {}),
-    ...(d.kind === "exhibition" && d.exhibition ? { exhibition: publicExhibition(d.exhibition) } : {}),
-    ...(isCatalog(d.kind) && d.catalog
-      ? { catalog: publicCatalog(d.catalog, d.locale) }
+    ...(isLife(d.kind) && d.lifestyle ? { lifestyle: publicLifestyle(d.lifestyle) } : {}),
+    ...(d.kind === "institution" && d.institution
+      ? { institution: publicInstitution(d.institution) }
       : {}),
+    ...(d.kind === "exhibition" && d.exhibition
+      ? { exhibition: publicExhibition(d.exhibition) }
+      : {}),
+    ...(isCatalog(d.kind) && d.catalog ? { catalog: publicCatalog(d.catalog, d.locale) } : {}),
     contentKey: d.contentKey,
     kind: d.kind,
     locale: d.locale,

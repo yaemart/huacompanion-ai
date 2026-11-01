@@ -12,7 +12,10 @@ test("every form message has explicit copy for all seven locales", () => {
     for (const locale of locales) assert.ok(copy[locale].trim(), `${key}: ${locale}`);
     assert.match(copy.ar, /[\u0600-\u06ff]/, key);
   }
-  const component = readFileSync(new URL("../src/components/InquiryForm.tsx", import.meta.url), "utf8");
+  const component = readFileSync(
+    new URL("../src/components/InquiryForm.tsx", import.meta.url),
+    "utf8",
+  );
   for (const match of component.matchAll(/\bc\(\s*"([^"\n]+)"/g)) {
     assert.ok(match[1] in formCopy, `Untranslated form message: ${match[1]}`);
   }
@@ -26,13 +29,46 @@ test("all validation branches display the selected language while retaining fiel
       city: t("Please complete this field."),
       organisation: t("Please complete this field."),
     });
-    assert.deepEqual(validateStep("request", 1, { people: "0", arrivalDate: "bad", categories: ["stays"], stayType: "short", checkIn: "2026-10-28", checkOut: "2026-10-27" }, locale), {
-      people: t("Enter a whole number from 1 to 10,000."),
-      arrivalDate: t("Enter a valid date."),
-      checkOut: t("Check-out must be after check-in."),
+    assert.deepEqual(
+      validateStep(
+        "request",
+        1,
+        {
+          people: "0",
+          arrivalDate: "bad",
+          categories: ["stays"],
+          stayType: "short",
+          checkIn: "2026-10-28",
+          checkOut: "2026-10-27",
+        },
+        locale,
+      ),
+      {
+        people: t("Enter a whole number from 1 to 10,000."),
+        arrivalDate: t("Enter a valid date."),
+        checkOut: t("Check-out must be after check-in."),
+      },
+    );
+    assert.deepEqual(
+      validateStep(
+        "request",
+        2,
+        { name: "Test", email: "invalid", language: localeNames[locale] },
+        locale,
+      ),
+      { email: t("Enter a valid email address.") },
+    );
+    assert.deepEqual(validateStep("request", 3, {}, locale), {
+      consent: t("Please read and acknowledge the notice."),
     });
-    assert.deepEqual(validateStep("request", 2, { name: "Test", email: "invalid", language: localeNames[locale] }, locale), { email: t("Enter a valid email address.") });
-    assert.deepEqual(validateStep("request", 3, {}, locale), { consent: t("Please read and acknowledge the notice.") });
-    assert.deepEqual(validateStep("request", 2, { name: "Test", email: "test@example.com", language: localeNames[locale] }, locale), {});
+    assert.deepEqual(
+      validateStep(
+        "request",
+        2,
+        { name: "Test", email: "test@example.com", language: localeNames[locale] },
+        locale,
+      ),
+      {},
+    );
   }
 });

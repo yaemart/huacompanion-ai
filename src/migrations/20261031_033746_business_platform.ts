@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -362,9 +362,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "payload_locked_documents_rels_customer_accounts_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_accounts_id");
   CREATE INDEX "payload_locked_documents_rels_customer_challenges_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_challenges_id");
   CREATE INDEX "payload_locked_documents_rels_customer_sessions_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_sessions_id");
-  CREATE INDEX "payload_locked_documents_rels_customer_inquiry_links_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_inquiry_links_id");`)
+  CREATE INDEX "payload_locked_documents_rels_customer_inquiry_links_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_inquiry_links_id");`);
 }
 
 export async function down(_args: MigrateDownArgs): Promise<void> {
- throw new Error('Restore a verified backup; destructive automatic rollback of customer/business records is disabled.');
+  throw new Error(
+    "Restore a verified backup; destructive automatic rollback of customer/business records is disabled.",
+  );
 }

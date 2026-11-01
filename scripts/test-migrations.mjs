@@ -23,25 +23,19 @@ execFileSync(bin + "/createdb", [database], { env, stdio: "pipe" });
 try {
   const target = new URL(url);
   target.pathname = "/" + database;
-  execFileSync(
-    resolve("node_modules/node/bin/node"),
-    ["node_modules/payload/bin.js", "migrate"],
-    {
-      env: {
-        ...env,
-        DATABASE_URL: target.toString(),
-        APP_ENV: "migration-test",
-        NODE_ENV: "production",
-      },
-      stdio: "pipe",
-      timeout: 60000,
+  execFileSync(resolve("node_modules/node/bin/node"), ["node_modules/payload/bin.js", "migrate"], {
+    env: {
+      ...env,
+      DATABASE_URL: target.toString(),
+      APP_ENV: "migration-test",
+      NODE_ENV: "production",
     },
-  );
+    stdio: "pipe",
+    timeout: 60000,
+  });
   const pool = new pg.Pool({ connectionString: target.toString() });
   try {
-    const tables = await pool.query(
-      "SELECT tablename FROM pg_tables WHERE schemaname='public'",
-    );
+    const tables = await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public'");
     for (const name of [
       "staff",
       "inquiries",
@@ -87,9 +81,7 @@ try {
   );
 } catch (error) {
   if (error.stderr) console.error(String(error.stderr).slice(-2500));
-  throw new Error(
-    "Migration verification failed; primary database was not changed.",
-  );
+  throw new Error("Migration verification failed; primary database was not changed.");
 } finally {
   execFileSync(bin + "/dropdb", [database], { env, stdio: "pipe" });
 }

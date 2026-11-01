@@ -11,10 +11,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   const headers = new Headers(request.headers);
   const locale = request.nextUrl.pathname.split("/")[1];
-  headers.set(
-    "x-hua-locale",
-    isLocale(locale) ? locale : "zh",
-  );
+  headers.set("x-hua-locale", isLocale(locale) ? locale : "zh");
   return NextResponse.next({ request: { headers } });
 }
 export const config = { matcher: ["/((?!_next|favicon.ico|shanghai.svg).*)"] };

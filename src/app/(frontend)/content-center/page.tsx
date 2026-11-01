@@ -7,11 +7,7 @@ export const metadata = {
   title: "内容工作台 · 华伴",
   robots: { index: false, follow: false },
 };
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ kind?: string }>;
-}) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
   try {
     await contentAuth(await headers());
   } catch {

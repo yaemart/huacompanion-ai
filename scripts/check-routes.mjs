@@ -9,7 +9,13 @@ const pages = [
   "apply",
   "privacy",
   "terms",
-  "providers", "services/projects", "exhibitions", "institutions", "life", "support", "account",
+  "providers",
+  "services/projects",
+  "exhibitions",
+  "institutions",
+  "life",
+  "support",
+  "account",
 ];
 let count = 0;
 for (const locale of ["en", "zh", "es", "fr", "de", "it", "ar"])
@@ -37,12 +43,7 @@ for (const match of sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)) {
   if (res.status !== 200) throw Error(`Published URL unavailable: ${url.pathname} ${res.status}`);
   count++;
 }
-for (const path of [
-  "/en/not-real",
-  "/zh/services/fake",
-  "/xx",
-  "/en/request/extra",
-]) {
+for (const path of ["/en/not-real", "/zh/services/fake", "/xx", "/en/request/extra"]) {
   const res = await fetch("http://127.0.0.1:3000" + path);
   const html = await res.text();
   if (res.status !== 404 || !html.includes("<html") || !html.includes("<body>"))

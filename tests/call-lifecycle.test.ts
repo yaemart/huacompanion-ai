@@ -1,5 +1,65 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {acquireCallMedia,settleCallAction} from '../src/lib/callLifecycle.ts';
-function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(r=>resolve=r);return {promise,resolve};}
-test('late start or acceptance releases the exact call and never returns it to abandoned UI',async()=>{for(const action of ['start','accept']){let mounted=true;const pending=deferred<{id:number}>();const released:number[]=[];const result=settleCallAction(pending.promise,()=>mounted,async c=>{released.push(c.id);});mounted=false;pending.resolve({id:action==='start'?11:22});assert.equal(await result,null);assert.deepEqual(released,[action==='start'?11:22]);}});
-test('late microphone permission only closes the old attempt stream',async()=>{let generation=1;let oldStopped=0,newStopped=0;const old=deferred<{getTracks:()=>{stop:()=>void}[]}>();const first=acquireCallMedia(()=>old.promise,()=>generation===1);generation=2;const newer={getTracks:()=>[{stop:()=>{newStopped++;}}]};assert.equal(await acquireCallMedia(async()=>newer,()=>generation===2),newer);old.resolve({getTracks:()=>[{stop:()=>{oldStopped++;}}]});assert.equal(await first,null);assert.equal(oldStopped,1);assert.equal(newStopped,0);});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { acquireCallMedia, settleCallAction } from "../src/lib/callLifecycle.ts";
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
+test("late start or acceptance releases the exact call and never returns it to abandoned UI", async () => {
+  for (const action of ["start", "accept"]) {
+    let mounted = true;
+    const pending = deferred<{ id: number }>();
+    const released: number[] = [];
+    const result = settleCallAction(
+      pending.promise,
+      () => mounted,
+      async (c) => {
+        released.push(c.id);
+      },
+    );
+    mounted = false;
+    pending.resolve({ id: action === "start" ? 11 : 22 });
+    assert.equal(await result, null);
+    assert.deepEqual(released, [action === "start" ? 11 : 22]);
+  }
+});
+test("late microphone permission only closes the old attempt stream", async () => {
+  let generation = 1;
+  let oldStopped = 0,
+    newStopped = 0;
+  const old = deferred<{ getTracks: () => { stop: () => void }[] }>();
+  const first = acquireCallMedia(
+    () => old.promise,
+    () => generation === 1,
+  );
+  generation = 2;
+  const newer = {
+    getTracks: () => [
+      {
+        stop: () => {
+          newStopped++;
+        },
+      },
+    ],
+  };
+  assert.equal(
+    await acquireCallMedia(
+      async () => newer,
+      () => generation === 2,
+    ),
+    newer,
+  );
+  old.resolve({
+    getTracks: () => [
+      {
+        stop: () => {
+          oldStopped++;
+        },
+      },
+    ],
+  });
+  assert.equal(await first, null);
+  assert.equal(oldStopped, 1);
+  assert.equal(newStopped, 0);
+});

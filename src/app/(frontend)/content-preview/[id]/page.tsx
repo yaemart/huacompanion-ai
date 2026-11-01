@@ -11,11 +11,7 @@ export const metadata = {
   title: "工作稿预览 · 华伴",
   robots: { index: false, follow: false },
 };
-export default async function Preview({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function Preview({ params }: { params: Promise<{ id: string }> }) {
   let auth;
   try {
     auth = await contentAuth(await headers());
@@ -23,19 +19,17 @@ export default async function Preview({
     redirect("/admin/login");
   }
   const { id } = await params;
-  const d = await auth.p.findByID({
-    collection: "content-drafts",
-    id: Number(id),
-    overrideAccess: false,
-    user: auth.user,
-  }).catch(() => notFound());
+  const d = await auth.p
+    .findByID({
+      collection: "content-drafts",
+      id: Number(id),
+      overrideAccess: false,
+      user: auth.user,
+    })
+    .catch(() => notFound());
   const body = d.body as unknown as ContentBody;
   return (
-    <main
-      className="section article"
-      lang={body.locale}
-      dir={body.locale === "ar" ? "rtl" : "ltr"}
-    >
+    <main className="section article" lang={body.locale} dir={body.locale === "ar" ? "rtl" : "ltr"}>
       <p>
         工作稿预览 · {body.locale} · 修订 {d.revision} · 尚不代表网站已发布
       </p>
@@ -59,8 +53,7 @@ export default async function Preview({
               展期: body.exhibition.startDate
                 ? `${body.exhibition.startDate} — ${body.exhibition.endDate}`
                 : "日期待确认",
-              城市: catalogCities.find((c) => c.code === body.exhibition?.city)
-                ?.zh,
+              城市: catalogCities.find((c) => c.code === body.exhibition?.city)?.zh,
               场馆: body.exhibition.venue,
               详细地址: body.exhibition.address,
               英文地址: body.exhibition.addressEn,
@@ -82,7 +75,19 @@ export default async function Preview({
           </dl>
         </section>
       )}
-      {body.lifestyle && <section><h2>场所／活动资料</h2><dl>{Object.entries(body.lifestyle).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{Array.isArray(v)?v.join('、'):String(v??'待确认')}</dd></div>)}</dl></section>}
+      {body.lifestyle && (
+        <section>
+          <h2>场所／活动资料</h2>
+          <dl>
+            {Object.entries(body.lifestyle).map(([k, v]) => (
+              <div key={k}>
+                <dt>{k}</dt>
+                <dd>{Array.isArray(v) ? v.join("、") : String(v ?? "待确认")}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
       {body.kind === "institution" && body.institution && (
         <section>
           <h2>医疗与康养机构资料</h2>
@@ -96,8 +101,7 @@ export default async function Preview({
                   wellness: "康养机构",
                 } as Record<string, string>
               )[body.institution.type],
-              城市: catalogCities.find((c) => c.code === body.institution?.city)
-                ?.zh,
+              城市: catalogCities.find((c) => c.code === body.institution?.city)?.zh,
               详细地址: body.institution.address,
               英文地址: body.institution.addressEn,
               到达方式: body.institution.directions,
@@ -115,10 +119,7 @@ export default async function Preview({
               外籍访客接待条件: body.institution.acceptanceConditions,
               服务语言:
                 body.institution.languages
-                  .map(
-                    (code) =>
-                      catalogLanguages.find((l) => l.code === code)?.zh || code,
-                  )
+                  .map((code) => catalogLanguages.find((l) => l.code === code)?.zh || code)
                   .join("、") || "尚未确认",
               口译支持: body.institution.interpretation,
               官方网站: body.institution.officialURL,

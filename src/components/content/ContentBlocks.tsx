@@ -1,10 +1,20 @@
-import {qualityStatusLabel} from '../../lib/quality';
-import type {Locale} from '../../lib/locales';
+import { qualityStatusLabel } from "../../lib/quality";
+import type { Locale } from "../../lib/locales";
 import type { Block } from "@/lib/content-model";
-export function ContentBlocks({ blocks,quality,locale }: { blocks: Block[];quality?:{checkedAt?:string;nextReviewAt?:string};locale?:Locale }) {
+export function ContentBlocks({
+  blocks,
+  quality,
+  locale,
+}: {
+  blocks: Block[];
+  quality?: { checkedAt?: string; nextReviewAt?: string };
+  locale?: Locale;
+}) {
   return (
     <>
-      {quality&&locale&&qualityStatusLabel(locale,quality)&&<p className="notice">{qualityStatusLabel(locale,quality)}</p>}
+      {quality && locale && qualityStatusLabel(locale, quality) && (
+        <p className="notice">{qualityStatusLabel(locale, quality)}</p>
+      )}
       {blocks.map((b, i) =>
         b.type === "heading" ? (
           <h2 key={i}>{b.text}</h2>

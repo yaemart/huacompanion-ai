@@ -1,7 +1,7 @@
 "use client";
-import {HousekeepingIntakeFields} from "./HousekeepingIntakeFields";
-import {homeText} from "@/lib/housekeeping-copy";
-import {homeRequestFields,homeProviderFields} from "@/lib/housekeeping";
+import { HousekeepingIntakeFields } from "./HousekeepingIntakeFields";
+import { homeText } from "@/lib/housekeeping-copy";
+import { homeRequestFields, homeProviderFields } from "@/lib/housekeeping";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { services } from "@/lib/content";
@@ -34,10 +34,10 @@ export function InquiryForm({
   kind: FormKind;
   initialService?: string;
   supportConversation?: number;
-  initialValues?: Record<string,string>;
+  initialValues?: Record<string, string>;
   catalogSelection?: CatalogSelection;
 }) {
-  const localMode = ["local","trial"].includes(process.env.NEXT_PUBLIC_FORM_MODE || "");
+  const localMode = ["local", "trial"].includes(process.env.NEXT_PUBLIC_FORM_MODE || "");
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -47,9 +47,7 @@ export function InquiryForm({
   const partner = kind === "apply";
   const [step, setStep] = useState(0),
     [values, setValues] = useState<Values>({
-      categories: services.some((s) => s.slug === initialService)
-        ? [initialService!]
-        : [],
+      categories: services.some((s) => s.slug === initialService) ? [initialService!] : [],
       city: catalogSelection?.city || "",
       stayType: "short",
       datesUnknown: false,
@@ -62,11 +60,11 @@ export function InquiryForm({
     [checked, setChecked] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const labels: Record<string, string> = {
-    ...Object.fromEntries([...homeRequestFields,...homeProviderFields].map(k=>[k,homeText(locale,k)])),
+    ...Object.fromEntries(
+      [...homeRequestFields, ...homeProviderFields].map((k) => [k, homeText(locale, k)]),
+    ),
     organisation: c("Organisation name", "机构名称"),
-    city: partner
-      ? c("Service areas", "服务区域")
-      : c("Preferred city", "希望服务的城市"),
+    city: partner ? c("Service areas", "服务区域") : c("Preferred city", "希望服务的城市"),
     people: c("Number of people", "人数"),
     arrivalDate: c("Expected arrival date", "预计来华日期"),
     industry: c("Industry / products", "行业／产品"),
@@ -85,10 +83,7 @@ export function InquiryForm({
     interests: c("Interests and travelling companions", "兴趣与同行情况"),
     interpretation: c("Language pair and setting", "翻译语言与场景"),
     arrivalHelp: c("Everyday support needed", "需要的生活协助"),
-    medicalHelp: c(
-      "Coordination needed (no medical history)",
-      "协调需求（请勿填写病史）",
-    ),
+    medicalHelp: c("Coordination needed (no medical history)", "协调需求（请勿填写病史）"),
     budget: c("Budget range and currency (optional)", "预算范围与币种（可选）"),
     description: c("Anything else to help us understand?", "其他需求说明"),
     name: c("Contact name", "联系人姓名"),
@@ -101,10 +96,7 @@ export function InquiryForm({
     capabilities: c("Service capabilities", "服务能力"),
     hours: c("Operating hours", "营业时段"),
     cooperation: c("Preferred cooperation arrangements", "合作方式"),
-    qualification: c(
-      "Qualification type and number (if relevant)",
-      "资质类型与编号（如适用）",
-    ),
+    qualification: c("Qualification type and number (if relevant)", "资质类型与编号（如适用）"),
     notes: c("Additional notes", "补充说明"),
   };
   const set = (key: string, value: string | boolean | string[]) => {
@@ -116,8 +108,7 @@ export function InquiryForm({
     });
     setChecked(false);
   };
-  const val = (key: string) =>
-    typeof values[key] === "string" ? (values[key] as string) : "";
+  const val = (key: string) => (typeof values[key] === "string" ? (values[key] as string) : "");
   const field = (key: string, type = "text", required = false) => (
     <div className={`field ${type === "textarea" ? "full" : ""}`} key={key}>
       <label htmlFor={key}>
@@ -134,7 +125,11 @@ export function InquiryForm({
           aria-describedby={errors.city ? "city-error" : undefined}
         >
           <option value="">— {labels.city} —</option>
-          {catalogCities.map(city => <option key={city.code} value={city.en}>{city[locale]}</option>)}
+          {catalogCities.map((city) => (
+            <option key={city.code} value={city.en}>
+              {city[locale]}
+            </option>
+          ))}
         </select>
       ) : type === "textarea" ? (
         <textarea
@@ -196,11 +191,7 @@ export function InquiryForm({
     const found = validateStep(kind, step, values, locale);
     setErrors(found);
     if (Object.keys(found).length) {
-      setTimeout(
-        () =>
-          document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
-        0,
-      );
+      setTimeout(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 0);
       return;
     }
     if (step < 3) move(step + 1);
@@ -213,9 +204,7 @@ export function InquiryForm({
           kind,
           locale,
           values,
-          ...(catalogSelection?.source
-            ? { source: catalogSelection.source }
-            : {}),
+          ...(catalogSelection?.source ? { source: catalogSelection.source } : {}),
         }),
       };
       setSaving(true);
@@ -228,7 +217,14 @@ export function InquiryForm({
             "Content-Type": "application/json",
             "Idempotency-Key": request.current.key,
           },
-          body: supportConversation ? JSON.stringify({action:"confirm",id:supportConversation,key:request.current.key,payload:JSON.parse(request.current.body)}) : request.current.body,
+          body: supportConversation
+            ? JSON.stringify({
+                action: "confirm",
+                id: supportConversation,
+                key: request.current.key,
+                payload: JSON.parse(request.current.body),
+              })
+            : request.current.body,
         });
         const result = await response.json();
         if (!response.ok) {
@@ -248,9 +244,7 @@ export function InquiryForm({
           );
         }
         if (typeof result.reference !== "string")
-          throw new Error(
-            c("No receipt received. Please retry.", "未收到编号，请重试。"),
-          );
+          throw new Error(c("No receipt received. Please retry.", "未收到编号，请重试。"));
         setReceipt(result.reference);
       } catch (error) {
         setSaveError(
@@ -279,10 +273,7 @@ export function InquiryForm({
         </span>
         <h1>
           {partner
-            ? c(
-                "Good work starts with a connection.",
-                "好的合作，始于相互了解。",
-              )
+            ? c("Good work starts with a connection.", "好的合作，始于相互了解。")
             : c("Tell us about your plans.", "从您的计划说起。")}
         </h1>
         <p>
@@ -315,14 +306,8 @@ export function InquiryForm({
               : "仅供预览：请使用虚构测试资料。这里填写的信息不会提交或保存。",
           )}
         </div>
-        <Link
-          className="text-link"
-          href={`/${locale}/${partner ? "partners" : "services"}`}
-        >
-          ←{" "}
-          {partner
-            ? c("About collaboration", "了解合作")
-            : c("Explore services", "了解服务")}
+        <Link className="text-link" href={`/${locale}/${partner ? "partners" : "services"}`}>
+          ← {partner ? c("About collaboration", "了解合作") : c("Explore services", "了解服务")}
         </Link>
       </div>
       <div className="form-panel">
@@ -357,19 +342,14 @@ export function InquiryForm({
               )}
             </p>
             <Link href={`/${locale}/request`}>
-              {c(
-                "Remove selection and start a general enquiry",
-                "移除选择，重新填写一般咨询",
-              )}
+              {c("Remove selection and start a general enquiry", "移除选择，重新填写一般咨询")}
             </Link>
           </div>
         )}
         <form onSubmit={submit} noValidate>
           <fieldset
             className="form-body"
-            disabled={
-              saving || !!receipt || attempted || !!catalogSelection?.error
-            }
+            disabled={saving || !!receipt || attempted || !!catalogSelection?.error}
           >
             <div className="form-heading">
               <span className="eyebrow">
@@ -385,18 +365,11 @@ export function InquiryForm({
                 {partner && field("organisation", "text", true)}
                 <fieldset className="category-field">
                   <legend>
-                    {c(
-                      "How can we help? Select all that apply.",
-                      "服务类别（可多选）",
-                    )}{" "}
-                    *
+                    {c("How can we help? Select all that apply.", "服务类别（可多选）")} *
                   </legend>
                   <div className="category-grid">
                     {services.map((s) => (
-                      <label
-                        key={s.slug}
-                        className={categories.includes(s.slug) ? "chosen" : ""}
-                      >
+                      <label key={s.slug} className={categories.includes(s.slug) ? "chosen" : ""}>
                         <input
                           type="checkbox"
                           checked={categories.includes(s.slug)}
@@ -436,27 +409,37 @@ export function InquiryForm({
             )}
             {step === 1 && !partner && (
               <>
-                {!(categories.length===1&&categories[0]==="housekeeping") && section(
-                  c("Travel basics", "基本行程"),
+                {!(categories.length === 1 && categories[0] === "housekeeping") &&
+                  section(
+                    c("Travel basics", "基本行程"),
+                    <>
+                      {field("people", "number", true)}
+                      <div className="field">
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={!!values.datesUnknown}
+                            onChange={(e) => set("datesUnknown", e.target.checked)}
+                          />
+                          {c("Dates not decided yet", "日期尚未确定")}
+                        </label>
+                      </div>
+                      {!values.datesUnknown && field("arrivalDate", "date", true)}
+                      {field("budget")}
+                    </>,
+                  )}
+                {categories.includes("housekeeping") && (
                   <>
-                    {field("people", "number", true)}
-                    <div className="field">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={!!values.datesUnknown}
-                          onChange={(e) =>
-                            set("datesUnknown", e.target.checked)
-                          }
-                        />
-                        {c("Dates not decided yet", "日期尚未确定")}
-                      </label>
-                    </div>
-                    {!values.datesUnknown && field("arrivalDate", "date", true)}
-                    {field("budget")}
-                  </>,
+                    <HousekeepingIntakeFields
+                      kind="request"
+                      locale={locale}
+                      values={values}
+                      set={set}
+                      errors={errors}
+                    />
+                    {categories.length === 1 && field("budget")}
+                  </>
                 )}
-                {categories.includes("housekeeping") && <><HousekeepingIntakeFields kind="request" locale={locale} values={values} set={set} errors={errors}/>{categories.length===1&&field("budget")}</>}
                 {categories.includes("business") &&
                   section(
                     c("Business visit", "商务访问"),
@@ -480,20 +463,14 @@ export function InquiryForm({
                     c("Accommodation", "住宿安排"),
                     <>
                       <div className="field full">
-                        <label htmlFor="stayType">
-                          {c("Stay type", "住宿类型")}
-                        </label>
+                        <label htmlFor="stayType">{c("Stay type", "住宿类型")}</label>
                         <select
                           id="stayType"
                           value={val("stayType")}
                           onChange={(e) => set("stayType", e.target.value)}
                         >
-                          <option value="short">
-                            {c("Hotel / short stay", "酒店／短住")}
-                          </option>
-                          <option value="long">
-                            {c("Long-term rental", "长期租赁")}
-                          </option>
+                          <option value="short">{c("Hotel / short stay", "酒店／短住")}</option>
+                          <option value="long">{c("Long-term rental", "长期租赁")}</option>
                         </select>
                       </div>
                       {values.stayType === "long" ? (
@@ -525,10 +502,8 @@ export function InquiryForm({
                       {field("interests", "textarea")}
                     </>,
                   )}
-                {categories.includes("interpretation") &&
-                  field("interpretation", "textarea")}
-                {categories.includes("arrival") &&
-                  field("arrivalHelp", "textarea")}
+                {categories.includes("interpretation") && field("interpretation", "textarea")}
+                {categories.includes("arrival") && field("arrivalHelp", "textarea")}
                 {categories.includes("medical") && (
                   <div className="notice compact">
                     {c(
@@ -543,7 +518,15 @@ export function InquiryForm({
             )}
             {step === 1 && partner && (
               <>
-                {categories.includes("housekeeping") && <HousekeepingIntakeFields kind="apply" locale={locale} values={values} set={set} errors={errors}/>}
+                {categories.includes("housekeeping") && (
+                  <HousekeepingIntakeFields
+                    kind="apply"
+                    locale={locale}
+                    values={values}
+                    set={set}
+                    errors={errors}
+                  />
+                )}
                 {field("languages", "text", true)}
                 {field("capabilities", "textarea", true)}
                 {field("hours")}
@@ -571,11 +554,28 @@ export function InquiryForm({
                   ) : (
                     <>
                       <div className="field">
-                        <label htmlFor="language">{labels.language}<span className="required"> *</span></label>
-                        <select id="language" value={val("language")} onChange={(e) => set("language", e.target.value)} aria-invalid={!!errors.language} aria-describedby={errors.language ? "language-error" : undefined}>
-                          {locales.map((code) => <option key={code} value={localeNames[code]} lang={code}>{localeNames[code]}</option>)}
+                        <label htmlFor="language">
+                          {labels.language}
+                          <span className="required"> *</span>
+                        </label>
+                        <select
+                          id="language"
+                          value={val("language")}
+                          onChange={(e) => set("language", e.target.value)}
+                          aria-invalid={!!errors.language}
+                          aria-describedby={errors.language ? "language-error" : undefined}
+                        >
+                          {locales.map((code) => (
+                            <option key={code} value={localeNames[code]} lang={code}>
+                              {localeNames[code]}
+                            </option>
+                          ))}
                         </select>
-                        {errors.language && <span className="field-error" id="language-error">{errors.language}</span>}
+                        {errors.language && (
+                          <span className="field-error" id="language-error">
+                            {errors.language}
+                          </span>
+                        )}
                       </div>
                       <div className="field">
                         <label htmlFor="channel">
@@ -612,10 +612,7 @@ export function InquiryForm({
                     <dt>{c("Services", "服务类别")}</dt>
                     <dd>
                       {categories
-                        .map(
-                          (s) =>
-                            services.find((x) => x.slug === s)?.title[locale],
-                        )
+                        .map((s) => services.find((x) => x.slug === s)?.title[locale])
                         .join(" · ")}
                     </dd>
                     {Object.entries(visibleReviewValues(values))
@@ -625,10 +622,7 @@ export function InquiryForm({
                           typeof v === "string" &&
                           v &&
                           !(k === "arrivalDate" && values.datesUnknown) &&
-                          !(
-                            values.stayType === "long" &&
-                            ["checkIn", "checkOut"].includes(k)
-                          ) &&
+                          !(values.stayType === "long" && ["checkIn", "checkOut"].includes(k)) &&
                           !(
                             values.stayType === "short" &&
                             ["leaseLength", "rentalNeeds"].includes(k)
@@ -637,7 +631,11 @@ export function InquiryForm({
                       .map(([k, v]) => (
                         <div className="review-row" key={k}>
                           <dt>{labels[k]}</dt>
-                          <dd>{k === "city" && !partner ? catalogCities.find(city => city.en === v)?.[locale] || String(v) : String(v)}</dd>
+                          <dd>
+                            {k === "city" && !partner
+                              ? catalogCities.find((city) => city.en === v)?.[locale] || String(v)
+                              : String(v)}
+                          </dd>
                         </div>
                       ))}
                     {values.datesUnknown && (
@@ -704,12 +702,7 @@ export function InquiryForm({
           </fieldset>
           {receipt && (
             <div className="preview-result" role="status">
-              <b>
-                {c(
-                  "Saved to the local test database.",
-                  "已保存到本地测试数据库。",
-                )}
-              </b>
+              <b>{c("Saved to the local test database.", "已保存到本地测试数据库。")}</b>
               <p>
                 {c("Reference: ", "编号：")}
                 {receipt}
@@ -730,9 +723,7 @@ export function InquiryForm({
           <div className="form-navigation">
             {step > 0 ? (
               <button
-                disabled={
-                  saving || !!receipt || attempted || !!catalogSelection?.error
-                }
+                disabled={saving || !!receipt || attempted || !!catalogSelection?.error}
                 className="back-button"
                 type="button"
                 onClick={() => move(step - 1)}
@@ -742,11 +733,7 @@ export function InquiryForm({
             ) : (
               <span />
             )}
-            <button
-              className="button"
-              type="submit"
-              disabled={saving || !!receipt}
-            >
+            <button className="button" type="submit" disabled={saving || !!receipt}>
               {step === 3
                 ? saving
                   ? c("Saving…", "保存中…")

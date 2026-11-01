@@ -59,9 +59,9 @@ jobs:
       APP_ENV: ci
       APP_URL: http://127.0.0.1:3000
       NEXT_PUBLIC_FORM_MODE: local
-      NEXT_TELEMETRY_DISABLED: '1'
-      WORKFLOW_MAIL_ENABLED: 'false'
-      BUSINESS_AI_ENABLED: 'false'
+      NEXT_TELEMETRY_DISABLED: "1"
+      WORKFLOW_MAIL_ENABLED: "false"
+      BUSINESS_AI_ENABLED: "false"
     steps:
       - uses: actions/checkout@v6
         with:

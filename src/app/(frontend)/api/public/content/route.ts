@@ -11,37 +11,35 @@ export async function GET(req: Request) {
     return Response.json({ error: "locale must be zh, en, es, fr, de, it or ar" }, { status: 400 });
   const section = q.get("section");
   const sectionEntry = contentSections.find((s) => s.key === section);
-  if (section && !sectionEntry)
-    return Response.json({ error: "Unknown section" }, { status: 400 });
+  if (section && !sectionEntry) return Response.json({ error: "Unknown section" }, { status: 400 });
   const page = Number(q.get("page") || 1);
   if (!Number.isSafeInteger(page) || page < 1)
     return Response.json({ error: "Invalid page" }, { status: 400 });
   try {
-    const items = (
-      await listPublished(await getPayload({ config }), locale)
-    ).filter((d) => !sectionEntry || sectionFor(d) === sectionEntry.id);
-    const docs = items
-      .slice((page - 1) * 20, page * 20)
-      .map((d) => ({
-        ...d,
-        section: contentSections.find((s) => s.id === sectionFor(d))?.key,
-        path: isCatalog(d.kind)
-          ? catalogPath(d)
-          : ["venue","activity"].includes(d.kind) ? `/${locale}/life/${d.kind}/${d.slug}`
+    const items = (await listPublished(await getPayload({ config }), locale)).filter(
+      (d) => !sectionEntry || sectionFor(d) === sectionEntry.id,
+    );
+    const docs = items.slice((page - 1) * 20, page * 20).map((d) => ({
+      ...d,
+      section: contentSections.find((s) => s.id === sectionFor(d))?.key,
+      path: isCatalog(d.kind)
+        ? catalogPath(d)
+        : ["venue", "activity"].includes(d.kind)
+          ? `/${locale}/life/${d.kind}/${d.slug}`
           : d.kind === "institution"
             ? `/${locale}/institutions/${d.slug}`
-          : d.kind === "exhibition"
-            ? `/${locale}/exhibitions/${d.slug}`
-          : d.kind === "guide"
-            ? `/${locale}/guides/${d.slug}`
-            : d.kind === "service"
-              ? `/${locale}/services/${d.slug}`
-              : d.kind === "partner"
-                ? `/${locale}/partners/${d.slug}`
-                : d.kind === "page"
-                  ? `/${locale}/${d.slug === "home" ? "" : d.slug}`
-                  : `/${locale}#faq-${d.contentKey}`,
-      }));
+            : d.kind === "exhibition"
+              ? `/${locale}/exhibitions/${d.slug}`
+              : d.kind === "guide"
+                ? `/${locale}/guides/${d.slug}`
+                : d.kind === "service"
+                  ? `/${locale}/services/${d.slug}`
+                  : d.kind === "partner"
+                    ? `/${locale}/partners/${d.slug}`
+                    : d.kind === "page"
+                      ? `/${locale}/${d.slug === "home" ? "" : d.slug}`
+                      : `/${locale}#faq-${d.contentKey}`,
+    }));
     return Response.json(
       {
         schemaVersion: 1,
@@ -63,9 +61,6 @@ export async function GET(req: Request) {
       },
     );
   } catch {
-    return Response.json(
-      { error: "Published content temporarily unavailable" },
-      { status: 503 },
-    );
+    return Response.json({ error: "Published content temporarily unavailable" }, { status: 503 });
   }
 }

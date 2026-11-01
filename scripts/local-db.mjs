@@ -20,14 +20,8 @@ if (!existsSync(env)) {
 }
 const source = readFileSync(env, "utf8");
 const url = new URL(source.match(/^DATABASE_URL=(.+)$/m)[1]);
-if (
-  url.hostname !== "127.0.0.1" ||
-  url.port !== port ||
-  url.pathname !== "/hua_companion"
-)
-  throw Error(
-    "Refusing to manage a database other than the dedicated local instance.",
-  );
+if (url.hostname !== "127.0.0.1" || url.port !== port || url.pathname !== "/hua_companion")
+  throw Error("Refusing to manage a database other than the dedicated local instance.");
 if (!existsSync(resolve(data, "PG_VERSION"))) {
   const pw = resolve(root, "pg-init-password");
   writeFileSync(pw, decodeURIComponent(url.password), { mode: 0o600 });
@@ -66,15 +60,9 @@ if (!status)
   ]);
 const pgEnv = { ...process.env, PGPASSWORD: decodeURIComponent(url.password) };
 try {
-  run(
-    "createdb",
-    ["-h", "127.0.0.1", "-p", port, "-U", "hua", "hua_companion"],
-    { env: pgEnv },
-  );
+  run("createdb", ["-h", "127.0.0.1", "-p", port, "-U", "hua", "hua_companion"], { env: pgEnv });
 } catch (e) {
   if (!String(e.stderr).includes("already exists"))
     throw new Error("Local database creation failed; see local logs.");
 }
-console.log(
-  "华伴专用 PostgreSQL 已就绪：127.0.0.1:55438。密钥保存在被 Git 忽略的 .env 中。",
-);
+console.log("华伴专用 PostgreSQL 已就绪：127.0.0.1:55438。密钥保存在被 Git 忽略的 .env 中。");

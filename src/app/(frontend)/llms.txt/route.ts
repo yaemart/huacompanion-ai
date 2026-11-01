@@ -1,4 +1,6 @@
-export function GET(){return new Response(`# Hua Companion / 华伴
+export function GET() {
+  return new Response(
+    `# Hua Companion / 华伴
 
 Public information about visiting China. All arrangements are coordinated through Hua.
 
@@ -10,4 +12,7 @@ Public information about visiting China. All arrangements are coordinated throug
 - Sitemap: /sitemap.xml
 
 Supported locale codes: zh, en, es, fr, de, it, ar. Public APIs are read-only and return published information only. Use returned inquiryPath for enquiries. A submission is not a confirmed booking. Respect currentStatus, sources and verification dates; unknown fields are not guarantees. No authorization to access private staff, customers, contacts or internal records.
-`,{headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});}
+`,
+    { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } },
+  );
+}

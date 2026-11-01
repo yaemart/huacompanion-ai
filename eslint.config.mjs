@@ -49,10 +49,13 @@ export default defineConfig([
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/no-unused-expressions": "warn",
       "prefer-const": "warn",
-      "no-empty": ["error", { "allowEmptyCatch": true }],
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "no-useless-assignment": "warn",
       "no-useless-escape": "warn",
       // Existing adapters intentionally avoid logging credential-bearing causes.

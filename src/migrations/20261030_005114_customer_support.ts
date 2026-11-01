@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -105,7 +105,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "payload_locked_documents_rels_support_customers_id_idx" ON "payload_locked_documents_rels" USING btree ("support_customers_id");
   CREATE INDEX "payload_locked_documents_rels_support_conversations_id_idx" ON "payload_locked_documents_rels" USING btree ("support_conversations_id");
   CREATE INDEX "payload_locked_documents_rels_support_messages_id_idx" ON "payload_locked_documents_rels" USING btree ("support_messages_id");
-  CREATE INDEX "payload_locked_documents_rels_support_runs_id_idx" ON "payload_locked_documents_rels" USING btree ("support_runs_id");`)
+  CREATE INDEX "payload_locked_documents_rels_support_runs_id_idx" ON "payload_locked_documents_rels" USING btree ("support_runs_id");`);
 }
 
-export async function down(): Promise<void> { throw new Error('Support data rollback requires an explicit backup/restore plan'); }
+export async function down(): Promise<void> {
+  throw new Error("Support data rollback requires an explicit backup/restore plan");
+}

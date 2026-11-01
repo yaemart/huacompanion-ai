@@ -11,18 +11,50 @@ import { agentAction, runTask } from "../../src/server/content-agent/service";
 if (process.env.APP_ENV !== "local") throw Error("Local tests only");
 const p = await getPayload({ config });
 const key = `permissions-${Date.now()}`;
-const admin = (await p.find({ collection: "staff", where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt", limit: 1 })).docs[0];
+const admin = (
+  await p.find({
+    collection: "staff",
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+    sort: "createdAt",
+    limit: 1,
+  })
+).docs[0];
 assert.ok(admin);
 const passwords = new Map<number, string>();
 const draftIDs: number[] = [];
 const mediaIDs: number[] = [];
-async function staff(label: string, role: "editor" | "reviewer", kinds: ("guide" | "faq")[], additionalRoles: "editor"[] = []) {
+async function staff(
+  label: string,
+  role: "editor" | "reviewer",
+  kinds: ("guide" | "faq")[],
+  additionalRoles: "editor"[] = [],
+) {
   const password = randomUUID();
-  const doc = await p.create({ collection: "staff", user: admin, data: { name: label, email: `${key}-${label}@example.invalid`, password, role, active: true, contentKinds: kinds, additionalRoles } });
+  const doc = await p.create({
+    collection: "staff",
+    user: admin,
+    data: {
+      name: label,
+      email: `${key}-${label}@example.invalid`,
+      password,
+      role,
+      active: true,
+      contentKinds: kinds,
+      additionalRoles,
+    },
+  });
   passwords.set(doc.id, password);
   return doc;
 }
-const body = { contentKey: key, slug: key, kind: "guide", locale: "en", title: "Initial published title", blocks: [{ type: "paragraph", text: "Public text" }], sources: [{ id: "s", title: "Source", url: "https://example.com" }] };
+const body = {
+  contentKey: key,
+  slug: key,
+  kind: "guide",
+  locale: "en",
+  title: "Initial published title",
+  blocks: [{ type: "paragraph", text: "Public text" }],
+  sources: [{ id: "s", title: "Source", url: "https://example.com" }],
+};
 try {
   const editor = await staff("editor", "editor", ["guide"]);
   const reviewer = await staff("reviewer", "reviewer", ["guide"]);
@@ -32,92 +64,389 @@ try {
   let draft = await mutateContent(p, editor, { action: "save", body });
   draftIDs.push(draft.id);
   assert.equal(draft.lastEditedBy, editor.id);
-  await assert.rejects(() => mutateContent(p, reviewer, { action: "save", body: { ...body, contentKey: `${key}-denied`, slug: `${key}-denied` } }));
+  await assert.rejects(() =>
+    mutateContent(p, reviewer, {
+      action: "save",
+      body: { ...body, contentKey: `${key}-denied`, slug: `${key}-denied` },
+    }),
+  );
   await assert.rejects(() => mutateContent(p, outsider, { action: "save", body }));
-  await assert.rejects(() => mutateContent(p, { ...editor, active: false }, { action: "save", body }));
-  assert.equal((await p.findByID({ collection: "content-drafts", id: draft.id, overrideAccess: false, user: reviewer })).id, draft.id);
-  await assert.rejects(() => p.findByID({ collection: "content-drafts", id: draft.id, overrideAccess: false, user: outsider }));
-  const hiddenVersions = await p.findVersions({ collection: "content-drafts", where: { parent: { equals: draft.id } }, overrideAccess: false, user: outsider });
+  await assert.rejects(() =>
+    mutateContent(p, { ...editor, active: false }, { action: "save", body }),
+  );
+  assert.equal(
+    (
+      await p.findByID({
+        collection: "content-drafts",
+        id: draft.id,
+        overrideAccess: false,
+        user: reviewer,
+      })
+    ).id,
+    draft.id,
+  );
+  await assert.rejects(() =>
+    p.findByID({
+      collection: "content-drafts",
+      id: draft.id,
+      overrideAccess: false,
+      user: outsider,
+    }),
+  );
+  const hiddenVersions = await p.findVersions({
+    collection: "content-drafts",
+    where: { parent: { equals: draft.id } },
+    overrideAccess: false,
+    user: outsider,
+  });
   assert.equal(hiddenVersions.docs.length, 0);
-  const versions = await p.findVersions({ collection: "content-drafts", where: { parent: { equals: draft.id } }, overrideAccess: false, user: reviewer });
+  const versions = await p.findVersions({
+    collection: "content-drafts",
+    where: { parent: { equals: draft.id } },
+    overrideAccess: false,
+    user: reviewer,
+  });
   assert.ok(versions.docs.length);
-  draft = await mutateContent(p, editor, { action: "submit", id: draft.id, revision: draft.revision });
+  draft = await mutateContent(p, editor, {
+    action: "submit",
+    id: draft.id,
+    revision: draft.revision,
+  });
   assert.equal(draft.submittedBy, editor.id);
-  await assert.rejects(() => mutateContent(p, editor, { action: "save", id: draft.id, revision: draft.revision, body }));
-  await assert.rejects(() => mutateContent(p, admin, { action: "restore", id: draft.id, revision: draft.revision, versionId: versions.docs[0].id }));
-  await assert.rejects(() => mutateContent(p, editor, { action: "publish", id: draft.id, revision: draft.revision }));
-  draft = await mutateContent(p, reviewer, { action: "publish", id: draft.id, revision: draft.revision });
+  await assert.rejects(() =>
+    mutateContent(p, editor, { action: "save", id: draft.id, revision: draft.revision, body }),
+  );
+  await assert.rejects(() =>
+    mutateContent(p, admin, {
+      action: "restore",
+      id: draft.id,
+      revision: draft.revision,
+      versionId: versions.docs[0].id,
+    }),
+  );
+  await assert.rejects(() =>
+    mutateContent(p, editor, { action: "publish", id: draft.id, revision: draft.revision }),
+  );
+  draft = await mutateContent(p, reviewer, {
+    action: "publish",
+    id: draft.id,
+    revision: draft.revision,
+  });
   assert.equal((await readPublished(p, "guide", "en", key))?.title, body.title);
-  draft = await mutateContent(p, editor, { action: "save", id: draft.id, revision: draft.revision, body: { ...body, title: "Unreviewed changes" } });
+  draft = await mutateContent(p, editor, {
+    action: "save",
+    id: draft.id,
+    revision: draft.revision,
+    body: { ...body, title: "Unreviewed changes" },
+  });
   assert.equal((await readPublished(p, "guide", "en", key))?.title, body.title);
-  draft = await mutateContent(p, editor, { action: "submit", id: draft.id, revision: draft.revision });
-  draft = await mutateContent(p, reviewer, { action: "return", id: draft.id, revision: draft.revision });
+  draft = await mutateContent(p, editor, {
+    action: "submit",
+    id: draft.id,
+    revision: draft.revision,
+  });
+  draft = await mutateContent(p, reviewer, {
+    action: "return",
+    id: draft.id,
+    revision: draft.revision,
+  });
   assert.equal(draft.reviewState, "returned");
-  draft = await mutateContent(p, combined, { action: "submit", id: draft.id, revision: draft.revision });
-  draft = await mutateContent(p, reviewer, { action: "return", id: draft.id, revision: draft.revision });
-  draft = await mutateContent(p, editor, { action: "submit", id: draft.id, revision: draft.revision });
-  await assert.rejects(() => mutateContent(p, combined, { action: "publish", id: draft.id, revision: draft.revision }));
-  draft = await mutateContent(p, reviewer, { action: "return", id: draft.id, revision: draft.revision });
-  let own = await mutateContent(p, combined, { action: "save", body: { ...body, contentKey: `${key}-own`, slug: `${key}-own` } });
+  draft = await mutateContent(p, combined, {
+    action: "submit",
+    id: draft.id,
+    revision: draft.revision,
+  });
+  draft = await mutateContent(p, reviewer, {
+    action: "return",
+    id: draft.id,
+    revision: draft.revision,
+  });
+  draft = await mutateContent(p, editor, {
+    action: "submit",
+    id: draft.id,
+    revision: draft.revision,
+  });
+  await assert.rejects(() =>
+    mutateContent(p, combined, { action: "publish", id: draft.id, revision: draft.revision }),
+  );
+  draft = await mutateContent(p, reviewer, {
+    action: "return",
+    id: draft.id,
+    revision: draft.revision,
+  });
+  let own = await mutateContent(p, combined, {
+    action: "save",
+    body: { ...body, contentKey: `${key}-own`, slug: `${key}-own` },
+  });
   draftIDs.push(own.id);
   own = await mutateContent(p, combined, { action: "submit", id: own.id, revision: own.revision });
-  await assert.rejects(() => mutateContent(p, combined, { action: "publish", id: own.id, revision: own.revision, overrideReason: "Cannot override as reviewer" }));
-  const frozenTask = await agentAction(p, combined, { action: "create", kind: "draft", title: "Frozen target", material: "Public", draftId: own.id, revision: own.revision });
-  await p.update({ collection: "content-agent-tasks", id: frozenTask.id, data: { status: "succeeded", result: { title: "Must not overwrite", blocks: [{ type: "paragraph", text: "Candidate" }], sourceIds: ["s"], questions: [] } } });
+  await assert.rejects(() =>
+    mutateContent(p, combined, {
+      action: "publish",
+      id: own.id,
+      revision: own.revision,
+      overrideReason: "Cannot override as reviewer",
+    }),
+  );
+  const frozenTask = await agentAction(p, combined, {
+    action: "create",
+    kind: "draft",
+    title: "Frozen target",
+    material: "Public",
+    draftId: own.id,
+    revision: own.revision,
+  });
+  await p.update({
+    collection: "content-agent-tasks",
+    id: frozenTask.id,
+    data: {
+      status: "succeeded",
+      result: {
+        title: "Must not overwrite",
+        blocks: [{ type: "paragraph", text: "Candidate" }],
+        sourceIds: ["s"],
+        questions: [],
+      },
+    },
+  });
   await assert.rejects(() => agentAction(p, combined, { action: "adopt", id: frozenTask.id }));
-  assert.equal((await p.findByID({ collection: "content-drafts", id: own.id })).reviewState, "review");
+  assert.equal(
+    (await p.findByID({ collection: "content-drafts", id: own.id })).reviewState,
+    "review",
+  );
   own = await mutateContent(p, reviewer, { action: "return", id: own.id, revision: own.revision });
-  own = await mutateContent(p, editor, { action: "save", id: own.id, revision: own.revision, body: { ...body, contentKey: `${key}-own`, slug: `${key}-own`, title: "Second contributor edit" } });
+  own = await mutateContent(p, editor, {
+    action: "save",
+    id: own.id,
+    revision: own.revision,
+    body: {
+      ...body,
+      contentKey: `${key}-own`,
+      slug: `${key}-own`,
+      title: "Second contributor edit",
+    },
+  });
   own = await mutateContent(p, editor, { action: "submit", id: own.id, revision: own.revision });
   assert.ok(Array.isArray(own.contributors) && own.contributors.includes(combined.id));
-  await assert.rejects(() => mutateContent(p, combined, { action: "publish", id: own.id, revision: own.revision }));
-  let adminDraft = await mutateContent(p, admin, { action: "save", body: { ...body, contentKey: `${key}-admin`, slug: `${key}-admin` } });
+  await assert.rejects(() =>
+    mutateContent(p, combined, { action: "publish", id: own.id, revision: own.revision }),
+  );
+  let adminDraft = await mutateContent(p, admin, {
+    action: "save",
+    body: { ...body, contentKey: `${key}-admin`, slug: `${key}-admin` },
+  });
   draftIDs.push(adminDraft.id);
-  adminDraft = await mutateContent(p, admin, { action: "submit", id: adminDraft.id, revision: adminDraft.revision });
-  await assert.rejects(() => mutateContent(p, admin, { action: "publish", id: adminDraft.id, revision: adminDraft.revision }));
-  await mutateContent(p, admin, { action: "publish", id: adminDraft.id, revision: adminDraft.revision, overrideReason: "Local permission test exception" });
-  const event = (await p.find({ collection: "content-events", where: { draftId: { equals: adminDraft.id } } })).docs[0];
+  adminDraft = await mutateContent(p, admin, {
+    action: "submit",
+    id: adminDraft.id,
+    revision: adminDraft.revision,
+  });
+  await assert.rejects(() =>
+    mutateContent(p, admin, {
+      action: "publish",
+      id: adminDraft.id,
+      revision: adminDraft.revision,
+    }),
+  );
+  await mutateContent(p, admin, {
+    action: "publish",
+    id: adminDraft.id,
+    revision: adminDraft.revision,
+    overrideReason: "Local permission test exception",
+  });
+  const event = (
+    await p.find({ collection: "content-events", where: { draftId: { equals: adminDraft.id } } })
+  ).docs[0];
   assert.equal(event.overrideReason, "Local permission test exception");
   const approvedAdmin = await p.findByID({ collection: "content-drafts", id: adminDraft.id });
-  const adminPending = await mutateContent(p, admin, { action: "submit", id: approvedAdmin.id, revision: approvedAdmin.revision });
-  await mutateContent(p, admin, { action: "return", id: adminPending.id, revision: adminPending.revision, overrideReason: "Local return exception" });
-  const returnEvent = (await p.find({ collection: "content-events", where: { and: [{ draftId: { equals: adminDraft.id } }, { action: { equals: "return" } }] } })).docs[0];
+  const adminPending = await mutateContent(p, admin, {
+    action: "submit",
+    id: approvedAdmin.id,
+    revision: approvedAdmin.revision,
+  });
+  await mutateContent(p, admin, {
+    action: "return",
+    id: adminPending.id,
+    revision: adminPending.revision,
+    overrideReason: "Local return exception",
+  });
+  const returnEvent = (
+    await p.find({
+      collection: "content-events",
+      where: { and: [{ draftId: { equals: adminDraft.id } }, { action: { equals: "return" } }] },
+    })
+  ).docs[0];
   assert.equal(returnEvent.overrideReason, "Local return exception");
-  await assert.rejects(() => p.find({ collection: "content-events", overrideAccess: false, user: reviewer }));
-  await assert.rejects(() => p.find({ collection: "content-published", overrideAccess: false, user: reviewer }));
-  await assert.rejects(() => p.update({ collection: "content-drafts", id: draft.id, data: { reviewState: "approved" }, overrideAccess: false, user: reviewer }));
-  const media = await p.create({ collection: "content-media", data: { filename: `${randomUUID()}.webp`, alt: "ACL fixture", rights: "Test", size: 1, uploadedBy: editor.id } });
+  await assert.rejects(() =>
+    p.find({ collection: "content-events", overrideAccess: false, user: reviewer }),
+  );
+  await assert.rejects(() =>
+    p.find({ collection: "content-published", overrideAccess: false, user: reviewer }),
+  );
+  await assert.rejects(() =>
+    p.update({
+      collection: "content-drafts",
+      id: draft.id,
+      data: { reviewState: "approved" },
+      overrideAccess: false,
+      user: reviewer,
+    }),
+  );
+  const media = await p.create({
+    collection: "content-media",
+    data: {
+      filename: `${randomUUID()}.webp`,
+      alt: "ACL fixture",
+      rights: "Test",
+      size: 1,
+      uploadedBy: editor.id,
+    },
+  });
   mediaIDs.push(media.id);
-  const noBoardMedia = await p.create({ collection: "content-media", data: { filename: `${randomUUID()}.webp`, alt: "No board uploader", rights: "Test", size: 1, uploadedBy: noBoard.id } });
+  const noBoardMedia = await p.create({
+    collection: "content-media",
+    data: {
+      filename: `${randomUUID()}.webp`,
+      alt: "No board uploader",
+      rights: "Test",
+      size: 1,
+      uploadedBy: noBoard.id,
+    },
+  });
   mediaIDs.push(noBoardMedia.id);
-  await assert.rejects(() => p.findByID({ collection: "content-media", id: noBoardMedia.id, overrideAccess: false, user: noBoard }));
-  const hiddenMedia = await p.create({ collection: "content-media", data: { filename: `${randomUUID()}.webp`, alt: "Other uploader", rights: "Test", size: 1, uploadedBy: outsider.id } });
+  await assert.rejects(() =>
+    p.findByID({
+      collection: "content-media",
+      id: noBoardMedia.id,
+      overrideAccess: false,
+      user: noBoard,
+    }),
+  );
+  const hiddenMedia = await p.create({
+    collection: "content-media",
+    data: {
+      filename: `${randomUUID()}.webp`,
+      alt: "Other uploader",
+      rights: "Test",
+      size: 1,
+      uploadedBy: outsider.id,
+    },
+  });
   mediaIDs.push(hiddenMedia.id);
-  await assert.rejects(() => mutateContent(p, editor, { action: "save", id: draft.id, revision: draft.revision, body: { ...body, blocks: [{ type: "image", mediaId: hiddenMedia.id }] } }));
-  await p.findByID({ collection: "content-media", id: media.id, overrideAccess: false, user: editor });
-  await assert.rejects(() => p.findByID({ collection: "content-media", id: media.id, overrideAccess: false, user: reviewer }));
-  await mutateContent(p, editor, { action: "save", id: draft.id, revision: draft.revision, body: { ...body, blocks: [...body.blocks, { type: "image", mediaId: media.id }] } });
-  await p.findByID({ collection: "content-media", id: media.id, overrideAccess: false, user: reviewer });
-  await assert.rejects(() => p.findByID({ collection: "content-media", id: media.id, overrideAccess: false, user: outsider }));
-  const task = await agentAction(p, editor, { action: "create", kind: "draft", title: "Scoped task", material: "No confidential input", locale: "en", sources: [] });
+  await assert.rejects(() =>
+    mutateContent(p, editor, {
+      action: "save",
+      id: draft.id,
+      revision: draft.revision,
+      body: { ...body, blocks: [{ type: "image", mediaId: hiddenMedia.id }] },
+    }),
+  );
+  await p.findByID({
+    collection: "content-media",
+    id: media.id,
+    overrideAccess: false,
+    user: editor,
+  });
+  await assert.rejects(() =>
+    p.findByID({
+      collection: "content-media",
+      id: media.id,
+      overrideAccess: false,
+      user: reviewer,
+    }),
+  );
+  await mutateContent(p, editor, {
+    action: "save",
+    id: draft.id,
+    revision: draft.revision,
+    body: { ...body, blocks: [...body.blocks, { type: "image", mediaId: media.id }] },
+  });
+  await p.findByID({
+    collection: "content-media",
+    id: media.id,
+    overrideAccess: false,
+    user: reviewer,
+  });
+  await assert.rejects(() =>
+    p.findByID({
+      collection: "content-media",
+      id: media.id,
+      overrideAccess: false,
+      user: outsider,
+    }),
+  );
+  const task = await agentAction(p, editor, {
+    action: "create",
+    kind: "draft",
+    title: "Scoped task",
+    material: "No confidential input",
+    locale: "en",
+    sources: [],
+  });
   assert.equal(task.contentKind, "guide");
   await assert.rejects(() => agentAction(p, outsider, { action: "cancel", id: task.id }));
   await assert.rejects(() => runTask(p, outsider, task.id));
-  await assert.rejects(() => p.findByID({ collection: "content-agent-tasks", id: task.id, overrideAccess: false, user: outsider }));
-  await p.findByID({ collection: "content-agent-tasks", id: task.id, overrideAccess: false, user: reviewer });
-  await assert.rejects(() => agentAction(p, reviewer, { action: "create", kind: "draft", title: "Denied", material: "", sources: [] }));
-  await assert.rejects(() => agentAction(p, outsider, { action: "create", kind: "draft", title: "Wrong board", material: "", sources: [] }));
+  await assert.rejects(() =>
+    p.findByID({
+      collection: "content-agent-tasks",
+      id: task.id,
+      overrideAccess: false,
+      user: outsider,
+    }),
+  );
+  await p.findByID({
+    collection: "content-agent-tasks",
+    id: task.id,
+    overrideAccess: false,
+    user: reviewer,
+  });
+  await assert.rejects(() =>
+    agentAction(p, reviewer, {
+      action: "create",
+      kind: "draft",
+      title: "Denied",
+      material: "",
+      sources: [],
+    }),
+  );
+  await assert.rejects(() =>
+    agentAction(p, outsider, {
+      action: "create",
+      kind: "draft",
+      title: "Wrong board",
+      material: "",
+      sources: [],
+    }),
+  );
   if (process.env.AUTHZ_HTTP_URL) {
     const base = process.env.AUTHZ_HTTP_URL.replace(/\/$/, "");
     async function cookie(user: typeof editor) {
-      const response = await fetch(`${base}/api/staff/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, password: passwords.get(user.id) }) });
+      const response = await fetch(`${base}/api/staff/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, password: passwords.get(user.id) }),
+      });
       assert.equal(response.status, 200);
-      return response.headers.getSetCookie().map(value => value.split(";")[0]).join("; ");
+      return response.headers
+        .getSetCookie()
+        .map((value) => value.split(";")[0])
+        .join("; ");
     }
-    const editorCookie = await cookie(editor), reviewerCookie = await cookie(reviewer), outsiderCookie = await cookie(outsider), noBoardCookie = await cookie(noBoard);
-    const deniedUpload = await fetch(`${base}/api/content-media`, { method: "POST", headers: { Cookie: noBoardCookie, Origin: process.env.APP_URL! }, body: "no board" });
+    const editorCookie = await cookie(editor),
+      reviewerCookie = await cookie(reviewer),
+      outsiderCookie = await cookie(outsider),
+      noBoardCookie = await cookie(noBoard);
+    const deniedUpload = await fetch(`${base}/api/content-media`, {
+      method: "POST",
+      headers: { Cookie: noBoardCookie, Origin: process.env.APP_URL! },
+      body: "no board",
+    });
     assert.equal(deniedUpload.status, 403);
-    const request = (url: string, cookie: string) => fetch(`${base}${url}`, { headers: { Cookie: cookie, Origin: process.env.APP_URL! }, redirect: "manual" });
+    const request = (url: string, cookie: string) =>
+      fetch(`${base}${url}`, {
+        headers: { Cookie: cookie, Origin: process.env.APP_URL! },
+        redirect: "manual",
+      });
     const dashboard = await request("/api/content-center", reviewerCookie);
     assert.equal(dashboard.status, 200);
     const dashboardData = await dashboard.json();
@@ -129,9 +458,15 @@ try {
     assert.ok(!hidden.published.some((item: any) => item.draftId === draft.id));
     assert.ok(!hidden.tasks.some((item: any) => item.id === task.id));
     assert.ok(!hidden.media.some((item: any) => item.id === media.id));
-    const foreignHistory = await request(`/api/content-center?versions=${draft.id}`, outsiderCookie);
+    const foreignHistory = await request(
+      `/api/content-center?versions=${draft.id}`,
+      outsiderCookie,
+    );
     assert.ok(foreignHistory.status >= 400);
-    assert.equal((await request(`/api/content-center?versions=${draft.id}`, reviewerCookie)).status, 200);
+    assert.equal(
+      (await request(`/api/content-center?versions=${draft.id}`, reviewerCookie)).status,
+      200,
+    );
     assert.equal((await request(`/content-preview/${draft.id}`, reviewerCookie)).status, 200);
     assert.equal((await request(`/content-preview/${draft.id}`, outsiderCookie)).status, 404);
     const filepath = path.resolve(".local/content-media", media.filename);
@@ -142,25 +477,65 @@ try {
       assert.equal((await request(`/api/content-media/${media.id}`, outsiderCookie)).status, 404);
       assert.equal((await request(`/api/content-media/${media.id}`, "")).status, 404);
       const latest = await p.findByID({ collection: "content-drafts", id: draft.id });
-      const pending = await mutateContent(p, editor, { action: "submit", id: latest.id, revision: latest.revision });
-      const publicDraft = await mutateContent(p, reviewer, { action: "publish", id: latest.id, revision: pending.revision });
+      const pending = await mutateContent(p, editor, {
+        action: "submit",
+        id: latest.id,
+        revision: latest.revision,
+      });
+      const publicDraft = await mutateContent(p, reviewer, {
+        action: "publish",
+        id: latest.id,
+        revision: pending.revision,
+      });
       assert.equal((await request(`/api/content-media/${media.id}`, "")).status, 200);
-      await mutateContent(p, reviewer, { action: "unpublish", id: publicDraft.id, revision: publicDraft.revision });
-    } finally { await unlink(filepath); }
-    const deniedTask = await fetch(`${base}/api/content-agent`, { method: "POST", headers: { Cookie: outsiderCookie, Origin: process.env.APP_URL!, "Content-Type": "application/json" }, body: JSON.stringify({ action: "cancel", id: task.id }) });
+      await mutateContent(p, reviewer, {
+        action: "unpublish",
+        id: publicDraft.id,
+        revision: publicDraft.revision,
+      });
+    } finally {
+      await unlink(filepath);
+    }
+    const deniedTask = await fetch(`${base}/api/content-agent`, {
+      method: "POST",
+      headers: {
+        Cookie: outsiderCookie,
+        Origin: process.env.APP_URL!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "cancel", id: task.id }),
+    });
     assert.equal(deniedTask.status, 403);
-    const deniedPublish = await fetch(`${base}/api/content-center`, { method: "POST", headers: { Cookie: editorCookie, Origin: process.env.APP_URL!, "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish", id: draft.id, revision: draft.revision }) });
+    const deniedPublish = await fetch(`${base}/api/content-center`, {
+      method: "POST",
+      headers: {
+        Cookie: editorCookie,
+        Origin: process.env.APP_URL!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "publish", id: draft.id, revision: draft.revision }),
+    });
     assert.equal(deniedPublish.status, 403);
-    console.log("PASS HTTP content API, history, preview, media binary and AI task board isolation");
+    console.log(
+      "PASS HTTP content API, history, preview, media binary and AI task board isolation",
+    );
   }
-  console.log("PASS content board scopes, review separation, pending freeze, published isolation, audit override, media references and AI task access");
+  console.log(
+    "PASS content board scopes, review separation, pending freeze, published isolation, audit override, media references and AI task access",
+  );
 } catch (error) {
   console.error(error);
   process.exitCode = 1;
 } finally {
-  if (draftIDs.length) await p.update({ collection: "content-published", where: { draftId: { in: draftIDs } }, data: { active: false } });
+  if (draftIDs.length)
+    await p.update({
+      collection: "content-published",
+      where: { draftId: { in: draftIDs } },
+      data: { active: false },
+    });
   for (const id of mediaIDs) await p.delete({ collection: "content-media", id });
-  for (const id of passwords.keys()) await p.update({ collection: "staff", id, user: admin, data: { active: false } });
+  for (const id of passwords.keys())
+    await p.update({ collection: "staff", id, user: admin, data: { active: false } });
   await p.destroy();
   process.exit(process.exitCode || 0);
 }
