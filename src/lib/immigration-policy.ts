@@ -32,7 +32,7 @@ export type PolicyPublicationData = {
 
 export type PublicPolicyData = Omit<PolicyPublicationData, "verifiedBy" | "internalNotes">;
 
-function calendarDate(value: unknown): value is string {
+export function isPolicyCalendarDate(value: unknown): value is string {
   return (
     typeof value === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(value) &&
@@ -50,7 +50,7 @@ export function validatePublicPolicy(
   value: unknown,
   today: string,
 ): asserts value is PublicPolicyData {
-  if (!calendarDate(today)) throw Error("核实日期基准无效");
+  if (!isPolicyCalendarDate(today)) throw Error("核实日期基准无效");
   if (!value || typeof value !== "object" || Array.isArray(value)) throw Error("入境政策格式无效");
   const data = value as Record<string, unknown>;
   if (typeof data.countryCode !== "string" || !/^[A-Z]{2}$/.test(data.countryCode))
@@ -64,11 +64,11 @@ export function validatePublicPolicy(
     data.maxStayDays < 1
   )
     throw Error("最长停留天数必须为正整数");
-  if (!calendarDate(data.validFrom) || !calendarDate(data.lastVerifiedOn))
+  if (!isPolicyCalendarDate(data.validFrom) || !isPolicyCalendarDate(data.lastVerifiedOn))
     throw Error("生效日及最后核实日期需为有效日历日");
   if (
     data.validUntil != null &&
-    (!calendarDate(data.validUntil) || data.validUntil < data.validFrom)
+    (!isPolicyCalendarDate(data.validUntil) || data.validUntil < data.validFrom)
   )
     throw Error("截止日需为空或不早于生效日");
   if (data.lastVerifiedOn > today) throw Error("最后核实日期不能晚于今天");

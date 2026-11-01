@@ -5,8 +5,8 @@
 ## 当前生效任务与停止点
 
 - 最新权威需求为 [流量入口分阶段任务书](traffic-entry-task.md)，已取代旧“收敛与上线准备”和“补充任务”。旧实施记录仅保留为已完成工作的证据。
-- 当前分支codex/visa-policy-data，本轮1.1d依赖[PR9](https://github.com/yaemart/huacompanion-ai/pull/9)的ea98dbb8762d5e584bede4579dce622911ba7e20。PR9的push/PR CI均成功（41299040450、41299058905）；PR8的51ceaf3两项CI也成功。依赖顺序PR2→3→4→5→6→7→8→9→本轮数据PR；前置合并后改指main重验，不自动合并。当前head的PR/完整SHA/CI以最终交接实际核实，不能沿用依赖的绿色结果。
-- 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付。1.1政策事务/表单/仅草稿导入/正式投影已本地验证。后台入口/content-center?kind=immigration-policy，需VISA_CHECKER_ENABLED=true和显式板块授权；默认隐藏。通用集合CRUD仍关闭，仅管理员直接读；工作台读取对授权编辑/审核开放，核实人仅姓名/ID。新投影供后续SSR，无新增公网接口。下一步1.2查询纯函数，工具尚未实现，见[政策约定](immigration-policies.md)。
+- 当前分支codex/visa-policy-query，草稿[PR11](https://github.com/yaemart/huacompanion-ai/pull/11)依赖[PR10](https://github.com/yaemart/huacompanion-ai/pull/10)的b72e106f4a1540324e03abe6e1da6e2857d02f70。PR10的push/PR CI均成功（41302402453、41302473045）。依赖顺序PR2→3→4→5→6→7→8→9→10→11；前置合并后改指main重验，不自动合并。当前head的完整SHA/CI以最终交接及PR说明实际核实，不能沿用依赖的绿色结果。
+- 阶段1按[开发计划](traffic-entry-phase1-plan.md)渐进交付。1.1政策事务/表单/仅草稿导入/正式投影及1.2纯查询已本地验证。后台入口/content-center?kind=immigration-policy，需VISA_CHECKER_ENABLED=true和显式板块授权；默认隐藏。通用集合CRUD仍关闭，仅管理员直接读；工作台读取对授权编辑/审核开放，核实人仅姓名/ID。无新增公网接口。下一步1.3a中英SSR与无JS表格，工具尚未实现，见[政策约定](immigration-policies.md)。
 - **停止点A已由用户于2026-11-01确认**：Render，以及Cloudflare Web Analytics加站内每日事件汇总。用户明确当下只继续本地开发测试；不创建账户、不购买、不部署、不接统计代码。无个人标识的有效行为次数口径按已确认方案说明执行，不宣称独立访客人数。
 
 ## 既有基础版本与证据
@@ -29,10 +29,12 @@
 
 ## 环境与数据
 
+- 1.2无新迁移/依赖/环境值变化。check通过177项单元；新增test:policies:query与原test:policies:data两套DB及trial HTTP通过。查询显式日期基准，只消费正式投影；指南必须由调用方从listPublished提供，无真实指南时null。只读核实政策/版本/工作稿/正式快照/临时账号和授权均0，原稿116保留，实际flag关闭。此步无界面，截图不适用。独立复核无Critical/Important/Minor，另跑纯13/13；未代跑DB/HTTP/build/CI。网站及两个worker已恢复，support无模型转人工，workflow为0提醒/0处理。当前head远端/CI证据见最终交接及PR11说明。
+
 - Node24.22.1、PostgreSQL15；本机系统默认Node版本不等于项目版本，先按 `.nvmrc` 配置并确认 `node -v`。本轮验证明确使用Node24。开发网站3000，专用虚构测试库55438。
 - `npm run dev` 保留Next Fast Refresh、关闭Payload HMR；CMS配置／集合／字段／权限配置修改后重启。构建与check串行，避免生成Next类型竞争。
 - 1.1d无新迁移/依赖/环境值变更，复用既有66表结构。本轮data+content/permissions:content/quality/policies:workflow/policies:editor六套DB及policies/workflow/editor/trial四套HTTP退出0；164项单元、check及生产build通过。独立复核3项CLI连接/错误与输入类型问题均补RED→GREEN，详见progress；复核者未重跑DB/HTTP/build/CI。只读核实政策/版本/工作稿/正式快照/临时授权均0，原稿116保留，实际flag关闭；未把空模板导入用户库。网站与support/workflow两个worker已恢复，仍无模型/外发邮件；当前head CI见最终交接。
-- seed:policies须--file JSON，默认预览，--apply仅创建草稿，已有记录不更新。限制本机专用postgresql URL且无查询/片段，避免驱动改连接目标；核实字段只能后台填写。新SSR投影只读active快照，默认空，不新增公网接口。下一步1.2查询纯函数，仍需实际政策与后续工具/B验收。纯数据/脚本无新截图；screenshots/visa-policy-editor只代表1.1c2旧表单验收。
+- seed:policies须--file JSON，默认预览，--apply仅创建草稿，已有记录不更新。限制本机专用postgresql URL且无查询/片段，避免驱动改连接目标；核实字段只能后台填写。SSR投影只读active快照，默认空，不新增公网接口。1.2纯函数现已验证，仍需实际政策、指南与后续工具/B验收。纯数据/脚本无新截图；screenshots/visa-policy-editor只代表1.1c2旧表单验收。
 - 本轮迁移20261101_091015_immigration_policy_workflow只给员工内容类型枚举增加immigration-policy，不自动授权。备份.local/policy-workflow-before/database.dump；空库及隔离克隆up/down/up保留66张原表内容，down遇政策授权先拒绝，不能静默删除授权。本机已备份后事务up、原数据不变，local迁移标记保留。换电脑先备份升级；不要复用62表备份测试这一步。
 - 新迁移：此前三项加`20261101_082855_immigration_policies`。本机已停三个进程、备份后事务应用政策up，原62表原列数据指纹一致；升级前备份在忽略目录`.local/visa-collection-before/database.dump`。本机保留原local开发迁移标记，不重放旧迁移；trial/CI空库正常执行全迁移CLI。其他电脑接手前先备份并阅读迁移说明，不能直接覆盖数据或用down切分支。
 - `.env.example` 增加`VISA_CHECKER_ENABLED=false`；仅字面true显示本阶段后台导航，权限不随开关放宽，公开工具仍未实现。实际.env未改，截图临时进程已关闭并恢复默认。既有`SEARCH_ENGINE_INDEXING=false`、`SITE_LOCALES=en,zh`、可信网关和`INTAKE_ENABLED`边界不变。

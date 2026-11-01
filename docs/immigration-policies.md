@@ -90,4 +90,16 @@ listPublicPolicies只供后续SSR消费，不是新增公网接口。仅字面VI
 
 读取不访问当前工作稿/政策主记录，因而编辑新草稿不会改动旧正式结果；下架后不返回。损坏正式行隐藏且不回退草稿，数据库错误传播；空截止保留null，数组复制。测试用201条正式快照验证没有默认分页截断。通用listPublished/内容API继续排除政策，匿名/低权限仍不可读原集合、草稿和历史。无新schema、依赖、服务或实际.env变化。
 
-本步只有数据/脚本，没有新界面，手机与桌面截图不适用；1.1c2旧截图仅表示后台表单。下一步1.2查询纯函数，真实政策、工具页面、云端部署与停止点B仍待完成。
+1.1d只有数据/脚本，没有新界面，手机与桌面截图不适用；1.1c2旧截图仅表示后台表单。1.2现见下节，真实政策、工具页面、云端部署与停止点B仍待完成。
+
+## 1.2 查询纯函数
+
+queryImmigrationPolicies(input, policies, context)接收nationalityISO、arrivalDate，以及listPublicPolicies取得的正式公开投影。国籍允许去首尾空白及ASCII大小写转换，null表示“未列出”；日期严格YYYY-MM-DD有效日历日。context显式传入verifiedOnOrBefore，不使用隐式时钟。arrivalDate是查询日期，不能作为核实日期基准，否则历史查询会错误排除后来核实的政策。
+
+返回matched/unconfirmed/invalid-input、字段错误代码、独立matches、中英notice及visaGuide/null，不回显国籍或入境日期。生效和截止含当天；空截止仍提示不代表永久有效。全部过期、未来尚未生效或未知国籍只说明“该日期的政策尚未确认”，不推测延期或断言必须办签证。
+
+保留所有匹配政策及各自条件/来源/核实日期；按单方面、互免、其他、240小时过境排序，同类按核实日降序再按公开字段指纹稳定排序。停留时长不相加：普通方式stay.unit=days，过境方式hours/240，不返回maxStayDays或推算离境日期。warnings始终含conditions-unchecked；空截止增加expiry-not-stated，过境增加transit-itinerary-unchecked。中英提示见immigration-policy-query-copy.ts。
+
+查询重新验证政策并拒绝携带任何非公开自有字段的对象，防止误传原始主记录/草稿；但纯事实对象本身不能证明已经发布。发布状态仍由正式投影负责，调用方不得手工剥字段后绕过工作流。visaGuide须调用方从listPublished中选择已发布指南，仅接受/en或/zh/guides/下的规范路径及有效标题；未配置/未发布返回null，不造链接。阶段1.3须实际选择签证指南，公开前须准备核实内容。
+
+test:policies:query用本地虚构数据验证草稿/待审排除、发布匹配、改稿保留旧快照、下架及指南发布链路；已加入CI串行DB套件。纯测试在UTC、上海、洛杉矶子进程禁止隐式时钟/网络/存储并比较结果。本轮无页面、路由、数据库结构或实际.env变更；下一步1.3a SSR与无JS完整表格。
