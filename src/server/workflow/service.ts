@@ -522,6 +522,8 @@ export async function runWorkflowJobs(payload: Payload) {
       sort: "dueAt",
     });
     for (const t of due.docs) {
+      // Policy review thresholds own their in-app notifications; never send generic mail.
+      if (t.key.startsWith("policy-review:")) continue;
       const event = {
         key: reminderKey(t.id, t.dueAt!),
         type: "task-due" as const,

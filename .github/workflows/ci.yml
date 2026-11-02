@@ -103,6 +103,7 @@ jobs:
           npm run test:policies:data
           npm run test:policies:query
           npm run test:policies:banner
+          npm run test:policies:reminders
       - name: Verify production policy pages with feature off and on
         env:
           APP_ENV: local
