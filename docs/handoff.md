@@ -4,7 +4,7 @@
 
 ## 最新交接：阶段 1.6 搜索基础（2026-11-02）
 
-- 当前任务分支 `codex/visa-search-basics`，基于 `fe5956ec025dac23092b8ee8f42251127a21dd74`。前置 1.5 已推送并建立草稿 [PR16](https://github.com/yaemart/huacompanion-ai/pull/16)，因此下方“未推送”仅为历史记录。本步草稿 PR 以 `codex/visa-policy-reminders` 为 base；前置合并后改指 main 重验，不自动合并。最新完整提交及远端 CI 见本次交接消息。
+- 当前任务分支 `codex/visa-search-basics`，基于 `fe5956ec025dac23092b8ee8f42251127a21dd74`。前置 1.5 已推送并建立草稿 [PR16](https://github.com/yaemart/huacompanion-ai/pull/16)，因此下方“未推送”仅为历史记录。本步草稿 [PR17](https://github.com/yaemart/huacompanion-ai/pull/17) 以 `codex/visa-policy-reminders` 为 base；前置合并后改指 main 重验，不自动合并。最新完整提交及远端 CI 见本次交接消息。
 - 已实现工具管理员 SEO/分享图/Google 验证码配置，导航、sitemap、hreflang、llms 统一受工具开关和中英范围约束；政策原始记录不生成公开详情 URL。Google 字段只接受验证码文本，不接受 HTML。未连接真实 Google 账户，也未部署或接统计。
 - 实际 `.env` 未改，工具默认关闭；local/trial 保持 noindex，正式索引仍要求 production 和显式收录开关。新字段本身不启用收录。默认品牌图片不含政策事实；后台指定工具图片受既有媒体权限及工具开关控制。
 - 新迁移 `20261102_050750_visa_search`：增加工具 SEO 枚举及可空验证字段。升级前配套备份 `backups/local-1793596007023.dump` 与 `.media`；空库及备份克隆 up/down/up 通过，本机事务升级保持原 66 表原列数据指纹。已有验证码或工具 SEO 行时 down 明确拒绝，须先人工处理配置，不能静默删数据。其他电脑先备份、核对迁移记录，再升级；不要覆盖本地库或重放已应用旧迁移。
