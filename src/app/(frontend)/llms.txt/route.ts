@@ -1,6 +1,12 @@
+import { toolLocales, visaToolPath } from "@/lib/visa-search";
+import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
+export const dynamic = "force-dynamic";
 import { parseSiteLocales } from "@/lib/site-locales";
 
 export function GET() {
+  const tools = toolLocales(parseSiteLocales(process.env.SITE_LOCALES), visaCheckerEnabled())
+    .map((locale) => `- China visa-free reference tool (${locale}): /${locale}/${visaToolPath}`)
+    .join("\n");
   return new Response(
     `# Hua Companion / 华伴
 
@@ -12,6 +18,7 @@ Public information about visiting China. All arrangements are coordinated throug
 - Institutions: /api/public/institutions/docs
 - Exhibitions: /api/public/exhibitions/docs
 - Sitemap: /sitemap.xml
+${tools}
 
 Supported locale codes: ${parseSiteLocales(process.env.SITE_LOCALES).join(", ")}. \
 Public APIs are read-only and return published information only. Use returned inquiryPath for enquiries. A submission \

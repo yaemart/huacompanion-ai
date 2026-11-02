@@ -1,7 +1,9 @@
+import { toolLocales, visaToolPath } from "./visa-search.ts";
 import type { ContentBody } from "./content-model.ts";
 import { locales, type Locale } from "./locales.ts";
 
 export const seoPages = [
+  { path: visaToolPath, label: "中国免签查询工具（仅中英文）" },
   { path: "", label: "首页" },
   { path: "services", label: "服务介绍目录" },
   { path: "services/projects", label: "服务项目目录" },
@@ -67,7 +69,7 @@ export function publicContentPath(body: ContentBody) {
     venue: "life/venue",
     activity: "life/activity",
   };
-  if (body.kind === "faq") return undefined;
+  if (body.kind === "faq" || body.kind === "immigration-policy") return undefined;
   if (body.kind === "page") return `/${body.locale}${body.slug === "home" ? "" : `/${body.slug}`}`;
   return `/${body.locale}/${prefix[body.kind]}/${body.slug}`;
 }
@@ -89,13 +91,15 @@ export function sitemapXML(
   origin: string,
   published: ContentBody[],
   enabled: readonly Locale[] = locales,
+  visaEnabled = false,
 ) {
   const groups = new Map<string, Map<Locale, { path: string; publishedAt?: string }>>();
   for (const page of seoPages) {
+    const pageLocales = page.path === visaToolPath ? toolLocales(enabled, visaEnabled) : enabled;
     groups.set(
       `static:${page.path}`,
       new Map(
-        enabled.map((locale) => [
+        pageLocales.map((locale) => [
           locale,
           {
             path: `/${locale}${page.path ? `/${page.path}` : ""}`,

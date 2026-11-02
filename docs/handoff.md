@@ -2,6 +2,16 @@
 
 日期：2026-11-02（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
+## 最新交接：阶段 1.6 搜索基础（2026-11-02）
+
+- 当前任务分支 `codex/visa-search-basics`，基于 `fe5956ec025dac23092b8ee8f42251127a21dd74`。前置 1.5 已推送并建立草稿 [PR16](https://github.com/yaemart/huacompanion-ai/pull/16)，因此下方“未推送”仅为历史记录。本步草稿 [PR17](https://github.com/yaemart/huacompanion-ai/pull/17) 以 `codex/visa-policy-reminders` 为 base；前置合并后改指 main 重验，不自动合并。最新完整提交及远端 CI 见本次交接消息。
+- 已实现工具管理员 SEO/分享图/Google 验证码配置，导航、sitemap、hreflang、llms 统一受工具开关和中英范围约束；政策原始记录不生成公开详情 URL。Google 字段只接受验证码文本，不接受 HTML。未连接真实 Google 账户，也未部署或接统计。
+- 实际 `.env` 未改，工具默认关闭；local/trial 保持 noindex，正式索引仍要求 production 和显式收录开关。新字段本身不启用收录。默认品牌图片不含政策事实；后台指定工具图片受既有媒体权限及工具开关控制。
+- 新迁移 `20261102_050750_visa_search`：增加工具 SEO 枚举及可空验证字段。升级前配套备份 `backups/local-1793596007023.dump` 与 `.media`；空库及备份克隆 up/down/up 通过，本机事务升级保持原 66 表原列数据指纹。已有验证码或工具 SEO 行时 down 明确拒绝，须先人工处理配置，不能静默删数据。其他电脑先备份、核对迁移记录，再升级；不要覆盖本地库或重放已应用旧迁移。
+- 无新依赖或环境变量。Node 24.22.1 路径及本机 PG15 配置沿用下文。本机原内容为 399 条，历史另一台电脑 116 条不代表本机；本轮既有权限回归按原脚本保留 3 条非公开测试稿（当前总数 402），相关测试员工已停用。新增搜索测试账号/媒体已清理，SEO 测试配置已恢复，后台使用现有账号验收并退出。
+- 本地 check 199 单元、生产构建、迁移、SEO/政策查询/内容权限及开关 HTTP 通过；截图见 [搜索验收](screenshots/visa-search/README.md)。本轮未重跑 Lighthouse，不代表真实内容或托管环境已验收。默认关闭的开发网站及两个 worker 已恢复。
+- 下一阶段 1.7 真实托管/恢复验收需外部账户与授权，本次不执行；公开仍须停止点 B 确认。
+
 ## 本机接手与阶段 1.5（2026-11-02）
 
 - 已核对家里交接 `d1f2fe8aa3f880d344de2dd61a279851324904c4`；本机原分支干净，保留 `codex/local-backend`，从交接建立 `codex/visa-policy-reminders`。

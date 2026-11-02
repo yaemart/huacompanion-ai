@@ -1,4 +1,5 @@
 "use client";
+import { toolLocales } from "@/lib/visa-search";
 import { supportText } from "@/lib/support";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,7 +17,7 @@ export function Header({
   languagePaths?: Partial<Record<Locale, string | null>>;
 }) {
   const path = usePathname();
-  const { activeLocales, features } = useSiteConfig();
+  const { activeLocales, features, visaChecker } = useSiteConfig();
   const c = (en: string, zh?: string) => coreText(locale, en, zh);
   const [open, setOpen] = useState(false);
   const [languageNotice, setLanguageNotice] = useState(false);
@@ -59,6 +60,15 @@ export function Header({
           {open ? "✕" : "☰"}
         </button>
         <nav id="main-nav" className={open ? "nav open" : "nav"} aria-label={c("Main navigation")}>
+          {toolLocales(activeLocales, !!visaChecker).some((code) => code === locale) && (
+            <Link
+              href={`/${locale}/tools/china-visa-free-checker`}
+              onClick={() => setOpen(false)}
+              className={path.endsWith("/tools/china-visa-free-checker") ? "active" : ""}
+            >
+              {locale === "zh" ? "免签查询" : "Visa checker"}
+            </Link>
+          )}
           {nav.map((label, i) => (
             <Link
               key={i}

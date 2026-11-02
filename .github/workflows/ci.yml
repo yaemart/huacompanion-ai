@@ -115,9 +115,11 @@ jobs:
           trap 'kill "$policy_server_pid" 2>/dev/null || true' EXIT
           npm run test:policies:page:http
           npm run test:policies:banner -- --http --disabled
+          npm run test:policies:seo
           kill "$policy_server_pid"
           wait "$policy_server_pid" || true
           APP_ENV=trial VISA_CHECKER_ENABLED=true SITE_LOCALES=en,zh,es,fr,de,it,ar node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
           policy_server_pid=$!
           npm run test:policies:page:http -- --enabled
           npm run test:policies:banner -- --http
+          npm run test:policies:seo -- --enabled

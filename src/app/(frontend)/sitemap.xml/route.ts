@@ -1,3 +1,4 @@
+import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
 import { getSiteLocales } from "@/server/site-config";
 import { sitemapXML } from "@/lib/seo";
 import { getPayload } from "payload";
@@ -10,7 +11,7 @@ export async function GET() {
     const p = await getPayload({ config });
     const origin = new URL(process.env.APP_URL || "http://127.0.0.1:3000").origin;
     const published = (await Promise.all(locales.map((locale) => listPublished(p, locale)))).flat();
-    return new Response(sitemapXML(origin, published, locales), {
+    return new Response(sitemapXML(origin, published, locales, visaCheckerEnabled()), {
       headers: { "Content-Type": "application/xml", "Cache-Control": "no-store" },
     });
   } catch {

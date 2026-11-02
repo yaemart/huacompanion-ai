@@ -44,10 +44,7 @@ for (const locale of ["en", "zh", "es", "fr", "de", "it", "ar"]) {
 }
 for (const path of ["/en", "/zh", "/sitemap.xml", "/llms.txt"]) {
   const text = await (await fetch(base + path)).text();
-  assert.doesNotMatch(
-    text,
-    /href="\/[^" ]+\/tools\/china-visa-free-checker|<loc>[^<]+\/tools\/china-visa-free-checker/,
-  );
+  assert.equal(text.includes(route), enabled, `${path} follows the tool discovery switch`);
 }
 if (enabled) {
   const p = await getPayload({ config });

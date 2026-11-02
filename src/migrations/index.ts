@@ -23,6 +23,7 @@ import * as migration_20261101_025904_intake_client_limits from "./20261101_0259
 import * as migration_20261101_030726_trial_feature_defaults from "./20261101_030726_trial_feature_defaults";
 import * as migration_20261101_082855_immigration_policies from "./20261101_082855_immigration_policies";
 import * as migration_20261101_091015_immigration_policy_workflow from "./20261101_091015_immigration_policy_workflow";
+import * as migration_20261102_050750_visa_search from "./20261102_050750_visa_search";
 
 export const migrations = [
   {
@@ -149,5 +150,10 @@ export const migrations = [
     up: migration_20261101_091015_immigration_policy_workflow.up,
     down: migration_20261101_091015_immigration_policy_workflow.down,
     name: "20261101_091015_immigration_policy_workflow",
+  },
+  {
+    up: migration_20261102_050750_visa_search.up,
+    down: migration_20261102_050750_visa_search.down,
+    name: "20261102_050750_visa_search",
   },
 ];

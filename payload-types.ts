@@ -2399,9 +2399,14 @@ export interface CustomerSetting {
  */
 export interface SeoSetting {
   id: number;
+  /**
+   * 只填验证码文本，不填完整meta标签。不会启用统计或搜索收录。
+   */
+  googleSiteVerification?: string | null;
   pages?:
     | {
         path:
+          | 'tools/china-visa-free-checker'
           | 'home'
           | 'services'
           | 'services/projects'
@@ -2482,6 +2487,7 @@ export interface CustomerSettingsSelect<T extends boolean = true> {
  * via the `definition` "seo-settings_select".
  */
 export interface SeoSettingsSelect<T extends boolean = true> {
+  googleSiteVerification?: T;
   pages?:
     | T
     | {
