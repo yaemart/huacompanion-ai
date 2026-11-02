@@ -1,3 +1,4 @@
+import { runPolicyReminders } from "../src/server/immigration/reminders";
 import { configuredBusinessAIAdapter, runBusinessAIJob } from "../src/server/business/ai";
 import { runQualityReview } from "../src/server/quality/service";
 import "dotenv/config";
@@ -16,6 +17,7 @@ try {
   do {
     try {
       await runQualityReview(p);
+      await runPolicyReminders(p);
       console.log(await runWorkflowJobs(p));
       await runBusinessAIJob(p, configuredBusinessAIAdapter());
     } catch (e) {
