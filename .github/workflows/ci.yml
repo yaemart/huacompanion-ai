@@ -123,3 +123,21 @@ jobs:
           npm run test:policies:page:http -- --enabled
           npm run test:policies:banner -- --http
           npm run test:policies:seo -- --enabled
+      - name: Verify restricted trial gate and maintenance
+        env:
+          APP_ENV: trial
+          TRIAL_ACCESS_REQUIRED: "true"
+          TRIAL_ACCESS_USER: trial
+          TRIAL_ACCESS_PASSWORD: ci-only-trial-password-at-least-32-characters
+          TRIAL_TEST_URL: http://127.0.0.1:3002
+          VISA_CHECKER_ENABLED: "false"
+        run: |
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3002 > /tmp/hua-trial-access.log 2>&1 &
+          trial_server_pid=$!
+          trap 'kill "$trial_server_pid" 2>/dev/null || true' EXIT
+          npm run test:trial:access:http
+          kill "$trial_server_pid"
+          wait "$trial_server_pid" || true
+          TRIAL_MAINTENANCE=true node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3002 > /tmp/hua-trial-access.log 2>&1 &
+          trial_server_pid=$!
+          npm run test:trial:access:http -- --maintenance

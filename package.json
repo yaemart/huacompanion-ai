@@ -84,7 +84,8 @@
     "test:policies:page:http": "node --import tsx tests/integration/immigration-page-http.ts",
     "test:policies:reminders": "node --import tsx tests/integration/immigration-reminders.ts",
     "test:policies:seo": "node --import tsx tests/integration/visa-search.ts",
-    "test:policies:seo:migration": "node --import tsx tests/integration/visa-search-migration.ts"
+    "test:policies:seo:migration": "node --import tsx tests/integration/visa-search-migration.ts",
+    "test:trial:access:http": "node scripts/check-trial-access-http.mjs"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
