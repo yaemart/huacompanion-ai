@@ -1,3 +1,6 @@
+import { pageSEO } from "@/server/seo";
+import { toolAlternates, toolLocales, visaToolPath } from "@/lib/visa-search";
+import { getSiteLocales } from "@/server/site-config";
 import { notFound } from "next/navigation";
 import { getPayload } from "payload";
 import config from "@/payload.config";
@@ -11,7 +14,7 @@ import { listPublished } from "@/server/content/service";
 import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
 import { policyPageCopy } from "@/lib/immigration-policy-page-copy";
 import { buildPolicyTable } from "@/lib/immigration-policy-table";
-import { contentMetadata } from "@/lib/seo";
+import { contentMetadata, indexingAllowed } from "@/lib/seo";
 import { listPublicPolicies } from "@/server/immigration/public";
 import { isSiteLocale } from "@/server/site-config";
 import "@/components/immigration/policy-table.css";
@@ -31,9 +34,21 @@ export async function generateMetadata({ params }: Props) {
   const locale = await pageLocale(params);
   const c = policyPageCopy[locale];
   const origin = new URL(process.env.APP_URL || "http://127.0.0.1:3000").origin;
+  const seo = await pageSEO(await getPayload({ config }), locale, visaToolPath);
+  const meta = contentMetadata(origin, `/${locale}${path}`, {
+    title: c.title,
+    summary: c.intro,
+    ...seo,
+  });
+  const images = meta.openGraph.images.length
+    ? meta.openGraph.images
+    : [`${origin}/visa-checker-share.png`];
   return {
-    ...contentMetadata(origin, `/${locale}${path}`, { title: c.title, summary: c.intro }),
-    robots: { index: false, follow: false },
+    ...meta,
+    openGraph: { ...meta.openGraph, images },
+    twitter: { ...meta.twitter, images },
+    alternates: { ...meta.alternates, languages: toolAlternates(origin, getSiteLocales(), true) },
+    robots: { index: indexingAllowed(), follow: indexingAllowed() },
   };
 }
 
@@ -67,12 +82,16 @@ export default async function VisaCheckerPage({ params }: Props) {
       />
       <main id="policy-main" className="section policy-reference" data-policy-reference>
         <nav className="policy-language-links" aria-label={c.language}>
-          <a href={`/en${path}`} lang="en" aria-current={locale === "en" ? "page" : undefined}>
-            English
-          </a>
-          <a href={`/zh${path}`} lang="zh-CN" aria-current={locale === "zh" ? "page" : undefined}>
-            中文
-          </a>
+          {toolLocales(getSiteLocales(), true).includes("en") && (
+            <a href={`/en${path}`} lang="en" aria-current={locale === "en" ? "page" : undefined}>
+              English
+            </a>
+          )}
+          {toolLocales(getSiteLocales(), true).includes("zh") && (
+            <a href={`/zh${path}`} lang="zh-CN" aria-current={locale === "zh" ? "page" : undefined}>
+              中文
+            </a>
+          )}
         </nav>
         <h1>{c.title}</h1>
         <p className="lead">{c.intro}</p>

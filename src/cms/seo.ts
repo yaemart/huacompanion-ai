@@ -1,3 +1,4 @@
+import { verificationToken, visaToolPath } from "../lib/visa-search.ts";
 import type { GlobalConfig } from "payload";
 import { isAdmin } from "./access.ts";
 import { locales, localeNames } from "../lib/locales.ts";
@@ -19,9 +20,12 @@ export const SEOSettings: GlobalConfig = {
   hooks: {
     beforeValidate: [
       async ({ data, req }) => {
+        verificationToken(data.googleSiteVerification);
         const keys = new Set<string>();
         const pages: SeoSetting["pages"] = data.pages;
         for (const page of pages || []) {
+          if (page.path === visaToolPath && !["en", "zh"].includes(page.locale))
+            throw Error("免签工具只提供中英文页面");
           const key = `${page.locale}:${page.path}`;
           if (keys.has(key)) throw Error("同一语言和页面只能设置一次搜索展示");
           keys.add(key);
@@ -42,10 +46,17 @@ export const SEOSettings: GlobalConfig = {
   },
   fields: [
     {
+      name: "googleSiteVerification",
+      label: "Google Search Console 验证码",
+      type: "text",
+      maxLength: 256,
+      admin: { description: "只填验证码文本，不填完整meta标签。不会启用统计或搜索收录。" },
+    },
+    {
       name: "pages",
       label: "页面 SEO 设置",
       type: "array",
-      maxRows: 105,
+      maxRows: 107,
       fields: [
         {
           name: "path",

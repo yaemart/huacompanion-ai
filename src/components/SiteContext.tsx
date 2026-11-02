@@ -3,7 +3,7 @@ import { createContext, useContext } from "react";
 import type { Locale } from "@/lib/locales";
 import type { PublicFeatures } from "@/lib/site-locales";
 
-type SiteConfig = { activeLocales: Locale[]; features: PublicFeatures };
+type SiteConfig = { activeLocales: Locale[]; features: PublicFeatures; visaChecker?: boolean };
 const SiteContext = createContext<SiteConfig>({
   activeLocales: ["zh", "en"],
   features: { customerCenter: false, textChat: false },
