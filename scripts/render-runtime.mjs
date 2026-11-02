@@ -69,14 +69,14 @@ async function main() {
     return;
   }
   if (role !== "web" && process.env.TRIAL_WORKERS_ENABLED !== "true") {
-    console.log(
-      "Trial worker on standby; enable only after migration and trial settings verification.",
-    );
     const timer = setInterval(() => {}, 60000);
     for (const signal of ["SIGTERM", "SIGINT"])
       process.on(signal, () => {
         clearInterval(timer);
       });
+    console.log(
+      "Trial worker on standby; enable only after migration and trial settings verification.",
+    );
     return;
   }
   if (role === "web") await access(".local/content-media", constants.W_OK);
