@@ -2,6 +2,15 @@
 
 日期：2026-11-02（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
+## 最新交接：阶段1.7本地准备（2026-11-03）
+
+- 任务分支 `codex/render-trial-preparation` 基于阶段1.6 `69a67d96e41f7ca6269e4b41896ec8268275f704` / PR17；继续依赖草稿PR链，不自动合并。当前head/草稿PR/CI以最终交接核对。
+- 新增 [Render准备包](../deploy/render/README.md)：三个Docker服务、PG15、Web独占持久图片盘、手动部署、Web单点迁移、worker默认待命；模板在 `deploy/render/blueprint.json`，不是已创建资源。官方JSON Schema本地校验通过，不等于平台部署验证。
+- 受限入口使用独立基础访问口令，员工仍须后台登录；缺失/错误配置拒绝访问，所有页面/API/静态资源受控，只有不含业务数据的存活探针例外。维护模式阻断应用但仍须另停worker/CLI。启动检查阻止收录、真实表单、邮件/模型误开启。
+- 无新依赖/数据库迁移，实际.env未修改。新增可选TRIAL_ACCESS_REQUIRED/USER/PASSWORD、TRIAL_MAINTENANCE、TRIAL_WORKERS_ENABLED，Render模板启用门禁并保持业务功能关闭。本机按用户临时预览授权继续开启免签工具，仅本机、不收录；这是进程环境，不是持久默认。
+- 本机无Docker，镜像及平台磁盘权限/备份/真实恢复待验证；备份自动化/异地保存/调度与资源费用、实际账号需用户确认。仅受限部署准备，不宣称1.7全部完成；公开前仍须B确认。当前普通图片可用，Next图片优化器受门禁阻断，未来采用时须另行适配。
+- 本机原有next-env.d.ts的开发路径改动是预览自动生成，已识别保留，不计入本任务提交。其他电脑按既有迁移链先备份再同步。
+
 ## 最新交接：阶段 1.6 搜索基础（2026-11-02）
 
 - 当前任务分支 `codex/visa-search-basics`，基于 `fe5956ec025dac23092b8ee8f42251127a21dd74`。前置 1.5 已推送并建立草稿 [PR16](https://github.com/yaemart/huacompanion-ai/pull/16)，因此下方“未推送”仅为历史记录。本步草稿 [PR17](https://github.com/yaemart/huacompanion-ai/pull/17) 以 `codex/visa-policy-reminders` 为 base；前置合并后改指 main 重验，不自动合并。最新完整提交及远端 CI 见本次交接消息。
