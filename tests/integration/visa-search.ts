@@ -1,7 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { writeFile, unlink } from "node:fs/promises";
+import { mkdir, writeFile, unlink } from "node:fs/promises";
 import sharp from "sharp";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
@@ -78,6 +78,7 @@ try {
   const image = await sharp({ create: { width: 2, height: 2, channels: 3, background: "white" } })
     .webp()
     .toBuffer();
+  await mkdir(".local/content-media", { recursive: true });
   await writeFile(`.local/content-media/${filename}`, image, { mode: 0o600 });
   media = (
     await p.create({
