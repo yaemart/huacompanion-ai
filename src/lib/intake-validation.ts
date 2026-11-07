@@ -1,12 +1,7 @@
-import {homeRequestFields,homeProviderFields} from "./housekeeping.ts";
+import { homeRequestFields, homeProviderFields } from "./housekeeping.ts";
 import { isLocale, type Locale } from "./locales.ts";
 import { parseCatalogSource, type CatalogSource } from "./catalog.ts";
-import {
-  validateStep,
-  visibleReviewValues,
-  type Values,
-  type FormKind,
-} from "./forms.ts";
+import { validateStep, visibleReviewValues, type Values, type FormKind } from "./forms.ts";
 import { serviceSlugs } from "./routes.ts";
 export class IntakeValidationError extends Error {
   errors: Record<string, string>;
@@ -67,13 +62,8 @@ export function parseIntake(input: unknown): {
   const body = input as Record<string, unknown>;
   if (body.kind !== "request" && body.kind !== "apply")
     throw new IntakeValidationError({ kind: "Invalid form" });
-  if (!isLocale(body.locale))
-    throw new IntakeValidationError({ locale: "Invalid language" });
-  if (
-    !body.values ||
-    typeof body.values !== "object" ||
-    Array.isArray(body.values)
-  )
+  if (!isLocale(body.locale)) throw new IntakeValidationError({ locale: "Invalid language" });
+  if (!body.values || typeof body.values !== "object" || Array.isArray(body.values))
     throw new IntakeValidationError({ values: "Invalid values" });
   let source: CatalogSource | undefined;
   try {
@@ -85,10 +75,7 @@ export function parseIntake(input: unknown): {
   const raw = body.values as Record<string, unknown>;
   let values: Values = {};
   const errors: Record<string, string> = {};
-  for (const key of [
-    ...common,
-    ...(body.kind === "request" ? requestFields : providerFields),
-  ]) {
+  for (const key of [...common, ...(body.kind === "request" ? requestFields : providerFields)]) {
     const value = raw[key];
     if (value === undefined) continue;
     if (typeof value !== "string" || value.length > 2000) {
@@ -97,8 +84,7 @@ export function parseIntake(input: unknown): {
     }
     values[key] = value.trim();
   }
-  if (typeof raw.consent !== "boolean")
-    errors.consent = "Consent must be a boolean";
+  if (typeof raw.consent !== "boolean") errors.consent = "Consent must be a boolean";
   else values.consent = raw.consent;
   if (raw.datesUnknown !== undefined && typeof raw.datesUnknown !== "boolean")
     errors.datesUnknown = "Invalid date flag";
@@ -107,9 +93,7 @@ export function parseIntake(input: unknown): {
     !Array.isArray(raw.categories) ||
     !raw.categories.length ||
     raw.categories.length > serviceSlugs.length ||
-    raw.categories.some(
-      (x) => typeof x !== "string" || !serviceSlugs.includes(x),
-    )
+    raw.categories.some((x) => typeof x !== "string" || !serviceSlugs.includes(x))
   )
     errors.categories = "Invalid service selection";
   else values.categories = [...new Set(raw.categories)];

@@ -10,11 +10,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "content_published" ADD COLUMN "suspended" boolean DEFAULT false;`);
 }
 
-export async function down({
-  db,
-  payload,
-  req,
-}: MigrateDownArgs): Promise<void> {
+export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(`
    ALTER TABLE "inquiries" DROP COLUMN "catalog_source";
   ALTER TABLE "_inquiries_v" DROP COLUMN "version_catalog_source";

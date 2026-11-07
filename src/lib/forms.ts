@@ -1,4 +1,4 @@
-import {validateHomeIntake,homeRequestFields,homeProviderFields} from "./housekeeping.ts";
+import { validateHomeIntake, homeRequestFields, homeProviderFields } from "./housekeeping.ts";
 import type { Locale } from "./locales.ts";
 import { formText } from "./form-copy.ts";
 export type FormKind = "request" | "apply";
@@ -11,11 +11,9 @@ export function validateStep(
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
-  const get = (k: string) =>
-    typeof values[k] === "string" ? (values[k] as string).trim() : "";
+  const get = (k: string) => (typeof values[k] === "string" ? (values[k] as string).trim() : "");
   const require = (k: string) => {
-    if (!get(k))
-      errors[k] = formText(locale, "Please complete this field.");
+    if (!get(k)) errors[k] = formText(locale, "Please complete this field.");
   };
   if (step === 0) {
     if (!Array.isArray(values.categories) || !values.categories.length)
@@ -23,13 +21,18 @@ export function validateStep(
     require("city");
     if (kind === "apply") require("organisation");
   }
-  if(step===1 && Array.isArray(values.categories) && values.categories.includes("housekeeping"))Object.assign(errors,validateHomeIntake(kind,values,locale));
-  if (step === 1 && kind === "request" && !(Array.isArray(values.categories)&&values.categories.length===1&&values.categories[0]==="housekeeping")) {
-    if (
-      !/^\d+$/.test(get("people")) ||
-      Number(get("people")) < 1 ||
-      Number(get("people")) > 10000
+  if (step === 1 && Array.isArray(values.categories) && values.categories.includes("housekeeping"))
+    Object.assign(errors, validateHomeIntake(kind, values, locale));
+  if (
+    step === 1 &&
+    kind === "request" &&
+    !(
+      Array.isArray(values.categories) &&
+      values.categories.length === 1 &&
+      values.categories[0] === "housekeeping"
     )
+  ) {
+    if (!/^\d+$/.test(get("people")) || Number(get("people")) < 1 || Number(get("people")) > 10000)
       errors.people = formText(locale, "Enter a whole number from 1 to 10,000.");
     if (!values.datesUnknown) {
       require("arrivalDate");
@@ -69,21 +72,13 @@ export function validateStep(
   return errors;
 }
 
-export function visibleReviewValues(values: Values): Values {
+export function visibleReviewValues(values: Values, kind: FormKind = "request"): Values {
   const selected = Array.isArray(values.categories) ? values.categories : [];
   const groups: Record<string, string[]> = {
-    housekeeping:[...homeRequestFields,...homeProviderFields],
+    housekeeping: [...homeRequestFields, ...homeProviderFields],
     business: ["industry", "purpose"],
     transport: ["flight", "pickup", "dropoff", "luggage"],
-    stays: [
-      "stayType",
-      "checkIn",
-      "checkOut",
-      "area",
-      "facilities",
-      "leaseLength",
-      "rentalNeeds",
-    ],
+    stays: ["stayType", "checkIn", "checkOut", "area", "facilities", "leaseLength", "rentalNeeds"],
     travel: ["destinations", "interests"],
     interpretation: ["interpretation"],
     arrival: ["arrivalHelp"],
@@ -94,30 +89,29 @@ export function visibleReviewValues(values: Values): Values {
       .filter(([category]) => !selected.includes(category))
       .flatMap(([, fields]) => fields),
   );
-  if (values.datesUnknown || (selected.length===1&&selected[0]==="housekeeping")) {hidden.add("arrivalDate");if(selected.length===1&&selected[0]==="housekeeping")hidden.add("people");}
-  if(values.homeFlexible==="yes")hidden.add("homeDate");
+  if (kind === "apply") {
+    hidden.add("people");
+    hidden.add("language");
+  }
+  if (values.datesUnknown || (selected.length === 1 && selected[0] === "housekeeping")) {
+    hidden.add("arrivalDate");
+    if (selected.length === 1 && selected[0] === "housekeeping") hidden.add("people");
+  }
+  if (values.homeFlexible === "yes") hidden.add("homeDate");
   for (const field of values.stayType === "long"
     ? ["checkIn", "checkOut"]
     : ["leaseLength", "rentalNeeds"])
     hidden.add(field);
-  return Object.fromEntries(
-    Object.entries(values).filter(([key]) => !hidden.has(key)),
-  );
+  return Object.fromEntries(Object.entries(values).filter(([key]) => !hidden.has(key)));
 }
 
-export function errorStep(
-  kind: FormKind,
-  errors: Record<string, string>,
-): number {
+export function errorStep(kind: FormKind, errors: Record<string, string>): number {
   const keys = Object.keys(errors);
-  if (keys.some((k) => ["categories", "city", "organisation"].includes(k)))
-    return 0;
+  if (keys.some((k) => ["categories", "city", "organisation"].includes(k))) return 0;
   const contact = [
     "name",
     "email",
-    ...(kind === "apply"
-      ? ["phone", "website"]
-      : ["language", "contact", "channel"]),
+    ...(kind === "apply" ? ["phone", "website"] : ["language", "contact", "channel"]),
   ];
   if (keys.some((k) => !contact.includes(k) && k !== "consent")) return 1;
   if (keys.some((k) => contact.includes(k))) return 2;

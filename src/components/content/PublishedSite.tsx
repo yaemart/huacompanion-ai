@@ -16,7 +16,7 @@ export function PublishedSite({
   locale: Locale;
   slug: string[];
   contents: ContentBody[];
-  languagePaths?: Partial<Record<Locale,string|null>>;
+  languagePaths?: Partial<Record<Locale, string | null>>;
 }) {
   contents = contents.filter((d) => d.locale === locale);
   const section = slug[0] || "home";
@@ -28,17 +28,12 @@ export function PublishedSite({
         : section === "partners" && slug[1]
           ? "partner"
           : "page";
-  const detail = contents.find(
-    (d) => d.kind === kind && d.slug === (slug[1] || section),
-  );
+  const detail = contents.find((d) => d.kind === kind && d.slug === (slug[1] || section));
   const services = contents.filter((d) => d.kind === "service");
   const guides = contents.filter((d) => d.kind === "guide");
   const faqs = contents.filter((d) => d.kind === "faq");
   const list = section === "services" ? services : guides;
-  const empty = publicText(
-    locale,
-    "Content is being prepared. Please check back later.",
-  );
+  const empty = publicText(locale, "Content is being prepared. Please check back later.");
   return (
     <>
       <a className="skip-link" href="#main">
@@ -46,14 +41,8 @@ export function PublishedSite({
       </a>
       <Header locale={locale} languagePaths={languagePaths} />
       <main id="main">
-        <nav
-          className="section tight"
-          aria-label={publicText(locale, "Service directories")}
-        >
-          <Link href={`/${locale}/providers`}>
-            {publicText(locale, "Find providers")}
-          </Link>{" "}
-          ·{" "}
+        <nav className="section tight" aria-label={publicText(locale, "Service directories")}>
+          <Link href={`/${locale}/providers`}>{publicText(locale, "Find providers")}</Link> ·{" "}
           <Link href={`/${locale}/services/projects`}>
             {publicText(locale, "Hua service projects")}
           </Link>
@@ -62,12 +51,15 @@ export function PublishedSite({
           <>
             <section className="section">
               <span className="eyebrow">HUA COMPANION · SHANGHAI</span>
-              <h1>
-                {detail?.title ||
-                  publicText(locale, "Your local companion in China.")}
-              </h1>
+              <h1>{detail?.title || publicText(locale, "Your local companion in China.")}</h1>
               <p className="lead">{detail?.summary || empty}</p>
-              {detail && <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />}
+              {detail && (
+                <ContentBlocks
+                  quality={detail.qualityReview}
+                  locale={locale}
+                  blocks={detail.blocks}
+                />
+              )}
               <Link className="button" href={`/${locale}/request`}>
                 {publicText(locale, "Plan your visit")} ↗
               </Link>
@@ -107,20 +99,12 @@ export function PublishedSite({
             <article className="article">
               {detail?.kind === "guide" && (
                 <nav aria-label={publicText(locale, "Breadcrumb")}>
-                  <Link href={`/${locale}`}>{publicText(locale, "Home")}</Link>{" "}
-                  /{" "}
-                  <Link href={`/${locale}/guides`}>
-                    {publicText(locale, "Knowledge centre")}
-                  </Link>{" "}
-                  /{" "}
+                  <Link href={`/${locale}`}>{publicText(locale, "Home")}</Link> /{" "}
+                  <Link href={`/${locale}/guides`}>{publicText(locale, "Knowledge centre")}</Link> /{" "}
                   <Link
                     href={`/${locale}/guides?section=${contentSections.find((s) => s.id === sectionFor(detail))?.key}`}
                   >
-                    {
-                      contentSections.find(
-                        (s) => s.id === sectionFor(detail),
-                      )?.[locale]
-                    }
+                    {contentSections.find((s) => s.id === sectionFor(detail))?.[locale]}
                   </Link>
                 </nav>
               )}
@@ -138,18 +122,19 @@ export function PublishedSite({
               <p className="lead">{detail?.summary || empty}</p>
               {detail && (
                 <>
-                  <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />
+                  <ContentBlocks
+                    quality={detail.qualityReview}
+                    locale={locale}
+                    blocks={detail.blocks}
+                  />
                   {detail.kind === "guide" &&
-                    contents.some((d) =>
-                      d.catalog?.guideKeys.includes(detail.contentKey),
-                    ) && (
+                    contents.some((d) => d.catalog?.guideKeys.includes(detail.contentKey)) && (
                       <section>
                         <h2>{publicText(locale, "Related services")}</h2>
                         {contents
                           .filter(
                             (d) =>
-                              isCatalog(d.kind) &&
-                              d.catalog?.guideKeys.includes(detail.contentKey),
+                              isCatalog(d.kind) && d.catalog?.guideKeys.includes(detail.contentKey),
                           )
                           .map((d) => (
                             <p key={d.contentKey}>
@@ -187,10 +172,7 @@ export function PublishedSite({
               )}
               {section === "partners" && (
                 <>
-                  <Cards
-                    items={contents.filter((d) => d.kind === "partner")}
-                    locale={locale}
-                  />
+                  <Cards items={contents.filter((d) => d.kind === "partner")} locale={locale} />
                   <Link className="button" href={`/${locale}/apply`}>
                     {publicText(locale, "Apply to collaborate")}
                   </Link>
@@ -209,9 +191,7 @@ export function PublishedSite({
                     .slice(0, 4)
                     .map((d) => (
                       <p key={d.contentKey}>
-                        <Link href={`/${locale}/guides/${d.slug}`}>
-                          {d.title}
-                        </Link>
+                        <Link href={`/${locale}/guides/${d.slug}`}>{d.title}</Link>
                       </p>
                     ))}
                 </aside>
@@ -231,7 +211,7 @@ export function PublishedSite({
             {faqs.map((f) => (
               <details key={f.contentKey} id={`faq-${f.contentKey}`}>
                 <summary>{f.title}</summary>
-                <ContentBlocks blocks={f.blocks} />
+                <ContentBlocks blocks={f.blocks} locale={locale} />
               </details>
             ))}
           </section>
@@ -245,13 +225,8 @@ export function PublishedSite({
         </p>
         <Link href={`/${locale}`}>华伴 · Hua Companion</Link>
         <p>© 2026 Hua Companion</p>
-        <Link href={`/${locale}/privacy`}>
-          {publicText(locale, "Privacy")}
-        </Link>{" "}
-        ·{" "}
-        <Link href={`/${locale}/terms`}>
-          {publicText(locale, "Service boundaries")}
-        </Link>
+        <Link href={`/${locale}/privacy`}>{publicText(locale, "Privacy")}</Link> ·{" "}
+        <Link href={`/${locale}/terms`}>{publicText(locale, "Service boundaries")}</Link>
       </footer>
     </>
   );
@@ -259,14 +234,7 @@ export function PublishedSite({
 function Cards({ items, locale }: { items: ContentBody[]; locale: Locale }) {
   items = items.filter((d) => d.locale === locale);
   if (!items.length)
-    return (
-      <p>
-        {publicText(
-          locale,
-          "Content is being prepared. Please check back later.",
-        )}
-      </p>
-    );
+    return <p>{publicText(locale, "Content is being prepared. Please check back later.")}</p>;
   return (
     <div className="guide-grid">
       {items.map((d) => (
@@ -278,9 +246,7 @@ function Cards({ items, locale }: { items: ContentBody[]; locale: Locale }) {
           <div className="guide-copy">
             <h3>{d.title}</h3>
             <p>{d.summary}</p>
-            <span className="text-link">
-              {publicText(locale, "Read more")} ↗
-            </span>
+            <span className="text-link">{publicText(locale, "Read more")} ↗</span>
           </div>
         </Link>
       ))}

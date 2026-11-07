@@ -1,12 +1,13 @@
-import {businessCollections} from './cms/business/collections';
-import {workflowCollections,workflowSettings} from './cms/workflow/collections';
-import {qualityCollections} from './cms/quality/collections';
-import {customerCollections,customerSettings} from './cms/customer/collections';
-import {voiceCollections} from './cms/support/voice';
-import {callCollections} from './cms/support/callCollections';
-import {operationsCollections} from './cms/support/operations';
-import {supportSettings} from './cms/support/settings';
-import {supportCollections} from './cms/support/collections';
+import { businessCollections } from "./cms/business/collections";
+import { workflowCollections, workflowSettings } from "./cms/workflow/collections";
+import { qualityCollections } from "./cms/quality/collections";
+import { customerCollections, customerSettings } from "./cms/customer/collections";
+import { voiceCollections } from "./cms/support/voice";
+import { callCollections } from "./cms/support/callCollections";
+import { operationsCollections } from "./cms/support/operations";
+import { supportSettings } from "./cms/support/settings";
+import { SEOSettings } from "./cms/seo";
+import { supportCollections } from "./cms/support/collections";
 import "dotenv/config";
 import { buildConfig } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
@@ -14,6 +15,7 @@ import { zh } from "@payloadcms/translations/languages/zh";
 import { en } from "@payloadcms/translations/languages/en";
 import path from "node:path";
 import { contentCollections } from "./cms/content/collections";
+import { ImmigrationPolicies } from "./cms/immigration/collections";
 import { collections } from "./cms/collections";
 const secret = process.env.PAYLOAD_SECRET;
 if (!secret || secret.length < 32)
@@ -39,8 +41,20 @@ export default buildConfig({
     push: process.env.APP_ENV === "local",
     migrationDir: path.resolve("src/migrations"),
   }),
-  globals: [supportSettings,workflowSettings,customerSettings],
-  collections: [...collections, ...contentCollections, ...supportCollections, ...voiceCollections, ...callCollections, ...operationsCollections, ...businessCollections, ...workflowCollections, ...qualityCollections, ...customerCollections],
+  globals: [supportSettings, workflowSettings, customerSettings, SEOSettings],
+  collections: [
+    ...collections,
+    ...contentCollections,
+    ImmigrationPolicies,
+    ...supportCollections,
+    ...voiceCollections,
+    ...callCollections,
+    ...operationsCollections,
+    ...businessCollections,
+    ...workflowCollections,
+    ...qualityCollections,
+    ...customerCollections,
+  ],
   typescript: { outputFile: path.resolve("payload-types.ts") },
   csrf: [process.env.APP_URL || "http://127.0.0.1:3000"],
   graphQL: { disable: true },

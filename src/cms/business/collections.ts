@@ -1,13 +1,120 @@
-import type {CollectionConfig,Field} from 'payload';
-import {businessStages,stageLabels} from '../../lib/business';
-const no=()=>false;
-const access={create:no,read:no,update:no,delete:no};
-const text=(name:string,extra:object={}):Field=>({name,type:'text',...extra});
-const relation=(name:string,relationTo:any,extra:object={}):Field=>({name,type:'relationship',relationTo,...extra});
-const base={access,admin:{hidden:true}};
-export const businessCollections:CollectionConfig[]=[
- {...base,slug:'business-ai-tasks',fields:[relation('serviceCase','service-cases',{required:true,index:true}),relation('createdBy','staff',{required:true}),text('dedupe',{required:true,unique:true}),text('fingerprint',{required:true}),{name:'status',type:'select',required:true,options:['unconfigured','queued','running','succeeded','adopted','failed','discarded','cancelled']},{name:'input',type:'json',required:true},{name:'result',type:'json'},text('error'),text('model'),text('lease'),{name:'leaseUntil',type:'date'},text('day'),{name:'reserved',type:'number',defaultValue:0},{name:'usage',type:'json'},relation('adoptedQuote','service-quotes')]},
- {...base,slug:'service-cases',fields:[relation('inquiry','inquiries',{required:true,unique:true}),text('title',{required:true}),{name:'stage',type:'select',options:businessStages.map(value=>({value,label:stageLabels[value]})),required:true},{name:'revision',type:'number',required:true,defaultValue:1},relation('latestQuote','service-quotes'),relation('acceptedQuote','service-quotes'),{name:'customerSummary',type:'textarea',maxLength:4000},{name:'publicArrangement',type:'textarea',maxLength:4000},{name:'scheduledAt',type:'date'},relation('provider','providers'),{name:'resourceConfirmed',type:'checkbox',defaultValue:false},{name:'internalArrangement',type:'textarea',maxLength:4000},{name:'completedAt',type:'date'}]},
- {...base,slug:'service-quotes',fields:[relation('serviceCase','service-cases',{required:true,index:true}),text('dedupe',{required:true,unique:true}),{name:'revision',type:'number',required:true},{name:'status',type:'select',options:['draft','sent','accepted','superseded','withdrawn'],required:true},text('title',{required:true}),{name:'scope',type:'textarea',required:true,maxLength:4000},{name:'included',type:'textarea',required:true,maxLength:4000},{name:'excluded',type:'textarea',required:true,maxLength:4000},{name:'terms',type:'textarea',required:true,maxLength:4000},text('currency',{required:true}),{name:'lines',type:'json',required:true},{name:'totalMinor',type:'number',required:true},{name:'internalCostMinor',type:'number',min:0},{name:'expiresAt',type:'date',required:true},{name:'sentAt',type:'date'},{name:'confirmedAt',type:'date'},relation('confirmedBy','customer-accounts'),relation('createdBy','staff',{required:true}),relation('aiTask','business-ai-tasks'),{name:'reviewStatus',type:'select',options:['pending','approved','rejected']},relation('reviewedBy','staff'),{name:'reviewedAt',type:'date'},{name:'reviewReason',type:'textarea',maxLength:2000}]},
- {...base,slug:'service-events',fields:[relation('serviceCase','service-cases',{required:true,index:true}),text('dedupe',{required:true,unique:true}),text('action',{required:true}),relation('actor','staff'),relation('customer','customer-accounts'),{name:'detail',type:'json'},{name:'reason',type:'textarea',maxLength:2000}]},
+import type { CollectionConfig, Field, CollectionSlug } from "payload";
+import { businessStages, stageLabels } from "../../lib/business";
+const no = () => false;
+const access = { create: no, read: no, update: no, delete: no };
+const text = (name: string, extra: object = {}): Field => ({ name, type: "text", ...extra });
+const relation = (name: string, relationTo: CollectionSlug, extra: object = {}): Field => ({
+  name,
+  type: "relationship",
+  relationTo,
+  ...extra,
+});
+const base = { access, admin: { hidden: true } };
+export const businessCollections: CollectionConfig[] = [
+  {
+    ...base,
+    slug: "business-ai-tasks",
+    fields: [
+      relation("serviceCase", "service-cases", { required: true, index: true }),
+      relation("createdBy", "staff", { required: true }),
+      text("dedupe", { required: true, unique: true }),
+      text("fingerprint", { required: true }),
+      {
+        name: "status",
+        type: "select",
+        required: true,
+        options: [
+          "unconfigured",
+          "queued",
+          "running",
+          "succeeded",
+          "adopted",
+          "failed",
+          "discarded",
+          "cancelled",
+        ],
+      },
+      { name: "input", type: "json", required: true },
+      { name: "result", type: "json" },
+      text("error"),
+      text("model"),
+      text("lease"),
+      { name: "leaseUntil", type: "date" },
+      text("day"),
+      { name: "reserved", type: "number", defaultValue: 0 },
+      { name: "usage", type: "json" },
+      relation("adoptedQuote", "service-quotes"),
+    ],
+  },
+  {
+    ...base,
+    slug: "service-cases",
+    fields: [
+      relation("inquiry", "inquiries", { required: true, unique: true }),
+      text("title", { required: true }),
+      {
+        name: "stage",
+        type: "select",
+        options: businessStages.map((value) => ({ value, label: stageLabels[value] })),
+        required: true,
+      },
+      { name: "revision", type: "number", required: true, defaultValue: 1 },
+      relation("latestQuote", "service-quotes"),
+      relation("acceptedQuote", "service-quotes"),
+      { name: "customerSummary", type: "textarea", maxLength: 4000 },
+      { name: "publicArrangement", type: "textarea", maxLength: 4000 },
+      { name: "scheduledAt", type: "date" },
+      relation("provider", "providers"),
+      { name: "resourceConfirmed", type: "checkbox", defaultValue: false },
+      { name: "internalArrangement", type: "textarea", maxLength: 4000 },
+      { name: "completedAt", type: "date" },
+    ],
+  },
+  {
+    ...base,
+    slug: "service-quotes",
+    fields: [
+      relation("serviceCase", "service-cases", { required: true, index: true }),
+      text("dedupe", { required: true, unique: true }),
+      { name: "revision", type: "number", required: true },
+      {
+        name: "status",
+        type: "select",
+        options: ["draft", "sent", "accepted", "superseded", "withdrawn"],
+        required: true,
+      },
+      text("title", { required: true }),
+      { name: "scope", type: "textarea", required: true, maxLength: 4000 },
+      { name: "included", type: "textarea", required: true, maxLength: 4000 },
+      { name: "excluded", type: "textarea", required: true, maxLength: 4000 },
+      { name: "terms", type: "textarea", required: true, maxLength: 4000 },
+      text("currency", { required: true }),
+      { name: "lines", type: "json", required: true },
+      { name: "totalMinor", type: "number", required: true },
+      { name: "internalCostMinor", type: "number", min: 0 },
+      { name: "expiresAt", type: "date", required: true },
+      { name: "sentAt", type: "date" },
+      { name: "confirmedAt", type: "date" },
+      relation("confirmedBy", "customer-accounts"),
+      relation("createdBy", "staff", { required: true }),
+      relation("aiTask", "business-ai-tasks"),
+      { name: "reviewStatus", type: "select", options: ["pending", "approved", "rejected"] },
+      relation("reviewedBy", "staff"),
+      { name: "reviewedAt", type: "date" },
+      { name: "reviewReason", type: "textarea", maxLength: 2000 },
+    ],
+  },
+  {
+    ...base,
+    slug: "service-events",
+    fields: [
+      relation("serviceCase", "service-cases", { required: true, index: true }),
+      text("dedupe", { required: true, unique: true }),
+      text("action", { required: true }),
+      relation("actor", "staff"),
+      relation("customer", "customer-accounts"),
+      { name: "detail", type: "json" },
+      { name: "reason", type: "textarea", maxLength: 2000 },
+    ],
+  },
 ];

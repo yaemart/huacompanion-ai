@@ -8,12 +8,15 @@
 **Spec:** 对话中已批准的家政九项实施方案。
 
 ## Global Constraints
+
 八城市、七语言；首次询问不收门牌/门禁；不自动公开申请；不自动派单或传输客户资料；无新增支付、托育、医疗照护。
 
 ## Review Focus
+
 暂停服务商及陈旧版本不可预约；伪造内部字段不得进入数据库；公开输出不可包含客户地址或合作资料；仅家政需求不强制填写来华行程；信息转交记录必须包含明确授权和接收方。
 
 ## Tasks
+
 - [x] 1. shared housekeeping types, public whitelist, form validation and failing→passing tests.
 - [x] 2. seven-language application/request form, service category, public catalog editor/details/filters.
 - [x] 3. internal verification and fulfilment fields, consent guard, additive migration after backup.

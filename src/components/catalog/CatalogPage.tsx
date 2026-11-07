@@ -1,14 +1,9 @@
-import {HousekeepingDetails} from "./HousekeepingDetails";
-import {homeText} from "@/lib/housekeeping-copy";
-import {homeServices} from "@/lib/housekeeping";
+import { HousekeepingDetails } from "./HousekeepingDetails";
+import { homeText } from "@/lib/housekeeping-copy";
+import { homeServices } from "@/lib/housekeeping";
 import type { Locale } from "@/lib/locales";
 import { publicText, resultText } from "@/lib/public-copy";
-import {
-  catalogCities,
-  catalogLanguages,
-  cityLabel,
-  languageLabel,
-} from "@/lib/catalog-options";
+import { catalogCities, catalogLanguages, cityLabel, languageLabel } from "@/lib/catalog-options";
 import Link from "next/link";
 import { Header } from "../Header";
 import { ContentBlocks } from "../content/ContentBlocks";
@@ -17,7 +12,9 @@ import { catalogFilter, catalogPath, priceText } from "@/lib/catalog";
 import { services } from "@/lib/content";
 export type CatalogQuery = {
   category?: string;
-  homeService?:string;district?:string;equipment?:string;
+  homeService?: string;
+  district?: string;
+  equipment?: string;
   city?: string;
   language?: string;
   q?: string;
@@ -36,7 +33,7 @@ export function CatalogPage({
   kind: string;
   detail?: ContentBody;
   query?: CatalogQuery;
-  languagePaths?: Partial<Record<Locale,string|null>>;
+  languagePaths?: Partial<Record<Locale, string | null>>;
 }) {
   items = items.filter((d) => d.locale === locale);
   detail = detail?.locale === locale ? detail : undefined;
@@ -47,10 +44,7 @@ export function CatalogPage({
   const base = `/${locale}/${kind === "provider-profile" ? "providers" : "services/projects"}`;
   const candidates = items.filter((d) => d.kind === kind);
   const filtered = catalogFilter(candidates, query);
-  const page = Math.max(
-    1,
-    Number.isSafeInteger(Number(query.page)) ? Number(query.page) : 1,
-  );
+  const page = Math.max(1, Number.isSafeInteger(Number(query.page)) ? Number(query.page) : 1);
   const count = Math.ceil(filtered.length / 12);
   function href(p: number) {
     const q = new URLSearchParams();
@@ -76,15 +70,9 @@ export function CatalogPage({
             marginBottom: 30,
           }}
         >
-          <Link href={`/${locale}/services`}>
-            {publicText(locale, "Service categories")}
-          </Link>
-          <Link href={`/${locale}/providers`}>
-            {publicText(locale, "Providers")}
-          </Link>
-          <Link href={`/${locale}/services/projects`}>
-            {publicText(locale, "Hua projects")}
-          </Link>
+          <Link href={`/${locale}/services`}>{publicText(locale, "Service categories")}</Link>
+          <Link href={`/${locale}/providers`}>{publicText(locale, "Providers")}</Link>
+          <Link href={`/${locale}/services/projects`}>{publicText(locale, "Hua projects")}</Link>
         </nav>
         {detail ? (
           <>
@@ -92,16 +80,31 @@ export function CatalogPage({
             <h1>{detail.title}</h1>
             <p className="lead">{detail.summary}</p>
             <CatalogDetails detail={detail} locale={locale} />
-            {detail.catalog?.housekeeping && <HousekeepingDetails value={detail.catalog.housekeeping} locale={locale}/>}
+            {detail.catalog?.housekeeping && (
+              <HousekeepingDetails value={detail.catalog.housekeeping} locale={locale} />
+            )}
             <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />
             <p>
-              {publicText(locale, "Updated")}:{" "}
-              {detail.publishedAt?.slice(0, 10)}
+              {publicText(locale, "Updated")}: {detail.publishedAt?.slice(0, 10)}
             </p>
             {detail.acceptingInquiries ? (
               <Link
                 className="button"
-                href={`/${locale}/request?${new URLSearchParams({ [kind === "provider-profile" ? "provider" : "project"]: detail.contentKey, service: detail.catalog!.categories.includes("housekeeping")?"housekeeping":detail.catalog!.categories[0],...(detail.catalog!.categories.includes("housekeeping")?{[kind==="provider-profile"?"providerRevision":"projectRevision"]:String(detail.publicationRevision)}:{}) })}`}
+                href={
+                  `/${locale}/request?` +
+                  new URLSearchParams({
+                    [kind === "provider-profile" ? "provider" : "project"]: detail.contentKey,
+                    service: detail.catalog!.categories.includes("housekeeping")
+                      ? "housekeeping"
+                      : detail.catalog!.categories[0],
+                    ...(detail.catalog!.categories.includes("housekeeping")
+                      ? {
+                          [kind === "provider-profile" ? "providerRevision" : "projectRevision"]:
+                            String(detail.publicationRevision),
+                        }
+                      : {}),
+                  })
+                }
               >
                 {publicText(locale, "Enquire through Hua")} ↗
               </Link>
@@ -132,9 +135,7 @@ export function CatalogPage({
             />
             <Related
               items={items.filter(
-                (d) =>
-                  d.kind === "guide" &&
-                  detail.catalog?.guideKeys.includes(d.contentKey),
+                (d) => d.kind === "guide" && detail.catalog?.guideKeys.includes(d.contentKey),
               )}
               locale={locale}
               title={publicText(locale, "Preparation guides")}
@@ -144,14 +145,11 @@ export function CatalogPage({
               dangerouslySetInnerHTML={{
                 __html: JSON.stringify({
                   "@context": "https://schema.org",
-                  "@type":
-                    kind === "provider-profile" ? "Organization" : "Service",
+                  "@type": kind === "provider-profile" ? "Organization" : "Service",
                   name: detail.title,
                   description: detail.summary,
                   url: catalogPath(detail),
-                  areaServed: detail.catalog?.cities.map((c) =>
-                    cityLabel(c.code, locale),
-                  ),
+                  areaServed: detail.catalog?.cities.map((c) => cityLabel(c.code, locale)),
                   ...(kind === "service-project"
                     ? { serviceType: detail.catalog?.categories }
                     : {}),
@@ -169,9 +167,42 @@ export function CatalogPage({
                 "Find a suitable service. Hua coordinates every enquiry and arrangement.",
               )}
             </p>
-            <p><Link href={`/${locale}/apply?service=housekeeping`}>{homeText(locale,'title')} · {homeText(locale,'join')}</Link></p>
+            <p>
+              <Link href={`/${locale}/apply?service=housekeeping`}>
+                {homeText(locale, "title")} · {homeText(locale, "join")}
+              </Link>
+            </p>
             <form action={base} method="get" className="catalog-filters">
-              {query.category==='housekeeping'&&<><label>{homeText(locale,'homeService')}<select name="homeService" defaultValue={query.homeService||''}><option value="">—</option>{homeServices.map(k=><option key={k} value={k}>{homeText(locale,k)}</option>)}</select></label><label>{homeText(locale,'districts')}<input name="district" defaultValue={query.district||''}/></label><label>{homeText(locale,'homeEquipment')}<select name="equipment" defaultValue={query.equipment||''}><option value="">—</option>{['provider','customer','confirm'].map(k=><option key={k} value={k}>{homeText(locale,k)}</option>)}</select></label></>}
+              {query.category === "housekeeping" && (
+                <>
+                  <label>
+                    {homeText(locale, "homeService")}
+                    <select name="homeService" defaultValue={query.homeService || ""}>
+                      <option value="">—</option>
+                      {homeServices.map((k) => (
+                        <option key={k} value={k}>
+                          {homeText(locale, k)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    {homeText(locale, "districts")}
+                    <input name="district" defaultValue={query.district || ""} />
+                  </label>
+                  <label>
+                    {homeText(locale, "homeEquipment")}
+                    <select name="equipment" defaultValue={query.equipment || ""}>
+                      <option value="">—</option>
+                      {["provider", "customer", "confirm"].map((k) => (
+                        <option key={k} value={k}>
+                          {homeText(locale, k)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              )}
 
               <label>
                 {publicText(locale, "Search")}
@@ -185,9 +216,7 @@ export function CatalogPage({
               <label>
                 {publicText(locale, "Category")}
                 <select name="category" defaultValue={query.category || ""}>
-                  <option value="">
-                    {publicText(locale, "All categories")}
-                  </option>
+                  <option value="">{publicText(locale, "All categories")}</option>
                   {services.map((s) => (
                     <option key={s.slug} value={s.slug}>
                       {s.title[locale]}
@@ -209,9 +238,7 @@ export function CatalogPage({
               <label>
                 {publicText(locale, "Language")}
                 <select name="language" defaultValue={query.language || ""}>
-                  <option value="">
-                    {publicText(locale, "All languages")}
-                  </option>
+                  <option value="">{publicText(locale, "All languages")}</option>
                   {catalogLanguages.map((language) => (
                     <option key={language.code} value={language.code}>
                       {language[locale]}
@@ -227,20 +254,17 @@ export function CatalogPage({
             <p>{resultText(locale, filtered.length)}</p>
             <div className="guide-grid">
               {filtered.slice((page - 1) * 12, page * 12).map((d) => (
-                <Link
-                  className="guide-card catalog-card"
-                  href={catalogPath(d)}
-                  key={d.contentKey}
-                >
+                <Link className="guide-card catalog-card" href={catalogPath(d)} key={d.contentKey}>
                   <span className="eyebrow">
-                    {d.catalog?.cities
-                      .map((c) => cityLabel(c.code, locale))
-                      .join(" · ")}
+                    {d.catalog?.cities.map((c) => cityLabel(c.code, locale)).join(" · ")}
                   </span>
                   <h2>{d.title}</h2>
                   <p>{d.summary}</p>
                   <p>
-                    {(d.catalog?.categories.includes("housekeeping")?d.catalog.housekeeping?.workerLanguages:d.catalog?.languages)
+                    {(d.catalog?.categories.includes("housekeeping")
+                      ? d.catalog.housekeeping?.workerLanguages
+                      : d.catalog?.languages
+                    )
                       ?.map((l) => languageLabel(l, locale))
                       .join(" / ")}
                   </p>
@@ -259,9 +283,7 @@ export function CatalogPage({
                   locale,
                   "No published matches. Clear the filters or send Hua your requirements.",
                 )}{" "}
-                <Link href={`/${locale}/request`}>
-                  {publicText(locale, "Send an enquiry")}
-                </Link>
+                <Link href={`/${locale}/request`}>{publicText(locale, "Send an enquiry")}</Link>
               </p>
             )}
             {count > 1 && (
@@ -269,51 +291,36 @@ export function CatalogPage({
                 aria-label={publicText(locale, "Pagination")}
                 style={{ display: "flex", gap: 20, marginTop: 30 }}
               >
-                {page > 1 && (
-                  <Link href={href(page - 1)}>
-                    {publicText(locale, "Previous")}
-                  </Link>
-                )}
+                {page > 1 && <Link href={href(page - 1)}>{publicText(locale, "Previous")}</Link>}
                 <span>
                   {page} / {count}
                 </span>
-                {page < count && (
-                  <Link href={href(page + 1)}>
-                    {publicText(locale, "Next")}
-                  </Link>
-                )}
+                {page < count && <Link href={href(page + 1)}>{publicText(locale, "Next")}</Link>}
               </nav>
             )}
           </>
         )}
       </main>
       <footer className="footer">
-        <Link href="/api/public/catalog/docs">
-          {publicText(locale, "Public data for agents")}
-        </Link>{" "}
+        <Link href="/api/public/catalog/docs">{publicText(locale, "Public data for agents")}</Link>{" "}
         · Hua Companion
       </footer>
     </>
   );
 }
-export function CatalogDetails({
-  detail: d,
-  locale,
-}: {
-  detail: ContentBody;
-  locale: Locale;
-}) {
+export function CatalogDetails({ detail: d, locale }: { detail: ContentBody; locale: Locale }) {
   if (d.locale !== locale) return null;
   const c = d.catalog!;
 
   const fields: [string, string][] = [
+    [publicText(locale, "Cities"), c.cities.map((x) => cityLabel(x.code, locale)).join(" · ")],
     [
-      publicText(locale, "Cities"),
-      c.cities.map((x) => cityLabel(x.code, locale)).join(" · "),
-    ],
-    [
-      c.categories.includes("housekeeping")?homeText(locale,"workerLanguages"):publicText(locale, "Languages"),
-      (c.categories.includes("housekeeping")?c.housekeeping?.workerLanguages||[]:c.languages).map((l) => languageLabel(l, locale)).join(" / ") || homeText(locale,"confirm"),
+      c.categories.includes("housekeeping")
+        ? homeText(locale, "workerLanguages")
+        : publicText(locale, "Languages"),
+      (c.categories.includes("housekeeping") ? c.housekeeping?.workerLanguages || [] : c.languages)
+        .map((l) => languageLabel(l, locale))
+        .join(" / ") || homeText(locale, "confirm"),
     ],
     [publicText(locale, "Pricing"), priceText(c, locale)],
     [publicText(locale, "Price conditions"), c.price.conditions || ""],
@@ -337,10 +344,7 @@ export function CatalogDetails({
           publicText(locale, "Fulfilment"),
           c.fulfillment === "specified"
             ? publicText(locale, "Specified partners deliver; Hua coordinates")
-            : publicText(
-                locale,
-                "Hua arranges providers after confirming requirements",
-              ),
+            : publicText(locale, "Hua arranges providers after confirming requirements"),
         ],
       ] as [string, string][]),
     );
@@ -366,12 +370,7 @@ export function CatalogDetails({
               </p>
             ))
           ) : (
-            <p>
-              {publicText(
-                locale,
-                "No specific public verification items supplied.",
-              )}
-            </p>
+            <p>{publicText(locale, "No specific public verification items supplied.")}</p>
           )}
           <p>
             {publicText(
@@ -399,13 +398,7 @@ function Related({
       <ul>
         {items.map((d) => (
           <li key={d.contentKey}>
-            <Link
-              href={
-                d.kind === "guide"
-                  ? `/${locale}/guides/${d.slug}`
-                  : catalogPath(d)
-              }
-            >
+            <Link href={d.kind === "guide" ? `/${locale}/guides/${d.slug}` : catalogPath(d)}>
               {d.title}
             </Link>
           </li>

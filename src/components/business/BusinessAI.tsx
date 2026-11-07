@@ -1,21 +1,379 @@
-'use client';
-import {useEffect,useRef,useState} from 'react';
-import {aiTaskLabels} from '@/lib/business-ai';
-import {locales,localeNames} from '@/lib/locales';
-const initial=()=>({title:'',scope:'',included:'',excluded:'',terms:'',currency:'CNY',expiresAt:'',lines:[{label:'服务费用',quantity:1,unitMinor:0}]});
-export default function BusinessAI({id,revision,quotes,onChange}:{id:number;revision:number;quotes:any[];onChange:()=>Promise<void>}){
- const [data,setData]=useState<any>({tasks:[],enabled:false}),[brief,setBrief]=useState(''),[locale,setLocale]=useState('en'),[privacy,setPrivacy]=useState(false),[quote,setQuote]=useState<any>(initial),[selected,setSelected]=useState<any>(null),[checked,setChecked]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- const retry=useRef<{signature:string;key:string}|null>(null);
- async function refresh(){const r=await fetch('/api/business/ai?id='+id,{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);setData(d);}
- useEffect(()=>{void refresh().catch(e=>setMessage(e.message));},[id,revision]);
- async function action(action:string,extra:any={}){setBusy(true);setMessage('');const input={action,id,revision,...extra};const signature=JSON.stringify(input);if(retry.current?.signature!==signature)retry.current={signature,key:crypto.randomUUID()};try{const r=await fetch('/api/business/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,key:retry.current.key})});const d=await r.json();if(!r.ok)throw Error(d.error);retry.current=null;await refresh();await onChange();if(action==='adopt'||action==='revise'){setSelected(null);setQuote(initial());setChecked(false);setMessage('已保存待审核报价草稿，客户暂不可见。');}else setMessage('操作已保存。');}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}}
- function edit(q:any){setQuote({...q,expiresAt:new Date(Date.parse(q.expiresAt)-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)});setChecked(false);}
- return <section className="support-message"><h3>AI 服务方案与报价助手</h3><p>{data.enabled?'模型已配置，任务由后台处理。':'模型未配置：可以保存生成任务，不会发送摘要或产生模拟结果。'}</p><p>只填写去除身份资料的业务摘要。费用由员工提供，AI 不自行定价。采纳后仍须主管审核才能发给客户。</p>{message&&<p role="status">{message}</p>}<button disabled={busy} onClick={()=>refresh().catch(e=>setMessage(e.message))}>刷新生成状态</button>
- <ul>{data.tasks.map((t:any)=><li key={t.id}>任务 #{t.id} · {aiTaskLabels[t.status]} {t.error&&<p>{t.error}</p>}{t.result&&<details><summary>查看 AI 原稿与待核实事项</summary><p>{t.result.quote.title}</p><p>{t.result.quote.scope}</p><p>包含：{t.result.quote.included}</p><p>不包含：{t.result.quote.excluded}</p><p>规则：{t.result.quote.terms}</p><ul>{[...t.result.questions,...t.result.warnings].map((x:string,i:number)=><li key={i}>{x}</li>)}</ul></details>}{['succeeded','adopted'].includes(t.status)&&<button disabled={busy} onClick={()=>{const last=quotes.filter(q=>Number(typeof q.aiTask==='object'?q.aiTask?.id:q.aiTask)===t.id).sort((a,b)=>b.revision-a.revision)[0];setSelected({...t,baseQuote:last?.id});edit(last||t.result.quote);}}>整理此结果为报价草稿</button>}{t.status==='unconfigured'&&<button disabled={busy||!data.enabled} onClick={()=>action('queue',{task:t.id})}>配置后重新排队</button>}{!['adopted','cancelled'].includes(t.status)&&<button disabled={busy} onClick={()=>action('cancel',{task:t.id})}>取消任务</button>}</li>)}</ul>
- <details open={!!selected}><summary>{selected?`整理任务 #${selected.id} 的报价草稿`:'填写生成要求与已核实费用'}</summary><form onSubmit={e=>{e.preventDefault();const value={...quote,expiresAt:new Date(quote.expiresAt).toISOString()};void(selected?action(selected.status==='adopted'?'revise':'adopt',{task:selected.id,baseQuote:selected.baseQuote,quote:value,checked}):action('create',{request:{brief,locale,privacyConfirmed:privacy,currency:value.currency,expiresAt:value.expiresAt,lines:value.lines}}));}}><fieldset disabled={busy}>
- {!selected?<><label>目标语言<select value={locale} onChange={e=>setLocale(e.target.value)}>{locales.map(l=><option key={l} value={l}>{localeNames[l]}</option>)}</select></label><label>已核实的需求摘要（不要填写姓名、联系方式、证件、详细住址或健康隐私）<textarea required maxLength={6000} value={brief} onChange={e=>setBrief(e.target.value)}/></label><label><input type="checkbox" required checked={privacy} onChange={e=>setPrivacy(e.target.checked)}/>已去除身份及敏感资料，同意启用模型后将此摘要和费用明细用于生成</label></>:<>{[['title','方案名称'],['scope','服务范围'],['included','包含项目'],['excluded','不包含项目'],['terms','变更与取消规则']].map(([k,label])=><label key={k}>{label}<textarea required maxLength={k==='title'?200:4000} value={quote[k]} onChange={e=>setQuote({...quote,[k]:e.target.value})}/></label>)}<p>先解决原稿中的待核实事项；采纳后还需主管独立执行审核操作。</p></>}
- <label>币种<select value={quote.currency} onChange={e=>setQuote({...quote,currency:e.target.value})}>{['CNY','USD','EUR','GBP','AED'].map(x=><option key={x}>{x}</option>)}</select></label><label>报价有效期（本机时间）<input type="datetime-local" required value={quote.expiresAt} onChange={e=>setQuote({...quote,expiresAt:e.target.value})}/></label>
- {quote.lines.map((l:any,i:number)=><fieldset key={i}><legend>已核实费用 {i+1}</legend><label>项目<input required maxLength={200} value={l.label} onChange={e=>setQuote({...quote,lines:quote.lines.map((x:any,j:number)=>i===j?{...x,label:e.target.value}:x)})}/></label><label>数量<input required type="number" min={1} max={10000} value={l.quantity} onChange={e=>setQuote({...quote,lines:quote.lines.map((x:any,j:number)=>i===j?{...x,quantity:Number(e.target.value)}:x)})}/></label><label>单价<input required type="number" min={0} step="0.01" value={l.unitMinor/100} onChange={e=>setQuote({...quote,lines:quote.lines.map((x:any,j:number)=>i===j?{...x,unitMinor:Math.round(Number(e.target.value)*100)}:x)})}/></label>{quote.lines.length>1&&<button type="button" onClick={()=>setQuote({...quote,lines:quote.lines.filter((_:any,j:number)=>i!==j)})}>移除费用</button>}</fieldset>)}<button type="button" disabled={quote.lines.length>=30} onClick={()=>setQuote({...quote,lines:[...quote.lines,{label:'',quantity:1,unitMinor:0}]})}>增加费用</button><p>合计 {(quote.lines.reduce((n:number,l:any)=>n+l.quantity*l.unitMinor,0)/100).toFixed(2)} {quote.currency}</p>
- {selected&&<label><input type="checkbox" required checked={checked} onChange={e=>setChecked(e.target.checked)}/>已逐项整理事实、费用、规则和待核实事项</label>}<button>{selected?'保存待主管审核的草稿':data.enabled?'提交 AI 生成任务':'保存任务（等待配置）'}</button>{selected&&<button type="button" onClick={()=>{setSelected(null);setQuote(initial());setChecked(false);}}>退出整理</button>}
- </fieldset></form></details></section>;
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { aiTaskLabels } from "@/lib/business-ai";
+import { locales, localeNames } from "@/lib/locales";
+const initial = () => ({
+  title: "",
+  scope: "",
+  included: "",
+  excluded: "",
+  terms: "",
+  currency: "CNY",
+  expiresAt: "",
+  lines: [{ label: "服务费用", quantity: 1, unitMinor: 0 }],
+});
+export default function BusinessAI({
+  id,
+  revision,
+  quotes,
+  onChange,
+}: {
+  id: number;
+  revision: number;
+  quotes: any[];
+  onChange: () => Promise<void>;
+}) {
+  const [data, setData] = useState<any>({ tasks: [], enabled: false }),
+    [brief, setBrief] = useState(""),
+    [locale, setLocale] = useState("en"),
+    [privacy, setPrivacy] = useState(false),
+    [quote, setQuote] = useState<any>(initial),
+    [selected, setSelected] = useState<any>(null),
+    [checked, setChecked] = useState(false),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState("");
+  const retry = useRef<{ signature: string; key: string } | null>(null);
+  async function refresh() {
+    const r = await fetch("/api/business/ai?id=" + id, { cache: "no-store" });
+    const d = await r.json();
+    if (!r.ok) throw Error(d.error);
+    setData(d);
+  }
+  useEffect(() => {
+    void refresh().catch((e) => setMessage(e.message));
+  }, [id, revision]);
+  async function action(action: string, extra: any = {}) {
+    setBusy(true);
+    setMessage("");
+    const input = { action, id, revision, ...extra };
+    const signature = JSON.stringify(input);
+    if (retry.current?.signature !== signature)
+      retry.current = { signature, key: crypto.randomUUID() };
+    try {
+      const r = await fetch("/api/business/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...input, key: retry.current.key }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw Error(d.error);
+      retry.current = null;
+      await refresh();
+      await onChange();
+      if (action === "adopt" || action === "revise") {
+        setSelected(null);
+        setQuote(initial());
+        setChecked(false);
+        setMessage("已保存待审核报价草稿，客户暂不可见。");
+      } else setMessage("操作已保存。");
+    } catch (e) {
+      setMessage((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function edit(q: any) {
+    setQuote({
+      ...q,
+      expiresAt: new Date(Date.parse(q.expiresAt) - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16),
+    });
+    setChecked(false);
+  }
+  return (
+    <section className="support-message">
+      <h3>AI 服务方案与报价助手</h3>
+      <p>
+        {data.enabled
+          ? "模型已配置，任务由后台处理。"
+          : "模型未配置：可以保存生成任务，不会发送摘要或产生模拟结果。"}
+      </p>
+      <p>
+        只填写去除身份资料的业务摘要。费用由员工提供，AI
+        不自行定价。采纳后仍须主管审核才能发给客户。
+      </p>
+      {message && <p role="status">{message}</p>}
+      <button disabled={busy} onClick={() => refresh().catch((e) => setMessage(e.message))}>
+        刷新生成状态
+      </button>
+      <ul>
+        {data.tasks.map((t: any) => (
+          <li key={t.id}>
+            任务 #{t.id} · {aiTaskLabels[t.status]} {t.error && <p>{t.error}</p>}
+            {t.result && (
+              <details>
+                <summary>查看 AI 原稿与待核实事项</summary>
+                <p>{t.result.quote.title}</p>
+                <p>{t.result.quote.scope}</p>
+                <p>包含：{t.result.quote.included}</p>
+                <p>不包含：{t.result.quote.excluded}</p>
+                <p>规则：{t.result.quote.terms}</p>
+                <ul>
+                  {[...t.result.questions, ...t.result.warnings].map((x: string, i: number) => (
+                    <li key={i}>{x}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {["succeeded", "adopted"].includes(t.status) && (
+              <button
+                disabled={busy}
+                onClick={() => {
+                  const last = quotes
+                    .filter(
+                      (q) =>
+                        Number(typeof q.aiTask === "object" ? q.aiTask?.id : q.aiTask) === t.id,
+                    )
+                    .sort((a, b) => b.revision - a.revision)[0];
+                  setSelected({ ...t, baseQuote: last?.id });
+                  edit(last || t.result.quote);
+                }}
+              >
+                整理此结果为报价草稿
+              </button>
+            )}
+            {t.status === "unconfigured" && (
+              <button
+                disabled={busy || !data.enabled}
+                onClick={() => action("queue", { task: t.id })}
+              >
+                配置后重新排队
+              </button>
+            )}
+            {!["adopted", "cancelled"].includes(t.status) && (
+              <button disabled={busy} onClick={() => action("cancel", { task: t.id })}>
+                取消任务
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <details open={!!selected}>
+        <summary>
+          {selected ? `整理任务 #${selected.id} 的报价草稿` : "填写生成要求与已核实费用"}
+        </summary>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const value = { ...quote, expiresAt: new Date(quote.expiresAt).toISOString() };
+            void (selected
+              ? action(selected.status === "adopted" ? "revise" : "adopt", {
+                  task: selected.id,
+                  baseQuote: selected.baseQuote,
+                  quote: value,
+                  checked,
+                })
+              : action("create", {
+                  request: {
+                    brief,
+                    locale,
+                    privacyConfirmed: privacy,
+                    currency: value.currency,
+                    expiresAt: value.expiresAt,
+                    lines: value.lines,
+                  },
+                }));
+          }}
+        >
+          <fieldset disabled={busy}>
+            {!selected ? (
+              <>
+                <label>
+                  目标语言
+                  <select value={locale} onChange={(e) => setLocale(e.target.value)}>
+                    {locales.map((l) => (
+                      <option key={l} value={l}>
+                        {localeNames[l]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  已核实的需求摘要（不要填写姓名、联系方式、证件、详细住址或健康隐私）
+                  <textarea
+                    required
+                    maxLength={6000}
+                    value={brief}
+                    onChange={(e) => setBrief(e.target.value)}
+                  />
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    required
+                    checked={privacy}
+                    onChange={(e) => setPrivacy(e.target.checked)}
+                  />
+                  已去除身份及敏感资料，同意启用模型后将此摘要和费用明细用于生成
+                </label>
+              </>
+            ) : (
+              <>
+                {[
+                  ["title", "方案名称"],
+                  ["scope", "服务范围"],
+                  ["included", "包含项目"],
+                  ["excluded", "不包含项目"],
+                  ["terms", "变更与取消规则"],
+                ].map(([k, label]) => (
+                  <label key={k}>
+                    {label}
+                    <textarea
+                      required
+                      maxLength={k === "title" ? 200 : 4000}
+                      value={quote[k]}
+                      onChange={(e) => setQuote({ ...quote, [k]: e.target.value })}
+                    />
+                  </label>
+                ))}
+                <p>先解决原稿中的待核实事项；采纳后还需主管独立执行审核操作。</p>
+              </>
+            )}
+            <label>
+              币种
+              <select
+                value={quote.currency}
+                onChange={(e) => setQuote({ ...quote, currency: e.target.value })}
+              >
+                {["CNY", "USD", "EUR", "GBP", "AED"].map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              报价有效期（本机时间）
+              <input
+                type="datetime-local"
+                required
+                value={quote.expiresAt}
+                onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}
+              />
+            </label>
+            {quote.lines.map((l: any, i: number) => (
+              <fieldset key={i}>
+                <legend>已核实费用 {i + 1}</legend>
+                <label>
+                  项目
+                  <input
+                    required
+                    maxLength={200}
+                    value={l.label}
+                    onChange={(e) =>
+                      setQuote({
+                        ...quote,
+                        lines: quote.lines.map((x: any, j: number) =>
+                          i === j ? { ...x, label: e.target.value } : x,
+                        ),
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  数量
+                  <input
+                    required
+                    type="number"
+                    min={1}
+                    max={10000}
+                    value={l.quantity}
+                    onChange={(e) =>
+                      setQuote({
+                        ...quote,
+                        lines: quote.lines.map((x: any, j: number) =>
+                          i === j ? { ...x, quantity: Number(e.target.value) } : x,
+                        ),
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  单价
+                  <input
+                    required
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={l.unitMinor / 100}
+                    onChange={(e) =>
+                      setQuote({
+                        ...quote,
+                        lines: quote.lines.map((x: any, j: number) =>
+                          i === j
+                            ? { ...x, unitMinor: Math.round(Number(e.target.value) * 100) }
+                            : x,
+                        ),
+                      })
+                    }
+                  />
+                </label>
+                {quote.lines.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setQuote({
+                        ...quote,
+                        lines: quote.lines.filter((_: any, j: number) => i !== j),
+                      })
+                    }
+                  >
+                    移除费用
+                  </button>
+                )}
+              </fieldset>
+            ))}
+            <button
+              type="button"
+              disabled={quote.lines.length >= 30}
+              onClick={() =>
+                setQuote({
+                  ...quote,
+                  lines: [...quote.lines, { label: "", quantity: 1, unitMinor: 0 }],
+                })
+              }
+            >
+              增加费用
+            </button>
+            <p>
+              合计{" "}
+              {(
+                quote.lines.reduce((n: number, l: any) => n + l.quantity * l.unitMinor, 0) / 100
+              ).toFixed(2)}{" "}
+              {quote.currency}
+            </p>
+            {selected && (
+              <label>
+                <input
+                  type="checkbox"
+                  required
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                />
+                已逐项整理事实、费用、规则和待核实事项
+              </label>
+            )}
+            <button>
+              {selected
+                ? "保存待主管审核的草稿"
+                : data.enabled
+                  ? "提交 AI 生成任务"
+                  : "保存任务（等待配置）"}
+            </button>
+            {selected && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(null);
+                  setQuote(initial());
+                  setChecked(false);
+                }}
+              >
+                退出整理
+              </button>
+            )}
+          </fieldset>
+        </form>
+      </details>
+    </section>
+  );
 }

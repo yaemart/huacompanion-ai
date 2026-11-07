@@ -79,6 +79,7 @@ export interface Config {
     'content-events': ContentEvent;
     'content-media': ContentMedia;
     'content-agent-tasks': ContentAgentTask;
+    'immigration-policies': ImmigrationPolicy;
     'support-customers': SupportCustomer;
     'support-conversations': SupportConversation;
     'support-messages': SupportMessage;
@@ -124,6 +125,7 @@ export interface Config {
     'content-events': ContentEventsSelect<false> | ContentEventsSelect<true>;
     'content-media': ContentMediaSelect<false> | ContentMediaSelect<true>;
     'content-agent-tasks': ContentAgentTasksSelect<false> | ContentAgentTasksSelect<true>;
+    'immigration-policies': ImmigrationPoliciesSelect<false> | ImmigrationPoliciesSelect<true>;
     'support-customers': SupportCustomersSelect<false> | SupportCustomersSelect<true>;
     'support-conversations': SupportConversationsSelect<false> | SupportConversationsSelect<true>;
     'support-messages': SupportMessagesSelect<false> | SupportMessagesSelect<true>;
@@ -163,11 +165,13 @@ export interface Config {
     'support-settings': SupportSetting;
     'workflow-settings': WorkflowSetting;
     'customer-settings': CustomerSetting;
+    'seo-settings': SeoSetting;
   };
   globalsSelect: {
     'support-settings': SupportSettingsSelect<false> | SupportSettingsSelect<true>;
     'workflow-settings': WorkflowSettingsSelect<false> | WorkflowSettingsSelect<true>;
     'customer-settings': CustomerSettingsSelect<false> | CustomerSettingsSelect<true>;
+    'seo-settings': SeoSettingsSelect<false> | SeoSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -232,6 +236,7 @@ export interface Staff {
         | 'institution'
         | 'venue'
         | 'activity'
+        | 'immigration-policy'
       )[]
     | null;
   additionalRoles?: ('admin' | 'manager' | 'operations' | 'editor' | 'reviewer')[] | null;
@@ -447,6 +452,7 @@ export interface AuditEvent {
 export interface IntakeLimit {
   id: number;
   bucket: number;
+  clientKey: string;
   count: number;
   updatedAt: string;
   createdAt: string;
@@ -614,6 +620,38 @@ export interface ContentAgentTask {
     | null;
   adoptedDraft?: number | null;
   createdBy: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * 当前为只读结构，录入和审核将在后续步骤接入内容工作流；尚未提供公开查询。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "immigration-policies".
+ */
+export interface ImmigrationPolicy {
+  id: number;
+  policyKey: string;
+  countryCode?: string | null;
+  countryNameEn?: string | null;
+  countryNameZh?: string | null;
+  policyType?: ('unilateral' | 'bilateral' | 'transit-240h' | 'other') | null;
+  maxStayDays?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  portsAndRegions?:
+    | {
+        label: string;
+        id?: string | null;
+      }[]
+    | null;
+  officialSourceUrl?: string | null;
+  lastVerifiedOn?: string | null;
+  verifiedBy?: (number | null) | Staff;
+  publicNotes?: string | null;
+  internalNotes?: string | null;
+  status: 'draft' | 'published';
+  revision: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -1332,6 +1370,10 @@ export interface PayloadLockedDocument {
         value: number | ContentAgentTask;
       } | null)
     | ({
+        relationTo: 'immigration-policies';
+        value: number | ImmigrationPolicy;
+      } | null)
+    | ({
         relationTo: 'support-customers';
         value: number | SupportCustomer;
       } | null)
@@ -1644,6 +1686,7 @@ export interface AuditEventsSelect<T extends boolean = true> {
  */
 export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
+  clientKey?: T;
   count?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1738,6 +1781,35 @@ export interface ContentAgentTasksSelect<T extends boolean = true> {
   usage?: T;
   adoptedDraft?: T;
   createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "immigration-policies_select".
+ */
+export interface ImmigrationPoliciesSelect<T extends boolean = true> {
+  policyKey?: T;
+  countryCode?: T;
+  countryNameEn?: T;
+  countryNameZh?: T;
+  policyType?: T;
+  maxStayDays?: T;
+  validFrom?: T;
+  validUntil?: T;
+  portsAndRegions?:
+    | T
+    | {
+        label?: T;
+        id?: T;
+      };
+  officialSourceUrl?: T;
+  lastVerifiedOn?: T;
+  verifiedBy?: T;
+  publicNotes?: T;
+  internalNotes?: T;
+  status?: T;
+  revision?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2320,6 +2392,50 @@ export interface CustomerSetting {
   createdAt?: string | null;
 }
 /**
+ * 管理员维护目录、表单及固定页面的 SEO。保存后生效；留空沿用已发布内容及默认值。内容详情页的 SEO 请在内容工作台编辑并审核发布。试运行仍禁止收录。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seo-settings".
+ */
+export interface SeoSetting {
+  id: number;
+  /**
+   * 只填验证码文本，不填完整meta标签。不会启用统计或搜索收录。
+   */
+  googleSiteVerification?: string | null;
+  pages?:
+    | {
+        path:
+          | 'tools/china-visa-free-checker'
+          | 'home'
+          | 'services'
+          | 'services/projects'
+          | 'providers'
+          | 'guides'
+          | 'exhibitions'
+          | 'institutions'
+          | 'life'
+          | 'partners'
+          | 'about'
+          | 'contact'
+          | 'request'
+          | 'apply'
+          | 'privacy'
+          | 'terms';
+        locale: 'zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar';
+        seoTitle?: string | null;
+        seoDescription?: string | null;
+        /**
+         * 此处明确选择的图片会作为公开分享图片提供访问。
+         */
+        seoImage?: (number | null) | ContentMedia;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "support-settings_select".
  */
@@ -2362,6 +2478,26 @@ export interface WorkflowSettingsSelect<T extends boolean = true> {
  */
 export interface CustomerSettingsSelect<T extends boolean = true> {
   enabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seo-settings_select".
+ */
+export interface SeoSettingsSelect<T extends boolean = true> {
+  googleSiteVerification?: T;
+  pages?:
+    | T
+    | {
+        path?: T;
+        locale?: T;
+        seoTitle?: T;
+        seoDescription?: T;
+        seoImage?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

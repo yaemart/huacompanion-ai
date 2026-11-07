@@ -7,9 +7,7 @@ export default function NotFound() {
         <br />
         页面未找到
       </h1>
-      <p style={{ marginBottom: 25 }}>
-        This page may have moved. / 该页面不存在或已移动。
-      </p>
+      <p style={{ marginBottom: 25 }}>This page may have moved. / 该页面不存在或已移动。</p>
       <a className="button" href="/en">
         Home
       </a>{" "}

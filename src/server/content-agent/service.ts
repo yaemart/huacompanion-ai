@@ -1,4 +1,4 @@
-import {homeTexts} from "../../lib/housekeeping";
+import { homeTexts } from "../../lib/housekeeping";
 import { isLife, lifeTranslationFields } from "../../lib/lifestyle";
 import { canAccessContentKind } from "../../cms/access";
 import { isLocale } from "../../lib/locales";
@@ -53,13 +53,12 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       if (!canAccessContentKind(user, contentKind)) throw new ContentError("无此板块权限", 403);
       if (["translate", "check"].includes(input.kind) && !draft)
         throw new ContentError("此任务需要先选定并保存工作稿");
-      const locale = input.kind === "translate" ? input.targetLocale : draft?.locale || input.locale || "zh";
+      const locale =
+        input.kind === "translate" ? input.targetLocale : draft?.locale || input.locale || "zh";
       if (!isLocale(locale)) throw new ContentError("请选择有效的目标语言");
       if (input.kind === "translate" && locale === draft!.locale)
         throw new ContentError("翻译目标语言必须与原文不同");
-      const sourceBody = draft
-        ? publicBody(draft.body as unknown as ContentBody)
-        : null;
+      const sourceBody = draft ? publicBody(draft.body as unknown as ContentBody) : null;
       const sources = sourceBody?.sources || input.sources || [];
       validateContent({
         contentKey: "validation",
@@ -92,8 +91,22 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
         targetId: target?.id,
         targetRevision: target?.revision,
         kind: input.kind,
-        ...(input.kind==='translate' && sourceBody?.catalog?.housekeeping ? {housekeepingInstructions:'Return housekeepingText translating all nonempty fields named in housekeepingTextFields. Do not change language capabilities, services or equipment codes.',housekeepingTextFields:homeTexts.filter(k=>sourceBody.catalog?.housekeeping?.[k])}:{}),
-        ...(input.kind==='translate' && sourceBody && isLife(sourceBody.kind) ? {translationInstructions:'Return lifestyleText translating every nonempty field named in lifestyleTextFields. Do not change numbers, dates, status, URLs, IDs or service languages.',lifestyleTextFields:lifeTranslationFields.filter(k=>sourceBody.lifestyle?.[k])}:{}),
+        ...(input.kind === "translate" && sourceBody?.catalog?.housekeeping
+          ? {
+              housekeepingInstructions:
+                "Return housekeepingText translating all nonempty fields named in housekeepingTextFields. Do not change language capabilities, services or equipment codes.",
+              housekeepingTextFields: homeTexts.filter(
+                (k) => sourceBody.catalog?.housekeeping?.[k],
+              ),
+            }
+          : {}),
+        ...(input.kind === "translate" && sourceBody && isLife(sourceBody.kind)
+          ? {
+              translationInstructions:
+                "Return lifestyleText translating every nonempty field named in lifestyleTextFields. Do not change numbers, dates, status, URLs, IDs or service languages.",
+              lifestyleTextFields: lifeTranslationFields.filter((k) => sourceBody.lifestyle?.[k]),
+            }
+          : {}),
       };
       if (JSON.stringify(selected).length > 20000)
         throw new ContentError("材料与选定内容合计不能超过20000字符");
@@ -119,8 +132,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
     });
     if (!canAccessContentKind(user, task.contentKind)) throw new ContentError("无此板块权限", 403);
     if (input.action === "cancel") {
-      if (task.adoptedDraft)
-        throw new ContentError("该结果已采纳，请在工作稿中处理");
+      if (task.adoptedDraft) throw new ContentError("该结果已采纳，请在工作稿中处理");
       return p.update({
         collection: "content-agent-tasks",
         id: task.id,
@@ -133,19 +145,23 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
     }
     if (input.action !== "adopt") throw new ContentError("未知任务操作");
     if (task.adoptedDraft) return task;
-    if (task.status !== "succeeded")
-      throw new ContentError("仅成功结果可以采纳");
-    if (task.kind === "check")
-      throw new ContentError("检查任务仅供审核参考，不覆盖工作稿");
+    if (task.status !== "succeeded") throw new ContentError("仅成功结果可以采纳");
+    if (task.kind === "check") throw new ContentError("检查任务仅供审核参考，不覆盖工作稿");
     const source = task.input as any;
     validateCandidate(
       task.result,
       source.sources.map((s: any) => s.id),
     );
     const result = task.result as unknown as Candidate;
-    if(task.kind==='translate' && source.source?.catalog?.housekeeping){for(const k of homeTexts)if(source.source.catalog.housekeeping[k]&&!result.housekeepingText?.[k]?.trim())throw new ContentError('家政结构化翻译不完整');}
-    if(task.kind==='translate' && isLife(source.source?.kind) && source.source?.lifestyle){
-      for(const k of lifeTranslationFields) if(source.source.lifestyle[k] && !result.lifestyleText?.[k]?.trim()) throw new ContentError('结构化资料翻译不完整，请补全预约、收费等文字字段后再采纳');
+    if (task.kind === "translate" && source.source?.catalog?.housekeeping) {
+      for (const k of homeTexts)
+        if (source.source.catalog.housekeeping[k] && !result.housekeepingText?.[k]?.trim())
+          throw new ContentError("家政结构化翻译不完整");
+    }
+    if (task.kind === "translate" && isLife(source.source?.kind) && source.source?.lifestyle) {
+      for (const k of lifeTranslationFields)
+        if (source.source.lifestyle[k] && !result.lifestyleText?.[k]?.trim())
+          throw new ContentError("结构化资料翻译不完整，请补全预约、收费等文字字段后再采纳");
     }
     let target = source.targetId
       ? await p.findByID({
@@ -154,8 +170,10 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
           req,
         })
       : null;
-    if (target && !canAccessContentKind(user, target.kind)) throw new ContentError("无此板块权限", 403);
-    if (target?.reviewState === "review") throw new ContentError("待审核内容须先退回后才能修改", 409);
+    if (target && !canAccessContentKind(user, target.kind))
+      throw new ContentError("无此板块权限", 403);
+    if (target?.reviewState === "review")
+      throw new ContentError("待审核内容须先退回后才能修改", 409);
     if (target && target.revision !== source.targetRevision)
       throw new ContentError("工作稿已变化，请人工比较，不覆盖新稿", 409);
     let sourceContributors: number[] = [];
@@ -165,7 +183,11 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
         id: source.sourceDraft,
         req,
       });
-      sourceContributors = [...(Array.isArray(original.contributors) ? original.contributors : []), original.lastEditedBy, original.submittedBy].filter((id): id is number => typeof id === "number");
+      sourceContributors = [
+        ...(Array.isArray(original.contributors) ? original.contributors : []),
+        original.lastEditedBy,
+        original.submittedBy,
+      ].filter((id): id is number => typeof id === "number");
       if (!canAccessContentKind(user, original.kind)) throw new ContentError("无此板块权限", 403);
       if (original.revision !== source.sourceRevision)
         throw new ContentError("原文已变化，请重新生成或人工整理", 409);
@@ -175,19 +197,33 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       throw new ContentError("目标语言不一致，请重新创建任务", 409);
     const body: ContentBody = publicBody({
       ...(base || source.source),
-      contentKey:
-        base?.contentKey || source.source?.contentKey || `ai-${task.id}`,
+      contentKey: base?.contentKey || source.source?.contentKey || `ai-${task.id}`,
       slug: base?.slug || source.source?.slug || `ai-${task.id}`,
       kind: base?.kind || source.source?.kind || "guide",
       locale: source.locale,
-      ...((base?.catalog?.housekeeping||source.source?.catalog?.housekeeping)?{catalog:{...(base?.catalog||source.source.catalog),housekeeping:{...(base?.catalog?.housekeeping||source.source.catalog.housekeeping),...(task.kind==='translate'?result.housekeepingText:{})}}}:{}),
-      ...((base?.lifestyle || source.source?.lifestyle) ? {lifestyle:{...(base?.lifestyle || source.source.lifestyle),...(task.kind==='translate'?result.lifestyleText:{})}}:{}),
+      ...(base?.catalog?.housekeeping || source.source?.catalog?.housekeeping
+        ? {
+            catalog: {
+              ...(base?.catalog || source.source.catalog),
+              housekeeping: {
+                ...(base?.catalog?.housekeeping || source.source.catalog.housekeeping),
+                ...(task.kind === "translate" ? result.housekeepingText : {}),
+              },
+            },
+          }
+        : {}),
+      ...(base?.lifestyle || source.source?.lifestyle
+        ? {
+            lifestyle: {
+              ...(base?.lifestyle || source.source.lifestyle),
+              ...(task.kind === "translate" ? result.lifestyleText : {}),
+            },
+          }
+        : {}),
       title: result.title,
       summary: result.summary || "",
       blocks: result.blocks,
-      sources: source.sources.filter((s: any) =>
-        result.sourceIds.includes(s.id),
-      ),
+      sources: source.sources.filter((s: any) => result.sourceIds.includes(s.id)),
     });
     validateContent(body);
     if (!canAccessContentKind(user, body.kind)) throw new ContentError("无此板块权限", 403);
@@ -201,7 +237,18 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       routeKey: `${body.kind}:${body.locale}:${body.slug}`,
       body: body as any,
       revision: (target?.revision || 0) + 1,
-      contributors: [...new Set([...(Array.isArray(target?.contributors) ? target.contributors : []), ...sourceContributors, target?.lastEditedBy, target?.submittedBy, task.createdBy, Number(user!.id)].filter(id => typeof id === "number"))],
+      contributors: [
+        ...new Set(
+          [
+            ...(Array.isArray(target?.contributors) ? target.contributors : []),
+            ...sourceContributors,
+            target?.lastEditedBy,
+            target?.submittedBy,
+            task.createdBy,
+            Number(user!.id),
+          ].filter((id) => typeof id === "number"),
+        ),
+      ],
       lastEditedBy: Number(user!.id),
       reviewState: "draft" as const,
       sourceDraft: source.sourceDraft,
@@ -272,8 +319,7 @@ export async function runTask(
         req,
       });
     }
-    const reserved =
-      Buffer.byteLength(JSON.stringify(task.input), "utf8") + 4000;
+    const reserved = Buffer.byteLength(JSON.stringify(task.input), "utf8") + 4000;
     const day = new Date().toISOString().slice(0, 10);
     const tasks = await p.find({
       collection: "content-agent-tasks",
@@ -403,10 +449,7 @@ export async function runTask(
           status: "failed",
           lease: null,
           leaseUntil: null,
-          error:
-            e instanceof Error
-              ? e.message.slice(0, 1000)
-              : "生成失败；未自动重试",
+          error: e instanceof Error ? e.message.slice(0, 1000) : "生成失败；未自动重试",
         },
         req,
       });

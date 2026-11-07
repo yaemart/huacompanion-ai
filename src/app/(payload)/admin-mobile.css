@@ -1,0 +1,25 @@
+@media (max-width: 600px) {
+  .app-header__step-nav-wrapper {
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .nav__header,
+  .nav__header-content {
+    max-width: 100%;
+  }
+
+  .doc-controls__meta {
+    flex-wrap: wrap;
+  }
+
+  .doc-controls__value-wrap {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .doc-controls__value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

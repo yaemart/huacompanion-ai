@@ -1,4 +1,4 @@
-import type { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres';
+import type { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 // Additive only: existing content and service-language capabilities are unchanged.
 export async function up({ db }: MigrateUpArgs): Promise<void> {

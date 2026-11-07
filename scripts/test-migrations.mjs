@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
 import pg from "pg";
 const url = new URL(process.env.DATABASE_URL || "");
 if (
@@ -23,25 +22,19 @@ execFileSync(bin + "/createdb", [database], { env, stdio: "pipe" });
 try {
   const target = new URL(url);
   target.pathname = "/" + database;
-  execFileSync(
-    resolve("node_modules/node/bin/node"),
-    ["node_modules/payload/bin.js", "migrate"],
-    {
-      env: {
-        ...env,
-        DATABASE_URL: target.toString(),
-        APP_ENV: "migration-test",
-        NODE_ENV: "production",
-      },
-      stdio: "pipe",
-      timeout: 60000,
+  execFileSync(process.execPath, ["node_modules/payload/bin.js", "migrate"], {
+    env: {
+      ...env,
+      DATABASE_URL: target.toString(),
+      APP_ENV: "migration-test",
+      NODE_ENV: "production",
     },
-  );
+    stdio: "pipe",
+    timeout: 60000,
+  });
   const pool = new pg.Pool({ connectionString: target.toString() });
   try {
-    const tables = await pool.query(
-      "SELECT tablename FROM pg_tables WHERE schemaname='public'",
-    );
+    const tables = await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public'");
     for (const name of [
       "staff",
       "inquiries",
@@ -76,9 +69,36 @@ try {
       "customer_inquiry_links",
       "content_quality",
       "content_quality_events",
+      "seo_settings",
+      "seo_settings_pages",
+      "imm_policies",
+      "imm_policies_ports_and_regions",
+      "_imm_policies_v",
+      "_imm_policies_v_version_ports_and_regions",
     ])
       if (!tables.rows.some((r) => r.tablename === name))
         throw Error("Missing migrated table: " + name);
+    const policyGrant = await pool.query(
+      "SELECT enumlabel FROM pg_enum e JOIN pg_type t ON e.enumtypid=t.oid " +
+        "WHERE t.typname='enum_staff_content_kinds' AND enumlabel='immigration-policy'",
+    );
+    if (policyGrant.rowCount !== 1) throw Error("Missing policy content board enum");
+    const textChatDefault = await pool.query(
+      "SELECT column_default FROM information_schema.columns " +
+        "WHERE table_schema='public' AND table_name='support_settings' AND column_name='text_chat'",
+    );
+    if (textChatDefault.rows[0]?.column_default !== "false")
+      throw Error("Trial text chat must default to disabled");
+    const clientKey = await pool.query(
+      "SELECT column_name FROM information_schema.columns " +
+        "WHERE table_schema='public' AND table_name='intake_limits' AND column_name='client_key'",
+    );
+    if (clientKey.rowCount !== 1) throw Error("Missing intake client key");
+    const indexes = await pool.query(
+      "SELECT indexdef FROM pg_indexes WHERE schemaname='public' AND tablename='intake_limits'",
+    );
+    if (!indexes.rows.some((row) => /UNIQUE.*\(bucket, client_key\)/.test(row.indexdef)))
+      throw Error("Missing unique per-client intake quota index");
   } finally {
     await pool.end();
   }
@@ -87,9 +107,7 @@ try {
   );
 } catch (error) {
   if (error.stderr) console.error(String(error.stderr).slice(-2500));
-  throw new Error(
-    "Migration verification failed; primary database was not changed.",
-  );
+  throw new Error("Migration verification failed; primary database was not changed.");
 } finally {
   execFileSync(bin + "/dropdb", [database], { env, stdio: "pipe" });
 }

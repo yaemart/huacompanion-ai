@@ -47,9 +47,7 @@ const body = {
 let doc = await post({ action: "save", body });
 r = await fetch(base + "/en/guides/" + key);
 assert.equal(r.status, 404);
-let publicData = await (
-  await fetch(base + "/api/public/content?locale=en")
-).json();
+let publicData = await (await fetch(base + "/api/public/content?locale=en")).json();
 assert.ok(!publicData.items.some((d) => d.contentKey === key));
 r = await fetch(base + "/content-preview/" + doc.id, { redirect: "manual" });
 assert.equal(r.status, 307);
@@ -74,7 +72,12 @@ assert.equal(r.status, 404);
 body.blocks.push({ type: "image", mediaId: media.id, text: "Test pixel" });
 doc = await post({ action: "save", id: doc.id, revision: doc.revision, body });
 doc = await post({ action: "submit", id: doc.id, revision: doc.revision });
-doc = await post({ action: "publish", overrideReason: "Local fictional HTTP regression fixture", id: doc.id, revision: doc.revision });
+doc = await post({
+  action: "publish",
+  overrideReason: "Local fictional HTTP regression fixture",
+  id: doc.id,
+  revision: doc.revision,
+});
 r = await fetch(base + "/en/guides/" + key);
 assert.equal(r.status, 200);
 let html = await r.text();
@@ -103,17 +106,19 @@ assert.ok(!html.includes("Private changed title"));
 assert.ok(html.includes("HTTP published title"));
 r = await fetch(base + "/zh/guides/" + key);
 assert.equal(r.status, 404);
-doc = await post({ action: "unpublish", overrideReason: "Local fictional HTTP regression fixture cleanup", id: doc.id, revision: doc.revision });
+doc = await post({
+  action: "unpublish",
+  overrideReason: "Local fictional HTTP regression fixture cleanup",
+  id: doc.id,
+  revision: doc.revision,
+});
 r = await fetch(base + "/en/guides/" + key);
 assert.equal(r.status, 404);
 r = await fetch(base + "/api/content-media/" + media.id);
 assert.equal(r.status, 404);
 publicData = await (await fetch(base + "/api/public/content?locale=en")).json();
 assert.ok(!publicData.items.some((d) => d.contentKey === key));
-assert.equal(
-  (await fetch(base + "/api/public/content?locale=invalid")).status,
-  400,
-);
+assert.equal((await fetch(base + "/api/public/content?locale=invalid")).status, 400);
 r = await fetch(base + "/api/content-agent", {
   method: "POST",
   headers: { ...auth, "Content-Type": "application/json" },

@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
@@ -15,7 +15,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"updated_at" timestamp(3) with time zone,
   	"created_at" timestamp(3) with time zone
   );
-  `)
+  `);
 }
 
-export async function down(): Promise<void> { throw new Error('Settings rollback requires a backup plan'); }
+export async function down(): Promise<void> {
+  throw new Error("Settings rollback requires a backup plan");
+}

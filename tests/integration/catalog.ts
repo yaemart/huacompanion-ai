@@ -11,7 +11,8 @@ const p = await getPayload({ config });
 const admin = (
   await p.find({
     collection: "staff",
-    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] }, sort: "createdAt",
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+    sort: "createdAt",
     limit: 1,
   })
 ).docs[0];
@@ -94,7 +95,8 @@ async function reviewed(body: any, providerRef?: number) {
 }
 async function publish(d: any) {
   return mutateContent(p, admin, {
-    action: "publish", overrideReason:"Local regression fixture review and cleanup",
+    action: "publish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: d.id,
     revision: d.revision,
     catalogReviewed: true,
@@ -111,14 +113,8 @@ try {
   d = await publish(d);
   let project = await publish(await reviewed(projectBody));
   let live = await listPublished(p, "en");
-  assert.equal(
-    live.find((x) => x.contentKey === run + "-project")?.acceptingInquiries,
-    true,
-  );
-  assert.equal(
-    (live.find((x) => x.contentKey === run) as any).providerRef,
-    undefined,
-  );
+  assert.equal(live.find((x) => x.contentKey === run + "-project")?.acceptingInquiries, true);
+  assert.equal((live.find((x) => x.contentKey === run) as any).providerRef, undefined);
   assert.ok(!JSON.stringify(live).includes("not public"));
   assert.equal(
     (await listPublished(p, "zh")).some((x) => x.contentKey === run),
@@ -150,19 +146,14 @@ try {
   ).docs[0];
   assert.equal((saved.catalogSource as any)?.provider?.key, run);
   assert.equal((saved.catalogSource as any)?.project?.key, run + "-project");
-  assert.equal(
-    (saved.catalogSource as any)?.provider?.providerRef,
-    provider.id,
-  );
+  assert.equal((saved.catalogSource as any)?.provider?.providerRef, provider.id);
   assert.ok(Number.isInteger((saved.catalogSource as any)?.project?.revision));
   assert.equal(
     (saved.catalogSource as any)?.project?.requiredProviders[0]?.providerRef,
     provider.id,
   );
   assert.equal((await saveIntake(input, key)).duplicate, true);
-  await assert.rejects(() =>
-    saveIntake({ ...input, source: { provider: run } }, key),
-  );
+  await assert.rejects(() => saveIntake({ ...input, source: { provider: run } }, key));
   await assert.rejects(() =>
     saveIntake({ ...input, source: { project: "missing" } }, randomUUID()),
   );
@@ -176,10 +167,7 @@ try {
     live.some((x) => x.contentKey === run),
     false,
   );
-  assert.equal(
-    live.find((x) => x.contentKey === run + "-project")?.acceptingInquiries,
-    false,
-  );
+  assert.equal(live.find((x) => x.contentKey === run + "-project")?.acceptingInquiries, false);
   await assert.rejects(() => saveIntake(input, randomUUID()));
   await p.update({
     collection: "providers",
@@ -187,9 +175,8 @@ try {
     data: { status: "verified", publicApproved: true },
   });
   assert.equal(
-    (await listPublished(p, "en")).find(
-      (x) => x.contentKey === run + "-project",
-    )?.acceptingInquiries,
+    (await listPublished(p, "en")).find((x) => x.contentKey === run + "-project")
+      ?.acceptingInquiries,
     false,
   );
   project = await mutateContent(p, admin, {
@@ -199,22 +186,21 @@ try {
   });
   await publish(project);
   assert.equal(
-    (await listPublished(p, "en")).find(
-      (x) => x.contentKey === run + "-project",
-    )?.acceptingInquiries,
+    (await listPublished(p, "en")).find((x) => x.contentKey === run + "-project")
+      ?.acceptingInquiries,
     true,
   );
   await publish(await reviewed({ ...providerBody, locale: "zh" }, provider.id));
   await publish(await reviewed({ ...projectBody, locale: "zh" }));
   await mutateContent(p, admin, {
-    action: "unpublish", overrideReason:"Local regression fixture review and cleanup",
+    action: "unpublish",
+    overrideReason: "Local regression fixture review and cleanup",
     id: d.id,
     revision: d.revision,
   });
   assert.equal(
-    (await listPublished(p, "zh")).find(
-      (x) => x.contentKey === run + "-project",
-    )?.acceptingInquiries,
+    (await listPublished(p, "zh")).find((x) => x.contentKey === run + "-project")
+      ?.acceptingInquiries,
     true,
     "English withdrawal must preserve Chinese publication",
   );
@@ -226,9 +212,8 @@ try {
   });
   await publish(d);
   assert.equal(
-    (await listPublished(p, "en")).find(
-      (x) => x.contentKey === run + "-project",
-    )?.acceptingInquiries,
+    (await listPublished(p, "en")).find((x) => x.contentKey === run + "-project")
+      ?.acceptingInquiries,
     false,
     "Unpublishing a required provider must latch project suspension",
   );
@@ -239,7 +224,8 @@ try {
   for (const id of drafts) {
     const d = await p.findByID({ collection: "content-drafts", id });
     await mutateContent(p, admin, {
-      action: "unpublish", overrideReason:"Local regression fixture review and cleanup",
+      action: "unpublish",
+      overrideReason: "Local regression fixture review and cleanup",
       id,
       revision: d.revision,
     });

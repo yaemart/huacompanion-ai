@@ -2,7 +2,13 @@ import type { Locale } from "./locales";
 
 export const publicCopy = {
   "Enquire through Hua": {
-    zh: "通过华伴咨询", en: "Enquire through Hua", es: "Consultar a través de Hua", fr: "Contacter Hua", de: "Über Hua anfragen", it: "Chiedi tramite Hua", ar: "استفسر عبر هوا"
+    zh: "通过华伴咨询",
+    en: "Enquire through Hua",
+    es: "Consultar a través de Hua",
+    fr: "Contacter Hua",
+    de: "Über Hua anfragen",
+    it: "Chiedi tramite Hua",
+    ar: "استفسر عبر هوا",
   },
   "Content is being prepared. Please check back later.": {
     zh: "内容正在整理中，请稍后查看。",
@@ -734,16 +740,15 @@ export const publicCopy = {
     it: "Non sono stati forniti elementi specifici di verifica pubblica.",
     ar: "لم تُقدم عناصر تحقق عامة محددة.",
   },
-  "Verification covers listed items only, and does not guarantee service outcomes.":
-    {
-      zh: "核验仅针对列明事项，不代表服务结果保证。",
-      en: "Verification covers listed items only, and does not guarantee service outcomes.",
-      es: "La verificación solo cubre los elementos indicados y no garantiza los resultados del servicio.",
-      fr: "La vérification porte uniquement sur les éléments indiqués et ne garantit pas les résultats du service.",
-      de: "Die Prüfung umfasst nur die aufgeführten Punkte und garantiert keine Leistungsergebnisse.",
-      it: "La verifica riguarda solo gli elementi elencati e non garantisce i risultati del servizio.",
-      ar: "يشمل التحقق العناصر المدرجة فقط ولا يضمن نتائج الخدمة.",
-    },
+  "Verification covers listed items only, and does not guarantee service outcomes.": {
+    zh: "核验仅针对列明事项，不代表服务结果保证。",
+    en: "Verification covers listed items only, and does not guarantee service outcomes.",
+    es: "La verificación solo cubre los elementos indicados y no garantiza los resultados del servicio.",
+    fr: "La vérification porte uniquement sur les éléments indiqués et ne garantit pas les résultats du service.",
+    de: "Die Prüfung umfasst nur die aufgeführten Punkte und garantiert keine Leistungsergebnisse.",
+    it: "La verifica riguarda solo gli elementi elencati e non garantisce i risultati del servizio.",
+    ar: "يشمل التحقق العناصر المدرجة فقط ولا يضمن نتائج الخدمة.",
+  },
 } satisfies Record<string, Record<Locale, string>>;
 
 export function publicText(locale: Locale, key: keyof typeof publicCopy) {

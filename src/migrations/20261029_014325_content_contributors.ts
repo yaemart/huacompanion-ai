@@ -1,9 +1,9 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
    ALTER TABLE "content_drafts" ADD COLUMN "contributors" jsonb DEFAULT '[]'::jsonb;
-  ALTER TABLE "_content_drafts_v" ADD COLUMN "version_contributors" jsonb DEFAULT '[]'::jsonb;`)
+  ALTER TABLE "_content_drafts_v" ADD COLUMN "version_contributors" jsonb DEFAULT '[]'::jsonb;`);
   await db.execute(`
     UPDATE content_drafts d SET contributors = coalesce((
       SELECT jsonb_agg(DISTINCT id) FROM (
@@ -15,5 +15,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   `);
 }
 
-
-export async function down(_args:MigrateDownArgs):Promise<void>{throw new Error("Contributor history must be preserved; review before rollback.");}
+export async function down(_args: MigrateDownArgs): Promise<void> {
+  throw new Error("Contributor history must be preserved; review before rollback.");
+}

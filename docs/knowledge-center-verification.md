@@ -5,6 +5,7 @@ Implemented eight shared sections across the public knowledge centre, content wo
 Seeded 32 checklist topics (four per section), each in Chinese and English: 64 new drafts. Business and hardware/electrical visit preparation is prioritized. Drafts contain actionable preparation steps and service boundaries. Sources remain empty pending verification; none were approved or published. Re-running seed:knowledge created zero duplicates.
 
 Verification:
+
 - 27 unit tests passed.
 - Production build and TypeScript checks passed.
 - Empty isolated database migrations passed.

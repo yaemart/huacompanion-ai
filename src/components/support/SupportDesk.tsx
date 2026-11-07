@@ -1,23 +1,341 @@
-'use client';
-import {useEffect,useRef,useState} from 'react';
-import {VoiceRecorder} from './VoiceRecorder';
-import {VoiceMessage,VoiceSpeechAction} from './VoiceMessage';
-import {StaffCallQueue} from './CallPanel';
-import SupportOperations from './SupportOperations';
-import {featureNames} from '@/lib/support-features';
-import {supportText} from '@/lib/support';
-export function SupportDesk(){
- const [data,setData]=useState<any>({conversations:[],teams:[],staff:[]}),[id,setId]=useState<number>(),[view,setView]=useState<any>(),[filter,setFilter]=useState('all'),[text,setText]=useState(''),[note,setNote]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false),[team,setTeam]=useState(''),[owner,setOwner]=useState(''),[at,setAt]=useState('');const retry=useRef<{key:string;text:string;action:string}|null>(null);
- async function read(target?:number){const r=await fetch('/api/support/staff'+(target?'?id='+target:''),{cache:'no-store'});const j=await r.json();if(!r.ok)throw Error(j.error);return j;}
- async function refresh(){setData(await read());if(id)setView(await read(id));}
- useEffect(()=>{let active=true;const poll=async()=>{try{const d=await read();if(active)setData(d);if(id){const v=await read(id);if(active)setView(v);}}catch(e){if(active)setError(String(e));}};void poll();const timer=setInterval(poll,5000);return()=>{active=false;clearInterval(timer);};},[id]);
- async function act(action:string,extra:any={}){if(!view)return false;setBusy(true);setError('');try{const r=await fetch('/api/support/staff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,id,revision:view.conversation.revision,...extra})});const j=await r.json();if(!r.ok)throw Error(j.error);await refresh();return true;}catch(e){setError(e instanceof Error?e.message:'操作失败');await refresh().catch(()=>{});return false;}finally{setBusy(false);}}
- const c=view?.conversation;const cs=data.conversations.filter((x:any)=>filter==='all'||filter==='mine'&&x.owner===data.user?.id||filter==='unassigned'&&!x.team||filter==='waiting'&&x.mode==='waiting'||filter==='customer'&&x.status==='waiting-customer'||filter==='resolved'&&x.status==='resolved'||filter==='overdue'&&x.status!=='resolved'&&x.nextFollowUp&&Date.parse(x.nextFollowUp)<Date.now());
- return <main className="section support-page"><a href="/admin">← 管理后台</a><h1>华伴客服工作台</h1>{data.user?.isAdmin&&<a href="/admin/globals/support-settings">客服功能设置</a>}<p>对客回复与内部备注分开保存。报价、预约、退款仍由员工确认；此处不会发送外部邮件。</p>{error&&<p role="alert" className="notice">{error}</p>}<details><summary>功能开发、配置和启用状态</summary><ul>{Object.entries(data.features||{}).map(([key,f]:[string,any])=><li key={key}>{(featureNames as any)[key]}：{f.implemented?'已开发':'未开发'} / {f.configured?'已配置':'未配置'} / {f.available?'可用':'未开放'}</li>)}</ul></details><SupportOperations/>{data.features?.humanCalls?.available&&<StaffCallQueue locale="zh"/>}<div className="support-grid"><aside className="support-panel"><label>工作队列<select value={filter} onChange={e=>setFilter(e.target.value)}>{[['all','权限范围内全部'],['unassigned','待分配'],['mine','本人负责'],['waiting','待人工接手'],['customer','等待客户'],['overdue','跟进逾期'],['resolved','已解决']].map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label><ul>{cs.map((x:any)=><li key={x.id}><button aria-current={id===x.id?'true':undefined} onClick={()=>{setView(undefined);setId(x.id);setText('');retry.current=null;setTeam(String(x.team||''));setOwner(String(x.owner||''));setAt(x.nextFollowUp?new Date(x.nextFollowUp).toISOString().slice(0,16):'');}}>#{x.id} · {supportText('zh',x.topic)} · {x.locale}<br/>{({ai:'AI 接待',human:'人工处理',waiting:'待人工'} as any)[x.mode]} / {({open:'待处理','waiting-customer':'等客户',resolved:'已解决'} as any)[x.status]}</button></li>)}</ul></aside><section className="support-panel">{c&&c.id===id?<><h2>会话 #{id}</h2><SupportOperations conversationID={id}/><p>模式：{c.mode} · 状态：{c.status} · 版本：{c.revision}</p><div className="support-tools"><button disabled={busy} onClick={()=>act('takeover')}>人工接手</button><button disabled={busy||!c.aiConsent} onClick={()=>act('resume')}>恢复 AI</button><button disabled={busy} onClick={()=>act('resolve')}>标记已解决</button></div>
- {data.user?.isManager&&<fieldset><legend>分配团队与负责人</legend><select aria-label="团队" disabled={!data.user.isAdmin} value={team} onChange={e=>{setTeam(e.target.value);setOwner('');}}><option value="">未分配</option>{data.teams.map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}</select><select aria-label="负责人" value={owner} onChange={e=>setOwner(e.target.value)}><option value="">未分配</option>{data.staff.filter((s:any)=>String(s.team)===team).map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}</select><button disabled={busy} onClick={()=>act('assign',{team,owner})}>保存分配</button></fieldset>}
- <label>下次跟进时间（UTC）<input type="datetime-local" value={at} onChange={e=>setAt(e.target.value)}/></label><button disabled={busy} onClick={()=>act('followup',{at:at?new Date(at+'Z').toISOString():null})}>保存跟进时间</button>
- {c.summary&&<aside className="notice"><strong>AI 摘要 · 请人工核实</strong><p>{c.summary}</p></aside>}
- <div className="support-messages">{view.messages.map((m:any)=><article key={m.id} className={'support-message '+(m.visibility==='internal'?'internal':m.author)}><strong>{m.visibility==='internal'?'内部记录 · 客户不可见':'对客消息'} · {m.author}</strong><p>{m.text}</p>{m.voiceAudio&&<VoiceMessage audio={typeof m.voiceAudio==='object'?m.voiceAudio.id:m.voiceAudio} staff locale="zh"/>}{m.voiceTranscript&&<p>{m.voiceTranscript}</p>}{m.voiceAudio&&data.features?.transcription?.available&&<VoiceSpeechAction conversation={id!} message={m.id} kind="transcribe" staff locale="zh" onDone={refresh}/>}{m.author==='customer'&&<button disabled={busy||!c.aiConsent} onClick={()=>act('translate',{message:m.id,locale:'zh'})}>生成中文译文（内部）</button>}<small>{new Date(m.createdAt).toLocaleString()}</small></article>)}</div>
- <>{data.features?.voiceMessages?.available&&<VoiceRecorder conversation={id!} staff locale="zh" onSent={refresh}/>}</><form onSubmit={async e=>{e.preventDefault();const action=note?'note':'reply';if(!retry.current||retry.current.text!==text||retry.current.action!==action)retry.current={key:crypto.randomUUID(),text,action};if(await act(action,retry.current)){setText('');retry.current=null;}}}><label><input type="checkbox" checked={note} onChange={e=>setNote(e.target.checked)}/>保存为内部备注</label><label>{note?'内部备注':'回复客户'}<textarea required maxLength={4000} value={text} onChange={e=>setText(e.target.value)}/></label><button className="button" disabled={busy||!text.trim()}>{note?'保存内部备注':'发送回复并由人工接管'}</button></form>
- <h3>关联咨询</h3>{view.inquiries.map((q:any)=><p key={q.id}><a href={`/admin/collections/inquiries/${q.id}`}>{q.reference}</a> · {q.status} · {q.coordinationStage}</p>)}{!view.inquiries.length&&<p>暂无权限内关联咨询；新咨询分配团队后可跟进。</p>}</>:<p>选择会话开始处理。</p>}</section></div></main>;
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { VoiceRecorder } from "./VoiceRecorder";
+import { VoiceMessage, VoiceSpeechAction } from "./VoiceMessage";
+import { StaffCallQueue } from "./CallPanel";
+import SupportOperations from "./SupportOperations";
+import { featureNames } from "@/lib/support-features";
+import { supportText } from "@/lib/support";
+export function SupportDesk() {
+  const [data, setData] = useState<any>({ conversations: [], teams: [], staff: [] }),
+    [id, setId] = useState<number>(),
+    [view, setView] = useState<any>(),
+    [filter, setFilter] = useState("all"),
+    [text, setText] = useState(""),
+    [note, setNote] = useState(false),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [team, setTeam] = useState(""),
+    [owner, setOwner] = useState(""),
+    [at, setAt] = useState("");
+  const retry = useRef<{ key: string; text: string; action: string } | null>(null);
+  async function read(target?: number) {
+    const r = await fetch("/api/support/staff" + (target ? "?id=" + target : ""), {
+      cache: "no-store",
+    });
+    const j = await r.json();
+    if (!r.ok) throw Error(j.error);
+    return j;
+  }
+  async function refresh() {
+    setData(await read());
+    if (id) setView(await read(id));
+  }
+  useEffect(() => {
+    let active = true;
+    const poll = async () => {
+      try {
+        const d = await read();
+        if (active) setData(d);
+        if (id) {
+          const v = await read(id);
+          if (active) setView(v);
+        }
+      } catch (e) {
+        if (active) setError(String(e));
+      }
+    };
+    void poll();
+    const timer = setInterval(poll, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [id]);
+  async function act(action: string, extra: any = {}) {
+    if (!view) return false;
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/support/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, id, revision: view.conversation.revision, ...extra }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw Error(j.error);
+      await refresh();
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+      await refresh().catch(() => {});
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+  const c = view?.conversation;
+  const cs = data.conversations.filter(
+    (x: any) =>
+      filter === "all" ||
+      (filter === "mine" && x.owner === data.user?.id) ||
+      (filter === "unassigned" && !x.team) ||
+      (filter === "waiting" && x.mode === "waiting") ||
+      (filter === "customer" && x.status === "waiting-customer") ||
+      (filter === "resolved" && x.status === "resolved") ||
+      (filter === "overdue" &&
+        x.status !== "resolved" &&
+        x.nextFollowUp &&
+        Date.parse(x.nextFollowUp) < Date.now()),
+  );
+  return (
+    <main className="section support-page">
+      <a href="/admin">← 管理后台</a>
+      <h1>华伴客服工作台</h1>
+      {data.user?.isAdmin && <a href="/admin/globals/support-settings">客服功能设置</a>}
+      <p>对客回复与内部备注分开保存。报价、预约、退款仍由员工确认；此处不会发送外部邮件。</p>
+      {error && (
+        <p role="alert" className="notice">
+          {error}
+        </p>
+      )}
+      <details>
+        <summary>功能开发、配置和启用状态</summary>
+        <ul>
+          {Object.entries(data.features || {}).map(([key, f]: [string, any]) => (
+            <li key={key}>
+              {(featureNames as any)[key]}：{f.implemented ? "已开发" : "未开发"} /{" "}
+              {f.configured ? "已配置" : "未配置"} / {f.available ? "可用" : "未开放"}
+            </li>
+          ))}
+        </ul>
+      </details>
+      <SupportOperations />
+      {data.features?.humanCalls?.available && <StaffCallQueue locale="zh" />}
+      <div className="support-grid">
+        <aside className="support-panel">
+          <label>
+            工作队列
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              {[
+                ["all", "权限范围内全部"],
+                ["unassigned", "待分配"],
+                ["mine", "本人负责"],
+                ["waiting", "待人工接手"],
+                ["customer", "等待客户"],
+                ["overdue", "跟进逾期"],
+                ["resolved", "已解决"],
+              ].map(([v, l]) => (
+                <option value={v} key={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ul>
+            {cs.map((x: any) => (
+              <li key={x.id}>
+                <button
+                  aria-current={id === x.id ? "true" : undefined}
+                  onClick={() => {
+                    setView(undefined);
+                    setId(x.id);
+                    setText("");
+                    retry.current = null;
+                    setTeam(String(x.team || ""));
+                    setOwner(String(x.owner || ""));
+                    setAt(
+                      x.nextFollowUp ? new Date(x.nextFollowUp).toISOString().slice(0, 16) : "",
+                    );
+                  }}
+                >
+                  #{x.id} · {supportText("zh", x.topic)} · {x.locale}
+                  <br />
+                  {({ ai: "AI 接待", human: "人工处理", waiting: "待人工" } as any)[x.mode]} /{" "}
+                  {
+                    ({ open: "待处理", "waiting-customer": "等客户", resolved: "已解决" } as any)[
+                      x.status
+                    ]
+                  }
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+        <section className="support-panel">
+          {c && c.id === id ? (
+            <>
+              <h2>会话 #{id}</h2>
+              <SupportOperations conversationID={id} />
+              <p>
+                模式：{c.mode} · 状态：{c.status} · 版本：{c.revision}
+              </p>
+              <div className="support-tools">
+                <button disabled={busy} onClick={() => act("takeover")}>
+                  人工接手
+                </button>
+                <button disabled={busy || !c.aiConsent} onClick={() => act("resume")}>
+                  恢复 AI
+                </button>
+                <button disabled={busy} onClick={() => act("resolve")}>
+                  标记已解决
+                </button>
+              </div>
+              {data.user?.isManager && (
+                <fieldset>
+                  <legend>分配团队与负责人</legend>
+                  <select
+                    aria-label="团队"
+                    disabled={!data.user.isAdmin}
+                    value={team}
+                    onChange={(e) => {
+                      setTeam(e.target.value);
+                      setOwner("");
+                    }}
+                  >
+                    <option value="">未分配</option>
+                    {data.teams.map((t: any) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="负责人"
+                    value={owner}
+                    onChange={(e) => setOwner(e.target.value)}
+                  >
+                    <option value="">未分配</option>
+                    {data.staff
+                      .filter((s: any) => String(s.team) === team)
+                      .map((s: any) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </select>
+                  <button disabled={busy} onClick={() => act("assign", { team, owner })}>
+                    保存分配
+                  </button>
+                </fieldset>
+              )}
+              <label>
+                下次跟进时间（UTC）
+                <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+              </label>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  act("followup", { at: at ? new Date(at + "Z").toISOString() : null })
+                }
+              >
+                保存跟进时间
+              </button>
+              {c.summary && (
+                <aside className="notice">
+                  <strong>AI 摘要 · 请人工核实</strong>
+                  <p>{c.summary}</p>
+                </aside>
+              )}
+              <div className="support-messages">
+                {view.messages.map((m: any) => (
+                  <article
+                    key={m.id}
+                    className={
+                      "support-message " + (m.visibility === "internal" ? "internal" : m.author)
+                    }
+                  >
+                    <strong>
+                      {m.visibility === "internal" ? "内部记录 · 客户不可见" : "对客消息"} ·{" "}
+                      {m.author}
+                    </strong>
+                    <p>{m.text}</p>
+                    {m.voiceAudio && (
+                      <VoiceMessage
+                        audio={typeof m.voiceAudio === "object" ? m.voiceAudio.id : m.voiceAudio}
+                        staff
+                        locale="zh"
+                      />
+                    )}
+                    {m.voiceTranscript && <p>{m.voiceTranscript}</p>}
+                    {m.voiceAudio && data.features?.transcription?.available && (
+                      <VoiceSpeechAction
+                        conversation={id!}
+                        message={m.id}
+                        kind="transcribe"
+                        staff
+                        locale="zh"
+                        onDone={refresh}
+                      />
+                    )}
+                    {m.author === "customer" && (
+                      <button
+                        disabled={busy || !c.aiConsent}
+                        onClick={() => act("translate", { message: m.id, locale: "zh" })}
+                      >
+                        生成中文译文（内部）
+                      </button>
+                    )}
+                    <small>{new Date(m.createdAt).toLocaleString()}</small>
+                  </article>
+                ))}
+              </div>
+              <>
+                {data.features?.voiceMessages?.available && (
+                  <VoiceRecorder conversation={id!} staff locale="zh" onSent={refresh} />
+                )}
+              </>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const action = note ? "note" : "reply";
+                  if (
+                    !retry.current ||
+                    retry.current.text !== text ||
+                    retry.current.action !== action
+                  )
+                    retry.current = { key: crypto.randomUUID(), text, action };
+                  if (await act(action, retry.current)) {
+                    setText("");
+                    retry.current = null;
+                  }
+                }}
+              >
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={note}
+                    onChange={(e) => setNote(e.target.checked)}
+                  />
+                  保存为内部备注
+                </label>
+                <label>
+                  {note ? "内部备注" : "回复客户"}
+                  <textarea
+                    required
+                    maxLength={4000}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                  />
+                </label>
+                <button className="button" disabled={busy || !text.trim()}>
+                  {note ? "保存内部备注" : "发送回复并由人工接管"}
+                </button>
+              </form>
+              <h3>关联咨询</h3>
+              {view.inquiries.map((q: any) => (
+                <p key={q.id}>
+                  <a href={`/admin/collections/inquiries/${q.id}`}>{q.reference}</a> · {q.status} ·{" "}
+                  {q.coordinationStage}
+                </p>
+              ))}
+              {!view.inquiries.length && <p>暂无权限内关联咨询；新咨询分配团队后可跟进。</p>}
+            </>
+          ) : (
+            <p>选择会话开始处理。</p>
+          )}
+        </section>
+      </div>
+    </main>
+  );
 }

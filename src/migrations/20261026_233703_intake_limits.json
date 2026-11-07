@@ -74,12 +74,8 @@
           "name": "staff_sessions_parent_id_fk",
           "tableFrom": "staff_sessions",
           "tableTo": "staff",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["_parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -299,12 +295,8 @@
           "name": "inquiries_categories_parent_fk",
           "tableFrom": "inquiries_categories",
           "tableTo": "inquiries",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -518,12 +510,8 @@
           "name": "inquiries_owner_id_staff_id_fk",
           "tableFrom": "inquiries",
           "tableTo": "staff",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -601,12 +589,8 @@
           "name": "_inquiries_v_version_categories_parent_fk",
           "tableFrom": "_inquiries_v_version_categories",
           "tableTo": "_inquiries_v",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -883,12 +867,8 @@
           "name": "_inquiries_v_parent_id_inquiries_id_fk",
           "tableFrom": "_inquiries_v",
           "tableTo": "inquiries",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -896,12 +876,8 @@
           "name": "_inquiries_v_version_owner_id_staff_id_fk",
           "tableFrom": "_inquiries_v",
           "tableTo": "staff",
-          "columnsFrom": [
-            "version_owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["version_owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -979,12 +955,8 @@
           "name": "providers_categories_parent_fk",
           "tableFrom": "providers_categories",
           "tableTo": "providers",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1289,12 +1261,8 @@
           "name": "_providers_v_version_categories_parent_fk",
           "tableFrom": "_providers_v_version_categories",
           "tableTo": "_providers_v",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1593,12 +1561,8 @@
           "name": "_providers_v_parent_id_providers_id_fk",
           "tableFrom": "_providers_v",
           "tableTo": "providers",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1814,12 +1778,8 @@
           "name": "audit_events_actor_id_staff_id_fk",
           "tableFrom": "audit_events",
           "tableTo": "staff",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2261,12 +2221,8 @@
           "name": "payload_locked_documents_rels_parent_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "payload_locked_documents",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2274,12 +2230,8 @@
           "name": "payload_locked_documents_rels_staff_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "staff",
-          "columnsFrom": [
-            "staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["staff_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2287,12 +2239,8 @@
           "name": "payload_locked_documents_rels_inquiries_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "inquiries",
-          "columnsFrom": [
-            "inquiries_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inquiries_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2300,12 +2248,8 @@
           "name": "payload_locked_documents_rels_providers_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "providers",
-          "columnsFrom": [
-            "providers_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["providers_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2313,12 +2257,8 @@
           "name": "payload_locked_documents_rels_notifications_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "notifications",
-          "columnsFrom": [
-            "notifications_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["notifications_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2326,12 +2266,8 @@
           "name": "payload_locked_documents_rels_audit_events_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "audit_events",
-          "columnsFrom": [
-            "audit_events_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["audit_events_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2339,12 +2275,8 @@
           "name": "payload_locked_documents_rels_intake_limits_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "intake_limits",
-          "columnsFrom": [
-            "intake_limits_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intake_limits_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2548,12 +2480,8 @@
           "name": "payload_preferences_rels_parent_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "payload_preferences",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2561,12 +2489,8 @@
           "name": "payload_preferences_rels_staff_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "staff",
-          "columnsFrom": [
-            "staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["staff_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2658,194 +2582,97 @@
     "public.enum_staff_role": {
       "name": "enum_staff_role",
       "schema": "public",
-      "values": [
-        "admin",
-        "operations",
-        "editor"
-      ]
+      "values": ["admin", "operations", "editor"]
     },
     "public.enum_inquiries_categories": {
       "name": "enum_inquiries_categories",
       "schema": "public",
-      "values": [
-        "medical",
-        "business",
-        "transport",
-        "stays",
-        "travel",
-        "interpretation",
-        "arrival"
-      ]
+      "values": ["medical", "business", "transport", "stays", "travel", "interpretation", "arrival"]
     },
     "public.enum_inquiries_source": {
       "name": "enum_inquiries_source",
       "schema": "public",
-      "values": [
-        "website",
-        "app",
-        "manual"
-      ]
+      "values": ["website", "app", "manual"]
     },
     "public.enum_inquiries_locale": {
       "name": "enum_inquiries_locale",
       "schema": "public",
-      "values": [
-        "en",
-        "zh"
-      ]
+      "values": ["en", "zh"]
     },
     "public.enum_inquiries_status": {
       "name": "enum_inquiries_status",
       "schema": "public",
-      "values": [
-        "new",
-        "needs-info",
-        "processing",
-        "quoted",
-        "won",
-        "closed"
-      ]
+      "values": ["new", "needs-info", "processing", "quoted", "won", "closed"]
     },
     "public.enum__inquiries_v_version_categories": {
       "name": "enum__inquiries_v_version_categories",
       "schema": "public",
-      "values": [
-        "medical",
-        "business",
-        "transport",
-        "stays",
-        "travel",
-        "interpretation",
-        "arrival"
-      ]
+      "values": ["medical", "business", "transport", "stays", "travel", "interpretation", "arrival"]
     },
     "public.enum__inquiries_v_version_source": {
       "name": "enum__inquiries_v_version_source",
       "schema": "public",
-      "values": [
-        "website",
-        "app",
-        "manual"
-      ]
+      "values": ["website", "app", "manual"]
     },
     "public.enum__inquiries_v_version_locale": {
       "name": "enum__inquiries_v_version_locale",
       "schema": "public",
-      "values": [
-        "en",
-        "zh"
-      ]
+      "values": ["en", "zh"]
     },
     "public.enum__inquiries_v_version_status": {
       "name": "enum__inquiries_v_version_status",
       "schema": "public",
-      "values": [
-        "new",
-        "needs-info",
-        "processing",
-        "quoted",
-        "won",
-        "closed"
-      ]
+      "values": ["new", "needs-info", "processing", "quoted", "won", "closed"]
     },
     "public.enum_providers_categories": {
       "name": "enum_providers_categories",
       "schema": "public",
-      "values": [
-        "medical",
-        "business",
-        "transport",
-        "stays",
-        "travel",
-        "interpretation",
-        "arrival"
-      ]
+      "values": ["medical", "business", "transport", "stays", "travel", "interpretation", "arrival"]
     },
     "public.enum_providers_source": {
       "name": "enum_providers_source",
       "schema": "public",
-      "values": [
-        "website",
-        "app",
-        "manual"
-      ]
+      "values": ["website", "app", "manual"]
     },
     "public.enum_providers_locale": {
       "name": "enum_providers_locale",
       "schema": "public",
-      "values": [
-        "en",
-        "zh"
-      ]
+      "values": ["en", "zh"]
     },
     "public.enum_providers_status": {
       "name": "enum_providers_status",
       "schema": "public",
-      "values": [
-        "applied",
-        "verified",
-        "contracted",
-        "paused"
-      ]
+      "values": ["applied", "verified", "contracted", "paused"]
     },
     "public.enum__providers_v_version_categories": {
       "name": "enum__providers_v_version_categories",
       "schema": "public",
-      "values": [
-        "medical",
-        "business",
-        "transport",
-        "stays",
-        "travel",
-        "interpretation",
-        "arrival"
-      ]
+      "values": ["medical", "business", "transport", "stays", "travel", "interpretation", "arrival"]
     },
     "public.enum__providers_v_version_source": {
       "name": "enum__providers_v_version_source",
       "schema": "public",
-      "values": [
-        "website",
-        "app",
-        "manual"
-      ]
+      "values": ["website", "app", "manual"]
     },
     "public.enum__providers_v_version_locale": {
       "name": "enum__providers_v_version_locale",
       "schema": "public",
-      "values": [
-        "en",
-        "zh"
-      ]
+      "values": ["en", "zh"]
     },
     "public.enum__providers_v_version_status": {
       "name": "enum__providers_v_version_status",
       "schema": "public",
-      "values": [
-        "applied",
-        "verified",
-        "contracted",
-        "paused"
-      ]
+      "values": ["applied", "verified", "contracted", "paused"]
     },
     "public.enum_notifications_kind": {
       "name": "enum_notifications_kind",
       "schema": "public",
-      "values": [
-        "request",
-        "apply"
-      ]
+      "values": ["request", "apply"]
     },
     "public.enum_notifications_status": {
       "name": "enum_notifications_status",
       "schema": "public",
-      "values": [
-        "awaiting-configuration",
-        "pending",
-        "failed",
-        "accepted",
-        "delivered"
-      ]
+      "values": ["awaiting-configuration", "pending", "failed", "accepted", "delivered"]
     }
   },
   "schemas": {},
