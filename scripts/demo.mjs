@@ -1,0 +1,323 @@
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+  openSync,
+  closeSync,
+  cpSync,
+  lstatSync,
+  rmSync,
+} from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
+import { execFileSync, spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
+import { createInterface } from "node:readline/promises";
+import {
+  assertDemo,
+  assertDemoPaths,
+  demoEnvironment,
+  prepareApp,
+  ensureFree,
+  webOwner,
+  stopWeb,
+} from "./lib/demo-environment.mjs";
+const root = fileURLToPath(new URL("../", import.meta.url));
+const dir = path.join(root, ".local/demo");
+const app = path.join(dir, "app");
+const file = path.join(dir, "state.json");
+const data = path.join(dir, "postgres");
+const action = process.argv[2] || "start";
+const expectedNode = readFileSync(path.join(root, ".nvmrc"), "utf8").trim().replace(/^v/, "");
+if (process.versions.node !== expectedNode)
+  throw Error(`请使用Node ${expectedNode}，或双击「华伴演示.command」。`);
+if (action === "serve") {
+  const state = JSON.parse(readFileSync(file, "utf8"));
+  const child = spawn(
+    process.execPath,
+    [
+      path.join(root, "node_modules/next/dist/bin/next"),
+      "dev",
+      app,
+      "--webpack",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      "3100",
+    ],
+    {
+      cwd: app,
+      env: demoEnvironment(state, app),
+      stdio: "inherit",
+      detached: true,
+    },
+  );
+  for (const signal of ["SIGTERM", "SIGINT"])
+    process.on(signal, () => {
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch {}
+    });
+  child.on("exit", (code) => process.exit(code || 0));
+} else {
+  if (!["start", "stop", "reset", "setup", "test"].includes(action))
+    throw Error("命令应为start/stop/reset。");
+  for (const folder of [path.join(root, ".local"), dir]) {
+    if (existsSync(folder) && lstatSync(folder).isSymbolicLink())
+      throw Error("演示目录不能是符号链接");
+  }
+  assertDemoPaths(root);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  let lock;
+  try {
+    if (existsSync(path.join(dir, "busy"))) {
+      const pid = Number(readFileSync(path.join(dir, "busy"), "utf8"));
+      let alive = true;
+      try {
+        process.kill(pid, 0);
+      } catch (error) {
+        alive = error.code !== "ESRCH";
+      }
+      if (!alive) unlinkSync(path.join(dir, "busy"));
+    }
+    lock = openSync(path.join(dir, "busy"), "wx", 0o600);
+    writeFileSync(lock, String(process.pid));
+    if (!existsSync(file)) {
+      if (action !== "start" && action !== "setup") throw Error("演示环境尚未建立，请先启动。");
+      if (existsSync(path.join(data, "PG_VERSION")))
+        throw Error("演示数据库缺少身份标记，拒绝接管。");
+      const password = randomBytes(24).toString("hex");
+      const state = {
+        marker: "hua-local-demo-v1",
+        secret: randomBytes(48).toString("hex"),
+        databaseURL: `postgresql://hua_demo:${password}@127.0.0.1:55442/hua_companion_demo`,
+        accounts: Object.fromEntries(
+          ["admin", "manager", "operations", "reviewer"].map((role) => [
+            role,
+            {
+              email: `${role}@demo.huacompanion.invalid`,
+              password: randomBytes(18).toString("base64url"),
+            },
+          ]),
+        ),
+        seeded: false,
+      };
+      writeFileSync(file, JSON.stringify(state), { mode: 0o600, flag: "wx" });
+    }
+    const state = JSON.parse(readFileSync(file, "utf8"));
+    assertDemo(state);
+    if (
+      ["start", "setup", "reset"].includes(action) &&
+      !existsSync(path.join(root, "node_modules/next/package.json"))
+    ) {
+      console.log("首次安装锁定依赖，请稍候……");
+      execFileSync("npm", ["ci", "--no-audit", "--no-fund"], { cwd: root, stdio: "inherit" });
+    }
+    const env = demoEnvironment(state, app);
+    const bin =
+      process.env.PG_BIN ||
+      execFileSync("brew", ["--prefix", "postgresql@15"], { encoding: "utf8" }).trim() + "/bin";
+    const pg = (tool, args = []) =>
+      execFileSync(path.join(bin, tool), args, {
+        env: { ...env, PGPASSWORD: decodeURIComponent(new URL(state.databaseURL).password) },
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+    if (!pg("postgres", ["--version"]).includes(" 15.")) throw Error("演示需要PostgreSQL15。");
+    const args = ["-h", "127.0.0.1", "-p", "55442", "-U", "hua_demo"];
+    const running = () => {
+      try {
+        pg("pg_ctl", ["-D", data, "status"]);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const verifyDatabase = () => {
+      const actual = pg("psql", [...args, "-d", "postgres", "-Atc", "SHOW data_directory"]).trim();
+      if (actual !== data) throw Error("数据库目录不匹配，拒绝修改。");
+    };
+    const stop = async () => {
+      await stopWeb(dir);
+      if (running()) {
+        verifyDatabase();
+        pg("pg_ctl", ["-D", data, "-m", "fast", "-w", "stop"]);
+      }
+    };
+    if (action === "test") {
+      if (!state.seeded || !running()) throw Error("请先启动演示环境，再运行test:demo。");
+      verifyDatabase();
+      execFileSync(
+        process.execPath,
+        ["--import", "tsx", path.join(root, "tests/integration/local-demo.ts")],
+        {
+          cwd: app,
+          env,
+          stdio: "inherit",
+        },
+      );
+    } else if (action === "stop") {
+      await stop();
+      console.log("演示网站和数据库已关闭，原站点不受影响。");
+    } else {
+      if (action === "reset") {
+        const rl = createInterface({ input: process.stdin, output: process.stdout });
+        const answer = await rl.question("仅清除演示测试修改并恢复初始数据。输入 RESET 确认：");
+        rl.close();
+        if (answer !== "RESET") throw Error("已取消，演示数据未清除。");
+        await stopWeb(dir);
+      } else if (webOwner(dir)) {
+        console.log("演示已在运行：http://127.0.0.1:3100/zh；无需重复启动。");
+        process.exitCode = 0;
+      }
+      if (!webOwner(dir)) {
+        await ensureFree(3100);
+        if (!running()) {
+          await ensureFree(55442);
+          if (!existsSync(path.join(data, "PG_VERSION"))) {
+            const pw = path.join(dir, "init-password");
+            writeFileSync(pw, decodeURIComponent(new URL(state.databaseURL).password), {
+              mode: 0o600,
+            });
+            try {
+              pg("initdb", [
+                "-D",
+                data,
+                "-U",
+                "hua_demo",
+                "--auth=scram-sha-256",
+                `--pwfile=${pw}`,
+                "--encoding=UTF8",
+                "--locale=C",
+              ]);
+            } finally {
+              unlinkSync(pw);
+            }
+          }
+          pg("pg_ctl", [
+            "-D",
+            data,
+            "-l",
+            path.join(dir, "postgres.log"),
+            "-o",
+            "-h 127.0.0.1 -p 55442 -c unix_socket_directories=''",
+            "-w",
+            "start",
+          ]);
+        }
+        const actual = pg("psql", [
+          ...args,
+          "-d",
+          "postgres",
+          "-Atc",
+          "SHOW data_directory",
+        ]).trim();
+        if (actual !== data) throw Error("数据库目录不匹配，拒绝修改。");
+        if (action === "reset") {
+          const backup = path.join(dir, `before-reset-${Date.now()}`);
+          mkdirSync(backup, { mode: 0o700 });
+          pg("pg_dump", [
+            ...args,
+            "-Fc",
+            "-f",
+            path.join(backup, "database.dump"),
+            "hua_companion_demo",
+          ]);
+          if (existsSync(path.join(app, ".local/content-media")))
+            cpSync(path.join(app, ".local/content-media"), path.join(backup, "media"), {
+              recursive: true,
+            });
+          state.seeded = false;
+          writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
+          pg("dropdb", [...args, "--force", "hua_companion_demo"]);
+          const media = path.join(app, ".local/content-media");
+          if (existsSync(media) && lstatSync(media).isSymbolicLink())
+            throw Error("演示媒体目录不能是符号链接");
+          rmSync(media, { recursive: true, force: true });
+        }
+        const found = pg("psql", [
+          ...args,
+          "-d",
+          "postgres",
+          "-Atc",
+          "SELECT 1 FROM pg_database WHERE datname='hua_companion_demo'",
+        ]).trim();
+        if (!found) pg("createdb", [...args, "hua_companion_demo"]);
+        prepareApp(root);
+        const accounts = Object.entries(state.accounts)
+          .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)
+          .join("\n\n");
+        writeFileSync(
+          path.join(dir, "accounts.txt"),
+          "仅本机演示使用，不要上传截图或分享密码。\n\n" + accounts + "\n",
+          { mode: 0o600 },
+        );
+        if (!state.seeded) {
+          const log = openSync(path.join(dir, "seed.log"), "a", 0o600);
+          try {
+            execFileSync(process.execPath, ["--import", "tsx", "scripts/demo-seed.ts"], {
+              cwd: app,
+              env,
+              stdio: ["ignore", log, log],
+            });
+          } finally {
+            closeSync(log);
+          }
+          state.seeded = true;
+          writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
+        }
+        if (action !== "setup") {
+          const token = randomBytes(16).toString("hex");
+          const log = openSync(path.join(dir, "web.log"), "a", 0o600);
+          const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve", token], {
+            cwd: app,
+            env,
+            detached: true,
+            stdio: ["ignore", log, log],
+          });
+          closeSync(log);
+          writeFileSync(path.join(dir, "web.json"), JSON.stringify({ pid: child.pid, token }), {
+            mode: 0o600,
+          });
+          child.unref();
+          let ready = false;
+          for (let i = 0; i < 180; i++) {
+            try {
+              ready = (
+                await fetch("http://127.0.0.1:3100/zh", {
+                  signal: globalThis.AbortSignal.timeout(2000),
+                })
+              ).ok;
+            } catch {}
+            if (ready) break;
+            if (!webOwner(dir)) throw Error("演示启动退出，请查看.local/demo/web.log。");
+            await delay(500);
+          }
+          if (!ready) {
+            await stop();
+            throw Error("演示启动超时，请查看.local/demo/web.log。");
+          }
+        }
+        console.log(
+          "演示已就绪：http://127.0.0.1:3100/zh\n后台：http://127.0.0.1:3100/admin\n账号密码：.local/demo/accounts.txt\n关闭：npm run demo:stop；恢复初始状态：npm run demo:reset",
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      error.code === "EEXIST"
+        ? "另一演示操作正在进行，请稍后重试。"
+        : "演示操作失败；未操作原本地库。请检查.local/demo中的日志和运行环境。",
+    );
+    if (!error.code && error.status === undefined) console.error(error.message);
+    process.exitCode = 1;
+  } finally {
+    if (lock !== undefined) {
+      closeSync(lock);
+      unlinkSync(path.join(dir, "busy"));
+    }
+  }
+}
