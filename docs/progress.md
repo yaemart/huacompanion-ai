@@ -1,3 +1,11 @@
+# 2026-11-08 下一阶段总指令归档（仅文档）
+
+- 从最新origin/main `3c419444c0f97caa3ef6937f8c41d01905607bd4`创建`codex/master-plan-docs`，起始工作区干净。新增总指令全文及三个附录文件：master-plan、editor-ux、staff-workbench、customer-fixes；仅统一Markdown排版，逐文件与附件经同一Prettier格式化后的文本完全一致。
+- 已合并的policy-entry-ux、policy-shared-facts、quote-lines三份文件与origin/main逐字节一致，没有借归档修改批准方案。交接增加新顺序、停止点、PR21与新A范围差距；C1–C10/E1–E10清单原文不在附件或仓库，不自编编号，A阶段映射前需用户提供。
+- 首次check因附件原文Markdown排版不符Prettier退出1；仅格式化四份新文档后重新check退出0：207/207单元，lint 0错误/465既有警告，无增加，类型及源码行长通过。文档内容无业务实现，无相关数据库集成/浏览器/构建需重跑，未声称新功能或真人验收完成。同步PR21合并后的main后再次运行完整check，217/217、lint 0错误/465既有警告及407源码行长均通过。
+- PR21最新head `14f96eb6085785b55ce215c5dab47ef2fa1baed2` 的push/PR两项云端CI实核success。用户回复1选择先自行合并PR21，随后实核PR21于96f644f9f85c28474a5e677cf3a41f2e16b5082d合并。正常merge最新main时仅handoff/progress头部同位置新增导致冲突；保留双方完整记录解决，不强推。文档新head须另验CI。
+- 本轮无新增可测C/E场景，不需local:reset；无界面改动，无需前后截图。原.env、数据库、图片、演示数据不改；无依赖、schema或权限变更，未启用真实服务、未启动worker、未购买或部署。同步后本轮分支已包含main的演示命令，保留运行环境；文档分支和远端head以最终交接核对。
+
 # 2026-11-08 本地一键演示
 
 - 用户回复1批准隔离方案，从PR20合并后的main `3c419444c0f97caa3ef6937f8c41d01905607bd4`建立`codex/local-demo`。本轮独立PR，仅开发工具、虚构夹具和操作文档；不改业务模块、权限、schema或依赖版本。
