@@ -1,3 +1,11 @@
+# 2026-11-08 下一阶段总指令归档（仅文档）
+
+- 从最新origin/main `3c419444c0f97caa3ef6937f8c41d01905607bd4`创建`codex/master-plan-docs`，起始工作区干净。新增总指令全文及三个附录文件：master-plan、editor-ux、staff-workbench、customer-fixes；仅统一Markdown排版，逐文件与附件经同一Prettier格式化后的文本完全一致。
+- 已合并的policy-entry-ux、policy-shared-facts、quote-lines三份文件与origin/main逐字节一致，没有借归档修改批准方案。交接增加新顺序、停止点、PR21与新A范围差距；C1–C10/E1–E10清单原文不在附件或仓库，不自编编号，A阶段映射前需用户提供。
+- 首次check因附件原文Markdown排版不符Prettier退出1；仅格式化四份新文档后重新check退出0：207/207单元，lint 0错误/465既有警告，无增加，类型及源码行长通过。文档内容无业务实现，无相关数据库集成/浏览器/构建需重跑，未声称新功能或真人验收完成。
+- PR21最新head `14f96eb6085785b55ce215c5dab47ef2fa1baed2` 的push/PR两项云端CI实核success。用户回复1选择先自行合并PR21，再开本轮文档PR；当前仅准备推送分支，不叠加开PR，不代合并/关闭。PR21的绿色不能算文档新提交已过CI。
+- 本轮无新增可测C/E场景，不需local:reset；无界面改动，无需前后截图。原.env、数据库、图片、演示数据不改；无依赖、schema或权限变更，未启用真实服务、未启动worker、未购买或部署。提交后切回codex/local-demo保留现有本地演示命令可用；文档分支和远端head以最终交接核对。
+
 # 2026-11-08 PR20审阅决定与排期修订
 
 - 用户明确批准共用事实方案，顺序更新为：政策P0第2–6条 → 第1条共用事实 → 报价分项与所有报价二审 → 订阅，各步合并后再从最新main开下一步。本轮继续文档分支，不写产品代码。
