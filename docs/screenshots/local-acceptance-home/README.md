@@ -1,3 +1,5 @@
+> 2026-11-07归档：本目录图片和JSON已移出当前版本；[查看/下载原始证据](https://github.com/yaemart/huacompanion-ai/tree/43413046a886ee58bb7e8bfd4928f151cad01be2/docs/screenshots/local-acceptance-home)。下文是历史记录，不代表最新界面。50份原件在本机忽略目录完成SHA256校验；不重写Git历史。
+
 # 家里电脑本地基本操作截图（2026-11-07）
 
 全部操作位于独立PG副本，使用home-accept-9546cfe4虚构账号/内容/表单，不含真实客户或秘密。390×844CSS视口，文档宽=scrollWidth390。原库先配套备份，结束后恢复，未迁回测试业务。

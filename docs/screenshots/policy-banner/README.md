@@ -1,3 +1,5 @@
+> 2026-11-07归档：本目录图片和JSON已移出当前版本；[查看/下载原始证据](https://github.com/yaemart/huacompanion-ai/tree/43413046a886ee58bb7e8bfd4928f151cad01be2/docs/screenshots/policy-banner)。下文是历史记录，不代表最新界面。50份原件在本机忽略目录完成SHA256校验；不重写Git历史。
+
 # 1.4 政策横幅本机证据
 
 2026-11-02，Node24.22.1/Next16.4.3生产构建。本机临时开启VISA_CHECKER_ENABLED；实际.env未改，默认仍关闭。政策、来源（example.invalid）、文章及账号均为明确标注的虚构夹具，不提供现实出行结论。

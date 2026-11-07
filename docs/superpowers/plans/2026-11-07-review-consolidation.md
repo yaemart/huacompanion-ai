@@ -47,6 +47,6 @@
 **Files:** docs/screenshots/**/README.md、docs/progress.md、handoff.md、一页中文小结、阶段2分步设计、协作规则。
 **Interfaces:** 50文件SHA归档manifest→逐目录固定commit链接；新证据.local→PR说明如实可达性。
 
-- [ ] 检查归档manifest全部SHA一致，移除当前版本50个图片/JSON，保留README/文本；不改Git历史。
-- [ ] 一页小结及2.1–2.4逐PR设计，更新协作规则为前一步合并后再开下一步；CLI最新通过/any290与真实服务未验写清。
+- [x] 检查归档manifest全部SHA一致，移除当前版本50个图片/JSON，保留README/文本；不改Git历史。
+- [x] 一页小结及2.1–2.4逐PR设计，更新协作规则为前一步合并后再开下一步；CLI最新通过/any290与真实服务未验写清。
 - [ ] check退出0，单次fresh只读增量复核；重要发现一次修复回归，minor记录；提交后推送/fetch核对SHA和本head两轮CI，更新PR19，不合并。

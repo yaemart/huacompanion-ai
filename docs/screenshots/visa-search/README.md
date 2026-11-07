@@ -1,3 +1,5 @@
+> 2026-11-07归档：本目录图片和JSON已移出当前版本；[查看/下载原始证据](https://github.com/yaemart/huacompanion-ai/tree/43413046a886ee58bb7e8bfd4928f151cad01be2/docs/screenshots/visa-search)。下文是历史记录，不代表最新界面。50份原件在本机忽略目录完成SHA256校验；不重写Git历史。
+
 # 阶段 1.6 本地界面验收
 
 2026-11-02，Node24.22.1 本地生产构建，APP_ENV=trial。实际环境文件未改；临时进程启用工具并开启七语以检查工具仍只支持中英。测试后恢复默认关闭。

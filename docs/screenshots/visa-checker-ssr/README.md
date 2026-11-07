@@ -1,3 +1,5 @@
+> 2026-11-07归档：本目录图片和JSON已移出当前版本；[查看/下载原始证据](https://github.com/yaemart/huacompanion-ai/tree/43413046a886ee58bb7e8bfd4928f151cad01be2/docs/screenshots/visa-checker-ssr)。下文是历史记录，不代表最新界面。50份原件在本机忽略目录完成SHA256校验；不重写Git历史。
+
 # 1.3a 本机生产构建截图
 
 2026-11-01，Node24.22.1，`APP_ENV=trial npm run build`后本机3000生产进程验收。截图时仅进程临时启用VISA_CHECKER_ENABLED，实际.env未改；全部政策是明确标识的虚构测试资料，来源为example.invalid，不是现实政策。截图夹具已清理，最后恢复默认关闭的开发站及两个worker。

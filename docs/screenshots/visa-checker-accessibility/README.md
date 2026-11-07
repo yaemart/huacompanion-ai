@@ -1,3 +1,5 @@
+> 2026-11-07归档：本目录图片和JSON已移出当前版本；[查看/下载原始证据](https://github.com/yaemart/huacompanion-ai/tree/43413046a886ee58bb7e8bfd4928f151cad01be2/docs/screenshots/visa-checker-accessibility)。下文是历史记录，不代表最新界面。50份原件在本机忽略目录完成SHA256校验；不重写Git历史。
+
 # 1.3c FAQ、可访问性与本机生产移动报告
 
 2026-11-01，Node24.22.1/Next16.4.3生产build，工具仅在本机临时进程开启；实际.env未改。每个语言有3条虚构正式政策（一般/240小时/已过期）、1条虚构正式FAQ和指南，全部example.invalid来源，不得用于出行。默认配置仍仅en,zh，临时数据最终清理。
