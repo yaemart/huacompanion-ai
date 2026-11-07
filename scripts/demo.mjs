@@ -24,6 +24,8 @@ import {
   ensureFree,
   webOwner,
   stopWeb,
+  prepareCluster,
+  describeDemoFailure,
 } from "./lib/demo-environment.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dir = path.join(root, ".local/demo");
@@ -72,6 +74,7 @@ if (action === "serve") {
   assertDemoPaths(root);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   let lock;
+  let secrets = [];
   try {
     if (existsSync(path.join(dir, "busy"))) {
       const pid = Number(readFileSync(path.join(dir, "busy"), "utf8"));
@@ -104,11 +107,17 @@ if (action === "serve") {
           ]),
         ),
         seeded: false,
+        clusterInitialized: false,
       };
       writeFileSync(file, JSON.stringify(state), { mode: 0o600, flag: "wx" });
     }
     const state = JSON.parse(readFileSync(file, "utf8"));
     assertDemo(state);
+    secrets = [
+      state.secret,
+      decodeURIComponent(new URL(state.databaseURL).password),
+      ...Object.values(state.accounts).map((account) => account.password),
+    ];
     if (
       ["start", "setup", "reset"].includes(action) &&
       !existsSync(path.join(root, "node_modules/next/package.json"))
@@ -167,7 +176,7 @@ if (action === "serve") {
         const rl = createInterface({ input: process.stdin, output: process.stdout });
         const answer = await rl.question("仅清除演示测试修改并恢复初始数据。输入 RESET 确认：");
         rl.close();
-        if (answer !== "RESET") throw Error("已取消，演示数据未清除。");
+        if (answer !== "RESET") throw Object.assign(Error("已取消"), { code: "DEMO_CANCELLED" });
         await stopWeb(dir);
       } else if (webOwner(dir)) {
         console.log("演示已在运行：http://127.0.0.1:3100/zh；无需重复启动。");
@@ -177,7 +186,9 @@ if (action === "serve") {
         await ensureFree(3100);
         if (!running()) {
           await ensureFree(55442);
-          if (!existsSync(path.join(data, "PG_VERSION"))) {
+          const cluster = prepareCluster(root, state);
+          if (cluster.quarantine) console.log("首次建库的未完成目录已保留，正在重新初始化。");
+          if (cluster.initialize) {
             const pw = path.join(dir, "init-password");
             writeFileSync(pw, decodeURIComponent(new URL(state.databaseURL).password), {
               mode: 0o600,
@@ -197,6 +208,8 @@ if (action === "serve") {
               unlinkSync(pw);
             }
           }
+          state.clusterInitialized = true;
+          writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
           pg("pg_ctl", [
             "-D",
             data,
@@ -216,36 +229,38 @@ if (action === "serve") {
           "SHOW data_directory",
         ]).trim();
         if (actual !== data) throw Error("数据库目录不匹配，拒绝修改。");
+        const databaseExists = () =>
+          pg("psql", [
+            ...args,
+            "-d",
+            "postgres",
+            "-Atc",
+            "SELECT 1 FROM pg_database WHERE datname='hua_companion_demo'",
+          ]).trim() === "1";
         if (action === "reset") {
           const backup = path.join(dir, `before-reset-${Date.now()}`);
           mkdirSync(backup, { mode: 0o700 });
-          pg("pg_dump", [
-            ...args,
-            "-Fc",
-            "-f",
-            path.join(backup, "database.dump"),
-            "hua_companion_demo",
-          ]);
+          if (databaseExists())
+            pg("pg_dump", [
+              ...args,
+              "-Fc",
+              "-f",
+              path.join(backup, "database.dump"),
+              "hua_companion_demo",
+            ]);
           if (existsSync(path.join(app, ".local/content-media")))
             cpSync(path.join(app, ".local/content-media"), path.join(backup, "media"), {
               recursive: true,
             });
           state.seeded = false;
           writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
-          pg("dropdb", [...args, "--force", "hua_companion_demo"]);
+          if (databaseExists()) pg("dropdb", [...args, "--force", "hua_companion_demo"]);
           const media = path.join(app, ".local/content-media");
           if (existsSync(media) && lstatSync(media).isSymbolicLink())
             throw Error("演示媒体目录不能是符号链接");
           rmSync(media, { recursive: true, force: true });
         }
-        const found = pg("psql", [
-          ...args,
-          "-d",
-          "postgres",
-          "-Atc",
-          "SELECT 1 FROM pg_database WHERE datname='hua_companion_demo'",
-        ]).trim();
-        if (!found) pg("createdb", [...args, "hua_companion_demo"]);
+        if (!databaseExists()) pg("createdb", [...args, "hua_companion_demo"]);
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)
@@ -307,13 +322,19 @@ if (action === "serve") {
       }
     }
   } catch (error) {
-    console.error(
-      error.code === "EEXIST"
-        ? "另一演示操作正在进行，请稍后重试。"
-        : "演示操作失败；未操作原本地库。请检查.local/demo中的日志和运行环境。",
-    );
-    if (!error.code && error.status === undefined) console.error(error.message);
-    process.exitCode = 1;
+    const failure = describeDemoFailure(error, secrets);
+    if (failure.exitCode) {
+      try {
+        const log = openSync(path.join(dir, "control.log"), "a", 0o600);
+        writeFileSync(
+          log,
+          `${new Date().toISOString()} ${failure.message}\n${failure.diagnostics}\n`,
+        );
+        closeSync(log);
+      } catch {}
+    }
+    console.error(error.code === "EEXIST" ? "另一演示操作正在进行，请稍后重试。" : failure.message);
+    process.exitCode = failure.exitCode;
   } finally {
     if (lock !== undefined) {
       closeSync(lock);

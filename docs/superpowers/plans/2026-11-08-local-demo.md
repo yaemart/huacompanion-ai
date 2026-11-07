@@ -25,25 +25,25 @@
 ### Task 1：生命周期与隔离
 
 Files: scripts/demo.mjs、tests/local-demo.test.ts、package.json、华伴演示.command。
-Interfaces: demoPaths(root)、demoEnvironment(state)、assertDemo(state)、runDemo(action)；CLI start/stop/reset。
+Interfaces: assertDemoPaths(root)、demoEnvironment(state, app)、assertDemo(state)、prepareCluster(root, state)；CLI start/stop/reset。
 
-- [ ] 先写真实文件/环境隔离、错误目标/缺失标记重置拒绝、端口占用断言并观察失败。
-- [ ] 实现PG启动/关闭、自身Web进程管理、白名单源码快照、显式reset与异常清理。
-- [ ] 运行node --test tests/local-demo.test.ts及npm test；记录结果。
+- [x] 先写真实文件/环境隔离、错误目标/缺失标记重置拒绝、端口占用断言并观察失败。
+- [x] 实现PG启动/关闭、自身Web进程管理、白名单源码快照、显式reset与异常清理。
+- [x] 运行node --test tests/local-demo.test.ts及npm test；记录结果。
 
 ### Task 2：演示数据与四账号
 
 Files: scripts/demo-seed.ts、tests/integration/local-demo.ts。
-Interfaces: seedDemo()只连接受保护的演示目标；固定演示标识幂等，credentials.json仅本地。
+Interfaces: seedDemo()只连接受保护的演示目标；固定演示标识幂等，state.json/accounts.txt仅本地。
 
-- [ ] 先写首次初始化、重复种子、四账号登录/角色范围、内容双人审核和成本过滤集成断言并观察失败。
-- [ ] 用现有工作流保存/送审/发布虚构政策、指南、展会；咨询报价走现有业务服务，配置高级开关关闭。
-- [ ] 串行验证初始化、重复启动、修改保留、停止与重置，失败后修复并重测。
+- [x] 先写首次初始化、重复种子、四账号登录/角色范围、内容双人审核和成本过滤集成断言并观察失败。
+- [x] 用现有工作流保存/送审/发布虚构政策、指南、展会；咨询报价走现有业务服务，配置高级开关关闭。
+- [x] 串行验证初始化、重复启动、修改保留、停止与重置，失败后修复并重测。
 
 ### Task 3：指南与交付
 
 Files: docs/local-testing-guide.md、README.md、docs/handoff.md、docs/progress.md、docs/tasks/policy-entry-ux.md。
 
-- [ ] 写一页中文指南：命令/双击、账号文件、角色、重置、问题记录；更新最新顺序和取消上线日期。
-- [ ] 完整check；浏览器亲测代表流程；独立只读复核全分支，修复重要问题。
-- [ ] 提交推送单独草稿PR、fetch核对HEAD与对应上游；不合并、不部署。
+- [x] 写一页中文指南：命令/双击、账号文件、角色、重置、问题记录；更新最新顺序和取消上线日期。
+- [x] 完整check；浏览器亲测代表流程；独立只读复核全分支，修复重要问题。
+- [x] 提交推送单独草稿PR、fetch核对HEAD与对应上游；不合并、不部署。

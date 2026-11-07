@@ -9,7 +9,9 @@ import {
   readdirSync,
   unlinkSync,
   lstatSync,
+  renameSync,
 } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { resolve, basename } from "node:path";
 import { createServer } from "node:net";
 import { execFileSync } from "node:child_process";
@@ -73,6 +75,61 @@ export function assertDemoPaths(root) {
     const dir = resolve(root, name);
     if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) throw Error("演示目录不能是符号链接");
   }
+}
+export function prepareCluster(root, state) {
+  assertDemo(state);
+  assertDemoPaths(root);
+  const data = resolve(root, ".local/demo/postgres");
+  if (state.clusterInitialized || state.seeded) {
+    if (!existsSync(resolve(data, "PG_VERSION")))
+      throw Error("已完成的演示数据库缺少版本文件，请保留现场并检查备份。");
+    return { initialize: false };
+  }
+  if (existsSync(resolve(data, "postmaster.pid")))
+    throw Error("未完成的演示库存在启动记录，请先确认数据库已停止；未移动目录。");
+  if (existsSync(data) && readdirSync(data).length) {
+    const quarantine = resolve(root, `.local/demo/interrupted-postgres-${randomUUID()}`);
+    renameSync(data, quarantine);
+    return { initialize: true, quarantine };
+  }
+  return { initialize: true };
+}
+export function describeDemoFailure(error, secrets = []) {
+  if (error.code === "DEMO_CANCELLED")
+    return { message: "已取消，演示数据未清除。", diagnostics: "", exitCode: 0 };
+  const redact = (value) => {
+    let result = String(value || "").replace(/postgres(?:ql)?:\/\/[^\s]+/gi, "[数据库凭据已隐藏]");
+    for (const secret of secrets.filter(Boolean)) result = result.split(secret).join("[已隐藏]");
+    return result.slice(0, 12000);
+  };
+  const command = String(error.path || error.spawnargs?.[0] || "");
+  const tool =
+    [
+      "postgres",
+      "initdb",
+      "pg_ctl",
+      "psql",
+      "createdb",
+      "dropdb",
+      "pg_dump",
+      "brew",
+      "node",
+      "npm",
+    ].find((name) => basename(command) === name) || "启动器";
+  const code = /^[A-Z_0-9]+$/.test(error.code || "")
+    ? error.code
+    : Number.isInteger(error.status)
+      ? `EXIT_${error.status}`
+      : "FAILED";
+  const hint =
+    tool === "启动器" && !error.code && error.status === undefined
+      ? ` ${redact(error.message)}`
+      : " 请检查Node与PostgreSQL15环境及PG_BIN配置。";
+  return {
+    message: `演示操作失败（${tool}/${code}）。${hint} 详情见.local/demo/control.log。`,
+    diagnostics: redact(`${error.message || ""}\n${error.stderr || ""}`),
+    exitCode: 1,
+  };
 }
 export function prepareApp(root) {
   assertDemoPaths(root);

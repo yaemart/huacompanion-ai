@@ -20,6 +20,8 @@ import {
   ensureFree,
   stopWeb,
   assertDemoPaths,
+  prepareCluster,
+  describeDemoFailure,
 } from "../scripts/lib/demo-environment.mjs";
 
 const fixture = () => ({
@@ -139,4 +141,57 @@ test("demo refuses database symlinks before stopping an unrelated original clust
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("interrupted initial clusters are preserved and rebuilt, completed clusters are never quarantined", () => {
+  const root = mkdtempSync(join(tmpdir(), "hua-demo-interrupt-"));
+  const data = join(root, ".local/demo/postgres");
+  try {
+    mkdirSync(data, { recursive: true });
+    writeFileSync(join(data, "PG_VERSION"), "15");
+    writeFileSync(join(data, "interrupted-marker"), "preserve");
+    const result = prepareCluster(root, { ...fixture(), seeded: false, clusterInitialized: false });
+    assert.equal(result.initialize, true);
+    assert.ok(result.quarantine);
+    assert.equal(existsSync(data), false);
+    assert.equal(readFileSync(join(result.quarantine, "interrupted-marker"), "utf8"), "preserve");
+    mkdirSync(data);
+    writeFileSync(join(data, "PG_VERSION"), "15");
+    assert.equal(
+      prepareCluster(root, { ...fixture(), clusterInitialized: true }).initialize,
+      false,
+    );
+    assert.equal(existsSync(data), true);
+    rmSync(join(data, "PG_VERSION"));
+    assert.throws(() => prepareCluster(root, { ...fixture(), clusterInitialized: true }), /已完成/);
+    writeFileSync(join(data, "postmaster.pid"), "uncertain");
+    assert.throws(
+      () => prepareCluster(root, { ...fixture(), clusterInitialized: false }),
+      /启动记录/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+test("startup diagnostics identify the failing tool without exposing credentials", () => {
+  const error = Object.assign(
+    new Error("postgresql://user:DoNotExpose@localhost/demo secret-payload"),
+    {
+      code: "ENOENT",
+      path: "/missing/postgres",
+      stderr: "secret-payload",
+    },
+  );
+  const result = describeDemoFailure(error, ["secret-payload"]);
+  assert.match(result.message, /postgres/);
+  assert.match(result.message, /ENOENT/);
+  assert.match(result.message, /control.log/);
+  assert.ok(!JSON.stringify(result).includes("DoNotExpose"));
+  assert.ok(!JSON.stringify(result).includes("secret-payload"));
+  assert.equal(result.exitCode, 1);
+});
+test("cancelling reset is a successful no-op, not a startup failure", () => {
+  const result = describeDemoFailure({ code: "DEMO_CANCELLED" });
+  assert.equal(result.exitCode, 0);
+  assert.match(result.message, /已取消/);
 });
