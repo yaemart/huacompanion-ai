@@ -39,7 +39,7 @@ DB测试有既有pg并发query弃用警告，目前pg8退出0，不宣称消除�
 
 内容、内容权限、业务权限、表单DB/HTTP、business、trial HTTP七套退出0；APP_ENV=trial生产build通过。CUA实际Edge原生弹窗取消/确认、编辑保存/提交/退回修改重提/审核发布/下架及HTTP404；390手机需求/合作回执、目录筛选、权限内1条咨询备注/供应商备注、统计筛选/CSV BOM1行无内备注、服务单/人工报价保存/本地发出通过。没有真实邮件或通话。日期fill未提交React状态导致Invalid time value，原生分段键盘提交后完成，不为工具改业务；截图缩放异常改用明确CDP视口保存，原件留忽略目录。截图/范围见screenshots/local-acceptance-home。
 
-原站已恢复，实际开关全部关闭；workflow319历史open、客服无queued、邮件0，两个worker不启动。真实账户/托管恢复/B、真机/全面跨浏览器/读屏/Lighthouse不冒称通过。既有backupcoverage首次因沙箱EPERM未连库，授权后重跑0；临时账号准备误选停用管理员被403拒绝，改选active管理员后0；队列统计误假定status字段的只读SQL报列不存在，按实际结构重查通过。未放宽安全校验消除这些错误。独立复核及当前head远端CI另核。
+原站已恢复，实际开关全部关闭；workflow319历史open、客服无queued、邮件0，两个worker不启动。真实账户/托管恢复/B、真机/全面跨浏览器/读屏/Lighthouse不冒称通过。既有backupcoverage首次因沙箱EPERM未连库，授权后重跑0；临时账号准备误选停用管理员被403拒绝，改选active管理员后0；队列统计误假定status字段的只读SQL报列不存在，按实际结构重查通过。未放宽安全校验消除这些错误。独立复核207/207，源码无阻断；经营截图失真Important已在备用隔离端口重拍两张390×844可读分屏并复验筛选/CSV，原站未切换。旧失真图不作为证据，未因此改布局。修正后check207/207；无延期Minor，裁定及代价见local-basic-acceptance.md。当前head远端CI另核。
 
 ## 2026-11-02 本地阶段1.4：正文政策状态横幅
 

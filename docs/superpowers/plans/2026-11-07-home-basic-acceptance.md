@@ -50,4 +50,4 @@
 
 - [x] 停测试进程，恢复原PG；仅应用缺失已验证迁移，原列指纹/图一致；检查开关和任务，不启动常驻worker。
 - [x] 默认网站原库启动、基本HTTP通过；check/相关测试，记录通过/未通过/外部未验。
-- [ ] 一次fresh readonly分支增量复核，重要发现单轮TDD修复、minor记账，更新PR19/推送/fetch完整SHA及finalheadCI，不自动合并。
+- [x] 一次fresh readonly分支增量复核，重要发现单轮TDD修复、minor记账，更新PR19/推送/fetch完整SHA及finalheadCI，不自动合并。
