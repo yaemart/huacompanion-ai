@@ -1,5 +1,6 @@
 "use client";
 import "./content-center.css";
+import { requestContentReturn } from "@/lib/content-return";
 import { PolicyBannerFields } from "./PolicyBannerFields";
 import type { ContentMedia } from "../../../payload-types";
 import { catalogLanguages } from "@/lib/catalog-options";
@@ -1205,9 +1206,7 @@ export function ContentCenter({
                     <button
                       disabled={busy || selected.reviewState !== "review"}
                       onClick={() =>
-                        action("return", {
-                          note: prompt("退回修改意见") || "请修改后重新提交",
-                        })
+                        requestContentReturn(prompt, (note) => action("return", { note }))
                       }
                     >
                       退回修改

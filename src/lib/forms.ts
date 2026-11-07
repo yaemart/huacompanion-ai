@@ -72,7 +72,7 @@ export function validateStep(
   return errors;
 }
 
-export function visibleReviewValues(values: Values): Values {
+export function visibleReviewValues(values: Values, kind: FormKind = "request"): Values {
   const selected = Array.isArray(values.categories) ? values.categories : [];
   const groups: Record<string, string[]> = {
     housekeeping: [...homeRequestFields, ...homeProviderFields],
@@ -89,6 +89,10 @@ export function visibleReviewValues(values: Values): Values {
       .filter(([category]) => !selected.includes(category))
       .flatMap(([, fields]) => fields),
   );
+  if (kind === "apply") {
+    hidden.add("people");
+    hidden.add("language");
+  }
   if (values.datesUnknown || (selected.length === 1 && selected[0] === "housekeeping")) {
     hidden.add("arrivalDate");
     if (selected.length === 1 && selected[0] === "housekeeping") hidden.add("people");

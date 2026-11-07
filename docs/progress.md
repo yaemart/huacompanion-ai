@@ -31,6 +31,16 @@ DB测试有既有pg并发query弃用警告，目前pg8退出0，不宣称消除�
 
 # 实施记录
 
+## 2026-11-07 家里电脑接手续验
+
+从交接3fef2bbdacfd02645bac186a13e425f9f298b1f5快进同步codex/local-basic-acceptance；原工作区clean、无站点/worker写入。全表及媒体备份恢复66表/12图成功。搜索缺失迁移先备份克隆up/down/up、有损down拒绝；临时独立PG同原CLI安全端点运行policies:data整组成功，未修改CLI限制。结束恢复原PG、仅事务应用该迁移，66表原列及12图不变，家里411/217内容保留，0本轮测试账号进入原库。证据见[家里本地验收](local-basic-acceptance.md)。
+
+实际修复：退回prompt取消由错误默认意见提交改为无操作（保留确认空意见旧兜底）；合作申请摘要隐藏客户默认people/language（默认request输出不变）；CMS600px以下日期/面包屑/导航换行宽度修复417→390。单元先RED再GREEN：取消回放旧行为失败、摘要旧值1导致断言失败；布局直接CUA尺寸RED→GREEN。新增3项，check207/207、lint0error/465旧warning、402文件行长通过、any仍290/38。无新增依赖/schema/API/权限或报价规则/实际.env改变。
+
+内容、内容权限、业务权限、表单DB/HTTP、business、trial HTTP七套退出0；APP_ENV=trial生产build通过。CUA实际Edge原生弹窗取消/确认、编辑保存/提交/退回修改重提/审核发布/下架及HTTP404；390手机需求/合作回执、目录筛选、权限内1条咨询备注/供应商备注、统计筛选/CSV BOM1行无内备注、服务单/人工报价保存/本地发出通过。没有真实邮件或通话。日期fill未提交React状态导致Invalid time value，原生分段键盘提交后完成，不为工具改业务；截图缩放异常改用明确CDP视口保存，原件留忽略目录。截图/范围见screenshots/local-acceptance-home。
+
+原站已恢复，实际开关全部关闭；workflow319历史open、客服无queued、邮件0，两个worker不启动。真实账户/托管恢复/B、真机/全面跨浏览器/读屏/Lighthouse不冒称通过。既有backupcoverage首次因沙箱EPERM未连库，授权后重跑0；临时账号准备误选停用管理员被403拒绝，改选active管理员后0；队列统计误假定status字段的只读SQL报列不存在，按实际结构重查通过。未放宽安全校验消除这些错误。独立复核及当前head远端CI另核。
+
 ## 2026-11-02 本地阶段1.4：正文政策状态横幅
 
 从核对的PR14 5b106e2b2304996f8b8903073dd45685abdbb21e建立codex/visa-policy-banner，基准push/PR CI 41317987176/41317991206成功，本head另验。复用正文JSON及文章保存/审核/发布/预览，新policy-banner只存稳定contentKey和可选待确认布尔。普通指南编辑不获政策私有权限，AI候选拒绝该块。无新依赖/外部服务/迁移/环境键/实际.env变化。

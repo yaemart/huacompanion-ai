@@ -631,7 +631,7 @@ export function InquiryForm({
                         .map((s) => services.find((x) => x.slug === s)?.title[locale])
                         .join(" · ")}
                     </dd>
-                    {Object.entries(visibleReviewValues(values))
+                    {Object.entries(visibleReviewValues(values, kind))
                       .filter(
                         ([k, v]) =>
                           labels[k] &&

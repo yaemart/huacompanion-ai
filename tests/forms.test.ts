@@ -11,6 +11,17 @@ const valid = {
   language: "English",
   consent: true,
 };
+test("provider review omits customer defaults while preserving supported languages", () => {
+  const values = { people: "1", language: "中文", languages: "English", organisation: "Fixture" };
+  const review = visibleReviewValues(values, "apply");
+  assert.equal(review.people, undefined);
+  assert.equal(review.language, undefined);
+  assert.equal(review.languages, "English");
+  assert.equal(review.organisation, "Fixture");
+  assert.equal(values.people, "1");
+  assert.equal(visibleReviewValues(values, "request").people, "1");
+  assert.equal(visibleReviewValues(values, "request").language, "中文");
+});
 test("requires a service selection and nonblank city", () => {
   const e = validateStep("request", 0, { categories: [], city: "  " }, "en");
   assert.ok(e.categories);
