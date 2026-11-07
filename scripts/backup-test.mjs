@@ -50,55 +50,18 @@ try {
   targetURL.pathname = "/" + name;
   restored = new pg.Pool({ connectionString: targetURL.toString() });
   const results = [];
-  for (const table of [
-    "staff",
-    "teams",
-    "staff_content_kinds",
-    "staff_additional_roles",
-    "inquiries",
-    "providers",
-    "notifications",
-    "audit_events",
-    "content_drafts",
-    "_content_drafts_v",
-    "content_published",
-    "content_events",
-    "content_media",
-    "content_agent_tasks",
-    "service_cases",
-    "service_quotes",
-    "service_events",
-    "business_ai_tasks",
-    "workflow_events",
-    "workflow_notifications",
-    "workflow_tasks",
-    "workflow_mail_jobs",
-    "workflow_customer_notifications",
-    "workflow_settings",
-    "customer_accounts",
-    "customer_challenges",
-    "customer_sessions",
-    "customer_inquiry_links",
-    "customer_settings",
-    "content_quality",
-    "content_quality_events",
-    "support_conversations",
-    "support_messages",
-    "support_runs",
-    "support_settings",
-    "support_voice_audio",
-    "support_voice_jobs",
-    "support_calls",
-    "support_call_presence",
-    "support_feedback",
-    "support_reviews",
-    "support_retention_audits",
-  ]) {
-    const query = `SELECT count(*)::int AS count FROM "${table}"`;
+  const tableQuery = "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename";
+  const tables = (await source.query(tableQuery)).rows.map((row) => row.tablename);
+  const restoredTables = (await restored.query(tableQuery)).rows.map((row) => row.tablename);
+  if (JSON.stringify(tables) !== JSON.stringify(restoredTables))
+    throw Error("Restored table inventory mismatch");
+  for (const table of tables) {
+    const quoted = '"' + table.replaceAll('"', '""') + '"';
+    const query = `SELECT count(*)::int AS count FROM public.${quoted}`;
     const before = (await source.query(query)).rows[0].count;
     const after = (await restored.query(query)).rows[0].count;
     if (before !== after) throw Error(`Restore mismatch for ${table}`);
-    const fingerprint = `SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY id)::text,'[]')) AS hash FROM "${table}" t`;
+    const fingerprint = `SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,'[]')) AS hash FROM public.${quoted} t`;
     if (
       (await source.query(fingerprint)).rows[0].hash !==
       (await restored.query(fingerprint)).rows[0].hash
