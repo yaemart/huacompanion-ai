@@ -6,18 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { contentSections, sectionFor } from "@/lib/content-sections";
 import type { ContentBody } from "@/lib/content-model";
-export function PublishedGuides({
-  items,
-  locale,
-}: {
-  items: ContentBody[];
-  locale: Locale;
-}) {
+export function PublishedGuides({ items, locale }: { items: ContentBody[]; locale: Locale }) {
   items = items.filter((d) => d.locale === locale);
   const params = useSearchParams();
   const router = useRouter();
-  const section =
-    contentSections.find((s) => s.key === params.get("section"))?.id || 0;
+  const section = contentSections.find((s) => s.key === params.get("section"))?.id || 0;
   const setSection = (id: number) => {
     const key = contentSections.find((s) => s.id === id)?.key;
     router.replace(`/${locale}/guides${key ? `?section=${key}` : ""}`, {
@@ -39,10 +32,7 @@ export function PublishedGuides({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={publicText(
-            locale,
-            "For example: factory visits, transfers, long stays",
-          )}
+          placeholder={publicText(locale, "For example: factory visits, transfers, long stays")}
           style={{
             display: "block",
             width: "100%",
@@ -74,8 +64,7 @@ export function PublishedGuides({
             style={{
               textAlign: "start",
               padding: 20,
-              border:
-                section === s.id ? "2px solid #245c49" : "1px solid #cad8cd",
+              border: section === s.id ? "2px solid #245c49" : "1px solid #cad8cd",
               borderRadius: 12,
               background: section === s.id ? "#e5eee5" : "#fff",
               cursor: "pointer",
@@ -84,8 +73,7 @@ export function PublishedGuides({
             <strong>{s[locale]}</strong>
             <p>{s.description[locale]}</p>
             <small>
-              {items.filter((d) => sectionFor(d) === s.id).length}{" "}
-              {publicText(locale, "published")}
+              {items.filter((d) => sectionFor(d) === s.id).length} {publicText(locale, "published")}
             </small>
           </button>
         ))}
@@ -93,19 +81,9 @@ export function PublishedGuides({
       <p aria-live="polite">{resultText(locale, selected.length)}</p>
       <div className="guide-grid">
         {selected.map((d) => (
-          <Link
-            className="guide-card"
-            href={`/${locale}/guides/${d.slug}`}
-            key={d.contentKey}
-          >
+          <Link className="guide-card" href={`/${locale}/guides/${d.slug}`} key={d.contentKey}>
             <div className={`guide-art art-${Math.min(sectionFor(d), 6)}`}>
-              <span>
-                {
-                  ["", "行", "商", "医", "途", "居", "城", "译", "伴"][
-                    sectionFor(d)
-                  ]
-                }
-              </span>
+              <span>{["", "行", "商", "医", "途", "居", "城", "译", "伴"][sectionFor(d)]}</span>
               <small>{publicText(locale, "Knowledge centre")}</small>
             </div>
             <div className="guide-copy">
@@ -119,12 +97,7 @@ export function PublishedGuides({
         ))}
       </div>
       {!selected.length && (
-        <p>
-          {publicText(
-            locale,
-            "Content in this section is being prepared and reviewed.",
-          )}
-        </p>
+        <p>{publicText(locale, "Content in this section is being prepared and reviewed.")}</p>
       )}
     </>
   );

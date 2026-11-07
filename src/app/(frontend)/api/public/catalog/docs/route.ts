@@ -1,4 +1,4 @@
-import { locales } from "@/lib/locales";
+import { getSiteLocales } from "@/server/site-config";
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import { serviceSlugs } from "@/lib/routes";
 export async function GET() {
@@ -13,7 +13,7 @@ export async function GET() {
         sitemap: "/sitemap.xml",
       },
       query: {
-        locale: { values: locales, default: "en" },
+        locale: { values: getSiteLocales(), default: "en" },
         kind: { values: ["provider-profile", "service-project"] },
         key: "Stable public contentKey; combines with kind and locale for a single record",
         category: { values: serviceSlugs },
@@ -34,21 +34,24 @@ export async function GET() {
       response: {
         schemaVersion: "Contract version",
         total: "Number matching current filters",
-        items:
-          "Only currently eligible published snapshots; no language fallback",
+        items: "Only currently eligible published snapshots; no language fallback",
       },
       fields: {
         contentKey: "Stable public identifier shared across translations",
         path: "Canonical relative page link",
-        publicationRevision: "Preserve returned inquiryPath and its providerRevision/projectRevision for housekeeping; stale versions are refused.",
+        publicationRevision:
+          "Preserve returned inquiryPath and its providerRevision/projectRevision for housekeeping; stale versions are refused.",
         publishedAt: "Timestamp of the published version",
         catalog: {
           categories: "Stable service category codes",
           cities: "Objects with stable code and localized name",
-          languages: "General language codes; housekeeping uses separate customerLanguages/workerLanguages. Language filtering for housekeeping means verified worker languages.",
-          housekeeping: "Public scope, exclusions, staffing, district coverage, pricing, tools, entry, aftercare and insurance explanation. No private contacts or addresses. Unknown language arrays mean unconfirmed, not all languages.",
-          verification:
-            "Specific checked items and dates only; not an outcome guarantee",
+          languages:
+            "General language codes; housekeeping uses separate customerLanguages/workerLanguages. Language filtering for housekeeping means verified worker languages.",
+          housekeeping:
+            "Public scope, exclusions, staffing, district coverage, pricing, tools, entry, " +
+            "aftercare and insurance explanation. No private contacts or addresses. Unknown " +
+            "language arrays mean unconfirmed, not all languages.",
+          verification: "Specific checked items and dates only; not an outcome guarantee",
           price: {
             mode: ["quote", "fixed", "from"],
             amount: "Positive number only for fixed/from; omitted for quote",
@@ -58,8 +61,7 @@ export async function GET() {
           },
           fulfillment:
             "arranged: Hua confirms provider after enquiry; specified: named required providers",
-          providerKeys:
-            "Currently visible public provider identifiers, never private IDs",
+          providerKeys: "Currently visible public provider identifiers, never private IDs",
           guideKeys:
             "Associated knowledge article contentKey values; resolve against published content in this locale",
         },
@@ -70,7 +72,9 @@ export async function GET() {
       unknowns:
         "Missing or omitted information is unknown, never zero price, available inventory or a promise.",
       actions:
-        "Open inquiryPath, review the selected service and information with the customer, and let the customer confirm submission. No standalone agent submission or order API is offered. All contact is handled by Hua; no provider direct-contact route.",
+        "Open inquiryPath, review the selected service and information with the customer, and " +
+        "let the customer confirm submission. No standalone agent submission or order API is " +
+        "offered. All contact is handled by Hua; no provider direct-contact route.",
       errors: {
         400: "Invalid filters",
         404: "Requested published key absent or withdrawn",

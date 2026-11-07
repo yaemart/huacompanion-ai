@@ -1,19 +1,20 @@
 import { canReviewContent, isAdmin, contentKinds } from "@/cms/access";
 import { canEditContent } from "@/lib/content-model";
 import { locales } from "@/lib/locales";
-import {
-  contentAuth,
-  checkOrigin,
-  limitedJSON,
-  failure,
-} from "@/server/content/auth";
+import { contentAuth, checkOrigin, limitedJSON, failure } from "@/server/content/auth";
 import { listPublished, mutateContent } from "@/server/content/service";
 export async function GET(req: Request) {
   try {
     const { p, user } = await contentAuth(req.headers);
     const id = new URL(req.url).searchParams.get("versions");
     if (id) {
-      await p.findByID({ collection: "content-drafts", id: Number(id), overrideAccess: false, user, depth: 0 });
+      await p.findByID({
+        collection: "content-drafts",
+        id: Number(id),
+        overrideAccess: false,
+        user,
+        depth: 0,
+      });
       const r = await p.findVersions({
         collection: "content-drafts",
         where: { parent: { equals: Number(id) } },
@@ -56,47 +57,54 @@ export async function GET(req: Request) {
         user,
       }),
     ]);
-    const providers =
-      isAdmin(user)
-        ? (
-            await p.find({
-              collection: "providers",
-              limit: 1000,
-              depth: 0,
-              overrideAccess: false,
-              user,
-            })
-          ).docs.map((d) => ({
-            id: d.id,
-            name: d.organisation,
-            status: d.status,
-            publicApproved: d.publicApproved,
-          }))
-        : [];
-    const visible = (await Promise.all(locales.map(locale => listPublished(p, locale)))).flat();
+    const providers = isAdmin(user)
+      ? (
+          await p.find({
+            collection: "providers",
+            limit: 1000,
+            depth: 0,
+            overrideAccess: false,
+            user,
+          })
+        ).docs.map((d) => ({
+          id: d.id,
+          name: d.organisation,
+          status: d.status,
+          publicApproved: d.publicApproved,
+        }))
+      : [];
+    const visible = (await Promise.all(locales.map((locale) => listPublished(p, locale)))).flat();
     return Response.json(
       {
         role: user.role,
-        permissions: { canEdit: canEditContent(user), canReview: canReviewContent(user), isAdmin: isAdmin(user), contentKinds: isAdmin(user) ? [...contentKinds] : user.contentKinds || [], userId: user.id },
+        permissions: {
+          canEdit: canEditContent(user),
+          canReview: canReviewContent(user),
+          isAdmin: isAdmin(user),
+          contentKinds: isAdmin(user) ? [...contentKinds] : user.contentKinds || [],
+          userId: user.id,
+        },
         providers,
         drafts: drafts.docs,
-        published: published.docs.filter(d => drafts.docs.some(draft => draft.id === d.draftId)).map((d) => {
-          const body = d.body as any;
-          const live = visible.find(
-            (v) =>
-              v.contentKey === body.contentKey &&
-              v.kind === body.kind &&
-              v.locale === body.locale,
-          );
-          return {
-            draftId: d.draftId,
-            active: d.active,
-            revision: d.revision,
-            visible: !!live,
-            acceptingInquiries: live?.acceptingInquiries,
-            suspended: d.suspended,
-          };
-        }),
+        published: published.docs
+          .filter((d) => drafts.docs.some((draft) => draft.id === d.draftId))
+          .map((d) => {
+            const body = d.body as any;
+            const live = visible.find(
+              (v) =>
+                v.contentKey === body.contentKey &&
+                v.kind === body.kind &&
+                v.locale === body.locale,
+            );
+            return {
+              draftId: d.draftId,
+              active: d.active,
+              revision: d.revision,
+              visible: !!live,
+              acceptingInquiries: live?.acceptingInquiries,
+              suspended: d.suspended,
+            };
+          }),
         media: media.docs,
         tasks: tasks.docs,
       },

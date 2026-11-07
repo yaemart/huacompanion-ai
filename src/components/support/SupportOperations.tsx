@@ -1,31 +1,410 @@
-'use client';
-import {useEffect,useState} from 'react';
-import type {Locale} from '../../lib/locales';
-export default function SupportOperations({conversationID}:{conversationID?:number}){
- const [report,setReport]=useState<any>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[note,setNote]=useState(''),[kind,setKind]=useState('text'),[preview,setPreview]=useState<any>(null),[confirmation,setConfirmation]=useState('');
- async function load(){try{const r=await fetch('/api/support/operations',{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);setReport(d);}catch(e){setError(e instanceof Error?e.message:'读取失败');}}
- useEffect(()=>{void load();},[]);
- async function action(input:any){setBusy(true);setError('');try{const r=await fetch('/api/support/operations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});const d=await r.json();if(!r.ok)throw Error(d.error);if(input.action==='preview')setPreview(d);else{setPreview(null);setConfirmation('');setNote('');await load();}}catch(e){setError(e instanceof Error?e.message:'操作失败');}finally{setBusy(false);}}
- if(!report)return <section><h2>客服运营</h2><p role="status">{error||'正在读取…'}</p><button onClick={load}>重试</button></section>;
- if(conversationID)return <section className="support-review"><h3>当前会话复盘</h3>{error&&<p role="alert">{error}</p>}<form onSubmit={e=>{e.preventDefault();void action({action:'review',id:conversationID,key:crypto.randomUUID(),category:'knowledge-gap',note});}}><label>记录当前会话的知识缺口<textarea value={note} maxLength={2000} required onChange={e=>setNote(e.target.value)}/></label><button disabled={busy}>保存复盘</button></form><ul>{report.reviews.filter((r:any)=>r.conversation===conversationID).map((r:any)=><li key={r.id}>{r.note}</li>)}</ul></section>;
- const m=report.metrics;
- return <section className="space-y-4"><h2>客服运营 · {report.scope==='all'?'全部会话':'权限内会话'}</h2><button onClick={load} disabled={busy}>刷新指标</button>{error&&<p role="alert">{error}</p>}
- <dl className="grid grid-cols-2 gap-2"><dt>等待人工</dt><dd>{m.waiting}</dd><dt>逾期跟进</dt><dd>{m.overdue}</dd><dt>平均首次回复时长</dt><dd>{m.timings.averageFirstResponseMs===null?'暂无数据':`${m.timings.averageFirstResponseMs} ms`}（{m.timings.firstResponseSamples} 个会话）</dd><dt>平均解决时长</dt><dd>{m.timings.averageResolutionMs===null?'暂无数据':`${m.timings.averageResolutionMs} ms`}（{m.timings.resolutionSamples} 个会话）</dd><dt>尚无首次回复 / 缺少解决时间记录</dt><dd>{m.timings.unansweredConversations} / {m.timings.resolvedWithoutTimestamp}</dd><dt>AI 成功 / 失败</dt><dd>{m.ai.succeeded} / {m.ai.failed}</dd><dt>排队 / 运行中 / 租约过期</dt><dd>{m.ai.queued} / {m.ai.running} / {m.ai.expiredLeases}</dd><dt>平均排队至结束时间</dt><dd>{m.ai.averageQueueToCompletionMs===null?'暂无数据':`${m.ai.averageQueueToCompletionMs} ms`}</dd><dt>预留 / 已报告 token</dt><dd>{m.ai.reservedTokens} / {m.ai.reportedTokens}</dd><dt>用量未知的已结束任务</dt><dd>{m.ai.usageUnknown}</dd><dt>满意度（1–5）</dt><dd>{m.satisfaction.average?.toFixed(1)||'暂无'}（{m.satisfaction.responses} 份）</dd><dt>语音预留转录秒数 / 合成字符数</dt><dd>{m.voice.reservedTranscriptionSeconds} / {m.voice.reservedSynthesisCharacters}</dd><dt>进行中通话 / 待清理通话</dt><dd>{m.calls.active} / {m.calls.cleanupPending}</dd><dt>通话预留秒数</dt><dd>{m.calls.reservedSeconds}</dd><dt>知识缺口记录</dt><dd>{m.knowledgeGaps}</dd></dl>
- <p>首次回复从第一条客户消息计算到第一条公开人工或 AI 回复；解决时长从第一条客户消息计算到当前已解决会话的最后一次解决事件。系统提示与内部备注不算回复。缺失或已清理的解决记录不估算时长。预留 token 是预算占用；已报告用量可能不完整。时间包含排队，不代表模型响应耗时。不推算金额。功能可用状态只反映配置，未对外部服务进行探测。</p>
- <ul>{Object.entries(report.features).map(([name,f]:[string,any])=><li key={name}>{name}：{f.available?'可用':f.enabled?'已开启，当前不可用':'已关闭'}</li>)}</ul>
- <details><summary>最近 AI 任务</summary><ul>{report.recentRuns.map((r:any)=><li key={r.id}>#{r.id} · 会话 {r.conversation} · {r.status} · {r.model||'未调用模型'} · 预留 {r.reserved||0} · {r.error||''}</li>)}</ul></details>
- <details><summary>满意度与复盘记录</summary><ul>{report.feedback.map((r:any)=><li key={`f${r.id}`}>会话 {r.conversation}：{r.rating}/5 {r.comment}</li>)}{report.reviews.map((r:any)=><li key={`r${r.id}`}>会话 {r.conversation} · {r.category}：{r.note}</li>)}</ul></details>
- {conversationID&&<form onSubmit={e=>{e.preventDefault();void action({action:'review',id:conversationID,key:crypto.randomUUID(),category:'knowledge-gap',note});}}><label>记录当前会话的知识缺口<textarea value={note} maxLength={2000} required onChange={e=>setNote(e.target.value)}/></label><button disabled={busy}>保存复盘</button></form>}
- {report.retention&&<fieldset><legend>管理员内容保留与清理</legend><p>删除开关：{report.retention.retentionDeletionEnabled?'已开启':'关闭（默认）'}。保留天数和删除开关请在后台「客服功能设置」修改。仅清理已解决且无进行中申请的旧会话内容，不删除会话或服务申请。</p><label>内容类别<select value={kind} onChange={e=>{setKind(e.target.value);setPreview(null);}}><option value="text">文字（{report.retention.textRetentionDays} 天）</option><option value="audio">音频（{report.retention.audioRetentionDays} 天）</option><option value="transcript">转录（{report.retention.transcriptRetentionDays} 天）</option></select></label><button disabled={busy} onClick={()=>action({action:'preview',kind})}>仅预览清理范围</button>{preview&&<div><p>符合条件：{preview.count} {preview.unit==='conversations'?'个会话':'条记录'}；预览有效至 {preview.expiresAt}。执行会永久移除内容。</p><label>输入 DELETE SUPPORT CONTENT 确认<textarea value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label><button disabled={busy||!preview.deletionEnabled||confirmation!=='DELETE SUPPORT CONTENT'||!preview.count} onClick={()=>action({action:'execute',kind,token:preview.token,confirm:confirmation})}>确认永久清理</button></div>}<details><summary>最近清理审计</summary><ul>{report.retentionAudits.map((a:any)=><li key={a.id}>{a.createdAt} · {a.kind} · {a.status} {a.result?.processed??''}</li>)}</ul></details></fieldset>}
- </section>;
+"use client";
+import { useEffect, useState } from "react";
+import type { Locale } from "../../lib/locales";
+export default function SupportOperations({ conversationID }: { conversationID?: number }) {
+  const [report, setReport] = useState<any>(null),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [note, setNote] = useState(""),
+    [kind, setKind] = useState("text"),
+    [preview, setPreview] = useState<any>(null),
+    [confirmation, setConfirmation] = useState("");
+  async function load() {
+    try {
+      const r = await fetch("/api/support/operations", { cache: "no-store" });
+      const d = await r.json();
+      if (!r.ok) throw Error(d.error);
+      setReport(d);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "读取失败");
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+  async function action(input: any) {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/support/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const d = await r.json();
+      if (!r.ok) throw Error(d.error);
+      if (input.action === "preview") setPreview(d);
+      else {
+        setPreview(null);
+        setConfirmation("");
+        setNote("");
+        await load();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!report)
+    return (
+      <section>
+        <h2>客服运营</h2>
+        <p role="status">{error || "正在读取…"}</p>
+        <button onClick={load}>重试</button>
+      </section>
+    );
+  if (conversationID)
+    return (
+      <section className="support-review">
+        <h3>当前会话复盘</h3>
+        {error && <p role="alert">{error}</p>}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void action({
+              action: "review",
+              id: conversationID,
+              key: crypto.randomUUID(),
+              category: "knowledge-gap",
+              note,
+            });
+          }}
+        >
+          <label>
+            记录当前会话的知识缺口
+            <textarea
+              value={note}
+              maxLength={2000}
+              required
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
+          <button disabled={busy}>保存复盘</button>
+        </form>
+        <ul>
+          {report.reviews
+            .filter((r: any) => r.conversation === conversationID)
+            .map((r: any) => (
+              <li key={r.id}>{r.note}</li>
+            ))}
+        </ul>
+      </section>
+    );
+  const m = report.metrics;
+  return (
+    <section className="space-y-4">
+      <h2>客服运营 · {report.scope === "all" ? "全部会话" : "权限内会话"}</h2>
+      <button onClick={load} disabled={busy}>
+        刷新指标
+      </button>
+      {error && <p role="alert">{error}</p>}
+      <dl className="grid grid-cols-2 gap-2">
+        <dt>等待人工</dt>
+        <dd>{m.waiting}</dd>
+        <dt>逾期跟进</dt>
+        <dd>{m.overdue}</dd>
+        <dt>平均首次回复时长</dt>
+        <dd>
+          {m.timings.averageFirstResponseMs === null
+            ? "暂无数据"
+            : `${m.timings.averageFirstResponseMs} ms`}
+          （{m.timings.firstResponseSamples} 个会话）
+        </dd>
+        <dt>平均解决时长</dt>
+        <dd>
+          {m.timings.averageResolutionMs === null
+            ? "暂无数据"
+            : `${m.timings.averageResolutionMs} ms`}
+          （{m.timings.resolutionSamples} 个会话）
+        </dd>
+        <dt>尚无首次回复 / 缺少解决时间记录</dt>
+        <dd>
+          {m.timings.unansweredConversations} / {m.timings.resolvedWithoutTimestamp}
+        </dd>
+        <dt>AI 成功 / 失败</dt>
+        <dd>
+          {m.ai.succeeded} / {m.ai.failed}
+        </dd>
+        <dt>排队 / 运行中 / 租约过期</dt>
+        <dd>
+          {m.ai.queued} / {m.ai.running} / {m.ai.expiredLeases}
+        </dd>
+        <dt>平均排队至结束时间</dt>
+        <dd>
+          {m.ai.averageQueueToCompletionMs === null
+            ? "暂无数据"
+            : `${m.ai.averageQueueToCompletionMs} ms`}
+        </dd>
+        <dt>预留 / 已报告 token</dt>
+        <dd>
+          {m.ai.reservedTokens} / {m.ai.reportedTokens}
+        </dd>
+        <dt>用量未知的已结束任务</dt>
+        <dd>{m.ai.usageUnknown}</dd>
+        <dt>满意度（1–5）</dt>
+        <dd>
+          {m.satisfaction.average?.toFixed(1) || "暂无"}（{m.satisfaction.responses} 份）
+        </dd>
+        <dt>语音预留转录秒数 / 合成字符数</dt>
+        <dd>
+          {m.voice.reservedTranscriptionSeconds} / {m.voice.reservedSynthesisCharacters}
+        </dd>
+        <dt>进行中通话 / 待清理通话</dt>
+        <dd>
+          {m.calls.active} / {m.calls.cleanupPending}
+        </dd>
+        <dt>通话预留秒数</dt>
+        <dd>{m.calls.reservedSeconds}</dd>
+        <dt>知识缺口记录</dt>
+        <dd>{m.knowledgeGaps}</dd>
+      </dl>
+      <p>
+        首次回复从第一条客户消息计算到第一条公开人工或 AI
+        回复；解决时长从第一条客户消息计算到当前已解决会话的最后一次解决事件。系统提示与内部备注不算回复。缺失或已清理的解决记录不估算时长。预留
+        token
+        是预算占用；已报告用量可能不完整。时间包含排队，不代表模型响应耗时。不推算金额。功能可用状态只反映配置，未对外部服务进行探测。
+      </p>
+      <ul>
+        {Object.entries(report.features).map(([name, f]: [string, any]) => (
+          <li key={name}>
+            {name}：{f.available ? "可用" : f.enabled ? "已开启，当前不可用" : "已关闭"}
+          </li>
+        ))}
+      </ul>
+      <details>
+        <summary>最近 AI 任务</summary>
+        <ul>
+          {report.recentRuns.map((r: any) => (
+            <li key={r.id}>
+              #{r.id} · 会话 {r.conversation} · {r.status} · {r.model || "未调用模型"} · 预留{" "}
+              {r.reserved || 0} · {r.error || ""}
+            </li>
+          ))}
+        </ul>
+      </details>
+      <details>
+        <summary>满意度与复盘记录</summary>
+        <ul>
+          {report.feedback.map((r: any) => (
+            <li key={`f${r.id}`}>
+              会话 {r.conversation}：{r.rating}/5 {r.comment}
+            </li>
+          ))}
+          {report.reviews.map((r: any) => (
+            <li key={`r${r.id}`}>
+              会话 {r.conversation} · {r.category}：{r.note}
+            </li>
+          ))}
+        </ul>
+      </details>
+      {conversationID && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void action({
+              action: "review",
+              id: conversationID,
+              key: crypto.randomUUID(),
+              category: "knowledge-gap",
+              note,
+            });
+          }}
+        >
+          <label>
+            记录当前会话的知识缺口
+            <textarea
+              value={note}
+              maxLength={2000}
+              required
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
+          <button disabled={busy}>保存复盘</button>
+        </form>
+      )}
+      {report.retention && (
+        <fieldset>
+          <legend>管理员内容保留与清理</legend>
+          <p>
+            删除开关：{report.retention.retentionDeletionEnabled ? "已开启" : "关闭（默认）"}
+            。保留天数和删除开关请在后台「客服功能设置」修改。仅清理已解决且无进行中申请的旧会话内容，不删除会话或服务申请。
+          </p>
+          <label>
+            内容类别
+            <select
+              value={kind}
+              onChange={(e) => {
+                setKind(e.target.value);
+                setPreview(null);
+              }}
+            >
+              <option value="text">文字（{report.retention.textRetentionDays} 天）</option>
+              <option value="audio">音频（{report.retention.audioRetentionDays} 天）</option>
+              <option value="transcript">
+                转录（{report.retention.transcriptRetentionDays} 天）
+              </option>
+            </select>
+          </label>
+          <button disabled={busy} onClick={() => action({ action: "preview", kind })}>
+            仅预览清理范围
+          </button>
+          {preview && (
+            <div>
+              <p>
+                符合条件：{preview.count} {preview.unit === "conversations" ? "个会话" : "条记录"}
+                ；预览有效至 {preview.expiresAt}。执行会永久移除内容。
+              </p>
+              <label>
+                输入 DELETE SUPPORT CONTENT 确认
+                <textarea value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+              </label>
+              <button
+                disabled={
+                  busy ||
+                  !preview.deletionEnabled ||
+                  confirmation !== "DELETE SUPPORT CONTENT" ||
+                  !preview.count
+                }
+                onClick={() =>
+                  action({ action: "execute", kind, token: preview.token, confirm: confirmation })
+                }
+              >
+                确认永久清理
+              </button>
+            </div>
+          )}
+          <details>
+            <summary>最近清理审计</summary>
+            <ul>
+              {report.retentionAudits.map((a: any) => (
+                <li key={a.id}>
+                  {a.createdAt} · {a.kind} · {a.status} {a.result?.processed ?? ""}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </fieldset>
+      )}
+    </section>
+  );
 }
-const satisfactionCopy:Record<Locale,{rating:string;comment:string;submit:string;thanks:string;failure:string}>={
- zh:{rating:'服务评价',comment:'意见',submit:'提交评价',thanks:'感谢您的评价',failure:'提交未完成，请稍后重试'},
- en:{rating:'Service rating',comment:'Comments',submit:'Submit rating',thanks:'Thank you for your feedback',failure:'Unable to submit. Please try again.'},
- es:{rating:'Valoración del servicio',comment:'Comentarios',submit:'Enviar valoración',thanks:'Gracias por sus comentarios',failure:'No se pudo enviar. Inténtelo de nuevo.'},
- fr:{rating:'Évaluation du service',comment:'Commentaires',submit:'Envoyer',thanks:'Merci pour votre avis',failure:'Envoi impossible. Veuillez réessayer.'},
- de:{rating:'Servicebewertung',comment:'Kommentar',submit:'Bewertung senden',thanks:'Vielen Dank für Ihre Bewertung',failure:'Senden fehlgeschlagen. Bitte erneut versuchen.'},
- it:{rating:'Valutazione del servizio',comment:'Commenti',submit:'Invia valutazione',thanks:'Grazie per il tuo parere',failure:'Invio non riuscito. Riprova.'},
- ar:{rating:'تقييم الخدمة',comment:'التعليقات',submit:'إرسال التقييم',thanks:'شكرًا على ملاحظاتك',failure:'تعذر الإرسال. يرجى المحاولة مرة أخرى.'},
+const satisfactionCopy: Record<
+  Locale,
+  { rating: string; comment: string; submit: string; thanks: string; failure: string }
+> = {
+  zh: {
+    rating: "服务评价",
+    comment: "意见",
+    submit: "提交评价",
+    thanks: "感谢您的评价",
+    failure: "提交未完成，请稍后重试",
+  },
+  en: {
+    rating: "Service rating",
+    comment: "Comments",
+    submit: "Submit rating",
+    thanks: "Thank you for your feedback",
+    failure: "Unable to submit. Please try again.",
+  },
+  es: {
+    rating: "Valoración del servicio",
+    comment: "Comentarios",
+    submit: "Enviar valoración",
+    thanks: "Gracias por sus comentarios",
+    failure: "No se pudo enviar. Inténtelo de nuevo.",
+  },
+  fr: {
+    rating: "Évaluation du service",
+    comment: "Commentaires",
+    submit: "Envoyer",
+    thanks: "Merci pour votre avis",
+    failure: "Envoi impossible. Veuillez réessayer.",
+  },
+  de: {
+    rating: "Servicebewertung",
+    comment: "Kommentar",
+    submit: "Bewertung senden",
+    thanks: "Vielen Dank für Ihre Bewertung",
+    failure: "Senden fehlgeschlagen. Bitte erneut versuchen.",
+  },
+  it: {
+    rating: "Valutazione del servizio",
+    comment: "Commenti",
+    submit: "Invia valutazione",
+    thanks: "Grazie per il tuo parere",
+    failure: "Invio non riuscito. Riprova.",
+  },
+  ar: {
+    rating: "تقييم الخدمة",
+    comment: "التعليقات",
+    submit: "إرسال التقييم",
+    thanks: "شكرًا على ملاحظاتك",
+    failure: "تعذر الإرسال. يرجى المحاولة مرة أخرى.",
+  },
 };
-export function SupportSatisfaction({conversationID,resolved,locale='en'}:{conversationID:number;resolved:boolean;locale?:Locale}){const [rating,setRating]=useState(5),[comment,setComment]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState(false);const copy=satisfactionCopy[locale];useEffect(()=>{setRating(5);setComment('');setStatus('');setDone(false);},[conversationID]);if(!resolved)return null;return <form dir={locale==='ar'?'rtl':undefined} onSubmit={async e=>{e.preventDefault();setBusy(true);try{const r=await fetch('/api/support/operations/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:conversationID,rating,comment})});setStatus(r.ok?copy.thanks:copy.failure);if(r.ok)setDone(true);}catch{setStatus(copy.failure);}finally{setBusy(false);}}}><label>{copy.rating}<select disabled={done} value={rating} onChange={e=>setRating(Number(e.target.value))}>{[5,4,3,2,1].map(n=><option key={n}>{n}</option>)}</select></label><label>{copy.comment}<textarea disabled={done} value={comment} maxLength={2000} onChange={e=>setComment(e.target.value)}/></label><button disabled={busy||done}>{copy.submit}</button><p role="status">{status}</p></form>;}
+export function SupportSatisfaction({
+  conversationID,
+  resolved,
+  locale = "en",
+}: {
+  conversationID: number;
+  resolved: boolean;
+  locale?: Locale;
+}) {
+  const [rating, setRating] = useState(5),
+    [comment, setComment] = useState(""),
+    [status, setStatus] = useState(""),
+    [busy, setBusy] = useState(false),
+    [done, setDone] = useState(false);
+  const copy = satisfactionCopy[locale];
+  useEffect(() => {
+    setRating(5);
+    setComment("");
+    setStatus("");
+    setDone(false);
+  }, [conversationID]);
+  if (!resolved) return null;
+  return (
+    <form
+      dir={locale === "ar" ? "rtl" : undefined}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        try {
+          const r = await fetch("/api/support/operations/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: conversationID, rating, comment }),
+          });
+          setStatus(r.ok ? copy.thanks : copy.failure);
+          if (r.ok) setDone(true);
+        } catch {
+          setStatus(copy.failure);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <label>
+        {copy.rating}
+        <select disabled={done} value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+          {[5, 4, 3, 2, 1].map((n) => (
+            <option key={n}>{n}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {copy.comment}
+        <textarea
+          disabled={done}
+          value={comment}
+          maxLength={2000}
+          onChange={(e) => setComment(e.target.value)}
+        />
+      </label>
+      <button disabled={busy || done}>{copy.submit}</button>
+      <p role="status">{status}</p>
+    </form>
+  );
+}

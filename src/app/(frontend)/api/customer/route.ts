@@ -1,9 +1,75 @@
-import {NextResponse} from 'next/server';
-import {supportPayload} from '@/server/support/auth';
-import {checkOrigin,limitedJSON,failure} from '@/server/content/auth';
-import {customerAvailable,customerSession,customerRead,requestVerification,verifyCustomer,logoutCustomer,markCustomerNotification} from '@/server/customer/service';
-import {customerCookie} from '@/lib/customer';
-export const runtime='nodejs';
-const headers={'Cache-Control':'no-store'};
-export async function GET(req:Request){try{const p=await supportPayload();const available=await customerAvailable(p);try{return NextResponse.json({available,...await customerRead(p,await customerSession(p,req.headers))},{headers});}catch(e){if((e as any)?.status===401)return NextResponse.json({available,authenticated:false},{headers});throw e;}}catch(e){return failure(e);}}
-export async function POST(req:Request){try{checkOrigin(req);const input=await limitedJSON(req,4096);const p=await supportPayload();if(input.action==='read-notification')return NextResponse.json(await markCustomerNotification(p,await customerSession(p,req.headers),input.id),{headers});if(input.action==='request')return NextResponse.json(await requestVerification(p,input),{headers});if(input.action==='logout'){const response=NextResponse.json(await logoutCustomer(p,req.headers),{headers});response.cookies.set(customerCookie,'',{httpOnly:true,secure:process.env.APP_ENV!=='local'||new URL(process.env.APP_URL!).protocol==='https:',sameSite:'strict',path:'/',maxAge:0});return response;}if(input.action==='verify'){const result=await verifyCustomer(p,input);const response=NextResponse.json({ok:true},{headers});response.cookies.set(customerCookie,result.token,{httpOnly:true,secure:process.env.APP_ENV!=='local'||new URL(process.env.APP_URL!).protocol==='https:',sameSite:'strict',path:'/',maxAge:86400*7});return response;}return NextResponse.json({error:'Unknown action'},{status:400,headers});}catch(e){return failure(e);}}
+import { NextResponse } from "next/server";
+import { supportPayload } from "@/server/support/auth";
+import { checkOrigin, limitedJSON, failure } from "@/server/content/auth";
+import {
+  customerAvailable,
+  customerSession,
+  customerRead,
+  requestVerification,
+  verifyCustomer,
+  logoutCustomer,
+  markCustomerNotification,
+} from "@/server/customer/service";
+import { customerCookie } from "@/lib/customer";
+export const runtime = "nodejs";
+const headers = { "Cache-Control": "no-store" };
+export async function GET(req: Request) {
+  try {
+    const p = await supportPayload();
+    const available = await customerAvailable(p);
+    try {
+      return NextResponse.json(
+        { available, ...(await customerRead(p, await customerSession(p, req.headers))) },
+        { headers },
+      );
+    } catch (e) {
+      if ((e as any)?.status === 401)
+        return NextResponse.json({ available, authenticated: false }, { headers });
+      throw e;
+    }
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function POST(req: Request) {
+  try {
+    checkOrigin(req);
+    const input = await limitedJSON(req, 4096);
+    const p = await supportPayload();
+    if (input.action === "read-notification")
+      return NextResponse.json(
+        await markCustomerNotification(p, await customerSession(p, req.headers), input.id),
+        { headers },
+      );
+    if (input.action === "request")
+      return NextResponse.json(await requestVerification(p, input), { headers });
+    if (input.action === "logout") {
+      const response = NextResponse.json(await logoutCustomer(p, req.headers), { headers });
+      response.cookies.set(customerCookie, "", {
+        httpOnly: true,
+        secure:
+          process.env.APP_ENV !== "local" || new URL(process.env.APP_URL!).protocol === "https:",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
+    }
+    if (input.action === "verify") {
+      const result = await verifyCustomer(p, input);
+      const response = NextResponse.json({ ok: true }, { headers });
+      response.cookies.set(customerCookie, result.token, {
+        httpOnly: true,
+        secure:
+          process.env.APP_ENV !== "local" || new URL(process.env.APP_URL!).protocol === "https:",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 86400 * 7,
+      });
+      return response;
+    }
+    return NextResponse.json({ error: "Unknown action" }, { status: 400, headers });
+  } catch (e) {
+    return failure(e);
+  }
+}

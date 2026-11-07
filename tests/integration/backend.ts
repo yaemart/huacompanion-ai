@@ -25,6 +25,16 @@ const base = {
     consent: true,
   },
 };
+const admin = (
+  await payload.find({
+    collection: "staff",
+    where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+    sort: "createdAt",
+    limit: 1,
+  })
+).docs[0];
+assert.ok(admin);
+const fixtures: (typeof admin)[] = [];
 let passed = 0;
 const check = (name: string) => {
   passed++;
@@ -45,10 +55,7 @@ try {
   );
   check("staff hook blocks unauthorized bootstrap even with access override");
   const key = randomUUID();
-  const receipts = await Promise.all([
-    saveIntake(base, key),
-    saveIntake(base, key),
-  ]);
+  const receipts = await Promise.all([saveIntake(base, key), saveIntake(base, key)]);
   assert.equal(receipts[0].reference, receipts[1].reference);
   check("concurrent retries produce one reference");
   const docs = await payload.find({
@@ -71,8 +78,7 @@ try {
   );
   check("inquiry and one pending notification persist");
   await assert.rejects(
-    () =>
-      saveIntake({ ...base, values: { ...base.values, name: "Changed" } }, key),
+    () => saveIntake({ ...base, values: { ...base.values, name: "Changed" } }, key),
     IntakeConflict,
   );
   check("idempotency key cannot be reused for changed input");
@@ -102,18 +108,25 @@ try {
   assert.equal(providers.docs[0].status, "applied");
   assert.equal(providers.docs[0].publicApproved, false);
   check("provider submission remains private and applied");
-  const fixtures = [];
+  const team = await payload.create({
+    collection: "teams",
+    user: admin,
+    overrideAccess: false,
+    data: { name: `测试团队-${run}` },
+  });
   for (const role of ["operations", "editor"] as const) {
     fixtures.push(
       await payload.create({
         collection: "staff",
         overrideAccess: true,
-        context: { allowLocalStaffSetup: true },
+        user: admin,
         data: {
           name: `测试-${role}`,
           email: `${role}-${run}@example.com`,
           password: randomBytes(24).toString("hex"),
           role,
+          active: true,
+          team: team.id,
         },
       }),
     );
@@ -140,7 +153,8 @@ try {
     collection: "inquiries",
     id: inquiry.id,
     overrideAccess: true,
-    data: { owner: operations.id },
+    user: admin,
+    data: { team: team.id, owner: operations.id },
   });
   const own = await payload.findByID({
     collection: "inquiries",
@@ -209,10 +223,7 @@ try {
     collection: "audit-events",
     overrideAccess: true,
     where: {
-      and: [
-        { entity: { equals: "inquiries" } },
-        { recordId: { equals: String(inquiry.id) } },
-      ],
+      and: [{ entity: { equals: "inquiries" } }, { recordId: { equals: String(inquiry.id) } }],
     },
   });
   assert.ok(logs.totalDocs >= 2);
@@ -224,6 +235,13 @@ try {
   console.error(error);
   process.exitCode = 1;
 } finally {
+  for (const user of fixtures)
+    await payload.update({
+      collection: "staff",
+      id: user.id,
+      user: admin,
+      data: { active: false },
+    });
   await payload.destroy();
   process.exit(process.exitCode || 0);
 }

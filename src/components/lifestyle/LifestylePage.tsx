@@ -1,33 +1,430 @@
-import Link from 'next/link';
-import { Header } from '../Header';
-import { ContentBlocks } from '../content/ContentBlocks';
-import type { ContentBody } from '@/lib/content-model';
-import { locales, localeNames, type Locale } from '@/lib/locales';
-import { catalogCities, cityLabel } from '@/lib/catalog-options';
-import { filterLifestyle, lifeInquiryPath, lifePath, lifeCategories, isLife, effectiveLifeStatus, lifeCanEnquire, type LifeFilters, type Lifestyle } from '@/lib/lifestyle';
-import { lifeText } from '@/lib/lifestyle-copy';
-export function LifestylePage({items,locale,detail,query={},languagePaths}:{items:ContentBody[];locale:Locale;detail?:ContentBody;query?:LifeFilters&{page?:string};languagePaths?:Partial<Record<Locale,string|null>>}){
- const t=(k:string)=>lifeText(locale,k),base=`/${locale}/life`;
- const matches=filterLifestyle(items.filter(d=>d.locale===locale),query);
- const pages=Math.max(1,Math.ceil(matches.length/12));const page=Math.min(pages,Math.max(1,Math.floor(Number(query.page)||1)));
- const v=detail?.lifestyle;
- const linkPage=(n:number)=>base+'?'+new URLSearchParams({...Object.fromEntries(Object.entries(query).filter(([,v])=>!!v)),page:String(n)});
- const status=(d:ContentBody)=>isLife(d.kind)&&d.lifestyle?effectiveLifeStatus(d.lifestyle,d.kind):'';
- const fields: (keyof Lifestyle)[]=['address','transport','audience','languageNotes','fees','booking','ageRestriction','dressCode','accessibility','hours','organizer','participation','refunds','cuisine','specialties','menuLanguages','diningScenes','facilities','dietary','dietaryEvidence','unresolved','assistance','sponsorship'];
- const related=detail&&v?items.filter(d=>d.locale===locale&&((d.kind==='service-project'&&v.projectKeys.includes(d.contentKey))||(d.kind==='venue'&&v.venueKey===d.contentKey)||(d.kind==='activity'&&d.lifestyle?.venueKey===detail.contentKey&&detail.kind==='venue'))):[];
- const schema=detail&&v?{'@context':'https://schema.org','@type':detail.kind==='activity'?'Event':v.category==='dining'?'Restaurant':v.category==='nightlife'?'BarOrPub':'Place',name:detail.title,description:detail.summary,url:lifePath(detail),address:{'@type':'PostalAddress',streetAddress:v.address,addressLocality:cityLabel(v.city,locale),addressCountry:'CN'},...(detail.kind==='activity'?{startDate:v.startAt,endDate:v.endAt,eventStatus:'https://schema.org/'+(v.status==='cancelled'?'EventCancelled':v.status==='postponed'?'EventPostponed':'EventScheduled'),location:{'@type':'Place',name:v.address,address:v.address}}:{}),sameAs:v.officialURL}:undefined;
- return <><Header locale={locale} languagePaths={languagePaths}/><main id="main" className="section institution-page" dir={locale==='ar'?'rtl':'ltr'}>
- {detail&&v?<><Link href={base}>← {t('back')}</Link><div className="institution-meta"><span>{cityLabel(v.city,locale)}</span><span>{t(v.category)}</span><span className="institution-status">{t(status(detail))}</span></div><h1>{detail.title}</h1><p className="lead">{detail.summary}</p>
- <dl className="life-facts">{fields.filter(k=>v[k]).map(k=><div key={k}><dt>{t(k)}</dt><dd>{String(v[k])}</dd></div>)}<div><dt>{t('language')}</dt><dd>{v.languages.length?v.languages.map(l=>localeNames[l as Locale]).join(' · '):t('unknown')}</dd></div><div><dt>{t('fees')}</dt><dd>{v.priceMin===null&&v.priceMax===null?t('unknown'):`${v.currency} ${v.priceMin??'—'} – ${v.priceMax??'—'} / ${v.priceUnit}`}</dd></div>{(['startAt','endAt','deadline'] as const).filter(k=>v[k]).map(k=><div key={k}><dt>{t(k)}</dt><dd><time dateTime={v[k]}>{v[k].replace('T',' ').replace('+08:00',' (UTC+08:00)')}</time></dd></div>)}<div><dt>{t('verified')}</dt><dd>{v.verifiedAt||t('unknown')}</dd></div></dl>
- {[v.mapURL,v.menuURL].filter(Boolean).map((u,i)=><p key={u}><a href={u} target="_blank" rel="noopener noreferrer">{i===0&&u===v.mapURL?t('address'):t('menuLanguages')} ↗</a></p>)}
- <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks}/>
- <section className="institution-enquiry">{isLife(detail.kind)&&lifeCanEnquire(v,detail.kind)&&detail.acceptingInquiries!==false?<Link className="button" href={lifeInquiryPath(detail)}>{t(detail.kind==='activity'?'register':v.category==='dining'?'reserve':'enquire')} ↗</Link>:<p role="status">{t(status(detail))}</p>}<p>{t('notice')}</p><Link href={`/${locale}/request?service=travel`}>{t('enquire')}</Link></section>
- {!!related.length&&<section><h2>{t('related')}</h2><ul>{related.map(d=><li key={d.kind+d.contentKey}><Link href={isLife(d.kind)?lifePath(d):`/${locale}/services/projects/${d.slug}`}>{d.title}</Link>{d.kind==='service-project'&&isLife(detail.kind)&&lifeCanEnquire(v,detail.kind)&&d.acceptingInquiries!==false&&<> · <Link href={lifeInquiryPath(detail,d.contentKey,d.publicationRevision,d.catalog?.categories.includes('housekeeping')?'housekeeping':'travel')}>{t('enquire')}</Link></>}</li>)}</ul></section>}
- <section><h2>{t('sources')}</h2><ul>{detail.sources.map(s=><li key={s.id}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a> · {s.checkedAt}</li>)}</ul></section>
- {schema&&<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replace(/</g,'\\u003c')}}/>}
- </>:<><p className="eyebrow">HUA COMPANION</p><h1>{t('title')}</h1><p className="lead">{t('intro')}</p><nav className="life-categories" aria-label={t('category')}>{lifeCategories.map(k=><Link className="institution-status" key={k} href={base+'?'+new URLSearchParams({category:k,...(query.city?{city:query.city}:{})})}>{t(k)}</Link>)}</nav>
- <form action={base} className="catalog-filters life-filters"><label>{t('search')}<input name="q" defaultValue={query.q} maxLength={200}/></label><label>{t('city')}<select name="city" defaultValue={query.city||''}><option value="">{t('all')}</option>{catalogCities.map(c=><option key={c.code} value={c.code}>{cityLabel(c.code,locale)}</option>)}</select></label><label>{t('category')}<select name="category" defaultValue={query.category||''}><option value="">{t('all')}</option>{lifeCategories.map(k=><option key={k} value={k}>{t(k)}</option>)}</select></label><label>{t('venue')} / {t('activity')}<select name="kind" defaultValue={query.kind||''}><option value="">{t('all')}</option>{['venue','activity'].map(k=><option key={k} value={k}>{t(k)}</option>)}</select></label><label>{t('language')}<select name="language" defaultValue={query.language||''}><option value="">{t('all')}</option>{locales.map(l=><option key={l} value={l}>{localeNames[l]}</option>)}</select></label><label>{t('date')}<input name="date" type="date" defaultValue={query.date}/></label><label>{t('status')}<select name="status" defaultValue={query.status||''}><option value="">{t('all')}</option>{['open','scheduled','full','cancelled','postponed','ended','registrationClosed','paused','closed'].map(k=><option key={k} value={k}>{t(k)}</option>)}</select></label>{query.category==='dining'&&<><label>{t('cuisine')}<input name="cuisine" defaultValue={query.cuisine}/></label><label>{t('diningScenes')}<input name="scene" defaultValue={query.scene}/></label><label>{t('budget')}<input name="budget" type="number" min="0" defaultValue={query.budget}/></label></>}<button className="button" type="submit">{t('search')}</button></form>
- <div className="guide-grid">{matches.slice((page-1)*12,page*12).map(d=><article className="guide-card catalog-card" key={d.kind+d.contentKey}><div className="institution-meta"><span>{cityLabel(d.lifestyle!.city,locale)}</span><span>{t(d.lifestyle!.category)}</span></div><h2><Link href={lifePath(d)}>{d.title}</Link></h2><p>{d.summary}</p><p>{t(status(d))}</p>{d.kind==='activity'&&<p>{d.lifestyle!.startAt.replace('T',' ').replace('+08:00',' (UTC+08:00)')}</p>}<Link href={lifePath(d)}>{t('details')} →</Link></article>)}</div>
- {!matches.length&&<section className="institution-enquiry"><p role="status">{t('empty')}</p><Link className="button" href={`/${locale}/request?service=travel`}>{t('enquire')}</Link></section>}{pages>1&&<nav className="institution-pagination">{page>1&&<Link href={linkPage(page-1)}>{t('previous')}</Link>}<span>{page} / {pages}</span>{page<pages&&<Link href={linkPage(page+1)}>{t('next')}</Link>}</nav>}
- </>}</main></>;
+import Link from "next/link";
+import { Header } from "../Header";
+import { ContentBlocks } from "../content/ContentBlocks";
+import type { ContentBody } from "@/lib/content-model";
+import { locales, localeNames, type Locale } from "@/lib/locales";
+import { catalogCities, cityLabel } from "@/lib/catalog-options";
+import {
+  filterLifestyle,
+  lifeInquiryPath,
+  lifePath,
+  lifeCategories,
+  isLife,
+  effectiveLifeStatus,
+  lifeCanEnquire,
+  type LifeFilters,
+  type Lifestyle,
+} from "@/lib/lifestyle";
+import { lifeText } from "@/lib/lifestyle-copy";
+export function LifestylePage({
+  items,
+  locale,
+  detail,
+  query = {},
+  languagePaths,
+}: {
+  items: ContentBody[];
+  locale: Locale;
+  detail?: ContentBody;
+  query?: LifeFilters & { page?: string };
+  languagePaths?: Partial<Record<Locale, string | null>>;
+}) {
+  const t = (k: string) => lifeText(locale, k),
+    base = `/${locale}/life`;
+  const matches = filterLifestyle(
+    items.filter((d) => d.locale === locale),
+    query,
+  );
+  const pages = Math.max(1, Math.ceil(matches.length / 12));
+  const page = Math.min(pages, Math.max(1, Math.floor(Number(query.page) || 1)));
+  const v = detail?.lifestyle;
+  const linkPage = (n: number) =>
+    base +
+    "?" +
+    new URLSearchParams({
+      ...Object.fromEntries(Object.entries(query).filter(([, v]) => !!v)),
+      page: String(n),
+    });
+  const status = (d: ContentBody) =>
+    isLife(d.kind) && d.lifestyle ? effectiveLifeStatus(d.lifestyle, d.kind) : "";
+  const fields: (keyof Lifestyle)[] = [
+    "address",
+    "transport",
+    "audience",
+    "languageNotes",
+    "fees",
+    "booking",
+    "ageRestriction",
+    "dressCode",
+    "accessibility",
+    "hours",
+    "organizer",
+    "participation",
+    "refunds",
+    "cuisine",
+    "specialties",
+    "menuLanguages",
+    "diningScenes",
+    "facilities",
+    "dietary",
+    "dietaryEvidence",
+    "unresolved",
+    "assistance",
+    "sponsorship",
+  ];
+  const related =
+    detail && v
+      ? items.filter(
+          (d) =>
+            d.locale === locale &&
+            ((d.kind === "service-project" && v.projectKeys.includes(d.contentKey)) ||
+              (d.kind === "venue" && v.venueKey === d.contentKey) ||
+              (d.kind === "activity" &&
+                d.lifestyle?.venueKey === detail.contentKey &&
+                detail.kind === "venue")),
+        )
+      : [];
+  const schema =
+    detail && v
+      ? {
+          "@context": "https://schema.org",
+          "@type":
+            detail.kind === "activity"
+              ? "Event"
+              : v.category === "dining"
+                ? "Restaurant"
+                : v.category === "nightlife"
+                  ? "BarOrPub"
+                  : "Place",
+          name: detail.title,
+          description: detail.summary,
+          url: lifePath(detail),
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: v.address,
+            addressLocality: cityLabel(v.city, locale),
+            addressCountry: "CN",
+          },
+          ...(detail.kind === "activity"
+            ? {
+                startDate: v.startAt,
+                endDate: v.endAt,
+                eventStatus:
+                  "https://schema.org/" +
+                  (v.status === "cancelled"
+                    ? "EventCancelled"
+                    : v.status === "postponed"
+                      ? "EventPostponed"
+                      : "EventScheduled"),
+                location: { "@type": "Place", name: v.address, address: v.address },
+              }
+            : {}),
+          sameAs: v.officialURL,
+        }
+      : undefined;
+  return (
+    <>
+      <Header locale={locale} languagePaths={languagePaths} />
+      <main id="main" className="section institution-page" dir={locale === "ar" ? "rtl" : "ltr"}>
+        {detail && v ? (
+          <>
+            <Link href={base}>← {t("back")}</Link>
+            <div className="institution-meta">
+              <span>{cityLabel(v.city, locale)}</span>
+              <span>{t(v.category)}</span>
+              <span className="institution-status">{t(status(detail))}</span>
+            </div>
+            <h1>{detail.title}</h1>
+            <p className="lead">{detail.summary}</p>
+            <dl className="life-facts">
+              {fields
+                .filter((k) => v[k])
+                .map((k) => (
+                  <div key={k}>
+                    <dt>{t(k)}</dt>
+                    <dd>{String(v[k])}</dd>
+                  </div>
+                ))}
+              <div>
+                <dt>{t("language")}</dt>
+                <dd>
+                  {v.languages.length
+                    ? v.languages.map((l) => localeNames[l as Locale]).join(" · ")
+                    : t("unknown")}
+                </dd>
+              </div>
+              <div>
+                <dt>{t("fees")}</dt>
+                <dd>
+                  {v.priceMin === null && v.priceMax === null
+                    ? t("unknown")
+                    : `${v.currency} ${v.priceMin ?? "—"} – ${v.priceMax ?? "—"} / ${v.priceUnit}`}
+                </dd>
+              </div>
+              {(["startAt", "endAt", "deadline"] as const)
+                .filter((k) => v[k])
+                .map((k) => (
+                  <div key={k}>
+                    <dt>{t(k)}</dt>
+                    <dd>
+                      <time dateTime={v[k]}>
+                        {v[k].replace("T", " ").replace("+08:00", " (UTC+08:00)")}
+                      </time>
+                    </dd>
+                  </div>
+                ))}
+              <div>
+                <dt>{t("verified")}</dt>
+                <dd>{v.verifiedAt || t("unknown")}</dd>
+              </div>
+            </dl>
+            {[v.mapURL, v.menuURL].filter(Boolean).map((u, i) => (
+              <p key={u}>
+                <a href={u} target="_blank" rel="noopener noreferrer">
+                  {i === 0 && u === v.mapURL ? t("address") : t("menuLanguages")} ↗
+                </a>
+              </p>
+            ))}
+            <ContentBlocks quality={detail.qualityReview} locale={locale} blocks={detail.blocks} />
+            <section className="institution-enquiry">
+              {isLife(detail.kind) &&
+              lifeCanEnquire(v, detail.kind) &&
+              detail.acceptingInquiries !== false ? (
+                <Link className="button" href={lifeInquiryPath(detail)}>
+                  {t(
+                    detail.kind === "activity"
+                      ? "register"
+                      : v.category === "dining"
+                        ? "reserve"
+                        : "enquire",
+                  )}{" "}
+                  ↗
+                </Link>
+              ) : (
+                <p role="status">{t(status(detail))}</p>
+              )}
+              <p>{t("notice")}</p>
+              <Link href={`/${locale}/request?service=travel`}>{t("enquire")}</Link>
+            </section>
+            {!!related.length && (
+              <section>
+                <h2>{t("related")}</h2>
+                <ul>
+                  {related.map((d) => (
+                    <li key={d.kind + d.contentKey}>
+                      <Link
+                        href={
+                          isLife(d.kind) ? lifePath(d) : `/${locale}/services/projects/${d.slug}`
+                        }
+                      >
+                        {d.title}
+                      </Link>
+                      {d.kind === "service-project" &&
+                        isLife(detail.kind) &&
+                        lifeCanEnquire(v, detail.kind) &&
+                        d.acceptingInquiries !== false && (
+                          <>
+                            {" "}
+                            ·{" "}
+                            <Link
+                              href={lifeInquiryPath(
+                                detail,
+                                d.contentKey,
+                                d.publicationRevision,
+                                d.catalog?.categories.includes("housekeeping")
+                                  ? "housekeeping"
+                                  : "travel",
+                              )}
+                            >
+                              {t("enquire")}
+                            </Link>
+                          </>
+                        )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <section>
+              <h2>{t("sources")}</h2>
+              <ul>
+                {detail.sources.map((s) => (
+                  <li key={s.id}>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer">
+                      {s.title}
+                    </a>{" "}
+                    · {s.checkedAt}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            {schema && (
+              <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                  __html: JSON.stringify(schema).replace(/</g, "\\u003c"),
+                }}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            <p className="eyebrow">HUA COMPANION</p>
+            <h1>{t("title")}</h1>
+            <p className="lead">{t("intro")}</p>
+            <nav className="life-categories" aria-label={t("category")}>
+              {lifeCategories.map((k) => (
+                <Link
+                  className="institution-status"
+                  key={k}
+                  href={
+                    base +
+                    "?" +
+                    new URLSearchParams({
+                      category: k,
+                      ...(query.city ? { city: query.city } : {}),
+                    })
+                  }
+                >
+                  {t(k)}
+                </Link>
+              ))}
+            </nav>
+            <form action={base} className="catalog-filters life-filters">
+              <label>
+                {t("search")}
+                <input name="q" defaultValue={query.q} maxLength={200} />
+              </label>
+              <label>
+                {t("city")}
+                <select name="city" defaultValue={query.city || ""}>
+                  <option value="">{t("all")}</option>
+                  {catalogCities.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {cityLabel(c.code, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("category")}
+                <select name="category" defaultValue={query.category || ""}>
+                  <option value="">{t("all")}</option>
+                  {lifeCategories.map((k) => (
+                    <option key={k} value={k}>
+                      {t(k)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("venue")} / {t("activity")}
+                <select name="kind" defaultValue={query.kind || ""}>
+                  <option value="">{t("all")}</option>
+                  {["venue", "activity"].map((k) => (
+                    <option key={k} value={k}>
+                      {t(k)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("language")}
+                <select name="language" defaultValue={query.language || ""}>
+                  <option value="">{t("all")}</option>
+                  {locales.map((l) => (
+                    <option key={l} value={l}>
+                      {localeNames[l]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("date")}
+                <input name="date" type="date" defaultValue={query.date} />
+              </label>
+              <label>
+                {t("status")}
+                <select name="status" defaultValue={query.status || ""}>
+                  <option value="">{t("all")}</option>
+                  {[
+                    "open",
+                    "scheduled",
+                    "full",
+                    "cancelled",
+                    "postponed",
+                    "ended",
+                    "registrationClosed",
+                    "paused",
+                    "closed",
+                  ].map((k) => (
+                    <option key={k} value={k}>
+                      {t(k)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {query.category === "dining" && (
+                <>
+                  <label>
+                    {t("cuisine")}
+                    <input name="cuisine" defaultValue={query.cuisine} />
+                  </label>
+                  <label>
+                    {t("diningScenes")}
+                    <input name="scene" defaultValue={query.scene} />
+                  </label>
+                  <label>
+                    {t("budget")}
+                    <input name="budget" type="number" min="0" defaultValue={query.budget} />
+                  </label>
+                </>
+              )}
+              <button className="button" type="submit">
+                {t("search")}
+              </button>
+            </form>
+            <div className="guide-grid">
+              {matches.slice((page - 1) * 12, page * 12).map((d) => (
+                <article className="guide-card catalog-card" key={d.kind + d.contentKey}>
+                  <div className="institution-meta">
+                    <span>{cityLabel(d.lifestyle!.city, locale)}</span>
+                    <span>{t(d.lifestyle!.category)}</span>
+                  </div>
+                  <h2>
+                    <Link href={lifePath(d)}>{d.title}</Link>
+                  </h2>
+                  <p>{d.summary}</p>
+                  <p>{t(status(d))}</p>
+                  {d.kind === "activity" && (
+                    <p>
+                      {d.lifestyle!.startAt.replace("T", " ").replace("+08:00", " (UTC+08:00)")}
+                    </p>
+                  )}
+                  <Link href={lifePath(d)}>{t("details")} →</Link>
+                </article>
+              ))}
+            </div>
+            {!matches.length && (
+              <section className="institution-enquiry">
+                <p role="status">{t("empty")}</p>
+                <Link className="button" href={`/${locale}/request?service=travel`}>
+                  {t("enquire")}
+                </Link>
+              </section>
+            )}
+            {pages > 1 && (
+              <nav className="institution-pagination">
+                {page > 1 && <Link href={linkPage(page - 1)}>{t("previous")}</Link>}
+                <span>
+                  {page} / {pages}
+                </span>
+                {page < pages && <Link href={linkPage(page + 1)}>{t("next")}</Link>}
+              </nav>
+            )}
+          </>
+        )}
+      </main>
+    </>
+  );
 }

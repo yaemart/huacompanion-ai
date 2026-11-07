@@ -12,9 +12,15 @@ export const topics: [number, string, string, string, string[], string[]][] = [
       "会议议程先讨论规格与差异，再讨论样品、报价条件和下一步。会后记录每项承诺的负责人、证据和日期；拜访协调不等于验厂或质量担保。",
     ],
     [
-      "Separate intended use, destination market, order estimates and essential specifications. Prepare drawings or sample photos, identifying what may be shared and what is confidential.",
-      "Ask prospective suppliers to confirm whether they can discuss the products, samples and lead times. Treat manufacturing capability, trading roles and certification documents as items to verify, not conclusions from marketing photos.",
-      "Agree specifications and differences before samples and quotation conditions. Record an owner, evidence and date for each follow-up. Visit coordination is not a factory audit or quality guarantee.",
+      "Separate intended use, destination market, order estimates and essential " +
+        "specifications. Prepare drawings or sample photos, identifying what may be shared and " +
+        "what is confidential.",
+      "Ask prospective suppliers to confirm whether they can discuss the products, samples " +
+        "and lead times. Treat manufacturing capability, trading roles and certification " +
+        "documents as items to verify, not conclusions from marketing photos.",
+      "Agree specifications and differences before samples and quotation conditions. Record " +
+        "an owner, evidence and date for each follow-up. Visit coordination is not a factory " +
+        "audit or quality guarantee.",
     ],
   ],
   [
@@ -44,9 +50,15 @@ export const topics: [number, string, string, string, string[], string[]][] = [
       "展后按需求匹配程度整理候选名单。分别安排样品、技术澄清和后续访问；参加展会本身不代表供应商已通过资质审核。",
     ],
     [
-      "Check dates, venue, registration and entry requirements with the organizer. List priority products and exhibitors; last year’s information does not confirm this year’s arrangements.",
-      "Record exhibitor identity, contact, product model, quotation conditions and missing documents consistently. Request permission for photos and keep each photo tied to its supplier.",
-      "Rank follow-up by fit with your needs. Arrange samples, technical clarification and visits separately. Exhibition participation does not establish that a supplier has been vetted.",
+      "Check dates, venue, registration and entry requirements with the organizer. List " +
+        "priority products and exhibitors; last year’s information does not confirm this year’s " +
+        "arrangements.",
+      "Record exhibitor identity, contact, product model, quotation conditions and missing " +
+        "documents consistently. Request permission for photos and keep each photo tied to its " +
+        "supplier.",
+      "Rank follow-up by fit with your needs. Arrange samples, technical clarification and " +
+        "visits separately. Exhibition participation does not establish that a supplier has " +
+        "been vetted.",
     ],
   ],
   [
@@ -62,7 +74,9 @@ export const topics: [number, string, string, string, string[], string[]][] = [
     [
       "Align model, material, specifications, quantities and packaging first. List alternatives separately rather than comparing different products as if they were identical.",
       "Record currency, tax, freight, delivery location, payment terms, validity, sample charges and possible extras. Mark missing details as unconfirmed, not free.",
-      "Assess technical fit separately from price. Obtain qualified advice on contracts, compliance and destination requirements; coordination is not legal advice, testing or certification.",
+      "Assess technical fit separately from price. Obtain qualified advice on contracts, " +
+        "compliance and destination requirements; coordination is not legal advice, testing or " +
+        "certification.",
     ],
   ],
   [
@@ -222,7 +236,9 @@ export const topics: [number, string, string, string, string[], string[]][] = [
     [
       "Specify expected dates, kitchen and laundry needs, commuting area and possible extensions.",
       "Clarify rent, deposit, utilities, internet, cleaning, repairs and agency charges, including who receives payment.",
-      "Record property condition, the handover checklist and extension or termination terms. Have contractual and eligibility questions checked by appropriate professionals or institutions.",
+      "Record property condition, the handover checklist and extension or termination terms. " +
+        "Have contractual and eligibility questions checked by appropriate professionals or " +
+        "institutions.",
     ],
   ],
   [
@@ -269,7 +285,9 @@ export const topics: [number, string, string, string, string[], string[]][] = [
     ],
     [
       "Start with the preferred city, approximate timing, language and type of practical help, such as contacting a facility or arranging accompaniment.",
-      "Do not include detailed medical history or upload records or identity documents in the initial form. Confirm purpose, recipient and a controlled transfer method if a facility later requires records.",
+      "Do not include detailed medical history or upload records or identity documents in the " +
+        "initial form. Confirm purpose, recipient and a controlled transfer method if a " +
+        "facility later requires records.",
       "Appointments and acceptance are confirmed by the medical institution. Coordinators do not determine diagnosis, treatment or outcomes.",
     ],
   ],
@@ -510,7 +528,9 @@ export const topics: [number, string, string, string, string[], string[]][] = [
     [
       "Ask your assistant to read published scope and guidance, then organize purpose, city, dates, group size, language and open questions.",
       "Require source links and dates and separate stated facts, inferences and unknowns. Information gathering is not a booking or service commitment.",
-      "Review the enquiry before submission and share only necessary information, excluding medical records, identity documents, passwords and codes. People must confirm charges, appointments and actual providers.",
+      "Review the enquiry before submission and share only necessary information, excluding " +
+        "medical records, identity documents, passwords and codes. People must confirm charges, " +
+        "appointments and actual providers.",
     ],
   ],
 ];

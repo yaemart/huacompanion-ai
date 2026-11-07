@@ -31,13 +31,39 @@
 网关接收 POST JSON：
 
 ```json
-{"model":"configured-model","input":{"locale":"en","topic":"housekeeping","instructions":"...","history":[{"role":"user","text":"..."}],"sources":[{"id":"service:service-housekeeping","revision":1,"title":"...","url":"/en/services/housekeeping","text":"..."}],"requestDraftAllowedFields":["city","homeService"]},"maxOutputTokens":2000}
+{
+  "model": "configured-model",
+  "input": {
+    "locale": "en",
+    "topic": "housekeeping",
+    "instructions": "...",
+    "history": [{ "role": "user", "text": "..." }],
+    "sources": [
+      {
+        "id": "service:service-housekeeping",
+        "revision": 1,
+        "title": "...",
+        "url": "/en/services/housekeeping",
+        "text": "..."
+      }
+    ],
+    "requestDraftAllowedFields": ["city", "homeService"]
+  },
+  "maxOutputTokens": 2000
+}
 ```
 
 请求头使用 `Authorization: Bearer ...`。返回结构：
 
 ```json
-{"reply":"...","sourceIds":["service:service-housekeeping"],"summary":"...","requestDraft":{"homeService":"regular"},"handoff":false,"usage":{"inputTokens":100,"outputTokens":40}}
+{
+  "reply": "...",
+  "sourceIds": ["service:service-housekeeping"],
+  "summary": "...",
+  "requestDraft": { "homeService": "regular" },
+  "handoff": false,
+  "usage": { "inputTokens": 100, "outputTokens": 40 }
+}
 ```
 
 `summary`、`requestDraft`、`handoff` 可选；字段仍受服务器白名单、长度和来源检查。翻译任务的 input.task 为 `{kind:"translate",targetLocale:"zh"}`，只翻译对应客户消息，sourceIds 为空；输出仅保存为员工内部译文。客户必须允许 AI 处理，员工才可请求翻译。
@@ -59,7 +85,6 @@ AI 只使用审核发布资料和受限的客户文字。内部备注、员工�
 本地备份 `backups/local-1793403093276.dump` 已验证恢复。新增迁移按顺序创建客服表、需求草稿、AI 版本和翻译任务。开发库已自动同步，不重复对其执行迁移；空库迁移测试通过后供新环境使用。回退须采用明确备份恢复方案。
 
 验证入口：`npm test`、`npm run typecheck`、`npm run build`、`npm run test:support`、`npm run test:support:agent`、`npx tsx tests/integration/support-http.ts`、`npm run test:migrations`。外部模型测试使用注入的测试适配器，验证流程保护，不代表真实模型回答质量已验收。数据库保留明确虚构的测试会话，测试员工结束后停用。
-
 
 ## 多模态与运营模块
 

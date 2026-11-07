@@ -1,14 +1,17 @@
-import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(`
-   CREATE TYPE "public"."enum_service_cases_stage" AS ENUM('received', 'discovery', 'quoting', 'awaiting-confirmation', 'accepted', 'scheduled', 'in-service', 'completed', 'paused', 'cancelled', 'aftercare');
+   CREATE TYPE "public"."enum_service_cases_stage" AS ENUM('received', 'discovery', 'quoting', 'awaiting-confirmation', 'accepted', 'scheduled', 'in-service', \
+'completed', 'paused', 'cancelled', 'aftercare');
   CREATE TYPE "public"."enum_service_quotes_status" AS ENUM('draft', 'sent', 'accepted', 'superseded', 'withdrawn');
-  CREATE TYPE "public"."enum_workflow_events_type" AS ENUM('inquiry-created', 'owner-changed', 'customer-reply', 'quote-sent', 'quote-confirmed', 'quality-due', 'case-stage', 'task-due', 'task-escalated');
+  CREATE TYPE "public"."enum_workflow_events_type" AS ENUM('inquiry-created', 'owner-changed', 'customer-reply', 'quote-sent', 'quote-confirmed', 'quality-due', \
+'case-stage', 'task-due', 'task-escalated');
   CREATE TYPE "public"."enum_workflow_tasks_status" AS ENUM('open', 'done');
   CREATE TYPE "public"."enum_workflow_mail_jobs_status" AS ENUM('queued', 'running', 'sent', 'disabled', 'retry', 'uncertain', 'failed');
   CREATE TYPE "public"."enum_content_quality_state" AS ENUM('review-needed', 'checked');
-  CREATE TYPE "public"."enum_workflow_settings_enabled_events" AS ENUM('inquiry-created', 'owner-changed', 'customer-reply', 'quote-sent', 'quote-confirmed', 'quality-due', 'case-stage', 'task-due', 'task-escalated');
+  CREATE TYPE "public"."enum_workflow_settings_enabled_events" AS ENUM('inquiry-created', 'owner-changed', 'customer-reply', 'quote-sent', 'quote-confirmed', \
+'quality-due', 'case-stage', 'task-due', 'task-escalated');
   CREATE TABLE "service_cases" (
     "id" serial PRIMARY KEY NOT NULL,
     "inquiry_id" integer NOT NULL,
@@ -240,35 +243,64 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "customer_challenges_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "customer_sessions_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "customer_inquiry_links_id" integer;
-  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_latest_quote_id_service_quotes_id_fk" FOREIGN KEY ("latest_quote_id") REFERENCES "public"."service_quotes"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_accepted_quote_id_service_quotes_id_fk" FOREIGN KEY ("accepted_quote_id") REFERENCES "public"."service_quotes"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_provider_id_providers_id_fk" FOREIGN KEY ("provider_id") REFERENCES "public"."providers"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_service_case_id_service_cases_id_fk" FOREIGN KEY ("service_case_id") REFERENCES "public"."service_cases"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_confirmed_by_id_customer_accounts_id_fk" FOREIGN KEY ("confirmed_by_id") REFERENCES "public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_created_by_id_staff_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_events" ADD CONSTRAINT "service_events_service_case_id_service_cases_id_fk" FOREIGN KEY ("service_case_id") REFERENCES "public"."service_cases"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_events" ADD CONSTRAINT "service_events_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "service_events" ADD CONSTRAINT "service_events_customer_id_customer_accounts_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_events" ADD CONSTRAINT "workflow_events_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_events" ADD CONSTRAINT "workflow_events_content_draft_id_content_drafts_id_fk" FOREIGN KEY ("content_draft_id") REFERENCES "public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_events" ADD CONSTRAINT "workflow_events_recipient_id_staff_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_event_id_workflow_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."workflow_events"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_content_draft_id_content_drafts_id_fk" FOREIGN KEY ("content_draft_id") REFERENCES "public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_recipient_id_staff_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_content_draft_id_content_drafts_id_fk" FOREIGN KEY ("content_draft_id") REFERENCES "public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_assignee_id_staff_id_fk" FOREIGN KEY ("assignee_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_mail_jobs" ADD CONSTRAINT "workflow_mail_jobs_notification_id_workflow_notifications_id_fk" FOREIGN KEY ("notification_id") REFERENCES "public"."workflow_notifications"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "content_quality" ADD CONSTRAINT "content_quality_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "customer_sessions" ADD CONSTRAINT "customer_sessions_customer_id_customer_accounts_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_customer_id_customer_accounts_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_verified_by_id_staff_id_fk" FOREIGN KEY ("verified_by_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_revoked_by_id_staff_id_fk" FOREIGN KEY ("revoked_by_id") REFERENCES "public"."staff"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "workflow_settings_enabled_events" ADD CONSTRAINT "workflow_settings_enabled_events_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."workflow_settings"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_latest_quote_id_service_quotes_id_fk" FOREIGN KEY ("latest_quote_id") REFERENCES \
+"public"."service_quotes"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_accepted_quote_id_service_quotes_id_fk" FOREIGN KEY ("accepted_quote_id") REFERENCES \
+"public"."service_quotes"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "service_cases" ADD CONSTRAINT "service_cases_provider_id_providers_id_fk" FOREIGN KEY ("provider_id") REFERENCES "public"."providers"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_service_case_id_service_cases_id_fk" FOREIGN KEY ("service_case_id") REFERENCES \
+"public"."service_cases"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_confirmed_by_id_customer_accounts_id_fk" FOREIGN KEY ("confirmed_by_id") REFERENCES \
+"public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "service_quotes" ADD CONSTRAINT "service_quotes_created_by_id_staff_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."staff"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "service_events" ADD CONSTRAINT "service_events_service_case_id_service_cases_id_fk" FOREIGN KEY ("service_case_id") REFERENCES \
+"public"."service_cases"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "service_events" ADD CONSTRAINT "service_events_actor_id_staff_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."staff"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "service_events" ADD CONSTRAINT "service_events_customer_id_customer_accounts_id_fk" FOREIGN KEY ("customer_id") REFERENCES \
+"public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_events" ADD CONSTRAINT "workflow_events_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "workflow_events" ADD CONSTRAINT "workflow_events_content_draft_id_content_drafts_id_fk" FOREIGN KEY ("content_draft_id") REFERENCES \
+"public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_events" ADD CONSTRAINT "workflow_events_recipient_id_staff_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."staff"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_event_id_workflow_events_id_fk" FOREIGN KEY ("event_id") REFERENCES \
+"public"."workflow_events"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") \
+ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_content_draft_id_content_drafts_id_fk" FOREIGN KEY ("content_draft_id") REFERENCES \
+"public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_notifications" ADD CONSTRAINT "workflow_notifications_recipient_id_staff_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."staff"("id") ON \
+DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") ON DELETE set \
+null ON UPDATE no action;
+  ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_content_draft_id_content_drafts_id_fk" FOREIGN KEY ("content_draft_id") REFERENCES \
+"public"."content_drafts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_assignee_id_staff_id_fk" FOREIGN KEY ("assignee_id") REFERENCES "public"."staff"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "workflow_mail_jobs" ADD CONSTRAINT "workflow_mail_jobs_notification_id_workflow_notifications_id_fk" FOREIGN KEY ("notification_id") REFERENCES \
+"public"."workflow_notifications"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "content_quality" ADD CONSTRAINT "content_quality_owner_id_staff_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."staff"("id") ON DELETE set null ON \
+UPDATE no action;
+  ALTER TABLE "customer_sessions" ADD CONSTRAINT "customer_sessions_customer_id_customer_accounts_id_fk" FOREIGN KEY ("customer_id") REFERENCES \
+"public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_customer_id_customer_accounts_id_fk" FOREIGN KEY ("customer_id") REFERENCES \
+"public"."customer_accounts"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_inquiry_id_inquiries_id_fk" FOREIGN KEY ("inquiry_id") REFERENCES "public"."inquiries"("id") \
+ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_conversation_id_support_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES \
+"public"."support_conversations"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_verified_by_id_staff_id_fk" FOREIGN KEY ("verified_by_id") REFERENCES "public"."staff"("id") \
+ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "customer_inquiry_links" ADD CONSTRAINT "customer_inquiry_links_revoked_by_id_staff_id_fk" FOREIGN KEY ("revoked_by_id") REFERENCES "public"."staff"("id") \
+ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "workflow_settings_enabled_events" ADD CONSTRAINT "workflow_settings_enabled_events_parent_fk" FOREIGN KEY ("parent_id") REFERENCES \
+"public"."workflow_settings"("id") ON DELETE cascade ON UPDATE no action;
   CREATE UNIQUE INDEX "service_cases_inquiry_idx" ON "service_cases" USING btree ("inquiry_id");
   CREATE INDEX "service_cases_latest_quote_idx" ON "service_cases" USING btree ("latest_quote_id");
   CREATE INDEX "service_cases_accepted_quote_idx" ON "service_cases" USING btree ("accepted_quote_id");
@@ -337,19 +369,32 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "customer_inquiry_links_created_at_idx" ON "customer_inquiry_links" USING btree ("created_at");
   CREATE INDEX "workflow_settings_enabled_events_order_idx" ON "workflow_settings_enabled_events" USING btree ("order");
   CREATE INDEX "workflow_settings_enabled_events_parent_idx" ON "workflow_settings_enabled_events" USING btree ("parent_id");
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_service_cases_fk" FOREIGN KEY ("service_cases_id") REFERENCES "public"."service_cases"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_service_quotes_fk" FOREIGN KEY ("service_quotes_id") REFERENCES "public"."service_quotes"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_service_events_fk" FOREIGN KEY ("service_events_id") REFERENCES "public"."service_events"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_events_fk" FOREIGN KEY ("workflow_events_id") REFERENCES "public"."workflow_events"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_notifications_fk" FOREIGN KEY ("workflow_notifications_id") REFERENCES "public"."workflow_notifications"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_tasks_fk" FOREIGN KEY ("workflow_tasks_id") REFERENCES "public"."workflow_tasks"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_mail_jobs_fk" FOREIGN KEY ("workflow_mail_jobs_id") REFERENCES "public"."workflow_mail_jobs"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_quality_fk" FOREIGN KEY ("content_quality_id") REFERENCES "public"."content_quality"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_quality_events_fk" FOREIGN KEY ("content_quality_events_id") REFERENCES "public"."content_quality_events"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_accounts_fk" FOREIGN KEY ("customer_accounts_id") REFERENCES "public"."customer_accounts"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_challenges_fk" FOREIGN KEY ("customer_challenges_id") REFERENCES "public"."customer_challenges"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_sessions_fk" FOREIGN KEY ("customer_sessions_id") REFERENCES "public"."customer_sessions"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_inquiry_links_fk" FOREIGN KEY ("customer_inquiry_links_id") REFERENCES "public"."customer_inquiry_links"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_service_cases_fk" FOREIGN KEY ("service_cases_id") REFERENCES \
+"public"."service_cases"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_service_quotes_fk" FOREIGN KEY ("service_quotes_id") REFERENCES \
+"public"."service_quotes"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_service_events_fk" FOREIGN KEY ("service_events_id") REFERENCES \
+"public"."service_events"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_events_fk" FOREIGN KEY ("workflow_events_id") REFERENCES \
+"public"."workflow_events"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_notifications_fk" FOREIGN KEY ("workflow_notifications_id") \
+REFERENCES "public"."workflow_notifications"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_tasks_fk" FOREIGN KEY ("workflow_tasks_id") REFERENCES \
+"public"."workflow_tasks"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_workflow_mail_jobs_fk" FOREIGN KEY ("workflow_mail_jobs_id") REFERENCES \
+"public"."workflow_mail_jobs"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_quality_fk" FOREIGN KEY ("content_quality_id") REFERENCES \
+"public"."content_quality"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_content_quality_events_fk" FOREIGN KEY ("content_quality_events_id") \
+REFERENCES "public"."content_quality_events"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_accounts_fk" FOREIGN KEY ("customer_accounts_id") REFERENCES \
+"public"."customer_accounts"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_challenges_fk" FOREIGN KEY ("customer_challenges_id") REFERENCES \
+"public"."customer_challenges"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_sessions_fk" FOREIGN KEY ("customer_sessions_id") REFERENCES \
+"public"."customer_sessions"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_customer_inquiry_links_fk" FOREIGN KEY ("customer_inquiry_links_id") \
+REFERENCES "public"."customer_inquiry_links"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "payload_locked_documents_rels_service_cases_id_idx" ON "payload_locked_documents_rels" USING btree ("service_cases_id");
   CREATE INDEX "payload_locked_documents_rels_service_quotes_id_idx" ON "payload_locked_documents_rels" USING btree ("service_quotes_id");
   CREATE INDEX "payload_locked_documents_rels_service_events_id_idx" ON "payload_locked_documents_rels" USING btree ("service_events_id");
@@ -362,9 +407,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "payload_locked_documents_rels_customer_accounts_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_accounts_id");
   CREATE INDEX "payload_locked_documents_rels_customer_challenges_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_challenges_id");
   CREATE INDEX "payload_locked_documents_rels_customer_sessions_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_sessions_id");
-  CREATE INDEX "payload_locked_documents_rels_customer_inquiry_links_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_inquiry_links_id");`)
+  CREATE INDEX "payload_locked_documents_rels_customer_inquiry_links_id_idx" ON "payload_locked_documents_rels" USING btree ("customer_inquiry_links_id");`);
 }
 
 export async function down(_args: MigrateDownArgs): Promise<void> {
- throw new Error('Restore a verified backup; destructive automatic rollback of customer/business records is disabled.');
+  throw new Error(
+    "Restore a verified backup; destructive automatic rollback of customer/business records is disabled.",
+  );
 }

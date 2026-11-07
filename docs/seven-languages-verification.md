@@ -7,6 +7,7 @@ Implemented: seven-language navigation, page titles, public catalog/knowledge in
 Published translations are independent records sharing a content key. Detail-page language switching resolves the target slug by identity. An unpublished translation displays an explicit notice instead of pretending another language is translated. Existing editorial articles and six project drafts have not been bulk translated or automatically published. Admin navigation remains Chinese.
 
 Verification:
+
 - 43 unit tests passed.
 - TypeScript and production build passed.
 - Clean isolated-database migration passed; primary local schema extended additively.

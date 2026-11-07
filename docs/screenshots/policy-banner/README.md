@@ -1,0 +1,14 @@
+> 2026-11-07归档：本目录图片和JSON已移出当前版本；[查看/下载原始证据](https://github.com/yaemart/huacompanion-ai/tree/43413046a886ee58bb7e8bfd4928f151cad01be2/docs/screenshots/policy-banner)。下文是历史记录，不代表最新界面。50份原件在本机忽略目录完成SHA256校验；不重写Git历史。
+
+# 1.4 政策横幅本机证据
+
+2026-11-02，Node24.22.1/Next16.4.3生产构建。本机临时开启VISA_CHECKER_ENABLED；实际.env未改，默认仍关闭。政策、来源（example.invalid）、文章及账号均为明确标注的虚构夹具，不提供现实出行结论。
+
+- en-desktop-nojs.jpg：1440×1000桌面、禁用脚本重载，三状态及延长新旧来源可读，文档宽1425=scrollWidth1425。
+- zh-mobile-nojs.jpg：390×844、禁用脚本重载，文档宽390=scrollWidth390；三横幅边界在视口内，4个来源链接（当前3、前次1）可读。
+- editor-desktop.jpg、editor-mobile.jpg：仅指南权限的临时账号，在既有工作台选横幅、填标识、勾待确认并保存；预览修订2标记尚未发布且显示待确认，返回重载字段保持。390手机文档/内容宽均390。
+- browser-evidence.json：实际状态、来源数、边界和已保存预览的非敏感摘要。
+
+CUA操作后退出临时账号，恢复脚本/设备设置、关闭自己创建的标签，未操作用户原标签。夹具finally清理（政策/版本/工作稿/正式快照/临时账号/授权0，原稿116保留）；网站和两worker恢复见progress。默认关闭且未部署。
+
+这是本机小型虚构数据的有限验证，没有重跑Lighthouse、VoiceOver/NVDA、全部缩放/浏览器或真实网络。1.3c报告不代表本页分数。现实政策及文章须人工核实，托管及公开停止点B另验。已打开页面刷新后取新快照。

@@ -1,0 +1,124 @@
+.policy-reference {
+  --muted: var(--ink);
+  min-width: 0;
+}
+.policy-reference h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.2;
+}
+.policy-language-links,
+.policy-next-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  margin-block: 1.5rem;
+}
+.policy-reference a:not(.button) {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.policy-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  margin-block: 1.5rem;
+}
+.policy-table-scroll:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+.policy-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.9rem;
+}
+.policy-table caption {
+  padding: 1rem;
+  font-weight: 700;
+  text-align: start;
+}
+.policy-table th,
+.policy-table td {
+  border-block-start: 1px solid var(--line);
+  padding: 1rem;
+  text-align: start;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.policy-table th:nth-child(5) {
+  width: 27%;
+}
+.policy-table small {
+  display: block;
+}
+.policy-field-label {
+  display: none;
+}
+.policy-table ul {
+  padding-inline-start: 1rem;
+}
+.policy-table p,
+.policy-table ul {
+  margin-block: 0.5rem;
+}
+.policy-date-status,
+.policy-disclaimer,
+.policy-empty {
+  padding: 1rem;
+  background: var(--paper);
+}
+
+.policy-full-reference {
+  margin-block-start: 1.5rem;
+}
+.policy-full-reference > summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding-block: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .policy-table-scroll {
+    overflow: visible;
+    border: 0;
+  }
+  .policy-table {
+    display: block;
+    min-width: 0;
+  }
+  .policy-table caption {
+    display: block;
+    padding-inline: 0;
+  }
+  .policy-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .policy-table tbody {
+    display: grid;
+    gap: 1rem;
+  }
+  .policy-table tbody tr {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  .policy-table tbody th,
+  .policy-table tbody td {
+    display: block;
+    border: 0;
+    padding: 0.5rem 0;
+  }
+  .policy-field-label {
+    display: block;
+    font-weight: 700;
+    margin-block-end: 0.25rem;
+  }
+}

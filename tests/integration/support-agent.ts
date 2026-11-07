@@ -1,15 +1,293 @@
-import 'dotenv/config';import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';import {getPayload} from 'payload';import config from '../../src/payload.config';import {visitorAction,visitorRead,staffAction,staffRead} from '../../src/server/support/service';import {runSupportJob} from '../../src/server/support/agent';
-if(process.env.APP_ENV!=='local')throw Error('Local only');const p=await getPayload({config});
-const oldSettings=await p.findGlobal({slug:'support-settings'});await p.updateGlobal({slug:'support-settings',data:{aiReception:true,translation:true}});
-try{const admin=(await p.find({collection:'staff',where:{and:[{role:{equals:'admin'}},{active:{not_equals:false}}]},sort:'createdAt',limit:1})).docs[0];
-async function setup(){const visitor=randomUUID();const c=await visitorAction(p,visitor,{action:'start',key:randomUUID(),locale:'en',topic:'housekeeping',aiConsent:true});await p.update({collection:'support-conversations',id:c.id,data:{mode:'ai'}});await visitorAction(p,visitor,{action:'message',id:c.id,key:randomUUID(),text:'housekeeping cleaning'});const latest=await p.findByID({collection:'support-conversations',id:c.id});if(!(await p.count({collection:'support-runs',where:{conversation:{equals:c.id}}})).totalDocs)await p.create({collection:'support-runs',data:{conversation:c.id,dedupe:randomUUID(),revision:latest.aiRevision,status:'queued'}});return {visitor,c};}
-const a=await setup();await runSupportJob(p,undefined,{dailyTokens:10000000});assert.equal((await visitorRead(p,a.visitor,a.c.id)).conversation.mode,'waiting');
-const b=await setup();let calls=0;await runSupportJob(p,{name:'test',run:async()=>{calls++;const v=await staffRead(p,admin,b.c.id);await staffAction(p,admin,{action:'takeover',id:b.c.id,revision:v.conversation.revision});return {reply:'LATE',sourceIds:[],usage:{inputTokens:1,outputTokens:1}};}},{dailyTokens:10000000});assert.equal(calls,1);assert.ok(!(await visitorRead(p,b.visitor,b.c.id)).messages.some((m:any)=>m.text==='LATE'));
-const c=await setup();await runSupportJob(p,{name:'test',run:async()=>({reply:'FAKE SOURCE',sourceIds:['invented'],usage:{inputTokens:1,outputTokens:1}})},{dailyTokens:10000000});assert.ok(!(await visitorRead(p,c.visitor,c.c.id)).messages.some((m:any)=>m.text==='FAKE SOURCE'));
-const d=await setup();await runSupportJob(p,{name:'test',run:async()=>{throw Error('must not call');}},{dailyTokens:1});assert.equal((await visitorRead(p,d.visitor,d.c.id)).conversation.mode,'waiting');
-const e=await setup();const job=(await p.find({collection:'support-runs',where:{conversation:{equals:e.c.id}},limit:1})).docs[0];await p.update({collection:'support-runs',id:job.id,data:{status:'running',lease:'expired',leaseUntil:new Date(Date.now()-1000).toISOString()}});await runSupportJob(p,undefined,{dailyTokens:10000000});assert.equal((await visitorRead(p,e.visitor,e.c.id)).conversation.mode,'waiting');
-const f=await setup();await runSupportJob(p,{name:'test',run:async(input)=>{const v=await staffRead(p,admin,f.c.id);await staffAction(p,admin,{action:'note',id:f.c.id,revision:v.conversation.revision,key:randomUUID(),text:'internal triage'});return {reply:'Valid answer',sourceIds:[input.sources[0].id],usage:{inputTokens:1,outputTokens:1}};}},{dailyTokens:10000000});assert.ok((await visitorRead(p,f.visitor,f.c.id)).messages.some((m:any)=>m.text==='Valid answer'));
-const g=await setup();await visitorAction(p,g.visitor,{action:'message',id:g.c.id,key:randomUUID(),text:'My address is 12 King Street, door code 9876'});let leaked=false;await runSupportJob(p,{name:'test',run:async()=>{leaked=true;throw Error('private data sent');}},{dailyTokens:10000000});await runSupportJob(p,{name:'test',run:async()=>{leaked=true;throw Error('private data sent');}},{dailyTokens:10000000});assert.equal(leaked,false);
-const h=await setup();const v=await staffRead(p,admin,h.c.id);await staffAction(p,admin,{action:'takeover',id:h.c.id,revision:v.conversation.revision});await runSupportJob(p,undefined);const current=await p.findByID({collection:'support-conversations',id:h.c.id});const msg=(await p.find({collection:'support-messages',where:{and:[{conversation:{equals:h.c.id}},{author:{equals:'customer'}}]},limit:1})).docs[0];await p.create({collection:'support-runs',data:{conversation:h.c.id,dedupe:randomUUID(),revision:current.aiRevision,status:'queued',task:{kind:'translate',message:msg.id,locale:'zh',actor:admin.id}}});await runSupportJob(p,{name:'test',run:async()=>({reply:'日常清洁咨询',sourceIds:[],usage:{inputTokens:1,outputTokens:1}})},{dailyTokens:10000000});assert.ok((await staffRead(p,admin,h.c.id)).messages.some((m:any)=>m.text.includes('日常清洁咨询')&&m.visibility==='internal'));assert.ok(!(await visitorRead(p,h.visitor,h.c.id)).messages.some((m:any)=>m.text.includes('日常清洁咨询')));
-console.log('PASS support AI configuration fallback, takeover fencing, invalid citations, quota and expired lease recovery');
-}finally{await p.updateGlobal({slug:'support-settings',data:{aiReception:oldSettings.aiReception,translation:oldSettings.translation}});await p.destroy();}process.exit(0);
+import "dotenv/config";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { getPayload } from "payload";
+import config from "../../src/payload.config";
+import {
+  visitorAction,
+  visitorRead,
+  staffAction,
+  staffRead,
+} from "../../src/server/support/service";
+import { runSupportJob } from "../../src/server/support/agent";
+import { mutateContent } from "../../src/server/content/service";
+if (process.env.APP_ENV !== "local") throw Error("Local only");
+const p = await getPayload({ config });
+let sourceDraftID: number | undefined;
+const oldSettings = await p.findGlobal({ slug: "support-settings" });
+await p.updateGlobal({
+  slug: "support-settings",
+  data: { textChat: true, aiReception: true, translation: true },
+});
+try {
+  const admin = (
+    await p.find({
+      collection: "staff",
+      where: { and: [{ role: { equals: "admin" } }, { active: { not_equals: false } }] },
+      sort: "createdAt",
+      limit: 1,
+    })
+  ).docs[0];
+  assert.ok(admin);
+  const sourceKey = `support-source-${randomUUID()}`;
+  const source = await mutateContent(p, admin, {
+    action: "save",
+    body: {
+      contentKey: sourceKey,
+      slug: sourceKey,
+      kind: "guide",
+      locale: "en",
+      title: "Housekeeping cleaning test source",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Fictional housekeeping information for the support integration test.",
+        },
+      ],
+      sources: [{ id: "s", title: "Test source", url: "https://example.invalid" }],
+    },
+  });
+  sourceDraftID = source.id;
+  const submitted = await mutateContent(p, admin, {
+    action: "submit",
+    id: source.id,
+    revision: source.revision,
+  });
+  await mutateContent(p, admin, {
+    action: "publish",
+    id: source.id,
+    revision: submitted.revision,
+    overrideReason: "Local support integration knowledge fixture",
+  });
+
+  async function setup() {
+    const visitor = randomUUID();
+    const c = await visitorAction(p, visitor, {
+      action: "start",
+      key: randomUUID(),
+      locale: "en",
+      topic: "housekeeping",
+      aiConsent: true,
+    });
+    await p.update({ collection: "support-conversations", id: c.id, data: { mode: "ai" } });
+    await visitorAction(p, visitor, {
+      action: "message",
+      id: c.id,
+      key: randomUUID(),
+      text: "housekeeping cleaning",
+    });
+    const latest = await p.findByID({ collection: "support-conversations", id: c.id });
+    if (
+      !(await p.count({ collection: "support-runs", where: { conversation: { equals: c.id } } }))
+        .totalDocs
+    )
+      await p.create({
+        collection: "support-runs",
+        data: {
+          conversation: c.id,
+          dedupe: randomUUID(),
+          revision: latest.aiRevision,
+          status: "queued",
+        },
+      });
+    return { visitor, c };
+  }
+  const a = await setup();
+  await runSupportJob(p, undefined, { dailyTokens: 10000000 });
+  assert.equal((await visitorRead(p, a.visitor, a.c.id)).conversation.mode, "waiting");
+  const b = await setup();
+  let calls = 0;
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async () => {
+        calls++;
+        const v = await staffRead(p, admin, b.c.id);
+        await staffAction(p, admin, {
+          action: "takeover",
+          id: b.c.id,
+          revision: v.conversation.revision,
+        });
+        return { reply: "LATE", sourceIds: [], usage: { inputTokens: 1, outputTokens: 1 } };
+      },
+    },
+    { dailyTokens: 10000000 },
+  );
+  assert.equal(calls, 1);
+  assert.ok(
+    !(await visitorRead(p, b.visitor, b.c.id)).messages.some((m: any) => m.text === "LATE"),
+  );
+  const c = await setup();
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async () => ({
+        reply: "FAKE SOURCE",
+        sourceIds: ["invented"],
+        usage: { inputTokens: 1, outputTokens: 1 },
+      }),
+    },
+    { dailyTokens: 10000000 },
+  );
+  assert.ok(
+    !(await visitorRead(p, c.visitor, c.c.id)).messages.some((m: any) => m.text === "FAKE SOURCE"),
+  );
+  const d = await setup();
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async () => {
+        throw Error("must not call");
+      },
+    },
+    { dailyTokens: 1 },
+  );
+  assert.equal((await visitorRead(p, d.visitor, d.c.id)).conversation.mode, "waiting");
+  const e = await setup();
+  const job = (
+    await p.find({
+      collection: "support-runs",
+      where: { conversation: { equals: e.c.id } },
+      limit: 1,
+    })
+  ).docs[0];
+  await p.update({
+    collection: "support-runs",
+    id: job.id,
+    data: {
+      status: "running",
+      lease: "expired",
+      leaseUntil: new Date(Date.now() - 1000).toISOString(),
+    },
+  });
+  await runSupportJob(p, undefined, { dailyTokens: 10000000 });
+  assert.equal((await visitorRead(p, e.visitor, e.c.id)).conversation.mode, "waiting");
+  const f = await setup();
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async (input) => {
+        const v = await staffRead(p, admin, f.c.id);
+        await staffAction(p, admin, {
+          action: "note",
+          id: f.c.id,
+          revision: v.conversation.revision,
+          key: randomUUID(),
+          text: "internal triage",
+        });
+        return {
+          reply: "Valid answer",
+          sourceIds: [input.sources[0].id],
+          usage: { inputTokens: 1, outputTokens: 1 },
+        };
+      },
+    },
+    { dailyTokens: 10000000 },
+  );
+  assert.ok(
+    (await visitorRead(p, f.visitor, f.c.id)).messages.some((m: any) => m.text === "Valid answer"),
+  );
+  const g = await setup();
+  await visitorAction(p, g.visitor, {
+    action: "message",
+    id: g.c.id,
+    key: randomUUID(),
+    text: "My address is 12 King Street, door code 9876",
+  });
+  let leaked = false;
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async () => {
+        leaked = true;
+        throw Error("private data sent");
+      },
+    },
+    { dailyTokens: 10000000 },
+  );
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async () => {
+        leaked = true;
+        throw Error("private data sent");
+      },
+    },
+    { dailyTokens: 10000000 },
+  );
+  assert.equal(leaked, false);
+  const h = await setup();
+  const v = await staffRead(p, admin, h.c.id);
+  await staffAction(p, admin, {
+    action: "takeover",
+    id: h.c.id,
+    revision: v.conversation.revision,
+  });
+  await runSupportJob(p, undefined);
+  const current = await p.findByID({ collection: "support-conversations", id: h.c.id });
+  const msg = (
+    await p.find({
+      collection: "support-messages",
+      where: { and: [{ conversation: { equals: h.c.id } }, { author: { equals: "customer" } }] },
+      limit: 1,
+    })
+  ).docs[0];
+  await p.create({
+    collection: "support-runs",
+    data: {
+      conversation: h.c.id,
+      dedupe: randomUUID(),
+      revision: current.aiRevision,
+      status: "queued",
+      task: { kind: "translate", message: msg.id, locale: "zh", actor: admin.id },
+    },
+  });
+  await runSupportJob(
+    p,
+    {
+      name: "test",
+      run: async () => ({
+        reply: "日常清洁咨询",
+        sourceIds: [],
+        usage: { inputTokens: 1, outputTokens: 1 },
+      }),
+    },
+    { dailyTokens: 10000000 },
+  );
+  assert.ok(
+    (await staffRead(p, admin, h.c.id)).messages.some(
+      (m: any) => m.text.includes("日常清洁咨询") && m.visibility === "internal",
+    ),
+  );
+  assert.ok(
+    !(await visitorRead(p, h.visitor, h.c.id)).messages.some((m: any) =>
+      m.text.includes("日常清洁咨询"),
+    ),
+  );
+  console.log(
+    "PASS support AI configuration fallback, takeover fencing, invalid citations, quota and expired lease recovery",
+  );
+} finally {
+  if (sourceDraftID)
+    await p.update({
+      collection: "content-published",
+      where: { draftId: { equals: sourceDraftID } },
+      data: { active: false },
+    });
+  await p.updateGlobal({
+    slug: "support-settings",
+    data: {
+      textChat: oldSettings.textChat === true,
+      aiReception: oldSettings.aiReception,
+      translation: oldSettings.translation,
+    },
+  });
+  await p.destroy();
+}
+process.exit(0);

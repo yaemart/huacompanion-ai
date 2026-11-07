@@ -1,16 +1,37 @@
 import type { Where } from "payload";
+import type { Staff as StaffDocument } from "../../payload-types";
 /** Shared server-side staff capabilities. JWT authentication loads these from the DB. */
-export type Staff = {
-  id: number | string;
-  collection?: string;
-  role?: string;
-  additionalRoles?: string[] | null;
-  active?: boolean | null;
-  team?: number | string | { id: number | string } | null;
-  contentKinds?: string[] | null;
-} | null | undefined;
+export type Staff =
+  | (Pick<StaffDocument, "active"> & {
+      id: StaffDocument["id"] | string;
+      collection?: string;
+      role?: string;
+      additionalRoles?: string[] | null;
+      team?: number | string | { id: number | string } | null;
+      contentKinds?: string[] | null;
+    })
+  | null
+  | undefined;
 export const staffRoles = ["admin", "manager", "operations", "editor", "reviewer"] as const;
-export const contentKinds = ["service", "guide", "faq", "page", "partner", "provider-profile", "service-project", "exhibition", "institution", "venue", "activity"] as const;
+export const contentKinds = [
+  "service",
+  "guide",
+  "faq",
+  "page",
+  "partner",
+  "provider-profile",
+  "service-project",
+  "exhibition",
+  "institution",
+  "venue",
+  "activity",
+  "immigration-policy",
+] as const;
+export function relationID<T extends string | number>(value: T | { id: T }): T;
+export function relationID<T extends string | number>(
+  value: T | { id: T } | null | undefined,
+): T | undefined;
+export function relationID(value: unknown): string | number | undefined;
 export function relationID(value: unknown): string | number | undefined {
   if (typeof value === "string" || typeof value === "number") return value;
   if (value && typeof value === "object" && "id" in value) return relationID(value.id);
@@ -31,14 +52,22 @@ export function inquiryScope(user: Staff): Scope {
   const scopes: Where[] = [];
   const team = relationID(user?.team);
   if (hasRole(user, "manager") && team !== undefined) scopes.push({ team: { equals: team } });
-  if (hasRole(user, "operations") && team !== undefined) scopes.push({ and: [{ owner: { equals: user!.id } }, { team: { equals: team } }] });
+  if (hasRole(user, "operations") && team !== undefined)
+    scopes.push({ and: [{ owner: { equals: user!.id } }, { team: { equals: team } }] });
   return scopes.length > 1 ? { or: scopes } : scopes[0] || false;
 }
 export const providerScope = inquiryScope;
-export const canManageContent = (user: Staff): boolean => isAdmin(user) || hasRole(user, "editor") || hasRole(user, "reviewer");
-export const canReviewContent = (user: Staff): boolean => isAdmin(user) || hasRole(user, "reviewer");
+export const canManageContent = (user: Staff): boolean =>
+  isAdmin(user) || hasRole(user, "editor") || hasRole(user, "reviewer");
+export const canReviewContent = (user: Staff): boolean =>
+  isAdmin(user) || hasRole(user, "reviewer");
 export function canAccessContentKind(user: Staff, kind: string): boolean {
-  return isAdmin(user) || ((canManageContent(user) || canReviewContent(user)) && contentKinds.includes(kind as typeof contentKinds[number]) && !!user?.contentKinds?.includes(kind));
+  return (
+    isAdmin(user) ||
+    ((canManageContent(user) || canReviewContent(user)) &&
+      contentKinds.includes(kind as (typeof contentKinds)[number]) &&
+      !!user?.contentKinds?.includes(kind))
+  );
 }
 export function contentScope(user: Staff): boolean | { kind: { in: string[] } } {
   if (isAdmin(user)) return true;

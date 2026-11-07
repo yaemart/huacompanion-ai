@@ -1,4 +1,4 @@
-import {houseProviderVerified} from '../../lib/housekeeping';
+import { houseProviderVerified } from "../../lib/housekeeping";
 import type { Payload } from "payload";
 import type { ContentBody } from "../../lib/content-model";
 export const providerEligible = (p: any) =>
@@ -13,7 +13,9 @@ export async function eligibleProvider(p: Payload, id: unknown, req?: any, house
     overrideAccess: true,
     req,
   });
-  return providerEligible(result.docs[0]) && (!housekeeping || houseProviderVerified(result.docs[0]));
+  return (
+    providerEligible(result.docs[0]) && (!housekeeping || houseProviderVerified(result.docs[0]))
+  );
 }
 export async function allSnapshots(p: Payload, req?: any) {
   const docs: any[] = [];
@@ -42,8 +44,7 @@ export async function catalogLock(req: any) {
     string,
     { db: { execute: (q: string) => Promise<unknown> } }
   >;
-  if (sessions[id])
-    await sessions[id].db.execute("SELECT pg_advisory_xact_lock(726271)");
+  if (sessions[id]) await sessions[id].db.execute("SELECT pg_advisory_xact_lock(726271)");
 }
 export async function suspendProviderProjects({ doc, req }: any) {
   if (providerEligible(doc)) return doc;
@@ -71,12 +72,7 @@ export async function suspendProviderProjects({ doc, req }: any) {
   return doc;
 }
 
-export async function suspendProjectsForKey(
-  p: Payload,
-  key: string,
-  locale: string,
-  req?: any,
-) {
+export async function suspendProjectsForKey(p: Payload, key: string, locale: string, req?: any) {
   for (const s of await allSnapshots(p, req)) {
     const b = s.body as ContentBody;
     if (

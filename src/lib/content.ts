@@ -1,8 +1,16 @@
 import type { Locale } from "./routes";
-import {homePair} from "./housekeeping-copy.ts";
+import { homePair } from "./housekeeping-copy.ts";
 import { coreText } from "./core-copy.ts";
 export type Pair = Record<Locale, string>;
-export const p = (en: string, zh: string): Pair => ({ en, zh, es: coreText("es",en), fr: coreText("fr",en), de: coreText("de",en), it: coreText("it",en), ar: coreText("ar",en) });
+export const p = (en: string, zh: string): Pair => ({
+  en,
+  zh,
+  es: coreText("es", en),
+  fr: coreText("fr", en),
+  de: coreText("de", en),
+  it: coreText("it", en),
+  ar: coreText("ar", en),
+});
 export type Service = {
   slug: string;
   title: Pair;
@@ -14,15 +22,21 @@ export type Service = {
   icon: string;
 };
 export const services: Service[] = [
-  {slug:"housekeeping",icon:"stays",title:homePair("title"),short:homePair("intro"),intro:homePair("intro"),items:[homePair("regular"),homePair("deep"),homePair("move-in")],boundary:homePair("boundary"),prepare:homePair("notice")},
+  {
+    slug: "housekeeping",
+    icon: "stays",
+    title: homePair("title"),
+    short: homePair("intro"),
+    intro: homePair("intro"),
+    items: [homePair("regular"), homePair("deep"), homePair("move-in")],
+    boundary: homePair("boundary"),
+    prepare: homePair("notice"),
+  },
   {
     slug: "medical",
     icon: "medical",
     title: p("Medical visit coordination", "医疗机构对接"),
-    short: p(
-      "A little clarity, when it matters most.",
-      "重要时刻，多一份清晰与安心。",
-    ),
+    short: p("A little clarity, when it matters most.", "重要时刻，多一份清晰与安心。"),
     intro: p(
       "Navigate the practical side of a medical visit in China, from contacting institutions to arranging language and travel support.",
       "从联系医疗机构到语言、交通与住宿安排，协助您理清在中国就医的实际流程。",
@@ -46,7 +60,9 @@ export const services: Service[] = [
       ),
     ],
     boundary: p(
-      "We coordinate practical arrangements. Medical institutions are responsible for diagnosis and treatment. We do not recommend treatment or promise outcomes or acceptance. Do not submit medical records or detailed medical history here.",
+      "We coordinate practical arrangements. Medical institutions are responsible for " +
+        "diagnosis and treatment. We do not recommend treatment or promise outcomes or " +
+        "acceptance. Do not submit medical records or detailed medical history here.",
       "华伴提供协调服务，诊断与治疗由医疗机构负责。我们不推荐治疗方案，不承诺疗效或接诊结果。请勿在本网站提交病历或详细病史。",
     ),
     prepare: p(
@@ -58,10 +74,7 @@ export const services: Service[] = [
     slug: "business",
     icon: "business",
     title: p("Exhibitions & business visits", "展会与商务访问"),
-    short: p(
-      "Make room for the conversations that matter.",
-      "让精力留给真正重要的商务沟通。",
-    ),
+    short: p("Make room for the conversations that matter.", "让精力留给真正重要的商务沟通。"),
     intro: p(
       "Practical support for visiting exhibitions, exhibiting and meeting businesses in China, with particular familiarity with hardware and electrical products.",
       "为参观展会、企业参展和商务访问提供协调支持，并发挥五金与电器行业的经验。",
@@ -97,27 +110,18 @@ export const services: Service[] = [
     slug: "transport",
     icon: "transport",
     title: p("Airport transfers & transport", "接送机与交通"),
-    short: p(
-      "From arrival to the next destination.",
-      "从抵达开始，衔接每一段行程。",
-    ),
+    short: p("From arrival to the next destination.", "从抵达开始，衔接每一段行程。"),
     intro: p(
       "Coordinate the journeys between airports, stations, hotels, hospitals, exhibitions and factories.",
       "协调机场、车站、酒店、医院、展馆与工厂之间的交通。",
     ),
     items: [
-      p(
-        "Airport and railway station pickups and drop-offs.",
-        "机场与火车站接送。",
-      ),
+      p("Airport and railway station pickups and drop-offs.", "机场与火车站接送。"),
       p(
         "Point-to-point, hourly and full-day vehicle arrangements.",
         "点对点接送、按小时或按天用车。",
       ),
-      p(
-        "Cross-city journeys and group vehicle coordination.",
-        "跨城行程及团队车辆协调。",
-      ),
+      p("Cross-city journeys and group vehicle coordination.", "跨城行程及团队车辆协调。"),
       p(
         "Confirm luggage space, child seats and accessibility requests with the actual provider.",
         "向实际服务商确认行李空间、儿童座椅与无障碍需求。",
@@ -136,23 +140,14 @@ export const services: Service[] = [
     slug: "stays",
     icon: "stays",
     title: p("Hotels & longer stays", "酒店与长期住宿"),
-    short: p(
-      "Find a place that fits your time here.",
-      "短暂停留或长住，都更贴近您的需要。",
-    ),
+    short: p("Find a place that fits your time here.", "短暂停留或长住，都更贴近您的需要。"),
     intro: p(
       "Explore accommodation suited to the length and purpose of your visit, with practical help to clarify the details before you decide.",
       "根据停留时长与来华目的整理住宿需求，在决定前协助确认实际条件。",
     ),
     items: [
-      p(
-        "Hotels and short stays, including family rooms.",
-        "酒店、短期住宿及家庭房需求。",
-      ),
-      p(
-        "Serviced apartments and weekly or monthly stays.",
-        "服务式公寓、周租及月租。",
-      ),
+      p("Hotels and short stays, including family rooms.", "酒店、短期住宿及家庭房需求。"),
+      p("Serviced apartments and weekly or monthly stays.", "服务式公寓、周租及月租。"),
       p(
         "Introductions to long-term rental agencies, viewing coordination and move-in handover assistance.",
         "长期租赁机构对接、看房与入住交接协助。",
@@ -175,10 +170,7 @@ export const services: Service[] = [
     slug: "travel",
     icon: "travel",
     title: p("Travel & cultural experiences", "旅游机构对接"),
-    short: p(
-      "Discover a different side of China.",
-      "在行程之外，遇见中国的日常。",
-    ),
+    short: p("Discover a different side of China.", "在行程之外，遇见中国的日常。"),
     intro: p(
       "Tell us what interests you. We help connect your ideas with travel providers and confirm what can be arranged.",
       "告诉我们您的兴趣，我们协助对接旅游服务机构，逐项确认可安排的体验。",
@@ -189,10 +181,7 @@ export const services: Service[] = [
         "Multi-city itineraries, family trips and small-group activities.",
         "多城市行程、家庭及小团体活动。",
       ),
-      p(
-        "Culture, food, museums and hands-on craft experiences.",
-        "文化、美食、博物馆与手工体验。",
-      ),
+      p("Culture, food, museums and hands-on craft experiences.", "文化、美食、博物馆与手工体验。"),
       p(
         "Multilingual guide introductions and special-requirement coordination.",
         "多语言导游与特殊需求对接。",
@@ -211,27 +200,15 @@ export const services: Service[] = [
     slug: "interpretation",
     icon: "interpretation",
     title: p("Interpretation & accompaniment", "翻译与陪同"),
-    short: p(
-      "A shared understanding starts here.",
-      "让沟通更清楚，让同行更从容。",
-    ),
+    short: p("A shared understanding starts here.", "让沟通更清楚，让同行更从容。"),
     intro: p(
       "Coordinate language support for business, exhibitions, medical appointments and everyday situations.",
       "为商务、展会、医疗就诊及日常场景协调语言支持。",
     ),
     items: [
-      p(
-        "Business meetings and exhibition interpretation.",
-        "商务会议与展会翻译。",
-      ),
-      p(
-        "Professional medical interpreter introductions.",
-        "专业医疗翻译对接。",
-      ),
-      p(
-        "Everyday communication and practical accompaniment.",
-        "日常沟通及流程陪同。",
-      ),
+      p("Business meetings and exhibition interpretation.", "商务会议与展会翻译。"),
+      p("Professional medical interpreter introductions.", "专业医疗翻译对接。"),
+      p("Everyday communication and practical accompaniment.", "日常沟通及流程陪同。"),
       p(
         "Confirm language pairs, subject knowledge, hours and confidentiality requirements.",
         "确认语言组合、专业领域、时长与保密要求。",
@@ -250,10 +227,7 @@ export const services: Service[] = [
     slug: "arrival",
     icon: "arrival",
     title: p("Arrival & everyday essentials", "来华准备与生活协助"),
-    short: p(
-      "Settle into the everyday, a little sooner.",
-      "更快熟悉在中国的日常。",
-    ),
+    short: p("Settle into the everyday, a little sooner.", "更快熟悉在中国的日常。"),
     intro: p(
       "Practical preparation and everyday orientation for your time in China.",
       "为来华准备与在华日常生活提供实用信息整理与流程协助。",
@@ -263,10 +237,7 @@ export const services: Service[] = [
         "A preparation checklist tailored to the purpose of your visit.",
         "根据来华目的整理行前清单。",
       ),
-      p(
-        "Guidance on communication options and local transport.",
-        "通信方式与城市交通使用指引。",
-      ),
+      p("Guidance on communication options and local transport.", "通信方式与城市交通使用指引。"),
       p(
         "Guidance on payment-service setup using official instructions.",
         "依据官方说明提供支付工具使用指引。",
@@ -299,10 +270,7 @@ export const guides = [
   {
     slug: "before-you-arrive",
     category: 1,
-    title: p(
-      "A calmer arrival starts before you leave",
-      "把抵达前的准备，提前安排好",
-    ),
+    title: p("A calmer arrival starts before you leave", "把抵达前的准备，提前安排好"),
     desc: p(
       "A practical checklist for organising the details of your visit.",
       "从行程与联系方式开始，整理一份清楚的行前清单。",
@@ -311,12 +279,16 @@ export const guides = [
     sections: [
       p("Keep your itinerary together", "集中整理行程"),
       p(
-        "Write down accommodation addresses in Chinese and English, transport details and the contact information of each confirmed provider. Keep a copy accessible without a network connection.",
+        "Write down accommodation addresses in Chinese and English, transport details and the " +
+          "contact information of each confirmed provider. Keep a copy accessible without a " +
+          "network connection.",
         "整理住宿地址的中英文版本、交通信息及已确认服务商的联系方式，保留可离线查看的副本。",
       ),
       p("Confirm with the official source", "向官方来源确认"),
       p(
-        "Check entry requirements, carrier rules and service eligibility directly with the appropriate authorities and providers for your nationality and dates. This checklist does not determine visa or entry eligibility.",
+        "Check entry requirements, carrier rules and service eligibility directly with the " +
+          "appropriate authorities and providers for your nationality and dates. This checklist " +
+          "does not determine visa or entry eligibility.",
         "根据国籍与行程日期，向有关主管机构及实际服务商核实入境要求、承运规则与使用资格。本清单不判断签证或入境资格。",
       ),
       p("Leave space for changes", "给变化留出余地"),
@@ -329,10 +301,7 @@ export const guides = [
   {
     slug: "business-visit-brief",
     category: 2,
-    title: p(
-      "Make your business visit brief work harder",
-      "一份清楚的商务访问需求，应该包含什么",
-    ),
+    title: p("Make your business visit brief work harder", "一份清楚的商务访问需求，应该包含什么"),
     desc: p(
       "What to prepare before an exhibition or factory visit.",
       "出发前厘清产品、目标与访问安排。",
@@ -346,12 +315,16 @@ export const guides = [
       ),
       p("Confirm access and language", "确认访问与语言"),
       p(
-        "Appointments, exhibition admission and factory access need confirmation from the relevant host. Share interpretation languages, technical vocabulary and confidentiality needs in advance.",
+        "Appointments, exhibition admission and factory access need confirmation from the " +
+          "relevant host. Share interpretation languages, technical vocabulary and " +
+          "confidentiality needs in advance.",
         "预约、展会入场和工厂访问需由相应接待方确认。提前说明翻译语言、专业术语及保密要求。",
       ),
       p("Separate coordination from verification", "区分协调与专业核验"),
       p(
-        "A coordinated visit does not certify a supplier or guarantee quality. If you need a professional audit or inspection, specify it separately and confirm the qualified provider and scope.",
+        "A coordinated visit does not certify a supplier or guarantee quality. If you need a " +
+          "professional audit or inspection, specify it separately and confirm the qualified " +
+          "provider and scope.",
         "协调访问不代表供应商认证或质量保证。如需专业审核或检验，应单独说明并确认具备相应能力的服务商及工作范围。",
       ),
     ],
@@ -359,10 +332,7 @@ export const guides = [
   {
     slug: "medical-visit-process",
     category: 3,
-    title: p(
-      "Understanding medical visit coordination",
-      "了解医疗就诊协调的边界与流程",
-    ),
+    title: p("Understanding medical visit coordination", "了解医疗就诊协调的边界与流程"),
     desc: p(
       "Appointments, interpretation and practical arrangements.",
       "预约、语言支持与配套安排如何衔接。",
@@ -371,7 +341,9 @@ export const guides = [
     sections: [
       p("Begin with practical needs", "先说明协调需求"),
       p(
-        "At the initial enquiry, share only city, dates, language and the type of help needed. Do not include detailed medical history, identification numbers or records in a general contact form.",
+        "At the initial enquiry, share only city, dates, language and the type of help needed. " +
+          "Do not include detailed medical history, identification numbers or records in a " +
+          "general contact form.",
         "初步咨询仅说明城市、日期、语言及所需协助类型。不要在普通联系表单中填写详细病史、证件号码或病历内容。",
       ),
       p("Let the institution confirm", "由医疗机构确认"),
@@ -381,7 +353,9 @@ export const guides = [
       ),
       p("Confirm supporting arrangements separately", "分别确认配套安排"),
       p(
-        "Accommodation, transport and interpretation may involve different providers. Ask who delivers each service, who contracts and collects payment, and what the cancellation terms are.",
+        "Accommodation, transport and interpretation may involve different providers. Ask who " +
+          "delivers each service, who contracts and collects payment, and what the cancellation " +
+          "terms are.",
         "住宿、交通与翻译可能由不同服务方提供。逐项确认服务方、签约方、收款方与取消规则。",
       ),
     ],
@@ -389,14 +363,8 @@ export const guides = [
   {
     slug: "transfer-checklist",
     category: 4,
-    title: p(
-      "The details that make a transfer easier",
-      "接送安排前，先确认这几件事",
-    ),
-    desc: p(
-      "Pickup points, luggage and the cost of waiting.",
-      "上下车地点、行李与等候规则。",
-    ),
+    title: p("The details that make a transfer easier", "接送安排前，先确认这几件事"),
+    desc: p("Pickup points, luggage and the cost of waiting.", "上下车地点、行李与等候规则。"),
     read: 3,
     sections: [
       p("Share the journey details", "说明具体行程"),
@@ -447,10 +415,7 @@ export const guides = [
     slug: "everyday-confidence",
     category: 6,
     title: p("Finding your rhythm in a new city", "慢慢熟悉一座城市的日常"),
-    desc: p(
-      "Small preparations for communication and daily life.",
-      "从通信、出行与日常沟通开始。",
-    ),
+    desc: p("Small preparations for communication and daily life.", "从通信、出行与日常沟通开始。"),
     read: 3,
     sections: [
       p("Keep useful addresses close", "随手保存常用地址"),
@@ -460,7 +425,9 @@ export const guides = [
       ),
       p("Use official instructions", "按官方说明操作"),
       p(
-        "Check communication and payment services directly with their official providers. Requirements can vary; confirm what applies to you rather than relying on another traveller’s experience.",
+        "Check communication and payment services directly with their official providers. " +
+          "Requirements can vary; confirm what applies to you rather than relying on another " +
+          "traveller’s experience.",
         "向通信和支付服务的官方提供方核实使用要求。不同情况可能适用不同规则，不宜直接套用他人的经验。",
       ),
       p("Keep control of your accounts", "自己掌握账户"),
@@ -473,10 +440,7 @@ export const guides = [
 ];
 export const faqs = [
   [
-    p(
-      "Do I need to know exactly which services I need?",
-      "还没确定需要哪些服务，可以咨询吗？",
-    ),
+    p("Do I need to know exactly which services I need?", "还没确定需要哪些服务，可以咨询吗？"),
     p(
       "No. Share your purpose, approximate dates and any priorities. We can help clarify the request before preparing a proposal.",
       "可以。告诉我们来华目的、预计日期和主要关注事项，我们会先协助整理需求，再确认可提供的方案。",
@@ -490,12 +454,11 @@ export const faqs = [
     ),
   ],
   [
+    p("Who provides the service and receives payment?", "由谁提供服务、签约和收款？"),
     p(
-      "Who provides the service and receives payment?",
-      "由谁提供服务、签约和收款？",
-    ),
-    p(
-      "This is specified for each item in your proposal. We may introduce an independent provider or coordinate a wider arrangement where the necessary operating conditions are met. Fees and responsibilities are explained before confirmation.",
+      "This is specified for each item in your proposal. We may introduce an independent " +
+        "provider or coordinate a wider arrangement where the necessary operating conditions " +
+        "are met. Fees and responsibilities are explained before confirmation.",
       "方案会逐项写明实际服务方、签约方和收款方。可采用合作对接，或在具备相应经营条件后由华伴统筹；费用与责任在确认前说明。",
     ),
   ],
@@ -509,7 +472,9 @@ export const faqs = [
   [
     p("Can my organisation apply to collaborate?", "我的机构可以申请合作吗？"),
     p(
-      "Yes. Submit a capability introduction for review. An application does not establish a partnership, and names or logos are not published without verification and separate permission.",
+      "Yes. Submit a capability introduction for review. An application does not establish a " +
+        "partnership, and names or logos are not published without verification and separate " +
+        "permission.",
       "欢迎提交服务能力介绍。申请需审核，不自动建立合作关系；未经核实及独立授权，不公开机构名称或标志。",
     ),
   ],

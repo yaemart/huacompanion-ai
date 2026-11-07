@@ -23,7 +23,8 @@ test("new locales have translated empty states and result counts", () => {
       "Content is being prepared. Please check back later.",
       "Content in this section is being prepared and reviewed.",
       "No published matches. Clear the filters or send Hua your requirements.",
-    ] as const) assert.notEqual(publicText(locale, key), publicText("en", key));
+    ] as const)
+      assert.notEqual(publicText(locale, key), publicText("en", key));
     assert.ok(resultText(locale, 12).includes("12"));
     assert.notEqual(resultText(locale, 12), resultText("en", 12));
   }

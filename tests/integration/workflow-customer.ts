@@ -1,18 +1,124 @@
-import assert from 'node:assert/strict';
-import {enqueueWorkflowEvent,customerWorkflowRead,customerWorkflowMarkRead} from '../../src/server/workflow/service';
-const records:Record<string,any[]>={'customer-accounts':[{id:1,active:true,verifiedAt:new Date().toISOString(),email:'private@example.invalid'},{id:2,active:true,email:'unverified@example.invalid'}],'customer-inquiry-links':[{id:1,customer:1,inquiry:10,active:true},{id:2,customer:2,inquiry:10,active:true}],inquiries:[{id:10,locale:'en'}]};let id=100;
-const p:any={findGlobal:async()=>({enabled:true,emailEnabled:true}),findByID:async({collection,id}:any)=>{const found=records[collection]?.find(x=>String(x.id)===String(id));if(!found)throw Error('not found');return found;},find:async({collection,where}:any)=>{const match=(d:any,w:any):boolean=>!w||Object.entries(w).every(([k,v]:any)=>k==='and'?v.every((part:any)=>match(d,part)):k==='or'?v.some((part:any)=>match(d,part)):v.less_than!==undefined?d[k]<v.less_than:String(d[k])===String(v.equals));return {docs:(records[collection]||[]).filter(x=>match(x,where)),hasNextPage:false};},create:async({collection,data}:any)=>{const d={id:++id,...data};(records[collection]??=[]).push(d);return d;},update:async({collection,id,data}:any)=>Object.assign(records[collection].find(x=>x.id===id),data)};
-await enqueueWorkflowEvent(p,{key:'quote-1',type:'quote-sent',inquiry:10,title:'Internal title must not reach customer'});
-await enqueueWorkflowEvent(p,{key:'quote-1',type:'quote-sent',inquiry:10,title:'Internal title must not reach customer'});
-assert.equal(records['workflow-customer-notifications'].length,1);assert.equal(records['workflow-mail-jobs'].length,1);assert.equal(records['workflow-customer-notifications'][0].title,'Business update');assert.equal(records['workflow-mail-jobs'][0].customerNotification,records['workflow-customer-notifications'][0].id);
-const customer=records['customer-accounts'][0];const notifications=await customerWorkflowRead(p,customer);assert.equal(notifications.length,1);assert.equal(JSON.stringify(notifications).includes('private@example.invalid'),false);
-await assert.rejects(()=>customerWorkflowMarkRead(p,{id:2},notifications[0].id));await customerWorkflowMarkRead(p,customer,notifications[0].id);assert.ok(records['workflow-customer-notifications'][0].readAt);
-records['customer-inquiry-links'][0].active=false;assert.equal((await customerWorkflowRead(p,customer)).length,0);await assert.rejects(()=>customerWorkflowMarkRead(p,customer,notifications[0].id));
-await enqueueWorkflowEvent(p,{key:'quote-old',type:'quote-sent',inquiry:10,title:'报价',dueAt:'2099-01-01'});
-await enqueueWorkflowEvent(p,{key:'other-task',type:'customer-reply',inquiry:10,title:'客户回复'});
-await enqueueWorkflowEvent(p,{key:'quote-new',type:'quote-sent',inquiry:10,title:'新版报价',dueAt:'2099-02-01'});
-assert.equal(records['workflow-tasks'].find(t=>t.key==='quote-old').status,'done');assert.equal(records['workflow-tasks'].find(t=>t.key==='quote-new').status,'open');assert.equal(records['workflow-tasks'].find(t=>t.key==='other-task').status,'open');
-await enqueueWorkflowEvent(p,{key:'quote-old',type:'quote-sent',inquiry:10,title:'旧事件重放',dueAt:'2099-01-01'});assert.equal(records['workflow-tasks'].find(t=>t.key==='quote-new').status,'open');
-await enqueueWorkflowEvent(p,{key:'quote-confirm',type:'quote-confirmed',inquiry:10,title:'已确认'});assert.equal(records['workflow-tasks'].find(t=>t.key==='quote-new').status,'done');assert.equal(records['workflow-tasks'].find(t=>t.key==='other-task').status,'open');
-console.log('PASS quote replacement/confirmation closes only previous quote tasks; stale event cannot close newer task');
-console.log('PASS customer workflow verified linked dedupe, generic copy, email job, notification ownership, revoked link');
+import assert from "node:assert/strict";
+import {
+  enqueueWorkflowEvent,
+  customerWorkflowRead,
+  customerWorkflowMarkRead,
+} from "../../src/server/workflow/service";
+const records: Record<string, any[]> = {
+  "customer-accounts": [
+    { id: 1, active: true, verifiedAt: new Date().toISOString(), email: "private@example.invalid" },
+    { id: 2, active: true, email: "unverified@example.invalid" },
+  ],
+  "customer-inquiry-links": [
+    { id: 1, customer: 1, inquiry: 10, active: true },
+    { id: 2, customer: 2, inquiry: 10, active: true },
+  ],
+  inquiries: [{ id: 10, locale: "en" }],
+};
+let id = 100;
+const p: any = {
+  findGlobal: async () => ({ enabled: true, emailEnabled: true }),
+  findByID: async ({ collection, id }: any) => {
+    const found = records[collection]?.find((x) => String(x.id) === String(id));
+    if (!found) throw Error("not found");
+    return found;
+  },
+  find: async ({ collection, where }: any) => {
+    const match = (d: any, w: any): boolean =>
+      !w ||
+      Object.entries(w).every(([k, v]: any) =>
+        k === "and"
+          ? v.every((part: any) => match(d, part))
+          : k === "or"
+            ? v.some((part: any) => match(d, part))
+            : v.less_than !== undefined
+              ? d[k] < v.less_than
+              : String(d[k]) === String(v.equals),
+      );
+    return { docs: (records[collection] || []).filter((x) => match(x, where)), hasNextPage: false };
+  },
+  create: async ({ collection, data }: any) => {
+    const d = { id: ++id, ...data };
+    (records[collection] ??= []).push(d);
+    return d;
+  },
+  update: async ({ collection, id, data }: any) =>
+    Object.assign(
+      records[collection].find((x) => x.id === id),
+      data,
+    ),
+};
+await enqueueWorkflowEvent(p, {
+  key: "quote-1",
+  type: "quote-sent",
+  inquiry: 10,
+  title: "Internal title must not reach customer",
+});
+await enqueueWorkflowEvent(p, {
+  key: "quote-1",
+  type: "quote-sent",
+  inquiry: 10,
+  title: "Internal title must not reach customer",
+});
+assert.equal(records["workflow-customer-notifications"].length, 1);
+assert.equal(records["workflow-mail-jobs"].length, 1);
+assert.equal(records["workflow-customer-notifications"][0].title, "Business update");
+assert.equal(
+  records["workflow-mail-jobs"][0].customerNotification,
+  records["workflow-customer-notifications"][0].id,
+);
+const customer = records["customer-accounts"][0];
+const notifications = await customerWorkflowRead(p, customer);
+assert.equal(notifications.length, 1);
+assert.equal(JSON.stringify(notifications).includes("private@example.invalid"), false);
+await assert.rejects(() => customerWorkflowMarkRead(p, { id: 2 }, notifications[0].id));
+await customerWorkflowMarkRead(p, customer, notifications[0].id);
+assert.ok(records["workflow-customer-notifications"][0].readAt);
+records["customer-inquiry-links"][0].active = false;
+assert.equal((await customerWorkflowRead(p, customer)).length, 0);
+await assert.rejects(() => customerWorkflowMarkRead(p, customer, notifications[0].id));
+await enqueueWorkflowEvent(p, {
+  key: "quote-old",
+  type: "quote-sent",
+  inquiry: 10,
+  title: "报价",
+  dueAt: "2099-01-01",
+});
+await enqueueWorkflowEvent(p, {
+  key: "other-task",
+  type: "customer-reply",
+  inquiry: 10,
+  title: "客户回复",
+});
+await enqueueWorkflowEvent(p, {
+  key: "quote-new",
+  type: "quote-sent",
+  inquiry: 10,
+  title: "新版报价",
+  dueAt: "2099-02-01",
+});
+assert.equal(records["workflow-tasks"].find((t) => t.key === "quote-old").status, "done");
+assert.equal(records["workflow-tasks"].find((t) => t.key === "quote-new").status, "open");
+assert.equal(records["workflow-tasks"].find((t) => t.key === "other-task").status, "open");
+await enqueueWorkflowEvent(p, {
+  key: "quote-old",
+  type: "quote-sent",
+  inquiry: 10,
+  title: "旧事件重放",
+  dueAt: "2099-01-01",
+});
+assert.equal(records["workflow-tasks"].find((t) => t.key === "quote-new").status, "open");
+await enqueueWorkflowEvent(p, {
+  key: "quote-confirm",
+  type: "quote-confirmed",
+  inquiry: 10,
+  title: "已确认",
+});
+assert.equal(records["workflow-tasks"].find((t) => t.key === "quote-new").status, "done");
+assert.equal(records["workflow-tasks"].find((t) => t.key === "other-task").status, "open");
+console.log(
+  "PASS quote replacement/confirmation closes only previous quote tasks; stale event cannot close newer task",
+);
+console.log(
+  "PASS customer workflow verified linked dedupe, generic copy, email job, notification ownership, revoked link",
+);

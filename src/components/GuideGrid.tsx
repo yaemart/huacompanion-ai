@@ -7,10 +7,7 @@ export function GuideGrid({ locale }: { locale: Locale }) {
   const [category, setCategory] = useState(0);
   return (
     <>
-      <div
-        className="filters"
-        aria-label={locale === "en" ? "Guide categories" : "指南分类"}
-      >
+      <div className="filters" aria-label={locale === "en" ? "Guide categories" : "指南分类"}>
         {guideCategories.map((c, i) => (
           <button
             key={i}
@@ -26,15 +23,9 @@ export function GuideGrid({ locale }: { locale: Locale }) {
         {guides
           .filter((g) => !category || g.category === category)
           .map((g) => (
-            <Link
-              href={`/${locale}/guides/${g.slug}`}
-              className="guide-card"
-              key={g.slug}
-            >
+            <Link href={`/${locale}/guides/${g.slug}`} className="guide-card" key={g.slug}>
               <div className={`guide-art art-${g.category}`}>
-                <span>
-                  {["", "行", "商", "医", "途", "居", "城"][g.category]}
-                </span>
+                <span>{["", "行", "商", "医", "途", "居", "城"][g.category]}</span>
                 <small>HUA COMPANION JOURNAL</small>
               </div>
               <div className="guide-copy">
@@ -44,9 +35,7 @@ export function GuideGrid({ locale }: { locale: Locale }) {
                 </span>
                 <h3>{g.title[locale]}</h3>
                 <p>{g.desc[locale]}</p>
-                <span className="text-link">
-                  {locale === "en" ? "Read guide" : "阅读指南"} ↗
-                </span>
+                <span className="text-link">{locale === "en" ? "Read guide" : "阅读指南"} ↗</span>
               </div>
             </Link>
           ))}

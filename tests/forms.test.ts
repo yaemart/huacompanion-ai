@@ -1,10 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  errorStep,
-  validateStep,
-  visibleReviewValues,
-} from "../src/lib/forms.ts";
+import { errorStep, validateStep, visibleReviewValues } from "../src/lib/forms.ts";
 const valid = {
   categories: ["business"],
   city: "Shanghai",
@@ -15,6 +11,17 @@ const valid = {
   language: "English",
   consent: true,
 };
+test("provider review omits customer defaults while preserving supported languages", () => {
+  const values = { people: "1", language: "中文", languages: "English", organisation: "Fixture" };
+  const review = visibleReviewValues(values, "apply");
+  assert.equal(review.people, undefined);
+  assert.equal(review.language, undefined);
+  assert.equal(review.languages, "English");
+  assert.equal(review.organisation, "Fixture");
+  assert.equal(values.people, "1");
+  assert.equal(visibleReviewValues(values, "request").people, "1");
+  assert.equal(visibleReviewValues(values, "request").language, "中文");
+});
 test("requires a service selection and nonblank city", () => {
   const e = validateStep("request", 0, { categories: [], city: "  " }, "en");
   assert.ok(e.categories);
@@ -55,9 +62,7 @@ test("accepts an approximate visit without invented dates", () =>
   assert.deepEqual(validateStep("request", 1, valid, "en"), {}));
 test("provider contact requires phone and capability description", () => {
   assert.ok(validateStep("apply", 1, {}, "en").capabilities);
-  assert.ok(
-    validateStep("apply", 2, { name: "A", email: "a@b.com" }, "en").phone,
-  );
+  assert.ok(validateStep("apply", 2, { name: "A", email: "a@b.com" }, "en").phone);
 });
 test("hidden short-stay dates do not block a long stay or removed category", () => {
   const dates = {
@@ -80,10 +85,7 @@ test("hidden short-stay dates do not block a long stay or removed category", () 
     ),
     {},
   );
-  assert.deepEqual(
-    validateStep("request", 1, { ...dates, categories: ["business"] }, "en"),
-    {},
-  );
+  assert.deepEqual(validateStep("request", 1, { ...dates, categories: ["business"] }, "en"), {});
 });
 
 test("review omits unselected category fields without deleting recoverable input", () => {

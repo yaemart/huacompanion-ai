@@ -19,15 +19,7 @@ try {
   for (const collection of ["inquiries", "providers"] as const) {
     const fields =
       collection === "inquiries"
-        ? [
-            "reference",
-            "name",
-            "email",
-            "city",
-            "status",
-            "nextFollowUp",
-            "createdAt",
-          ]
+        ? ["reference", "name", "email", "city", "status", "nextFollowUp", "createdAt"]
         : [
             "reference",
             "organisation",
@@ -52,18 +44,12 @@ try {
       });
       for (const doc of result.docs)
         rows.push(
-          fields
-            .map((key) => csv((doc as unknown as Record<string, unknown>)[key]))
-            .join(","),
+          fields.map((key) => csv((doc as unknown as Record<string, unknown>)[key])).join(","),
         );
       if (!result.hasNextPage) break;
       page++;
     }
-    writeFileSync(
-      `${directory}/${collection}.csv`,
-      "\uFEFF" + rows.join("\r\n"),
-      { mode: 0o600 },
-    );
+    writeFileSync(`${directory}/${collection}.csv`, "\uFEFF" + rows.join("\r\n"), { mode: 0o600 });
     console.log(
       `${collection}: exported ${rows.length - 1} records to ${directory}/${collection}.csv`,
     );

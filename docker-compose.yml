@@ -1,0 +1,85 @@
+name: hua-trial-local
+
+x-app: &app
+  image: hua-companion:trial-local
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_FORM_MODE: ${NEXT_PUBLIC_FORM_MODE:-trial}
+  env_file: .env.compose
+  environment:
+    APP_ENV: trial
+    NODE_ENV: production
+    DATABASE_URL: postgresql://${POSTGRES_USER:-hua}:${POSTGRES_PASSWORD:?Run npm run compose:init}@db:5432/${POSTGRES_DB:-hua_companion}
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 45s
+
+services:
+  db:
+    image: postgres:15-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hua}
+      POSTGRES_DB: ${POSTGRES_DB:-hua_companion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run compose:init}
+    ports:
+      - "127.0.0.1:55439:5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    <<: *app
+    command: ["npm", "run", "payload", "--", "migrate"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    command: ["npm", "run", "start:host"]
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - media:/app/.local/content-media
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/zh').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+
+  support-worker:
+    <<: *app
+    command: ["npm", "run", "support:worker"]
+    volumes:
+      - media:/app/.local/content-media:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  workflow-worker:
+    <<: *app
+    command: ["npm", "run", "workflow:worker"]
+    volumes:
+      - media:/app/.local/content-media:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  database:
+  media:

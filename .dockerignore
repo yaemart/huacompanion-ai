@@ -1,0 +1,13 @@
+.git
+.github
+.env*
+.local
+.next
+node_modules
+.superpowers
+.agents
+.codex
+backups
+*.log
+*.tsbuildinfo
+.DS_Store

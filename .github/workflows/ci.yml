@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Unit tests and types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Some in-memory tests import Payload config without opening a DB.
+      PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:1/unused_unit_tests
+      APP_ENV: ci
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm run test:policies:table
+      - run: npm run test:policies:browser
+      - run: npm run test:policies:faq
+      - run: npm run test:policies:banner:render
+
+  database:
+    name: Migrations, build and integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: hua
+          POSTGRES_PASSWORD: hua_ci_only
+          POSTGRES_DB: hua_companion
+        ports:
+          - 55438:5432
+        options: >-
+          --health-cmd "pg_isready -U hua -d hua_companion"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Disposable CI credentials, never a local/trial/production database.
+      DATABASE_URL: postgresql://hua:hua_ci_only@127.0.0.1:55438/hua_companion
+      PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
+      APP_ENV: ci
+      APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_FORM_MODE: local
+      NEXT_TELEMETRY_DISABLED: "1"
+      WORKFLOW_MAIL_ENABLED: "false"
+      BUSINESS_AI_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Apply migrations to an empty database
+        env:
+          NODE_ENV: production
+        run: npm run payload -- migrate
+      - name: Build with automatic schema push disabled
+        run: npm run build
+      - name: Create disposable test administrator
+        env:
+          APP_ENV: local
+        run: npm run local:init
+      - name: Run database integration suites serially
+        env:
+          APP_ENV: local
+        run: |
+          npm run test:content
+          npm run test:business
+          npm run test:workflow
+          npm run test:quality
+          npm run test:customer
+          npm run test:support
+          npm run test:reporting
+          npm run test:intake
+          npm run test:trial
+          npm run test:policies
+          npm run test:policies:workflow
+          npm run test:policies:editor
+          npm run test:policies:data
+          npm run test:policies:query
+          npm run test:policies:banner
+          npm run test:policies:reminders
+      - name: Verify production policy pages with feature off and on
+        env:
+          APP_ENV: local
+          VISA_GUIDE_CONTENT_KEY: policy-browser-fixture-visa-guide
+          VISA_FAQ_CONTENT_KEYS: policy-faq-fixture-question
+        run: |
+          APP_ENV=trial VISA_CHECKER_ENABLED=false node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
+          policy_server_pid=$!
+          trap 'kill "$policy_server_pid" 2>/dev/null || true' EXIT
+          npm run test:policies:page:http
+          npm run test:policies:banner -- --http --disabled
+          npm run test:policies:seo
+          kill "$policy_server_pid"
+          wait "$policy_server_pid" || true
+          APP_ENV=trial VISA_CHECKER_ENABLED=true SITE_LOCALES=en,zh,es,fr,de,it,ar node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
+          policy_server_pid=$!
+          npm run test:policies:page:http -- --enabled
+          npm run test:policies:banner -- --http
+          npm run test:policies:seo -- --enabled
+      - name: Verify restricted trial gate and maintenance
+        env:
+          APP_ENV: trial
+          TRIAL_ACCESS_REQUIRED: "true"
+          TRIAL_ACCESS_USER: trial
+          TRIAL_ACCESS_PASSWORD: ci-only-trial-password-at-least-32-characters
+          TRIAL_TEST_URL: http://127.0.0.1:3002
+          VISA_CHECKER_ENABLED: "false"
+        run: |
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3002 > /tmp/hua-trial-access.log 2>&1 &
+          trial_server_pid=$!
+          trap 'kill "$trial_server_pid" 2>/dev/null || true' EXIT
+          npm run test:trial:access:http
+          kill "$trial_server_pid"
+          wait "$trial_server_pid" || true
+          TRIAL_MAINTENANCE=true node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3002 > /tmp/hua-trial-access.log 2>&1 &
+          trial_server_pid=$!
+          npm run test:trial:access:http -- --maintenance

@@ -1,0 +1,222 @@
+{
+  "services": [
+    {
+      "type": "web",
+      "name": "hua-trial-web",
+      "runtime": "docker",
+      "plan": "starter",
+      "region": "singapore",
+      "branch": "codex/render-trial-preparation",
+      "autoDeployTrigger": "off",
+      "dockerfilePath": "./Dockerfile",
+      "dockerContext": ".",
+      "dockerCommand": "node scripts/render-runtime.mjs web",
+      "envVars": [
+        {
+          "fromGroup": "hua-restricted-trial"
+        },
+        {
+          "key": "DATABASE_URL",
+          "fromDatabase": {
+            "name": "hua-trial-db",
+            "property": "connectionString"
+          }
+        },
+        {
+          "key": "APP_URL",
+          "sync": false
+        },
+        {
+          "key": "TRIAL_ACCESS_USER",
+          "sync": false
+        },
+        {
+          "key": "TRIAL_ACCESS_PASSWORD",
+          "generateValue": true
+        }
+      ],
+      "healthCheckPath": "/api/health",
+      "preDeployCommand": "npm run payload -- migrate",
+      "disk": {
+        "name": "hua-trial-media",
+        "mountPath": "/app/.local/content-media",
+        "sizeGB": 1
+      }
+    },
+    {
+      "type": "worker",
+      "name": "hua-trial-support",
+      "runtime": "docker",
+      "plan": "starter",
+      "region": "singapore",
+      "branch": "codex/render-trial-preparation",
+      "autoDeployTrigger": "off",
+      "dockerfilePath": "./Dockerfile",
+      "dockerContext": ".",
+      "dockerCommand": "node scripts/render-runtime.mjs support",
+      "envVars": [
+        {
+          "fromGroup": "hua-restricted-trial"
+        },
+        {
+          "key": "DATABASE_URL",
+          "fromDatabase": {
+            "name": "hua-trial-db",
+            "property": "connectionString"
+          }
+        },
+        {
+          "key": "APP_URL",
+          "fromService": {
+            "type": "web",
+            "name": "hua-trial-web",
+            "envVarKey": "APP_URL"
+          }
+        },
+        {
+          "key": "TRIAL_ACCESS_USER",
+          "fromService": {
+            "type": "web",
+            "name": "hua-trial-web",
+            "envVarKey": "TRIAL_ACCESS_USER"
+          }
+        },
+        {
+          "key": "TRIAL_ACCESS_PASSWORD",
+          "fromService": {
+            "type": "web",
+            "name": "hua-trial-web",
+            "envVarKey": "TRIAL_ACCESS_PASSWORD"
+          }
+        },
+        {
+          "key": "TRIAL_WORKERS_ENABLED",
+          "value": "false"
+        }
+      ]
+    },
+    {
+      "type": "worker",
+      "name": "hua-trial-workflow",
+      "runtime": "docker",
+      "plan": "starter",
+      "region": "singapore",
+      "branch": "codex/render-trial-preparation",
+      "autoDeployTrigger": "off",
+      "dockerfilePath": "./Dockerfile",
+      "dockerContext": ".",
+      "dockerCommand": "node scripts/render-runtime.mjs workflow",
+      "envVars": [
+        {
+          "fromGroup": "hua-restricted-trial"
+        },
+        {
+          "key": "DATABASE_URL",
+          "fromDatabase": {
+            "name": "hua-trial-db",
+            "property": "connectionString"
+          }
+        },
+        {
+          "key": "APP_URL",
+          "fromService": {
+            "type": "web",
+            "name": "hua-trial-web",
+            "envVarKey": "APP_URL"
+          }
+        },
+        {
+          "key": "TRIAL_ACCESS_USER",
+          "fromService": {
+            "type": "web",
+            "name": "hua-trial-web",
+            "envVarKey": "TRIAL_ACCESS_USER"
+          }
+        },
+        {
+          "key": "TRIAL_ACCESS_PASSWORD",
+          "fromService": {
+            "type": "web",
+            "name": "hua-trial-web",
+            "envVarKey": "TRIAL_ACCESS_PASSWORD"
+          }
+        },
+        {
+          "key": "TRIAL_WORKERS_ENABLED",
+          "value": "false"
+        }
+      ]
+    }
+  ],
+  "databases": [
+    {
+      "name": "hua-trial-db",
+      "plan": "basic-256mb",
+      "region": "singapore",
+      "postgresMajorVersion": "15",
+      "databaseName": "hua_trial",
+      "user": "hua_trial",
+      "diskSizeGB": 5,
+      "ipAllowList": []
+    }
+  ],
+  "envVarGroups": [
+    {
+      "name": "hua-restricted-trial",
+      "envVars": [
+        {
+          "key": "APP_ENV",
+          "value": "trial"
+        },
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "key": "SITE_LOCALES",
+          "value": "en,zh"
+        },
+        {
+          "key": "SEARCH_ENGINE_INDEXING",
+          "value": "false"
+        },
+        {
+          "key": "VISA_CHECKER_ENABLED",
+          "value": "false"
+        },
+        {
+          "key": "INTAKE_ENABLED",
+          "value": "false"
+        },
+        {
+          "key": "WORKFLOW_MAIL_ENABLED",
+          "value": "false"
+        },
+        {
+          "key": "BUSINESS_AI_ENABLED",
+          "value": "false"
+        },
+        {
+          "key": "SUPPORT_CALL_AI_ENABLED",
+          "value": "false"
+        },
+        {
+          "key": "TRIAL_ACCESS_REQUIRED",
+          "value": "true"
+        },
+        {
+          "key": "TRIAL_MAINTENANCE",
+          "value": "false"
+        },
+        {
+          "key": "NEXT_TELEMETRY_DISABLED",
+          "value": "1"
+        },
+        {
+          "key": "PAYLOAD_SECRET",
+          "generateValue": true
+        }
+      ]
+    }
+  ]
+}
