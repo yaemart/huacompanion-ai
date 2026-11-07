@@ -16,29 +16,43 @@ export function PolicyTable({ rows, locale }: { rows: PolicyTableRow[]; locale: 
         aria-describedby="policy-table-help"
         tabIndex={0}
       >
-        <table className="policy-table">
+        <table className="policy-table" role="table">
           <caption id="policy-table-caption">{c.caption}</caption>
-          <thead>
-            <tr>
+          <thead role="rowgroup">
+            <tr role="row">
               {[c.country, c.method, c.stay, c.window, c.conditions, c.source].map((label) => (
-                <th key={label} scope="col">
+                <th key={label} scope="col" role="columnheader">
                   {label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {rows.map(({ policy, dateStatus }, index) => (
-              <tr key={index}>
-                <th scope="row">
+              <tr key={index} role="row">
+                <th scope="row" role="rowheader">
+                  <span className="policy-field-label" aria-hidden="true">
+                    {c.country}
+                  </span>
                   {locale === "zh" ? policy.countryNameZh : policy.countryNameEn}
                   <small>{policy.countryCode}</small>
                 </th>
-                <td>{c.methods[policy.policyType]}</td>
-                <td>
+                <td role="cell">
+                  <span className="policy-field-label" aria-hidden="true">
+                    {c.method}
+                  </span>
+                  {c.methods[policy.policyType]}
+                </td>
+                <td role="cell">
+                  <span className="policy-field-label" aria-hidden="true">
+                    {c.stay}
+                  </span>
                   {policy.stay.maximum} {c.units[policy.stay.unit]}
                 </td>
-                <td>
+                <td role="cell">
+                  <span className="policy-field-label" aria-hidden="true">
+                    {c.window}
+                  </span>
                   {c.from} <time dateTime={policy.validFrom}>{policy.validFrom}</time>
                   <br />
                   {policy.validUntil ? (
@@ -50,7 +64,10 @@ export function PolicyTable({ rows, locale }: { rows: PolicyTableRow[]; locale: 
                   )}
                   <p className="policy-date-status">{c.status[dateStatus]}</p>
                 </td>
-                <td>
+                <td role="cell">
+                  <span className="policy-field-label" aria-hidden="true">
+                    {c.conditions}
+                  </span>
                   {policy.publicNotes && <p>{policy.publicNotes}</p>}
                   <ul>
                     {policy.portsAndRegions.map((condition, i) => (
@@ -61,7 +78,10 @@ export function PolicyTable({ rows, locale }: { rows: PolicyTableRow[]; locale: 
                     ))}
                   </ul>
                 </td>
-                <td>
+                <td role="cell">
+                  <span className="policy-field-label" aria-hidden="true">
+                    {c.source}
+                  </span>
                   <a href={policy.officialSourceUrl} target="_blank" rel="noopener noreferrer">
                     {c.sourceLink}
                   </a>

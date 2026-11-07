@@ -8,7 +8,11 @@ import { queryContext, queryPolicy } from "../helpers/policy-query-fixture";
 
 for (const locale of ["en", "zh"] as const) {
   const html = renderToStaticMarkup(
-    React.createElement(PolicyQuery, { locale, policies: [queryPolicy()], ...queryContext }),
+    React.createElement(
+      PolicyQuery,
+      { locale, policies: [queryPolicy()], ...queryContext },
+      React.createElement("p", null, "Complete server-rendered reference"),
+    ),
   );
   assert.match(html, /<fieldset disabled/);
   assert.match(html, /<label[^>]*for="policy-nationality"/);
@@ -18,6 +22,9 @@ for (const locale of ["en", "zh"] as const) {
   assert.match(html, /type="button"/);
   assert.match(html, /autocomplete="off"/i);
   assert.match(html, /role="status"/);
+  assert.match(html, /<details[^>]*open=""/);
+  assert.match(html, /<summary[^>]*>/);
+  assert.match(html, /Complete server-rendered reference/);
   assert.doesNotMatch(html, /<form|\sname=|\saction=|<script/i);
   assert.doesNotMatch(html, /value="2026-11-01"/);
   const matched = queryImmigrationPolicies(

@@ -6,7 +6,7 @@ export const policyPageCopy = {
     referenceDate: "Date labels below are checked against China calendar date:",
     caption: "Published entry policies, ordered by country code",
     tableHelp:
-      "All published records are listed, including expired and future date windows. On small screens, scroll the table sideways to read every column.",
+      "All published records are listed, including expired and future date windows. Each record appears as a labelled card on small screens.",
     country: "Nationality",
     method: "Entry method",
     stay: "Maximum stay",
@@ -45,7 +45,7 @@ export const policyPageCopy = {
       "按国籍浏览已核实并发布的记录。请将政策有效期与您的计划入境日期对照，并在出行前核实每项条件。",
     referenceDate: "下方日期状态以中国日历日为基准：",
     caption: "已发布入境政策，按国家代码排列",
-    tableHelp: "列出全部已发布记录，包括已截止和未来生效的政策。小屏幕可左右滚动表格，阅读所有列。",
+    tableHelp: "列出全部已发布记录，包括已截止和未来生效的政策。小屏幕逐条以带字段标签的卡片显示。",
     country: "国籍",
     method: "入境方式",
     stay: "最长停留时间",

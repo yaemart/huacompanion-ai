@@ -37,10 +37,10 @@
 **Files:** PolicyQuery.tsx、PolicyTable.tsx、policy-table.css、globals.css、工具page.tsx、双语copy；静态渲染测试。
 **Interfaces:** PolicyQuery新增children?:React.ReactNode；参考details复用该children，组件其余props不变。
 
-- [ ] 静态渲染增加字段标签、table/row/cell显式语义与参考初始open断言，先观察缺失失败。
-- [ ] 同DOM手机卡片带aria-hidden标签；桌面保留表，原生details初始open、有效查询折叠、清空/无效重开；仅focus-visible显示skip入口。
-- [ ] table/browser/faq/banner:render及check退出0；隔离副本或纯虚构页面CUA桌面/390/320/无JS、Tab/失焦、查询展开折叠实测，截图只.local。
-- [ ] 停dev后trial build与生产开关HTTP回归；结束恢复原日常站，提交本任务。
+- [x] 静态渲染增加字段标签、table/row/cell显式语义与参考初始open断言，先观察缺失失败。
+- [x] 同DOM手机卡片带aria-hidden标签；桌面保留表，原生details初始open、有效查询折叠、清空/无效重开；仅focus-visible显示skip入口。
+- [x] table/browser/faq/banner:render及check退出0；隔离副本或纯虚构页面CUA桌面/390/320/无JS、Tab/失焦、查询展开折叠实测，截图只.local。
+- [x] 停dev后trial build与生产开关HTTP回归；结束恢复原日常站，提交本任务。
 
 ### Task 3: 证据归档与可读交接
 

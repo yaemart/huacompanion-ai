@@ -1358,14 +1358,22 @@ footer {
 }
 .skip-link {
   position: fixed;
-  top: -100px;
+  top: 10px;
   left: 15px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   padding: 12px;
   background: #fff;
   z-index: 100;
 }
-.skip-link:focus {
-  top: 10px;
+.skip-link:focus-visible {
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
 }
 html[lang="zh-CN"] h1 {
   letter-spacing: 1px;

@@ -103,8 +103,9 @@ export default async function VisaCheckerPage({ params }: Props) {
           policies={policies}
           verifiedOnOrBefore={today}
           visaGuide={visaGuide}
-        />
-        <PolicyTable rows={rows} locale={locale} />
+        >
+          <PolicyTable rows={rows} locale={locale} />
+        </PolicyQuery>
         <PolicyFAQ items={selectPolicyFAQs(published, locale, faqKeys, today)} locale={locale} />
         <aside className="policy-disclaimer">
           <p>{c.disclaimer}</p>

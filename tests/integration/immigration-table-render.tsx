@@ -23,6 +23,9 @@ for (const locale of ["en", "zh"] as const) {
   assert.equal((html.match(/scope="col"/g) || []).length, 6);
   assert.equal((html.match(/scope="row"/g) || []).length, 4);
   assert.match(html, /<caption/);
+  assert.match(html, /<table[^>]*role="table"/);
+  assert.equal((html.match(/role="rowheader"/g) || []).length, 4);
+  assert.equal((html.match(/class="policy-field-label" aria-hidden="true"/g) || []).length, 24);
   assert.match(html, /role="region"/);
   assert.match(html, /tabindex="0"/);
   assert.match(html, /2026-01-01/);

@@ -15,11 +15,13 @@ export function PolicyQuery({
   policies,
   verifiedOnOrBefore,
   visaGuide,
+  children,
 }: {
   locale: "en" | "zh";
   policies: PublicPolicyData[];
   verifiedOnOrBefore: string;
   visaGuide: QueryResult["visaGuide"];
+  children?: React.ReactNode;
 }) {
   const ready = React.useSyncExternalStore(
     subscribe,
@@ -110,6 +112,15 @@ export function PolicyQuery({
         </button>
       </fieldset>
       <PolicyQueryResult result={result} locale={locale} />
+      {children && (
+        <details
+          className="policy-full-reference"
+          open={result === null || result.status === "invalid-input"}
+        >
+          <summary>{c.reference}</summary>
+          {children}
+        </details>
+      )}
     </section>
   );
 }
