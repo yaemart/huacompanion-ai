@@ -1,8 +1,12 @@
 # 华伴 · Hua Companion
 
+## 本地亲测入口
+
+先以本地“客户友好、编辑友好”验收推进，11月30日不再是上线日期。运行`npm run demo`或双击根目录[华伴演示.command](华伴演示.command)，首次自动准备独立演示库、五类虚构数据及四个账号。启动、关闭、重置与账号说明见[一页本地测试指南](docs/local-testing-guide.md)。演示使用3100/55442，不覆盖原3000/55438环境；每次拉取新代码后关闭并重开演示。
+
 面向来华客户的服务信息、咨询和员工协作平台。当前已完成收敛代码与本机部署准备，**尚未在真实托管环境试运行或正式发布**。公开语言默认为英文、中文，根路径进入英文首页；其余五语与高级模块保留代码并关闭入口。先看[一页中文小结](docs/project-status-2026-11-07.md)，完整状态见[功能清单](docs/feature-inventory.md)。
 
-当前开发以[流量入口分阶段任务书](docs/traffic-entry-task.md)为准；停止点A已确认[Render托管](docs/hosting-options.md)与[Cloudflare加站内汇总](docs/analytics-options.md)，当前仅继续本地开发测试。此前的收敛工作作为基础复用，新功能按步骤独立 PR。[阶段1完整开发任务书与实施顺序](docs/traffic-entry-phase1-plan.md)已整理，1.1政策数据/审核/正式投影、1.2纯查询及1.3a/b/c中英文SSR、浏览器查询及正式FAQ已本地验证；1.4横幅、1.5站内提醒及1.6搜索基础也已本地验证。当前成果集中在[PR19](https://github.com/yaemart/huacompanion-ai/pull/19)，合并后再从main逐项开展[阶段2订阅](docs/subscription-phase2-design.md)，不再叠加PR；1.7真实部署/恢复及公开B尚待验收。
+当前开发以[流量入口分阶段任务书](docs/traffic-entry-task.md)为准；停止点A已确认[Render托管](docs/hosting-options.md)与[Cloudflare加站内汇总](docs/analytics-options.md)，当前仅继续本地开发测试。此前的收敛工作作为基础复用，新功能按步骤独立 PR。[阶段1完整开发任务书与实施顺序](docs/traffic-entry-phase1-plan.md)已整理，1.1政策数据/审核/正式投影、1.2纯查询及1.3a/b/c中英文SSR、浏览器查询及正式FAQ已本地验证；1.4横幅、1.5站内提醒及1.6搜索基础也已本地验证。[PR19](https://github.com/yaemart/huacompanion-ai/pull/19)及PR20已合并。最新顺序为本地演示→政策P0第2–6条→共用事实→其他录入界面P0→报价分项与二审→员工工作台；[订阅](docs/subscription-phase2-design.md)暂缓。每步合并后再从最新main继续，不叠加PR；真实部署/恢复及公开B仍待用户完成本地亲测后决定。
 
 ## 已完成
 
