@@ -1,0 +1,64 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { validateSharedFacts, publicSharedFacts } from "../src/lib/policy-shared-facts.ts";
+const today = "2026-11-08";
+const facts = {
+  countryCode: "XY",
+  countryNameEn: "Fictional country",
+  countryNameZh: "虚构国家",
+  policyType: "unilateral",
+  maximumStay: 30,
+  stayUnit: "days",
+  validFrom: "2026-01-01",
+  validUntil: null,
+  officialSourceUrl: "https://example.invalid/policy",
+  portsAndRegions: ["虚构口岸"],
+  lastVerifiedOn: "2026-01-01",
+  verifiedBy: 1,
+  internalNotes: "private",
+};
+test("shared facts require explicit correct units and never infer old transit days", () => {
+  validateSharedFacts(facts, today, true);
+  const transit = { ...facts, policyType: "transit-240h", stayUnit: "hours", maximumStay: 144 };
+  validateSharedFacts(transit, today, true);
+  for (const value of [
+    { ...transit, stayUnit: "days" },
+    { ...facts, stayUnit: "hours" },
+    { ...transit, maximumStay: null },
+    { ...transit, maximumStay: "240" },
+    { ...transit, maximumStay: 0 },
+    { ...transit, maximumStay: 1.5 },
+    { ...transit, maximumStay: undefined, maxStayDays: 10 },
+  ])
+    assert.throws(() => validateSharedFacts(value, today, true));
+});
+test("shared facts enforce country, dates, verification and strict fact-only keys", () => {
+  assert.throws(() => validateSharedFacts(facts, today, false));
+  validateSharedFacts({ ...facts, countryCode: "DE" }, today, false);
+  for (const edit of [
+    { publicNotes: "explanation must be separate" },
+    { unknown: "not allowed" },
+    { verifiedBy: 0 },
+    { lastVerifiedOn: "2026-12-01" },
+    { validFrom: "2026-02-30" },
+    { countryCode: "ZZ" },
+    { officialSourceUrl: "http://example.invalid" },
+  ])
+    assert.throws(() => validateSharedFacts({ ...facts, ...edit }, today, true));
+});
+test("public shared facts projection excludes staff/internal data and keeps source immutable", () => {
+  validateSharedFacts(facts, today, true);
+  const before = structuredClone(facts);
+  const result = publicSharedFacts(facts);
+  assert.equal(result.maxStayDays, 30);
+  assert.equal(result.publicNotes, "");
+  assert.equal("verifiedBy" in result, false);
+  assert.equal("internalNotes" in result, false);
+  assert.equal("maximumStay" in result, false);
+  result.portsAndRegions.push("modified projection");
+  assert.deepEqual(facts, before);
+  const transit = { ...facts, policyType: "transit-240h", stayUnit: "hours", maximumStay: 144 };
+  validateSharedFacts(transit, today, true);
+  assert.equal(publicSharedFacts(transit).maxStayHours, 144);
+  assert.equal(publicSharedFacts(transit).maxStayDays, null);
+});

@@ -101,6 +101,7 @@ jobs:
           npm run test:trial
           npm run test:policies
           npm run test:policies:workflow
+          npm run test:policies:shared:foundation
           npm run test:policies:editor
           npm run test:policies:entry
           npm run test:policies:stay
