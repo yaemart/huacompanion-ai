@@ -5,7 +5,18 @@ import { policyDraft, policyFields } from "../../lib/immigration-policy-draft";
 import { publicPolicy, validatePolicyPublication } from "../../lib/immigration-policy";
 import { canAccessContentKind, relationID, canReviewContent } from "../../cms/access";
 import { ContentError } from "../content/error";
+import {
+  assertPolicyCountry,
+  policyTestCountriesAllowed,
+} from "../../lib/immigration-policy-entry";
 type Req = Partial<PayloadRequest>;
+function checkCountry(code: unknown) {
+  try {
+    assertPolicyCountry(code, policyTestCountriesAllowed(process.env));
+  } catch {
+    throw new ContentError("国家代码不在可选名单中，请重新选择国家；虚构国家仅供本地测试");
+  }
+}
 
 export async function policyActor(p: Payload, req: Req, user: ContentUser, action: string) {
   // Same content -> staff lock order as quality review and staff authority edits.
@@ -73,6 +84,31 @@ export async function savePolicyDraft(
     data = Object.fromEntries(policyFields.map((key) => [key, old[key] ?? null]));
   }
   delete body.policy;
+  checkCountry({ ...record, ...data }.countryCode);
+  const duplicate = await p.count({
+    collection: "content-drafts",
+    req,
+    where: {
+      and: [
+        { id: { not_equals: current?.id || 0 } },
+        {
+          or: [
+            { identity: { equals: `${body.contentKey}:${body.locale}` } },
+            { routeKey: { equals: `immigration-policy:${body.locale}:${body.slug}` } },
+          ],
+        },
+      ],
+    },
+  });
+  const orphan =
+    !current &&
+    (await p.count({
+      collection: "immigration-policies",
+      req,
+      where: { policyKey: { equals: `${body.contentKey}:${body.locale}` } },
+    }));
+  if (duplicate.totalDocs || (orphan && orphan.totalDocs))
+    throw new ContentError("内容标识或网址标识已存在，请在高级区修改；原记录未覆盖", 409);
   const write = { ...data, status: "draft" as const, revision: (record?.revision || 0) + 1 };
   const saved = record
     ? await p.update({ collection: "immigration-policies", id: record.id, data: write, req })
@@ -95,6 +131,7 @@ export async function publishPolicy(
   reviewed: unknown,
 ) {
   const record = await referencedPolicy(p, req, current);
+  checkCountry(record.countryCode);
   if (reviewed !== true) throw new ContentError("请确认已人工核实国家代码、官方来源和政策条件");
   const fields = {
     ...Object.fromEntries(policyFields.map((key) => [key, record[key]])),

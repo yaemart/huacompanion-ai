@@ -1,15 +1,20 @@
 "use client";
+import type { PolicyCountry } from "@/lib/immigration-policy-entry";
+import { PolicyCountryField } from "./PolicyCountryField";
 import { policyTypes } from "@/lib/immigration-policy";
 import { policyLabels, type PolicyForm } from "@/lib/immigration-policy-editor";
+const fields = Object.entries(policyLabels).filter(([name]) => !name.startsWith("country"));
 const typeLabels = ["单方面免签", "互免", "240小时过境", "其他"];
 export function PolicyFields({
   value,
   onChange,
   verifiers,
+  countries,
 }: {
   value: PolicyForm;
   onChange: (value: PolicyForm) => void;
   verifiers: { id: number; name: string }[];
+  countries: PolicyCountry[];
 }) {
   function set<K extends keyof PolicyForm>(key: K, next: PolicyForm[K]) {
     onChange({ ...value, [key]: next });
@@ -18,7 +23,8 @@ export function PolicyFields({
     <section aria-label="政策资料">
       <h2>政策资料</h2>
       <p>仅填写人工核实的信息；日期采用中国日历日。截止日留空不代表永久有效。</p>
-      {Object.entries(policyLabels).map(([name, label]) => {
+      <PolicyCountryField value={value} countries={countries} onChange={onChange} />
+      {fields.map(([name, label]) => {
         const key = name as keyof typeof policyLabels;
         return (
           <label key={key}>

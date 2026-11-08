@@ -6,6 +6,8 @@ import type { PolicyEditorData } from "@/server/immigration/editor";
 import { policyForm, policyFormInput } from "@/lib/immigration-policy-editor";
 import { PolicyFields } from "./PolicyFields";
 import { PolicyList } from "./PolicyList";
+import { PolicyIdentityFields } from "./PolicyIdentityFields";
+import { autoPolicyIdentity } from "@/lib/immigration-policy-entry";
 const blank = (): ContentBody => ({
   kind: "immigration-policy",
   locale: "en",
@@ -87,7 +89,12 @@ export function PolicyWorkbench() {
     key: K,
     value: ContentBody[K],
   ) {
-    setBody({ ...body, [key]: value });
+    const updated = { ...body, [key]: value };
+    setBody(
+      !draft && key === "locale"
+        ? autoPolicyIdentity(updated, policy, policy, body.locale)
+        : updated,
+    );
     setDirty(true);
     setReviewed(false);
   }
@@ -153,35 +160,28 @@ export function PolicyWorkbench() {
         </aside>
         <section className="panel">
           <fieldset disabled={busy || !editable} style={{ border: 0, padding: 0 }}>
-            {(["title", "contentKey", "slug"] as const).map((key, i) => (
-              <label key={key}>
-                {["标题", "内容标识（各语言共用）", "网址标识"][i]}
-                <input
-                  value={body[key]}
-                  disabled={key !== "title" && !!draft}
-                  onChange={(e) => field(key, e.target.value)}
-                />
-              </label>
-            ))}
-            <label>
-              语言
-              <select
-                disabled={!!draft}
-                value={body.locale}
-                onChange={(e) => field("locale", e.target.value as ContentBody["locale"])}
-              >
-                <option value="en">English</option>
-                <option value="zh">中文</option>
-              </select>
-            </label>
+            <p>
+              当前语言：
+              {body.locale === "zh" ? "中文" : body.locale === "en" ? "English" : body.locale}
+              ；标题：
+              {body.title || "选择国家和类型后自动生成"}。切换语言或手动修改请展开高级。
+            </p>
             <PolicyFields
               value={policy}
               verifiers={desk?.verifiers || []}
+              countries={desk?.countries || []}
               onChange={(value) => {
+                if (!draft) setBody(autoPolicyIdentity(body, policy, value));
                 setPolicy(value);
                 setDirty(true);
                 setReviewed(false);
               }}
+            />
+            <PolicyIdentityFields
+              body={body}
+              existing={!!draft}
+              published={!!draft?.everPublished}
+              onChange={field}
             />
           </fieldset>
           {waiting && <p>待审核内容已锁定，须先退回才能修改。</p>}

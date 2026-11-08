@@ -3,6 +3,10 @@ import { canAccessContentKind, canReviewContent, isAdmin } from "../../cms/acces
 import { canEditContent, type ContentUser } from "../../lib/content-model";
 import { policyForm } from "../../lib/immigration-policy-editor";
 import { policyListRow, policyVerificationDefaults } from "../../lib/immigration-policy-list";
+import {
+  policyCountryOptions,
+  policyTestCountriesAllowed,
+} from "../../lib/immigration-policy-entry";
 import { ContentError, contentTransaction } from "../content/service";
 import { policyActor, referencedPolicy } from "./workflow";
 export async function readPolicyEditor(p: Payload, user: ContentUser, id?: number) {
@@ -69,6 +73,7 @@ export async function readPolicyEditor(p: Payload, user: ContentUser, id?: numbe
       drafts: drafts.docs,
       policyRows: drafts.docs.map((row) => policyListRow(row, facts.get(row.identity))),
       today: defaults.lastVerifiedOn,
+      countries: policyCountryOptions(policyTestCountriesAllowed(process.env)),
       draft,
       policy: { ...policyForm(record), ...(!draft ? defaults : {}) },
       verifiers: people.docs
