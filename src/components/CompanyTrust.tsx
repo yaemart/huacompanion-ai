@@ -12,6 +12,7 @@ export function CompanyTrust({
   return (
     <aside
       className="source-note"
+      style={{ overflowWrap: "anywhere" }}
       data-company-info="true"
       aria-label={coreText(locale, "Contact information", "联系信息")}
     >

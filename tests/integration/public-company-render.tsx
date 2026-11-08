@@ -25,3 +25,13 @@ for (const locale of ["en", "zh"] as const) {
   assert.doesNotMatch(partial, /mailto:|Shanghai|公司主体/);
 }
 console.log("PASS configured/empty/partial public company SSR, text escaping and contact link");
+const long = renderToStaticMarkup(
+  <CompanyTrust
+    locale="en"
+    company={{
+      companyName: "LongName".repeat(25),
+      email: "a".repeat(64) + "@" + "b".repeat(60) + ".example.invalid",
+    }}
+  />,
+);
+assert.match(long, /overflow-wrap:anywhere/);
