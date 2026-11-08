@@ -7,7 +7,7 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   return (
-    <PublicPage>
+    <PublicPage locale={locale}>
       <SupportChat locale={locale} />
     </PublicPage>
   );

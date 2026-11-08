@@ -35,7 +35,8 @@ export function privateSearchPath(pathname: string) {
 }
 
 export function robotsContents(origin: string, index = indexingAllowed()) {
-  if (!index) return "User-agent: *\nDisallow: /\n";
+  const agentIndex = `# Content guide: ${origin}/llms.txt`;
+  if (!index) return `User-agent: *\nDisallow: /\n${agentIndex}\n`;
   const privatePaths = [
     "/admin",
     "/api",
@@ -53,6 +54,7 @@ export function robotsContents(origin: string, index = indexingAllowed()) {
     "Allow: /",
     ...privatePaths.map((path) => `Disallow: ${path}`),
     `Sitemap: ${origin}/sitemap.xml`,
+    agentIndex,
     "",
   ].join("\n");
 }
@@ -120,7 +122,9 @@ export function sitemapXML(
     group.set(body.locale, { path, publishedAt: body.publishedAt });
     groups.set(key, group);
   }
-  const entries = new Map<string, string>();
+  const entries = new Map<string, string>([
+    ["/llms.txt", `<url><loc>${xmlEscape(origin + "/llms.txt")}</loc></url>`],
+  ]);
   for (const group of groups.values()) {
     const alternatives = [...group.entries()].map(
       ([locale, item]) =>

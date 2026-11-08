@@ -348,7 +348,6 @@ export function ExhibitionPage({
           </>
         )}
       </main>
-      <footer className="footer">Hua Companion</footer>
     </>
   );
 }

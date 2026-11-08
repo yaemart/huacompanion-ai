@@ -351,7 +351,6 @@ export function InstitutionPage({
           </>
         )}
       </main>
-      <footer className="footer">Hua Companion</footer>
     </>
   );
 }

@@ -91,3 +91,13 @@ test("static page SEO settings keep admin-only read and write access", async () 
   assert.equal(await access.read({ req }), false);
   assert.equal(await access.update({ req }), false);
 });
+
+test("agent index is discoverable outside human page navigation without enabling indexing", () => {
+  for (const index of [false, true]) {
+    const robots = robotsContents("https://example.com", index);
+    assert.match(robots, /https:\/\/example.com\/llms\.txt/);
+    if (!index) assert.match(robots, /User-agent: \*\nDisallow: \/\n/);
+  }
+  const xml = sitemapXML("https://example.com", [], ["en", "zh"]);
+  assert.equal((xml.match(/<loc>https:\/\/example.com\/llms\.txt<\/loc>/g) || []).length, 1);
+});
