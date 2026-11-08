@@ -6,6 +6,10 @@
 - 3100普通停web/start刷新代码，无reset或种子修改；五账号自检共享4／指南12／展会6／咨询5／正式32保留。1440／390前后图目检，390 body375=scroll375；选2026-12／上海／虚构关键词结果1且条件保留，历史同月0结果可清除恢复默认，切英文同页、Space展开成功。Cua原生summary在AX为button、DOM为generic，按实际summary定位；嵌套select的getByLabel不匹配改用所见combobox角色，非产品故障。真机／新人和单独关闭JS浏览器未验，不将原生HTML结构证明冒充实测。
 - [本轮一页小结及C4／C7展会部分](exhibition-filters-summary.md)。无新依赖／schema／迁移／环境键／种子；外部服务和worker关闭，不购买、部署或自动合并。独立整分支复核、临时副本清理、PR／最终head／CI及图片上传按实核后补记；证据只.local，不提前声称附件完整。D7／8／9留后续顺序PR。
 
+- 一次独立整分支复核c743ab4..e3e1ede无Critical／Important／Minor。复核者独立展会／月份纯8/8、真实ExhibitionPage SSR和diff通过；完整check、build、HTTP、浏览器、DB／CI由执行者验证，不冒称独立重跑。未裁定项保留D7／8／9（代价：完整D未完）、单独禁JS／实体手机／新人／其他语言与RTL真浏览器（代价：这些体验不计通过）；截图与精确最终head由执行者实核。
+- 唯一草稿[PR36](https://github.com/yaemart/huacompanion-ai/pull/36)，首代码e3e1ede已推送，首head云端42488841152两项全部成功。GitHub浏览器SDK仍报timeoutMs，尝试原生Edge窗口后成功在已登录会话上传4张公开截图并保存PR描述；连接器读回四个有效user-attachments链接且无Uploading占位，原生页面也显示四附件。四图为桌面／手机视口修改前后，原图仍.local；其他操作图留本机，历史PR图片不冒称补齐。
+- 随机D6库与应用已清理，备份／日志／截图保留，3100继续运行；原55438未写。最终文档提交会触发新CI，远端一致性和精确head／Actions结果在PR与交接消息实核，不沿用首head绿色结果。
+
 # 2026-11-08 任务D第3批：首页公开公司信息
 
 - 实核PR34已合并a4414504cc9bb66d3bfc21edc82f85583571f32f，工作区干净，从最新origin/main建codex/public-company-info；D5单独PR，D6–9后续。使用已批准任务书，不重复请求设计／执行确认；当前checkout任务分支，构建隔离缓存。按Next包内server/client及缓存指南，服务端每次首页请求读取并白名单投影，不引入持久缓存。
