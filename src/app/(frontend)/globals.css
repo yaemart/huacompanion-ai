@@ -1534,6 +1534,7 @@ html[lang="zh-CN"] .form-intro h1 {
   }
   .header-actions {
     margin-left: 0;
+    gap: 10px;
   }
   .hero-copy {
     padding: 42px 8%;

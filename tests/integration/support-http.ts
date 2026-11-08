@@ -18,7 +18,31 @@ async function post(body: any, customCookie = cookie, origin = base) {
     body: JSON.stringify(body),
   });
 }
+async function assertClosedPage() {
+  for (const locale of parseSiteLocales(process.env.SITE_LOCALES)) {
+    const response = await fetch(`${base}/${locale}/support`, {
+      redirect: "manual",
+      headers: { Cookie: cookie },
+    });
+    assert.equal(response.status, 307, `${locale}: closed support redirects before rendering`);
+    assert.equal(response.headers.get("location"), `/${locale}/contact`);
+    assert.equal(response.headers.get("set-cookie"), null);
+    const html = await response.text();
+    assert.doesNotMatch(html, /class="section support-page"|hua-support-active|support-messages/);
+    const contact = await fetch(`${base}/${locale}/support`);
+    assert.equal(contact.status, 200);
+    assert.equal(new URL(contact.url).pathname, `/${locale}/contact`);
+  }
+  for (const locale of locales.filter(
+    (l) => !parseSiteLocales(process.env.SITE_LOCALES).includes(l),
+  ))
+    assert.equal((await fetch(`${base}/${locale}/support`, { redirect: "manual" })).status, 404);
+  assert.equal((await fetch(`${base}/invalid/support`, { redirect: "manual" })).status, 404);
+}
 try {
+  await p.updateGlobal({ slug: "support-settings", data: { textChat: false } });
+  await assertClosedPage();
+  assert.equal((await post({ action: "start", key: randomUUID(), locale: "en" })).status, 503);
   await p.updateGlobal({ slug: "support-settings", data: { textChat: true } });
   const start = await post({
     action: "start",
@@ -63,6 +87,13 @@ try {
     assert.equal(response.status, activeLocales.includes(locale) ? 200 : 404);
     if (!activeLocales.includes(locale)) continue;
     const page = await response.text();
+    assert.match(page, /class="section support-page"/);
+    if (locale === "en") {
+      assert.match(page, /this browser/i);
+      assert.match(page, /another device/i);
+      assert.doesNotMatch(page, /This browser credential grants conversation access/);
+    }
+    if (locale === "zh") assert.match(page, /这个浏览器/);
     assert.match(page, new RegExp(`<html[^>]*lang="${locale === "zh" ? "zh-CN" : locale}"`));
     assert.match(page, new RegExp(`<html[^>]*dir="${locale === "ar" ? "rtl" : "ltr"}"`));
   }
@@ -91,8 +122,10 @@ try {
     });
     assert.equal(off.status, 503);
   }
+  await p.updateGlobal({ slug: "support-settings", data: { textChat: false } });
+  await assertClosedPage();
   console.log(
-    "PASS multimodal HTTP access/feature gates; support HTTP cookies, visitor isolation, origin protection, staff auth and active public languages",
+    "PASS support page off/on/off, localized redirect and plain copy; multimodal HTTP gates; support HTTP cookies, visitor isolation, origin protection, staff auth and active public languages",
   );
 } finally {
   await p.updateGlobal({

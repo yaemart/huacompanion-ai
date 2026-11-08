@@ -20,8 +20,8 @@ const messages: Record<Locale, Record<string, string>> = {
     message: "您的消息",
     human: "转人工／留言",
     ai: "AI 接待",
-    waiting: "已进入人工待接手队列；这不表示员工实时在线。请在此查看后续回复。",
-    unavailable: "AI 尚未启用或暂时不可用。可留言或提交需求，由人工跟进。",
+    waiting: "您已申请人工回复。工作人员不一定在线，请稍后回到这里查看回复。",
+    unavailable: "目前无法使用 AI 回复。您可以留言或提交需求，工作人员会跟进。",
     request: "整理并确认服务需求",
     business: "展会与商务",
     housekeeping: "家政与居家服务",
@@ -33,7 +33,8 @@ const messages: Record<Locale, Record<string, string>> = {
     system: "服务通知",
     history: "本浏览器的会话",
     error: "操作未完成，请重试。",
-    privacy: "此浏览器凭证用于访问会话，请勿在共享设备留下私人信息。跨设备查询需人工核实。",
+    privacy:
+      "使用这个浏览器的人可以查看这里的对话。请勿在共用设备上留下私人信息；换用其他设备查看对话时，请联系我们核实身份。",
     withdraw: "停止 AI，转人工",
     progress: "服务需求进度",
   },
@@ -58,9 +59,9 @@ const messages: Record<Locale, Record<string, string>> = {
     human: "Human support / leave a message",
     ai: "AI assistant",
     waiting:
-      "Queued for human support; this does not mean staff are online. Check this conversation for replies.",
+      "You have asked for a reply from our team. Staff may not be online now. Return to this conversation later to check for a reply.",
     unavailable:
-      "AI is not enabled or is unavailable. Leave a message or submit a request for staff follow-up.",
+      "AI replies are currently unavailable. You can leave a message or submit a request for our team to follow up.",
     request: "Review and confirm a service request",
     business: "Exhibitions & business",
     housekeeping: "Housekeeping",
@@ -73,7 +74,9 @@ const messages: Record<Locale, Record<string, string>> = {
     history: "Conversations in this browser",
     error: "Unable to complete. Please retry.",
     privacy:
-      "This browser credential grants conversation access. Avoid private information on shared devices. Cross-device access requires staff verification.",
+      "Anyone using this browser can view these conversations. Avoid leaving private information on " +
+      "shared devices. To view a conversation on another device, contact us so we can check it belongs " +
+      "to you.",
     withdraw: "Stop AI and hand over",
     progress: "Request progress",
   },
@@ -112,7 +115,9 @@ const messages: Record<Locale, Record<string, string>> = {
     history: "Conversaciones en este navegador",
     error: "No se pudo completar. Reintente.",
     privacy:
-      "La credencial del navegador permite acceder. Evite datos privados en equipos compartidos. Otro dispositivo requiere verificación.",
+      "Cualquier persona que use este navegador puede ver estas conversaciones. No deje datos privados " +
+      "en dispositivos compartidos. Para verlas en otro dispositivo, contáctenos para comprobar que " +
+      "son suyas.",
     withdraw: "Detener IA y transferir",
     progress: "Estado de solicitud",
   },
@@ -151,7 +156,9 @@ const messages: Record<Locale, Record<string, string>> = {
     history: "Conversations de ce navigateur",
     error: "Échec de l’opération. Réessayez.",
     privacy:
-      "Ce navigateur donne accès aux échanges. Évitez les données privées sur un appareil partagé. Autre appareil : vérification requise.",
+      "Toute personne utilisant ce navigateur peut voir ces conversations. Ne laissez pas de données " +
+      "privées sur un appareil partagé. Pour les consulter sur un autre appareil, contactez-nous afin " +
+      "de vérifier qu’elles sont les vôtres.",
     withdraw: "Arrêter l’IA et transférer",
     progress: "Avancement",
   },
@@ -191,7 +198,9 @@ const messages: Record<Locale, Record<string, string>> = {
     history: "Gespräche in diesem Browser",
     error: "Vorgang fehlgeschlagen. Erneut versuchen.",
     privacy:
-      "Der Browsernachweis erlaubt Zugriff. Keine privaten Daten auf gemeinsam genutzten Geräten. Gerätewechsel erfordert Prüfung.",
+      "Wer diesen Browser nutzt, kann diese Gespräche sehen. Hinterlassen Sie keine privaten Daten auf " +
+      "gemeinsam genutzten Geräten. Für den Zugriff auf einem anderen Gerät kontaktieren Sie uns, " +
+      "damit wir prüfen können, ob es Ihre Gespräche sind.",
     withdraw: "KI stoppen und übergeben",
     progress: "Anfragestatus",
   },
@@ -229,7 +238,9 @@ const messages: Record<Locale, Record<string, string>> = {
     history: "Conversazioni in questo browser",
     error: "Operazione non completata. Riprova.",
     privacy:
-      "La credenziale del browser consente accesso. Evita dati privati su dispositivi condivisi. Altri dispositivi richiedono verifica.",
+      "Chi usa questo browser può vedere queste conversazioni. Non lasciare dati privati su " +
+      "dispositivi condivisi. Per leggerle su un altro dispositivo, contattaci: verificheremo che " +
+      "siano tue.",
     withdraw: "Ferma IA e trasferisci",
     progress: "Stato richiesta",
   },
@@ -267,7 +278,7 @@ const messages: Record<Locale, Record<string, string>> = {
     history: "محادثات هذا المتصفح",
     error: "تعذر الإكمال. أعد المحاولة.",
     privacy:
-      "بيانات اعتماد المتصفح تمنح الوصول. تجنب المعلومات الخاصة على الأجهزة المشتركة. جهاز آخر يتطلب التحقق.",
+      "يمكن لأي شخص يستخدم هذا المتصفح قراءة هذه المحادثات. لا تترك معلومات خاصة على الأجهزة المشتركة. لقراءة محادثة على جهاز آخر، تواصل معنا لنتأكد من أنها تخصك.",
     withdraw: "إيقاف الذكاء الاصطناعي والتحويل",
     progress: "حالة الطلب",
   },

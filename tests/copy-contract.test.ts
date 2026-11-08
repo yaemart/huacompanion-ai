@@ -47,7 +47,7 @@ const output = (name: string, keys: string[]) =>
   });
 
 for (const [name, expected] of Object.entries(contract)) {
-  test(`${name} authored copy retains every original character in seven locales`, () => {
+  test(`${name} authored copy matches its reviewed baseline in seven locales`, () => {
     assert.equal(digest(output(name, expected.keys)), expected.hash);
   });
 }

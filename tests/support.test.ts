@@ -41,3 +41,13 @@ test("AI request suggestions exclude identity, consent and private address", () 
   assert.throws(() => validateSupportDraft({ fullAddress: "secret" }));
   assert.throws(() => validateSupportDraft({ email: "x@example.invalid" }));
 });
+
+test("support privacy explains access in everyday Chinese and English", () => {
+  assert.match(supportText("en", "privacy"), /this browser/i);
+  assert.match(supportText("en", "privacy"), /another device/i);
+  assert.match(supportText("en", "privacy"), /contact us/i);
+  assert.doesNotMatch(supportText("en", "privacy"), /credential|grants|verification/i);
+  assert.match(supportText("zh", "privacy"), /这个浏览器/);
+  assert.match(supportText("zh", "privacy"), /换.*设备/);
+  assert.doesNotMatch(supportText("zh", "privacy"), /凭证/);
+});

@@ -133,6 +133,7 @@ jobs:
           npm run test:policies:page:http
           node --import tsx tests/integration/public-navigation-http.ts
           node --import tsx tests/integration/public-footer-http.ts
+          node --import tsx tests/integration/support-http.ts
           node --import tsx tests/integration/exhibition-filters-http.ts
           node --import tsx tests/integration/public-company-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
@@ -146,6 +147,7 @@ jobs:
           npm run test:policies:page:http -- --enabled
           VISA_CHECKER_ENABLED=true node --import tsx tests/integration/public-navigation-http.ts --enabled
           node --import tsx tests/integration/public-footer-http.ts --enabled
+          SITE_LOCALES=en,zh,es,fr,de,it,ar node --import tsx tests/integration/support-http.ts
           VISA_CHECKER_ENABLED=true npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=true npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http
