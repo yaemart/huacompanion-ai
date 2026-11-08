@@ -133,7 +133,9 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 export default async function Page(props: Props) {
-  return <PublicPage>{await ContentPage(props)}</PublicPage>;
+  const { locale } = await props.params;
+  if (!isLocale(locale)) notFound();
+  return <PublicPage locale={locale}>{await ContentPage(props)}</PublicPage>;
 }
 async function ContentPage({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;

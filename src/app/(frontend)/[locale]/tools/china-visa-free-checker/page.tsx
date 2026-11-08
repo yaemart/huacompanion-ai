@@ -65,7 +65,7 @@ export default async function VisaCheckerPage({ params }: Props) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const rows = buildPolicyTable(policies, today);
   return (
-    <PublicPage>
+    <PublicPage locale={locale}>
       <a className="skip-link" href="#policy-main">
         {c.skip}
       </a>

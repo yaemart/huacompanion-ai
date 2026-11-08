@@ -6,7 +6,7 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   return (
-    <PublicPage>
+    <PublicPage locale={locale}>
       <CustomerPortal locale={locale} />
     </PublicPage>
   );

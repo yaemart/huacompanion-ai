@@ -228,17 +228,6 @@ export function PublishedSite({
           </section>
         )}
       </main>
-      <footer className="section">
-        <p>
-          <a href={`/api/public/content?locale=${locale}`}>
-            {publicText(locale, "Published content data for agents")}
-          </a>
-        </p>
-        <Link href={`/${locale}`}>华伴 · Hua Companion</Link>
-        <p>© 2026 Hua Companion</p>
-        <Link href={`/${locale}/privacy`}>{publicText(locale, "Privacy")}</Link> ·{" "}
-        <Link href={`/${locale}/terms`}>{publicText(locale, "Service boundaries")}</Link>
-      </footer>
     </>
   );
 }

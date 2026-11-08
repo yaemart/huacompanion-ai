@@ -81,59 +81,6 @@ function CTA({ locale }: { locale: Locale }) {
     </section>
   );
 }
-function Footer({ locale }: { locale: Locale }) {
-  const c = copy(locale);
-  return (
-    <footer>
-      <div className="footer-main">
-        <div>
-          <Link className="brand footer-brand" href={`/${locale}`}>
-            <span className="brand-mark">伴</span>
-            <span>
-              <b>华伴.</b>
-              <small>HUA COMPANION</small>
-            </span>
-          </Link>
-          <p>{c("Your local companion in China.", "您来中国，华伴同行。")}</p>
-          <span className="footer-location">
-            ◎ {c("Starting in Shanghai, China", "从中国上海出发")}
-          </span>
-        </div>
-        <div>
-          <h4>{c("Explore", "了解华伴")}</h4>
-          <Link href={`/${locale}/services`}>{c("Our services", "来华服务")}</Link>
-          <Link href={`/${locale}/guides`}>{c("China guide", "来华指南")}</Link>
-          <Link href={`/${locale}/about`}>{c("About Hua Companion", "关于华伴")}</Link>
-        </div>
-        <div>
-          <h4>{c("Let’s connect", "与我们联系")}</h4>
-          <Link href={`/${locale}/request`}>{c("Plan your visit", "提交服务需求")}</Link>
-          <Link href={`/${locale}/partners`}>{c("Become a partner", "申请合作")}</Link>
-          <Link href={`/${locale}/contact`}>{c("Contact information", "联系信息")}</Link>
-        </div>
-        <div className="footer-note">
-          <h4>{c("Thoughtful coordination. Clear expectations.", "用心协调，清楚约定。")}</h4>
-          <p>
-            {c(
-              "Service availability, providers and responsibilities are confirmed in each proposal.",
-              "服务可用性、实际服务商与责任边界，均在具体方案中确认。",
-            )}
-          </p>
-        </div>
-      </div>
-      <div className="footer-bottom">
-        <span>© 2026 Hua Companion · 华伴</span>
-        <div>
-          <Link href={`/${locale}/privacy`}>{c("Privacy notice", "隐私说明")}</Link>
-          <Link href={`/${locale}/terms`}>{c("Service boundaries", "服务边界")}</Link>
-        </div>
-        <span>
-          {c("Company and contact details pending verification.", "公司主体与联系方式待核实。")}
-        </span>
-      </div>
-    </footer>
-  );
-}
 function Intro({
   locale,
   label,
@@ -865,7 +812,6 @@ export function Site({
       </a>
       <Header locale={locale} />
       <main id="main">{page}</main>
-      <Footer locale={locale} />
     </>
   );
 }

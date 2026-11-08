@@ -311,10 +311,6 @@ export function CatalogPage({
           </>
         )}
       </main>
-      <footer className="footer">
-        <Link href="/api/public/catalog/docs">{publicText(locale, "Public data for agents")}</Link>{" "}
-        · Hua Companion
-      </footer>
     </>
   );
 }
