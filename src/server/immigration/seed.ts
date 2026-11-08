@@ -3,6 +3,10 @@ import { canEditContent, type ContentUser } from "../../lib/content-model";
 import { parsePolicySeeds } from "../../lib/immigration-policy-seed";
 import { ContentError, contentTransaction, mutateContent } from "../content/service";
 import { policyActor } from "./workflow";
+import {
+  assertPolicyCountry,
+  policyTestCountriesAllowed,
+} from "../../lib/immigration-policy-entry";
 
 export async function seedPolicyDrafts(
   p: Payload,
@@ -11,6 +15,8 @@ export async function seedPolicyDrafts(
   options: { apply?: boolean } = {},
 ) {
   const rows = parsePolicySeeds(input);
+  for (const row of rows)
+    assertPolicyCountry(row.policy.countryCode, policyTestCountriesAllowed(process.env));
   if (!canEditContent(user)) throw new ContentError("需要政策编辑权限", 403);
   await contentTransaction(p, (req) => policyActor(p, req, user, "save"));
   const result = { created: [] as string[], skipped: [] as string[], pending: [] as string[] };

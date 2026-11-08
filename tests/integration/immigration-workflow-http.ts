@@ -32,9 +32,18 @@ try {
       403,
     );
     assert.equal((await post({ action: "save", body }, outside)).status, 403);
+    const invalid = await post(
+      { action: "save", body, policy: { ...policyFacts(editor.id), countryCode: "ZZ" } },
+      edit,
+    );
+    assert.equal(invalid.status, 400);
+    assert.match(await invalid.text(), /国家/);
     const save = await post({ action: "save", body, policy: policyFacts(editor.id) }, edit);
     assert.equal(save.status, 200);
     let draft = (await save.json()) as ContentDraft;
+    const duplicate = await post({ action: "save", body, policy: policyFacts(editor.id) }, edit);
+    assert.equal(duplicate.status, 409);
+    assert.match(await duplicate.text(), /标识.*已存在/);
     assert.equal(draft.kind, "immigration-policy");
     assert.ok(!JSON.stringify(draft.body).includes("internalNotes"));
     const step = async (action: string, token: string, extra: object = {}) => {
