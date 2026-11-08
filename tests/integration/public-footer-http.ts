@@ -25,6 +25,10 @@ for (const locale of ["en", "zh"]) {
   for (const path of pages) {
     const response = await fetch(base + "/" + locale + path);
     assert.equal(response.status, 200, `${locale}${path}`);
+    if (path === "/support") {
+      const target = new URL(response.url).pathname;
+      assert.ok(target === `/${locale}/support` || target === `/${locale}/contact`);
+    } else assert.equal(new URL(response.url).pathname, `/${locale}${path}`);
     const html = (await response.text()).replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "");
     const footers = html.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/g) || [];
     assert.equal(footers.length, 1, `${locale}${path}: exactly one complete footer`);
