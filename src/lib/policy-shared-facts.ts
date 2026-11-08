@@ -53,3 +53,10 @@ export function validateSharedFacts(
 export function publicSharedFacts(facts: SharedPolicyFacts): PublicPolicyData {
   return publicPolicy(legacy(facts));
 }
+
+export function sharedFactDraft(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw Error("事实草稿格式无效");
+  if (Object.keys(value).some((key) => !fields.includes(key)))
+    throw Error("事实草稿不能包含语言说明或未知字段");
+  return structuredClone(value as Record<string, unknown>);
+}

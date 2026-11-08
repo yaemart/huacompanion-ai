@@ -1284,6 +1284,7 @@ export interface WorkflowNotification {
  */
 export interface WorkflowTask {
   id: number;
+  policyGroup?: (number | null) | PolicyGroup;
   key: string;
   inquiry?: (number | null) | Inquiry;
   contentDraft?: (number | null) | ContentDraft;
@@ -2376,6 +2377,7 @@ export interface WorkflowNotificationsSelect<T extends boolean = true> {
  * via the `definition` "workflow-tasks_select".
  */
 export interface WorkflowTasksSelect<T extends boolean = true> {
+  policyGroup?: T;
   key?: T;
   inquiry?: T;
   contentDraft?: T;

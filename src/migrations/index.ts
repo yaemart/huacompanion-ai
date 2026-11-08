@@ -1,3 +1,4 @@
+import * as migration_20261108_160000_policy_note_tasks from "./20261108_160000_policy_note_tasks";
 import * as migration_20261108_140000_policy_shared_foundation from "./20261108_140000_policy_shared_foundation";
 import * as migration_20261108_120000_policy_stay_hours from "./20261108_120000_policy_stay_hours";
 import * as migration_20261026_233245_initial_backend from "./20261026_233245_initial_backend";
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20261108_140000_policy_shared_foundation.up,
     down: migration_20261108_140000_policy_shared_foundation.down,
     name: "20261108_140000_policy_shared_foundation",
+  },
+  {
+    up: migration_20261108_160000_policy_note_tasks.up,
+    down: migration_20261108_160000_policy_note_tasks.down,
+    name: "20261108_160000_policy_note_tasks",
   },
 ];

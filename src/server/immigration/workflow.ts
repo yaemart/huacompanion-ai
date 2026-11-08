@@ -19,6 +19,7 @@ function checkCountry(code: unknown) {
 }
 
 export async function policyActor(p: Payload, req: Req, user: ContentUser, action: string) {
+  if (!user?.id) throw new ContentError("需要有效的政策板块员工账号", 403);
   // Same content -> staff lock order as quality review and staff authority edits.
   const sessions = p.db.sessions as
     Record<string, { db: { execute: (query: string) => Promise<unknown> } }> | undefined;

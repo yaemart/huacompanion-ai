@@ -5,10 +5,14 @@ import { getPayload } from "payload";
 import type { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 import config from "../../src/payload.config";
 import { up, down } from "../../src/migrations/20261108_140000_policy_shared_foundation";
+import {
+  up as taskUp,
+  down as taskDown,
+} from "../../src/migrations/20261108_160000_policy_note_tasks";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 import { contentTransaction } from "../../src/server/content/service";
 const url = new URL(process.env.DATABASE_URL || "");
-const clone = url.port === "55442" && /^\/hua_policy_c1_[a-f0-9]{32}$/.test(url.pathname);
+const clone = url.port === "55442" && /^\/hua_policy_c[12]_[a-f0-9]{32}$/.test(url.pathname);
 const ci = process.env.CI === "true" && url.port === "55438" && url.pathname === "/hua_companion";
 if (process.env.APP_ENV !== "local" || url.hostname !== "127.0.0.1" || (!clone && !ci))
   throw Error("Only disposable shared-policy clone or CI is allowed");
@@ -41,6 +45,12 @@ const facts = {
   internalNotes: "private",
 };
 try {
+  const taskRelation = !!(
+    await client.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name='workflow_tasks' AND column_name='policy_group_id'",
+    )
+  ).rowCount;
+  if (taskRelation) await taskDown(args as unknown as MigrateDownArgs);
   if ((await client.query("SELECT to_regclass('policy_groups') AS name")).rows[0].name)
     await down(args as unknown as MigrateDownArgs);
   const before = await databaseFingerprints(client);
@@ -137,6 +147,7 @@ try {
   assert.ok((await client.query("SELECT count(*)::int n FROM policy_fact_versions")).rows[0].n);
   await client.query("ROLLBACK");
   assert.deepEqual(await databaseFingerprints(client, before), before);
+  if (taskRelation) await taskUp(args);
   console.log(
     "PASS unique drafts/versions, same-group/language pointers, SQL immutability and nonempty rollback guard",
   );
