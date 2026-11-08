@@ -637,6 +637,7 @@ export interface ImmigrationPolicy {
   countryNameZh?: string | null;
   policyType?: ('unilateral' | 'bilateral' | 'transit-240h' | 'other') | null;
   maxStayDays?: number | null;
+  maxStayHours?: number | null;
   validFrom?: string | null;
   validUntil?: string | null;
   portsAndRegions?:
@@ -1795,6 +1796,7 @@ export interface ImmigrationPoliciesSelect<T extends boolean = true> {
   countryNameZh?: T;
   policyType?: T;
   maxStayDays?: T;
+  maxStayHours?: T;
   validFrom?: T;
   validUntil?: T;
   portsAndRegions?:

@@ -1,6 +1,7 @@
 "use client";
 import type { PolicyCountry } from "@/lib/immigration-policy-entry";
 import { PolicyCountryField } from "./PolicyCountryField";
+import { changePolicyType, changePolicyHours } from "@/lib/immigration-policy-stay";
 import { policyTypes } from "@/lib/immigration-policy";
 import { policyLabels, type PolicyForm } from "@/lib/immigration-policy-editor";
 const fields = Object.entries(policyLabels).filter(([name]) => !name.startsWith("country"));
@@ -16,15 +17,25 @@ export function PolicyFields({
   verifiers: { id: number; name: string }[];
   countries: PolicyCountry[];
 }) {
+  const transit = value.policyType === "transit-240h";
+  const visible = fields.filter(([key]) => key !== (transit ? "maxStayDays" : "maxStayHours"));
   function set<K extends keyof PolicyForm>(key: K, next: PolicyForm[K]) {
-    onChange({ ...value, [key]: next });
+    onChange(
+      key === "maxStayHours"
+        ? changePolicyHours(value, next as number | null)
+        : { ...value, [key]: next },
+    );
   }
   return (
     <section aria-label="政策资料">
       <h2>政策资料</h2>
       <p>仅填写人工核实的信息；日期采用中国日历日。截止日留空不代表永久有效。</p>
       <PolicyCountryField value={value} countries={countries} onChange={onChange} />
-      {fields.map(([name, label]) => {
+      {transit && <p>过境政策须填写口岸及前往第三国等适用条件。小时值按已核实原文填写。</p>}
+      {transit && value.maxStayHours == null && value.maxStayDays != null && (
+        <p>旧稿未单独记录小时，按原规则显示240小时；未编辑小时字段不会写回或换算旧天数。</p>
+      )}
+      {visible.map(([name, label]) => {
         const key = name as keyof typeof policyLabels;
         return (
           <label key={key}>
@@ -33,7 +44,9 @@ export function PolicyFields({
               <select
                 value={value.policyType ?? ""}
                 onChange={(e) =>
-                  set("policyType", (e.target.value as PolicyForm["policyType"]) || null)
+                  onChange(
+                    changePolicyType(value, (e.target.value as PolicyForm["policyType"]) || null),
+                  )
                 }
               >
                 <option value="">待填写</option>
@@ -60,6 +73,7 @@ export function PolicyFields({
               </select>
             ) : key === "portsAndRegions" ? (
               <textarea
+                required={transit}
                 value={value.portsAndRegions.join("\n")}
                 onChange={(e) => set(key, e.target.value.split("\n"))}
               />
@@ -72,7 +86,7 @@ export function PolicyFields({
             ) : (
               <input
                 type={
-                  key === "maxStayDays"
+                  ["maxStayDays", "maxStayHours"].includes(key)
                     ? "number"
                     : key === "officialSourceUrl"
                       ? "url"
@@ -80,12 +94,15 @@ export function PolicyFields({
                         ? "date"
                         : "text"
                 }
-                min={key === "maxStayDays" ? 1 : undefined}
-                value={value[key] ?? ""}
+                min={["maxStayDays", "maxStayHours"].includes(key) ? 1 : undefined}
+                step={["maxStayDays", "maxStayHours"].includes(key) ? 1 : undefined}
+                value={
+                  value[key] ?? (key === "maxStayHours" && value.maxStayDays != null ? 240 : "")
+                }
                 onChange={(e) =>
                   set(
                     key,
-                    key === "maxStayDays"
+                    ["maxStayDays", "maxStayHours"].includes(key)
                       ? e.target.value === ""
                         ? null
                         : Number(e.target.value)

@@ -121,7 +121,11 @@ export async function savePolicyDraft(
 }
 
 export async function checkPolicyDraft(p: Payload, req: Req, current: ContentDraft) {
-  if (current.kind === "immigration-policy") await referencedPolicy(p, req, current);
+  if (current.kind === "immigration-policy") {
+    const record = await referencedPolicy(p, req, current);
+    if (record.policyType === "transit-240h" && !record.portsAndRegions?.length)
+      throw new ContentError("240小时过境政策提交审核前必须填写适用口岸或区域条件");
+  }
 }
 
 export async function publishPolicy(

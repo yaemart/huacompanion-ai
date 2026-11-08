@@ -4,6 +4,7 @@ import {
   validatePublicPolicy,
   type PublicPolicyData,
 } from "./immigration-policy.ts";
+import { policyStay } from "./immigration-policy-stay.ts";
 import { policyQueryCopy } from "./immigration-policy-query-copy.ts";
 
 type QueryStatus = keyof typeof policyQueryCopy.notices;
@@ -11,8 +12,8 @@ type QueryWarning = keyof typeof policyQueryCopy.warnings;
 type QueryField = "nationalityISO" | "arrivalDate";
 type VisaGuide = { href: string; title: string };
 
-export type PolicyQueryMatch = Omit<PublicPolicyData, "maxStayDays"> & {
-  stay: { unit: "days"; maximum: number } | { unit: "hours"; maximum: 240 };
+export type PolicyQueryMatch = Omit<PublicPolicyData, "maxStayDays" | "maxStayHours"> & {
+  stay: { unit: "days" | "hours"; maximum: number };
   warnings: QueryWarning[];
 };
 
@@ -70,16 +71,15 @@ export function comparePublicPolicies(a: PublicPolicyData, b: PublicPolicyData):
 }
 
 function match(policy: PublicPolicyData): PolicyQueryMatch {
-  const { maxStayDays, ...fields } = policy;
+  const fields = { ...policy };
+  delete fields.maxStayDays;
+  delete fields.maxStayHours;
   const warnings: QueryWarning[] = ["conditions-unchecked"];
   if (policy.validUntil == null) warnings.push("expiry-not-stated");
   if (policy.policyType === "transit-240h") warnings.push("transit-itinerary-unchecked");
   return {
     ...fields,
-    stay:
-      policy.policyType === "transit-240h"
-        ? { unit: "hours", maximum: 240 }
-        : { unit: "days", maximum: maxStayDays },
+    stay: policyStay(policy),
     warnings,
   };
 }

@@ -37,6 +37,7 @@ jobs:
       - run: npm run test:policies:faq
       - run: npm run test:policies:banner:render
       - run: node --import tsx tests/integration/immigration-entry-render.tsx
+      - run: node --import tsx tests/integration/immigration-stay-render.tsx
 
   database:
     name: Migrations, build and integration
@@ -102,6 +103,8 @@ jobs:
           npm run test:policies:workflow
           npm run test:policies:editor
           npm run test:policies:entry
+          npm run test:policies:stay
+          npm run test:policies:stay:migration
           npm run test:policies:data
           npm run test:policies:query
           npm run test:policies:banner
