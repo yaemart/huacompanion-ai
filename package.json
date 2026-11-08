@@ -96,7 +96,8 @@
     "test:demo": "bash 华伴演示.command test",
     "local:start": "bash start.command start",
     "local:stop": "bash start.command stop",
-    "local:reset": "bash start.command reset"
+    "local:reset": "bash start.command reset",
+    "test:policies:shared:foundation": "node --import tsx tests/integration/policy-shared-foundation.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

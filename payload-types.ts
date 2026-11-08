@@ -80,6 +80,11 @@ export interface Config {
     'content-media': ContentMedia;
     'content-agent-tasks': ContentAgentTask;
     'immigration-policies': ImmigrationPolicy;
+    'policy-groups': PolicyGroup;
+    'policy-fact-drafts': PolicyFactDraft;
+    'policy-fact-versions': PolicyFactVersion;
+    'policy-note-drafts': PolicyNoteDraft;
+    'policy-note-versions': PolicyNoteVersion;
     'support-customers': SupportCustomer;
     'support-conversations': SupportConversation;
     'support-messages': SupportMessage;
@@ -126,6 +131,11 @@ export interface Config {
     'content-media': ContentMediaSelect<false> | ContentMediaSelect<true>;
     'content-agent-tasks': ContentAgentTasksSelect<false> | ContentAgentTasksSelect<true>;
     'immigration-policies': ImmigrationPoliciesSelect<false> | ImmigrationPoliciesSelect<true>;
+    'policy-groups': PolicyGroupsSelect<false> | PolicyGroupsSelect<true>;
+    'policy-fact-drafts': PolicyFactDraftsSelect<false> | PolicyFactDraftsSelect<true>;
+    'policy-fact-versions': PolicyFactVersionsSelect<false> | PolicyFactVersionsSelect<true>;
+    'policy-note-drafts': PolicyNoteDraftsSelect<false> | PolicyNoteDraftsSelect<true>;
+    'policy-note-versions': PolicyNoteVersionsSelect<false> | PolicyNoteVersionsSelect<true>;
     'support-customers': SupportCustomersSelect<false> | SupportCustomersSelect<true>;
     'support-conversations': SupportConversationsSelect<false> | SupportConversationsSelect<true>;
     'support-messages': SupportMessagesSelect<false> | SupportMessagesSelect<true>;
@@ -653,6 +663,142 @@ export interface ImmigrationPolicy {
   internalNotes?: string | null;
   status: 'draft' | 'published';
   revision: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-groups".
+ */
+export interface PolicyGroup {
+  id: number;
+  contentKey: string;
+  revision: number;
+  activeFactVersion?: (number | null) | PolicyFactVersion;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-fact-versions".
+ */
+export interface PolicyFactVersion {
+  id: number;
+  group: number | PolicyGroup;
+  revision: number;
+  facts:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sourceRevision: number;
+  approvedBy: number;
+  contributors:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  overrideReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-fact-drafts".
+ */
+export interface PolicyFactDraft {
+  id: number;
+  group: number | PolicyGroup;
+  revision: number;
+  facts:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reviewState: 'draft' | 'review' | 'returned' | 'approved';
+  contributors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lastEditedBy?: number | null;
+  submittedBy?: number | null;
+  reviewNote?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-note-drafts".
+ */
+export interface PolicyNoteDraft {
+  id: number;
+  group: number | PolicyGroup;
+  locale: string;
+  revision: number;
+  title: string;
+  slug: string;
+  publicNotes?: string | null;
+  basedOnFactVersion?: (number | null) | PolicyFactVersion;
+  publishedNoteVersion?: (number | null) | PolicyNoteVersion;
+  needsReview: boolean;
+  reviewState: 'draft' | 'review' | 'returned' | 'approved';
+  contributors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lastEditedBy?: number | null;
+  submittedBy?: number | null;
+  reviewNote?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-note-versions".
+ */
+export interface PolicyNoteVersion {
+  id: number;
+  group: number | PolicyGroup;
+  locale: string;
+  revision: number;
+  title: string;
+  slug: string;
+  publicNotes?: string | null;
+  basedOnFactVersion: number | PolicyFactVersion;
+  sourceRevision: number;
+  approvedBy: number;
+  contributors:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  overrideReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1375,6 +1521,26 @@ export interface PayloadLockedDocument {
         value: number | ImmigrationPolicy;
       } | null)
     | ({
+        relationTo: 'policy-groups';
+        value: number | PolicyGroup;
+      } | null)
+    | ({
+        relationTo: 'policy-fact-drafts';
+        value: number | PolicyFactDraft;
+      } | null)
+    | ({
+        relationTo: 'policy-fact-versions';
+        value: number | PolicyFactVersion;
+      } | null)
+    | ({
+        relationTo: 'policy-note-drafts';
+        value: number | PolicyNoteDraft;
+      } | null)
+    | ({
+        relationTo: 'policy-note-versions';
+        value: number | PolicyNoteVersion;
+      } | null)
+    | ({
         relationTo: 'support-customers';
         value: number | SupportCustomer;
       } | null)
@@ -1812,6 +1978,89 @@ export interface ImmigrationPoliciesSelect<T extends boolean = true> {
   internalNotes?: T;
   status?: T;
   revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-groups_select".
+ */
+export interface PolicyGroupsSelect<T extends boolean = true> {
+  contentKey?: T;
+  revision?: T;
+  activeFactVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-fact-drafts_select".
+ */
+export interface PolicyFactDraftsSelect<T extends boolean = true> {
+  group?: T;
+  revision?: T;
+  facts?: T;
+  reviewState?: T;
+  contributors?: T;
+  lastEditedBy?: T;
+  submittedBy?: T;
+  reviewNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-fact-versions_select".
+ */
+export interface PolicyFactVersionsSelect<T extends boolean = true> {
+  group?: T;
+  revision?: T;
+  facts?: T;
+  sourceRevision?: T;
+  approvedBy?: T;
+  contributors?: T;
+  overrideReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-note-drafts_select".
+ */
+export interface PolicyNoteDraftsSelect<T extends boolean = true> {
+  group?: T;
+  locale?: T;
+  revision?: T;
+  title?: T;
+  slug?: T;
+  publicNotes?: T;
+  basedOnFactVersion?: T;
+  publishedNoteVersion?: T;
+  needsReview?: T;
+  reviewState?: T;
+  contributors?: T;
+  lastEditedBy?: T;
+  submittedBy?: T;
+  reviewNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-note-versions_select".
+ */
+export interface PolicyNoteVersionsSelect<T extends boolean = true> {
+  group?: T;
+  locale?: T;
+  revision?: T;
+  title?: T;
+  slug?: T;
+  publicNotes?: T;
+  basedOnFactVersion?: T;
+  sourceRevision?: T;
+  approvedBy?: T;
+  contributors?: T;
+  overrideReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }

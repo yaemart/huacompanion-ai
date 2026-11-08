@@ -15,6 +15,7 @@ import { zh } from "@payloadcms/translations/languages/zh";
 import { en } from "@payloadcms/translations/languages/en";
 import path from "node:path";
 import { contentCollections } from "./cms/content/collections";
+import { sharedPolicyCollections } from "./cms/immigration/shared-collections";
 import { ImmigrationPolicies } from "./cms/immigration/collections";
 import { collections } from "./cms/collections";
 const secret = process.env.PAYLOAD_SECRET;
@@ -46,6 +47,7 @@ export default buildConfig({
     ...collections,
     ...contentCollections,
     ImmigrationPolicies,
+    ...sharedPolicyCollections,
     ...supportCollections,
     ...voiceCollections,
     ...callCollections,
