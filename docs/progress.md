@@ -11,6 +11,8 @@
 
 - TDD：新增运行环境/数据模块缺失先RED，私网非规范地址断言先RED，旧演示集成因缺新人账号RED；补齐后5账号集成通过。先前类型夹具不完整、文案行长237及一次文案整理语法错误均修正后完整check225通过，未放宽门禁。浏览器日期fill未生效改用原生年/月/日键盘操作后成功，未把自动化限制当业务缺陷。
 
+- 独立全分支只读复核完成：无Critical/Important/Minor确定缺陷，未二次派审。复核者实跑diff/node语法/bash语法只读检查，不冒充再次运行数据库。截图附件连接器无上传能力，浏览器实核GitHub未登录；8份390/1440截图及私网回执保留本机，PR明确未上传，需登录后拖入，不提交Git。
+
 # 2026-11-08 下一阶段总指令归档（仅文档）
 
 - 从最新origin/main `3c419444c0f97caa3ef6937f8c41d01905607bd4`创建`codex/master-plan-docs`，起始工作区干净。新增总指令全文及三个附录文件：master-plan、editor-ux、staff-workbench、customer-fixes；仅统一Markdown排版，逐文件与附件经同一Prettier格式化后的文本完全一致。
