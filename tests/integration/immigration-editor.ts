@@ -6,6 +6,7 @@ import { readPolicyEditor } from "../../src/server/immigration/editor";
 import { mutateContent } from "../../src/server/content/service";
 import { readContentPreview } from "../../src/server/content/preview";
 import { policyFixture, policyFacts } from "../helpers/policy-workflow-fixture";
+import { policyVerificationDefaults } from "../../src/lib/immigration-policy-list";
 if (process.env.APP_ENV !== "local") throw Error("Local only");
 const p = await getPayload({ config });
 try {
@@ -15,6 +16,12 @@ try {
     const blank = await readPolicyEditor(p, editor);
     assert.equal(blank.draft, null);
     assert.equal(blank.policy.maxStayDays, null);
+    assert.equal(blank.policy.verifiedBy, editor.id);
+    assert.equal(
+      blank.policy.lastVerifiedOn,
+      policyVerificationDefaults(editor.id, new Date()).lastVerifiedOn,
+    );
+    assert.equal(blank.today, blank.policy.lastVerifiedOn);
     assert.ok(!blank.verifiers.some((person) => person.id === outsider.id));
     assert.ok(
       blank.verifiers.every((person) => Object.keys(person).sort().join(",") === "id,name"),
@@ -29,6 +36,32 @@ try {
     assert.equal(view.draft?.revision, draft.revision);
     assert.equal(view.policy.countryCode, "XY");
     assert.equal(view.policy.internalNotes, "Private verification fixture");
+    const row = view.policyRows.find((row) => row.id === draft.id);
+    assert.equal(row?.country, "虚构国家");
+    assert.equal(row?.lastVerifiedOn, "2026-01-01");
+    assert.ok(!JSON.stringify(row).includes("Private verification fixture"));
+    assert.equal(
+      view.policy.verifiedBy,
+      editor.id,
+      "Opening as another user keeps original verifier",
+    );
+    await p.update({
+      collection: "immigration-policies",
+      id: (draft.body as { policyRef: { id: number } }).policyRef.id,
+      data: { verifiedBy: null, lastVerifiedOn: null },
+    });
+    const incomplete = await readPolicyEditor(p, reviewer, draft.id);
+    assert.equal(incomplete.policy.verifiedBy, null);
+    assert.equal(
+      incomplete.policy.lastVerifiedOn,
+      null,
+      "Opening an old incomplete record never fills defaults",
+    );
+    await p.update({
+      collection: "immigration-policies",
+      id: (draft.body as { policyRef: { id: number } }).policyRef.id,
+      data: { verifiedBy: editor.id, lastVerifiedOn: "2026-01-01" },
+    });
     assert.ok(!JSON.stringify(view).includes("@example.invalid"));
     const oldRevision = draft.revision;
     let changed = false;
