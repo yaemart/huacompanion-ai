@@ -41,6 +41,7 @@ jobs:
       - run: node --import tsx tests/integration/public-navigation-render.tsx
       - run: node --import tsx tests/integration/public-footer-render.tsx
       - run: node --import tsx tests/integration/public-company-render.tsx
+      - run: node --import tsx tests/integration/exhibition-filters-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -132,6 +133,7 @@ jobs:
           npm run test:policies:page:http
           node --import tsx tests/integration/public-navigation-http.ts
           node --import tsx tests/integration/public-footer-http.ts
+          node --import tsx tests/integration/exhibition-filters-http.ts
           node --import tsx tests/integration/public-company-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=false npm run test:policies:notes:editor:http
