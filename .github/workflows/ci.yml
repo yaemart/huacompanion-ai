@@ -42,6 +42,7 @@ jobs:
       - run: node --import tsx tests/integration/public-footer-render.tsx
       - run: node --import tsx tests/integration/public-company-render.tsx
       - run: node --import tsx tests/integration/exhibition-filters-render.tsx
+      - run: node --import tsx tests/integration/intake-receipt-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -102,6 +103,7 @@ jobs:
           npm run test:customer
           npm run test:support
           node --import tsx tests/integration/public-company.ts
+          node --import tsx tests/integration/intake-receipt.ts
           npm run test:reporting
           npm run test:intake
           npm run test:trial
@@ -136,6 +138,7 @@ jobs:
           node --import tsx tests/integration/support-http.ts
           node --import tsx tests/integration/exhibition-filters-http.ts
           node --import tsx tests/integration/public-company-http.ts
+          node --import tsx tests/integration/intake-receipt-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=false npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http --disabled

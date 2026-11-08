@@ -2630,6 +2630,14 @@ export interface WorkflowSetting {
         | 'task-escalated'
       )[]
     | null;
+  /**
+   * 咨询保存成功后显示。留空使用默认文字；这是人工回复承诺，不会自动发邮件。
+   */
+  inquiryReplyZh?: string | null;
+  /**
+   * 咨询保存成功后显示。留空使用默认文字；修改后重新打开表单查看。
+   */
+  inquiryReplyEn?: string | null;
   emailEnabled?: boolean | null;
   escalationEnabled?: boolean | null;
   escalationHours?: number | null;
@@ -2736,6 +2744,8 @@ export interface SupportSettingsSelect<T extends boolean = true> {
  */
 export interface WorkflowSettingsSelect<T extends boolean = true> {
   enabledEvents?: T;
+  inquiryReplyZh?: T;
+  inquiryReplyEn?: T;
   emailEnabled?: T;
   escalationEnabled?: T;
   escalationHours?: T;
