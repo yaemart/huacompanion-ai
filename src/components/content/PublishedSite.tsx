@@ -42,18 +42,19 @@ export function PublishedSite({
       </a>
       <Header locale={locale} languagePaths={languagePaths} />
       <main id="main">
-        {section === "services" && (
-          <nav className="section tight" aria-label={publicText(locale, "Service directories")}>
-            {contents.some((d) => d.kind === "provider-profile") && (
-              <Link href={`/${locale}/providers`}>{publicText(locale, "Find providers")}</Link>
-            )}{" "}
-            {contents.some((d) => d.kind === "service-project") && (
-              <Link href={`/${locale}/services/projects`}>
-                {publicText(locale, "Hua service projects")}
-              </Link>
-            )}
-          </nav>
-        )}
+        {section === "services" &&
+          contents.some((d) => ["provider-profile", "service-project"].includes(d.kind)) && (
+            <nav className="section tight" aria-label={publicText(locale, "Service directories")}>
+              {contents.some((d) => d.kind === "provider-profile") && (
+                <Link href={`/${locale}/providers`}>{publicText(locale, "Find providers")}</Link>
+              )}{" "}
+              {contents.some((d) => d.kind === "service-project") && (
+                <Link href={`/${locale}/services/projects`}>
+                  {publicText(locale, "Hua service projects")}
+                </Link>
+              )}
+            </nav>
+          )}
         {section === "home" ? (
           <>
             <section className="section">

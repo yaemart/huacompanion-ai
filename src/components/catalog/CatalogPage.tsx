@@ -61,19 +61,29 @@ export function CatalogPage({
       </a>
       <Header locale={locale} languagePaths={languagePaths} />
       <main id="main" className="section">
-        <nav
-          aria-label={publicText(locale, "Service navigation")}
-          style={{
-            display: "flex",
-            gap: 20,
-            flexWrap: "wrap",
-            marginBottom: 30,
-          }}
-        >
-          <Link href={`/${locale}/services`}>{publicText(locale, "Service categories")}</Link>
-          <Link href={`/${locale}/providers`}>{publicText(locale, "Providers")}</Link>
-          <Link href={`/${locale}/services/projects`}>{publicText(locale, "Hua projects")}</Link>
-        </nav>
+        {items.some((d) => ["service", "provider-profile", "service-project"].includes(d.kind)) && (
+          <nav
+            aria-label={publicText(locale, "Service navigation")}
+            style={{
+              display: "flex",
+              gap: 20,
+              flexWrap: "wrap",
+              marginBottom: 30,
+            }}
+          >
+            {items.some((d) => ["service", "service-project"].includes(d.kind)) && (
+              <Link href={`/${locale}/services`}>{publicText(locale, "Service categories")}</Link>
+            )}
+            {items.some((d) => d.kind === "provider-profile") && (
+              <Link href={`/${locale}/providers`}>{publicText(locale, "Providers")}</Link>
+            )}
+            {items.some((d) => d.kind === "service-project") && (
+              <Link href={`/${locale}/services/projects`}>
+                {publicText(locale, "Hua projects")}
+              </Link>
+            )}
+          </nav>
+        )}
         {detail ? (
           <>
             <Link href={base}>← {title}</Link>

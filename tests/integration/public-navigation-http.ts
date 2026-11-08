@@ -117,7 +117,7 @@ try {
     overrideReason: "Fictional disposable D1 regression",
   });
   assert.ok((await page("/en/guides/" + guide.slug)).includes(`href="${target}"`));
-  assert.match(await page("/en/services/" + key), /Service directories/);
+  assert.doesNotMatch(await page("/en/services/" + key), /Service directories/);
   await mutateContent(p, admin, {
     action: "unpublish",
     overrideReason: "Fictional disposable D1 cleanup",

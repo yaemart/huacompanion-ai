@@ -94,3 +94,27 @@ assert.doesNotMatch(empty, /href="\/en\/guides\/test"/);
 console.log(
   "PASS navigation, bilingual feature gate, protected links and empty knowledge category rendering",
 );
+
+const { registerHooks } = await import("node:module");
+const css = registerHooks({
+  load(url, context, nextLoad) {
+    if (url.endsWith(".css")) return { format: "module", source: "export {}", shortCircuit: true };
+    return nextLoad(url, context);
+  },
+});
+const { CatalogPage } = await import("../../src/components/catalog/CatalogPage");
+css.deregister();
+const emptyCatalog = render(<CatalogPage items={[]} locale="en" kind="provider-profile" />);
+assert.doesNotMatch(emptyCatalog, /aria-label="Service navigation"/);
+const project = {
+  ...docs[0],
+  kind: "service-project" as const,
+  slug: "factory",
+  contentKey: "project",
+};
+const catalog = render(<CatalogPage items={[project]} locale="en" kind="provider-profile" />);
+const subnavigation =
+  catalog.match(/<nav aria-label="Service navigation"[\s\S]*?<\/nav>/)?.[0] || "";
+assert.match(subnavigation, /href="\/en\/services\/projects"/);
+assert.doesNotMatch(subnavigation, /href="\/en\/providers"/);
+console.log("PASS catalog subnavigation hides empty directories");
