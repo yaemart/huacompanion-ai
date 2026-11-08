@@ -35,7 +35,7 @@ async function draftFor(p: Payload, req: Req, groupId: number) {
   if (!draft) throw new ContentError("政策事实工作稿不存在", 404);
   return draft;
 }
-async function versionsFor(p: Payload, req: Req, group: number, limit = 50) {
+export async function versionsFor(p: Payload, req: Req, group: number, limit = 50) {
   return (
     await p.find({
       collection: "policy-fact-versions",

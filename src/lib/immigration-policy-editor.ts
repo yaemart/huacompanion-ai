@@ -21,7 +21,7 @@ export const policyLabels = {
   publicNotes: "公开政策说明",
   internalNotes: "内部核实备注（不公开）",
 } as const;
-export function policyForm(record?: ImmigrationPolicy): PolicyForm {
+export function policyForm(record?: Partial<ImmigrationPolicy>): PolicyForm {
   return {
     ...Object.fromEntries(policyFields.map((key) => [key, record?.[key] ?? null])),
     portsAndRegions: (record?.portsAndRegions || []).map((row) => row.label),

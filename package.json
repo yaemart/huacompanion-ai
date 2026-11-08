@@ -99,7 +99,9 @@
     "local:reset": "bash start.command reset",
     "test:policies:shared:foundation": "node --import tsx tests/integration/policy-shared-foundation.ts",
     "test:policies:facts:review": "node --import tsx tests/integration/policy-fact-review.ts",
-    "test:policies:notes:review": "node --import tsx tests/integration/policy-note-review.ts"
+    "test:policies:notes:review": "node --import tsx tests/integration/policy-note-review.ts",
+    "test:policies:shared:editor": "node --import tsx tests/integration/policy-shared-editor.ts",
+    "test:policies:shared:editor:http": "node --import tsx tests/integration/policy-shared-editor-http.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",

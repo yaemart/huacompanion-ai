@@ -11,14 +11,19 @@ export function PolicyFields({
   onChange,
   verifiers,
   countries,
+  shared = false,
 }: {
   value: PolicyForm;
   onChange: (value: PolicyForm) => void;
   verifiers: { id: number; name: string }[];
   countries: PolicyCountry[];
+  shared?: boolean;
 }) {
   const transit = value.policyType === "transit-240h";
-  const visible = fields.filter(([key]) => key !== (transit ? "maxStayDays" : "maxStayHours"));
+  const visible = fields.filter(
+    ([key]) =>
+      key !== (transit ? "maxStayDays" : "maxStayHours") && !(shared && key === "publicNotes"),
+  );
   function set<K extends keyof PolicyForm>(key: K, next: PolicyForm[K]) {
     onChange(
       key === "maxStayHours"

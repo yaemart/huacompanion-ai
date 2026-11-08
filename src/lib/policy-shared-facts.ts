@@ -4,6 +4,7 @@ import {
   type PolicyPublicationData,
   type PublicPolicyData,
 } from "./immigration-policy.ts";
+import { policyDraft } from "./immigration-policy-draft.ts";
 import { assertPolicyCountry } from "./immigration-policy-entry.ts";
 export type SharedPolicyFacts = Omit<
   PolicyPublicationData,
@@ -58,5 +59,9 @@ export function sharedFactDraft(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw Error("事实草稿格式无效");
   if (Object.keys(value).some((key) => !fields.includes(key)))
     throw Error("事实草稿不能包含语言说明或未知字段");
+  const { maximumStay, stayUnit, ...draft } = value as Record<string, unknown>;
+  if (stayUnit != null && stayUnit !== "days" && stayUnit !== "hours")
+    throw Error("停留单位只接受天或小时");
+  policyDraft({ ...draft, maxStayDays: maximumStay ?? null });
   return structuredClone(value as Record<string, unknown>);
 }

@@ -80,3 +80,22 @@ test("shared fact drafts reject hidden fields and clone incomplete facts without
   (result.portsAndRegions as string[]).push("new");
   assert.deepEqual(value.portsAndRegions, ["fictional"]);
 });
+
+test("incomplete shared drafts reject malformed field types before editor hydration", async () => {
+  const { sharedFactDraft } = await import("../src/lib/policy-shared-facts.ts");
+  for (const value of [
+    { maximumStay: "240" },
+    { maximumStay: {} },
+    { verifiedBy: {} },
+    { portsAndRegions: [null] },
+    { portsAndRegions: {} },
+    { countryNameZh: {} },
+    { stayUnit: "minutes" },
+  ])
+    assert.throws(() => sharedFactDraft(value));
+  assert.deepEqual(sharedFactDraft({ maximumStay: null, stayUnit: null, portsAndRegions: [] }), {
+    maximumStay: null,
+    stayUnit: null,
+    portsAndRegions: [],
+  });
+});

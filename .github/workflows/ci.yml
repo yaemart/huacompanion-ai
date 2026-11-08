@@ -104,6 +104,7 @@ jobs:
           npm run test:policies:shared:foundation
           npm run test:policies:facts:review
           npm run test:policies:notes:review
+          npm run test:policies:shared:editor
           npm run test:policies:editor
           npm run test:policies:entry
           npm run test:policies:stay
@@ -122,6 +123,7 @@ jobs:
           policy_server_pid=$!
           trap 'kill "$policy_server_pid" 2>/dev/null || true' EXIT
           npm run test:policies:page:http
+          VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
           npm run test:policies:banner -- --http --disabled
           npm run test:policies:seo
           kill "$policy_server_pid"
@@ -129,6 +131,7 @@ jobs:
           APP_ENV=trial VISA_CHECKER_ENABLED=true SITE_LOCALES=en,zh,es,fr,de,it,ar node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
           policy_server_pid=$!
           npm run test:policies:page:http -- --enabled
+          VISA_CHECKER_ENABLED=true npm run test:policies:shared:editor:http
           npm run test:policies:banner -- --http
           npm run test:policies:seo -- --enabled
       - name: Verify restricted trial gate and maintenance
