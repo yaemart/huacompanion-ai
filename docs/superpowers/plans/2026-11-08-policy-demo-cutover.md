@@ -1,6 +1,6 @@
 # 共用政策：受保护演示切换
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 在已确认8条虚构政策范围内完成演示重建，默认政策入口切到新事实／说明编辑器，保持非政策数据。
 
@@ -33,8 +33,8 @@
 
 **Interfaces:** cleanup函数接固定批准范围的行指纹manifest和管理员ID，校验本地专用库、固定闭包、额外引用和管理员，在同一事务锁内比较并删除／审计；重复运行有审计且旧范围空才返回已完成。运行器仅从既有demo状态取得凭据，无任意目标参数。重建独立通过既有事实／说明保存服务，不调用publish；首次存稿后再启动不修改已有稿。新事实默认入口沿用/content-center?kind=immigration-policy重定向。顺带补上PR31轻微待办国家代码／政策类型。
 
-- [ ] RED→GREEN：保护范围／真实库拒绝、固定ID正文改变／新增引用拒绝、审计故障回滚、幂等、不改非政策；种子草稿4组8语、240小时／过期／固定截止、重试不覆盖、公开空且无自动批准。
-- [ ] 本机同快照备份恢复／随机c6演练、显式迁移保护触发器、源范围及非政策原列指纹。
-- [ ] check、相关新旧串行集成、生产构建／HTTP／权限；一次独立整分支复核，Important/Critical仅一次RED→GREEN修复。
-- [ ] 源停写再盘点，备份恢复验证，原批准范围一致才执行清理、迁移、草稿重建；浏览器运营／审核人明确发布样例并验E1–E4、虚构C1–C3、窄屏；不冒称真国／新人／真机。
-- [ ] 一页中文小结、实际记录和指南更新，check后提交推送唯一草稿PR，fetch确认head及CI，保留备份清理自建临时副本。
+- [x] RED→GREEN：保护范围／真实库拒绝、固定ID正文改变／新增引用拒绝、审计故障回滚、幂等、不改非政策；种子草稿4组8语、240小时／过期／固定截止、重试不覆盖、公开空且无自动批准。
+- [x] 本机同快照备份恢复／随机c6演练、显式迁移保护触发器、源范围及非政策原列指纹。
+- [x] check、相关新旧串行集成、生产构建／HTTP／权限；一次独立整分支复核，Important/Critical仅一次RED→GREEN修复。
+- [x] 源停写再盘点，备份恢复验证，原批准范围一致才执行清理、迁移、草稿重建；浏览器运营／审核人明确发布样例并验E1–E4、虚构C1–C3、窄屏；不冒称真国／新人／真机。
+- [x] 一页中文小结、实际记录和指南更新，check后提交推送唯一草稿PR，fetch确认head及CI，保留备份清理自建临时副本。
