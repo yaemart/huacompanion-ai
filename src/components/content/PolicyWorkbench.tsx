@@ -5,6 +5,7 @@ import type { ContentBody } from "@/lib/content-model";
 import type { PolicyEditorData } from "@/server/immigration/editor";
 import { policyForm, policyFormInput } from "@/lib/immigration-policy-editor";
 import { PolicyFields } from "./PolicyFields";
+import { PolicyList } from "./PolicyList";
 const blank = (): ContentBody => ({
   kind: "immigration-policy",
   locale: "en",
@@ -14,7 +15,6 @@ const blank = (): ContentBody => ({
   blocks: [],
   sources: [],
 });
-const states = { draft: "草稿", review: "待审核", returned: "已退回", approved: "已审核快照" };
 async function json<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: "no-store", ...init });
   const data = (await response.json()) as T & { error?: string };
@@ -130,7 +130,7 @@ export function PolicyWorkbench() {
       <h1>入境政策工作台</h1>
       <p>人工核实后提交审核。此处管理工作稿与审核快照，公开查询工具尚未开放。</p>
       <p role="status">{message || (busy ? "正在读取…" : "")}</p>
-      <div className="workspace">
+      <div className="workspace policy-workspace">
         <aside className="panel">
           <button
             disabled={busy || dirty || !permissions?.canEdit}
@@ -141,19 +141,15 @@ export function PolicyWorkbench() {
           <button disabled={busy} onClick={() => run(async () => apply(await read(draft?.id)))}>
             {dirty ? "放弃未保存修改，重新读取" : "重新读取已保存稿"}
           </button>
-          {desk?.drafts.map((row) => (
-            <button
-              className="item"
-              key={row.id}
+          {desk && (
+            <PolicyList
+              rows={desk.policyRows}
+              today={desk.today}
+              selectedId={draft?.id}
               disabled={busy || dirty}
-              onClick={() => run(async () => apply(await read(row.id)))}
-            >
-              {row.title}
-              <small>
-                {row.locale} · {states[row.reviewState]} · 修订{row.revision}
-              </small>
-            </button>
-          ))}
+              onSelect={(id) => run(async () => apply(await read(id)))}
+            />
+          )}
         </aside>
         <section className="panel">
           <fieldset disabled={busy || !editable} style={{ border: 0, padding: 0 }}>

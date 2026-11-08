@@ -2,6 +2,7 @@ import type { Payload } from "payload";
 import { canAccessContentKind, canReviewContent, isAdmin } from "../../cms/access";
 import { canEditContent, type ContentUser } from "../../lib/content-model";
 import { policyForm } from "../../lib/immigration-policy-editor";
+import { policyListRow, policyVerificationDefaults } from "../../lib/immigration-policy-list";
 import { ContentError, contentTransaction } from "../content/service";
 import { policyActor, referencedPolicy } from "./workflow";
 export async function readPolicyEditor(p: Payload, user: ContentUser, id?: number) {
@@ -34,6 +35,29 @@ export async function readPolicyEditor(p: Payload, user: ContentUser, id?: numbe
     const draft = id === undefined ? null : drafts.docs.find((row) => row.id === id);
     if (draft === undefined) throw new ContentError("工作稿不存在或无权限", 404);
     const record = draft ? await referencedPolicy(p, req, draft) : undefined;
+    const records = drafts.docs.length
+      ? (
+          await p.find({
+            collection: "immigration-policies",
+            where: { policyKey: { in: drafts.docs.map((row) => row.identity) } },
+            pagination: false,
+            depth: 0,
+            req,
+            select: {
+              policyKey: true,
+              revision: true,
+              countryNameZh: true,
+              countryNameEn: true,
+              countryCode: true,
+              policyType: true,
+              validUntil: true,
+              lastVerifiedOn: true,
+            },
+          })
+        ).docs
+      : [];
+    const facts = new Map(records.map((row) => [row.policyKey, row]));
+    const defaults = policyVerificationDefaults(actor.id, new Date());
     const people = await p.find({
       collection: "staff",
       pagination: false,
@@ -43,8 +67,10 @@ export async function readPolicyEditor(p: Payload, user: ContentUser, id?: numbe
     });
     return {
       drafts: drafts.docs,
+      policyRows: drafts.docs.map((row) => policyListRow(row, facts.get(row.identity))),
+      today: defaults.lastVerifiedOn,
       draft,
-      policy: policyForm(record),
+      policy: { ...policyForm(record), ...(!draft ? defaults : {}) },
       verifiers: people.docs
         .filter((person) => canAccessContentKind(person, "immigration-policy"))
         .map(({ id, name }) => ({ id, name })),

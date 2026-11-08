@@ -51,6 +51,9 @@ try {
     const empty = (await blank.json()) as PolicyEditorData;
     assert.equal(empty.draft, null);
     assert.equal(empty.policy.maxStayDays, null);
+    assert.equal(empty.policy.verifiedBy, editor.id);
+    assert.equal(empty.policy.lastVerifiedOn, empty.today);
+    assert.ok(Array.isArray(empty.policyRows));
     assert.ok(empty.verifiers.every((v) => Object.keys(v).sort().join(",") === "id,name"));
     const draft = await mutateContent(p, editor, {
       action: "save",
