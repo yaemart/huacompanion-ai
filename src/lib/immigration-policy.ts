@@ -13,7 +13,6 @@ type PublicationFields = Pick<
   | "countryNameEn"
   | "countryNameZh"
   | "policyType"
-  | "maxStayDays"
   | "validFrom"
   | "officialSourceUrl"
   | "lastVerifiedOn"
@@ -24,6 +23,8 @@ type PublicationFields = Pick<
 export type PolicyPublicationData = {
   [Key in keyof PublicationFields]-?: NonNullable<PublicationFields[Key]>;
 } & {
+  maxStayDays?: ImmigrationPolicy["maxStayDays"];
+  maxStayHours?: ImmigrationPolicy["maxStayHours"];
   validUntil?: ImmigrationPolicy["validUntil"];
   portsAndRegions: NonNullable<ImmigrationPolicy["portsAndRegions"]>[number]["label"][];
   verifiedBy: Extract<ImmigrationPolicy["verifiedBy"], number>;
@@ -58,12 +59,12 @@ export function validatePublicPolicy(
   if (!text(data.countryNameEn, 100) || !text(data.countryNameZh, 100))
     throw Error("请填写中英文国家名称");
   if (!policyTypes.some((type) => type === data.policyType)) throw Error("政策类型无效");
-  if (
-    typeof data.maxStayDays !== "number" ||
-    !Number.isSafeInteger(data.maxStayDays) ||
-    data.maxStayDays < 1
-  )
-    throw Error("最长停留天数必须为正整数");
+  const hours = data.policyType === "transit-240h" && data.maxStayHours != null;
+  const duration = hours ? data.maxStayHours : data.maxStayDays;
+  if (typeof duration !== "number" || !Number.isSafeInteger(duration) || duration < 1)
+    throw Error(hours ? "最长停留小时必须为正整数" : "最长停留天数必须为正整数");
+  if (data.policyType !== "transit-240h" && data.maxStayHours != null)
+    throw Error("非过境政策请填写天数，不使用小时");
   if (!isPolicyCalendarDate(data.validFrom) || !isPolicyCalendarDate(data.lastVerifiedOn))
     throw Error("生效日及最后核实日期需为有效日历日");
   if (
@@ -113,6 +114,7 @@ export function publicPolicy(data: PublicPolicyData): PublicPolicyData {
     countryNameZh: data.countryNameZh,
     policyType: data.policyType,
     maxStayDays: data.maxStayDays,
+    ...(data.maxStayHours != null ? { maxStayHours: data.maxStayHours } : {}),
     validFrom: data.validFrom,
     validUntil: data.validUntil ?? null,
     portsAndRegions: [...data.portsAndRegions],

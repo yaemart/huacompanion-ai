@@ -31,19 +31,20 @@ export function PolicyQuery({
   const [country, setCountry] = React.useState("");
   const [date, setDate] = React.useState("");
   const [result, setResult] = React.useState<QueryResult | null>(null);
+  const [referenceOpen, setReferenceOpen] = React.useState(true);
   const countries = React.useMemo(
     () => policyCountryOptions(policies, verifiedOnOrBefore, locale),
     [policies, verifiedOnOrBefore, locale],
   );
   const c = policyFormCopy[locale];
   function runQuery() {
-    setResult(
-      queryImmigrationPolicies(
-        { nationalityISO: country === "__unlisted__" ? null : country, arrivalDate: date },
-        policies,
-        { verifiedOnOrBefore, visaGuide },
-      ),
+    const next = queryImmigrationPolicies(
+      { nationalityISO: country === "__unlisted__" ? null : country, arrivalDate: date },
+      policies,
+      { verifiedOnOrBefore, visaGuide },
     );
+    setResult(next);
+    setReferenceOpen(next.status === "invalid-input");
   }
   const countryError = result?.errors.includes("nationalityISO");
   const dateError = result?.errors.includes("arrivalDate");
@@ -68,6 +69,7 @@ export function PolicyQuery({
             onChange={(event) => {
               setCountry(event.target.value);
               setResult(null);
+              setReferenceOpen(true);
             }}
           >
             <option value="">{c.choose}</option>
@@ -92,6 +94,7 @@ export function PolicyQuery({
             onChange={(event) => {
               setDate(event.target.value);
               setResult(null);
+              setReferenceOpen(true);
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -115,7 +118,8 @@ export function PolicyQuery({
       {children && (
         <details
           className="policy-full-reference"
-          open={result === null || result.status === "invalid-input"}
+          open={referenceOpen}
+          onToggle={(event) => setReferenceOpen(event.currentTarget.open)}
         >
           <summary>{c.reference}</summary>
           {children}

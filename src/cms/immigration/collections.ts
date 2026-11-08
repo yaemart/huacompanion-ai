@@ -42,7 +42,8 @@ export const ImmigrationPolicies: CollectionConfig = {
       type: "select",
       options: policyTypes.map((value, index) => ({ label: labels[index], value })),
     },
-    { name: "maxStayDays", label: "最长停留天数", type: "number", min: 1 },
+    { name: "maxStayDays", label: "最长停留（天）", type: "number", min: 1 },
+    { name: "maxStayHours", label: "最长停留（小时）", type: "number", min: 1 },
     {
       name: "validFrom",
       label: "生效日",

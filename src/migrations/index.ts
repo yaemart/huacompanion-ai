@@ -1,3 +1,4 @@
+import * as migration_20261108_120000_policy_stay_hours from "./20261108_120000_policy_stay_hours";
 import * as migration_20261026_233245_initial_backend from "./20261026_233245_initial_backend";
 import * as migration_20261026_233703_intake_limits from "./20261026_233703_intake_limits";
 import * as migration_20261027_000251_content_center from "./20261027_000251_content_center";
@@ -155,5 +156,10 @@ export const migrations = [
     up: migration_20261102_050750_visa_search.up,
     down: migration_20261102_050750_visa_search.down,
     name: "20261102_050750_visa_search",
+  },
+  {
+    up: migration_20261108_120000_policy_stay_hours.up,
+    down: migration_20261108_120000_policy_stay_hours.down,
+    name: "20261108_120000_policy_stay_hours",
   },
 ];

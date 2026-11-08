@@ -5,6 +5,7 @@ export const policyFields = [
   "countryNameZh",
   "policyType",
   "maxStayDays",
+  "maxStayHours",
   "validFrom",
   "validUntil",
   "portsAndRegions",
@@ -30,7 +31,7 @@ export function policyDraft(value: unknown): PolicyEdits {
       )
         throw Error("政策口岸条件无效");
       out[key] = field.map((label: string) => ({ label }));
-    } else if (["maxStayDays", "verifiedBy"].includes(key)) {
+    } else if (["maxStayDays", "maxStayHours", "verifiedBy"].includes(key)) {
       if (field != null && (typeof field !== "number" || !Number.isSafeInteger(field) || field < 1))
         throw Error("政策数值无效");
       out[key] = field;
