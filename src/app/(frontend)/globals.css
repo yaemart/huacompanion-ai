@@ -2665,3 +2665,9 @@ html[dir="rtl"] .guide-copy {
     overflow: auto;
   }
 }
+
+.public-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

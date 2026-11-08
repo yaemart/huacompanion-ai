@@ -1,4 +1,5 @@
 "use client";
+import { publishedGuideSections } from "../../lib/public-navigation";
 import type { Locale } from "@/lib/locales";
 import { publicText, resultText } from "@/lib/public-copy";
 import { useState } from "react";
@@ -7,7 +8,7 @@ import Link from "next/link";
 import { contentSections, sectionFor } from "@/lib/content-sections";
 import type { ContentBody } from "@/lib/content-model";
 export function PublishedGuides({ items, locale }: { items: ContentBody[]; locale: Locale }) {
-  items = items.filter((d) => d.locale === locale);
+  items = items.filter((d) => d.locale === locale && d.kind === "guide");
   const params = useSearchParams();
   const router = useRouter();
   const section = contentSections.find((s) => s.key === params.get("section"))?.id || 0;
@@ -53,7 +54,7 @@ export function PublishedGuides({ items, locale }: { items: ContentBody[]; local
         </button>
       </div>
       <div className="guide-grid" style={{ marginBottom: 32 }}>
-        {contentSections.map((s) => (
+        {publishedGuideSections(items, locale).map((s) => (
           <button
             key={s.id}
             aria-pressed={section === s.id}
@@ -73,7 +74,7 @@ export function PublishedGuides({ items, locale }: { items: ContentBody[]; local
             <strong>{s[locale]}</strong>
             <p>{s.description[locale]}</p>
             <small>
-              {items.filter((d) => sectionFor(d) === s.id).length} {publicText(locale, "published")}
+              {s.count} {publicText(locale, "published")}
             </small>
           </button>
         ))}

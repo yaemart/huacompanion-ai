@@ -38,6 +38,7 @@ jobs:
       - run: npm run test:policies:banner:render
       - run: node --import tsx tests/integration/immigration-entry-render.tsx
       - run: node --import tsx tests/integration/immigration-stay-render.tsx
+      - run: node --import tsx tests/integration/public-navigation-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -126,6 +127,7 @@ jobs:
           policy_server_pid=$!
           trap 'kill "$policy_server_pid" 2>/dev/null || true' EXIT
           npm run test:policies:page:http
+          node --import tsx tests/integration/public-navigation-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=false npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http --disabled
@@ -135,6 +137,7 @@ jobs:
           APP_ENV=trial VISA_CHECKER_ENABLED=true SITE_LOCALES=en,zh,es,fr,de,it,ar node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/hua-policy-web.log 2>&1 &
           policy_server_pid=$!
           npm run test:policies:page:http -- --enabled
+          VISA_CHECKER_ENABLED=true node --import tsx tests/integration/public-navigation-http.ts --enabled
           VISA_CHECKER_ENABLED=true npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=true npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http
