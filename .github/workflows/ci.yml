@@ -38,6 +38,7 @@ jobs:
       - run: npm run test:policies:banner:render
       - run: node --import tsx tests/integration/immigration-entry-render.tsx
       - run: node --import tsx tests/integration/immigration-stay-render.tsx
+      - run: npm run test:policies:notes:editor:render
 
   database:
     name: Migrations, build and integration
@@ -105,6 +106,7 @@ jobs:
           npm run test:policies:facts:review
           npm run test:policies:notes:review
           npm run test:policies:shared:editor
+          npm run test:policies:notes:editor
           npm run test:policies:editor
           npm run test:policies:entry
           npm run test:policies:stay
@@ -124,6 +126,7 @@ jobs:
           trap 'kill "$policy_server_pid" 2>/dev/null || true' EXIT
           npm run test:policies:page:http
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
+          VISA_CHECKER_ENABLED=false npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http --disabled
           npm run test:policies:seo
           kill "$policy_server_pid"
@@ -132,6 +135,7 @@ jobs:
           policy_server_pid=$!
           npm run test:policies:page:http -- --enabled
           VISA_CHECKER_ENABLED=true npm run test:policies:shared:editor:http
+          VISA_CHECKER_ENABLED=true npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http
           npm run test:policies:seo -- --enabled
       - name: Verify restricted trial gate and maintenance

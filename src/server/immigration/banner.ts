@@ -1,4 +1,6 @@
-import type { Payload } from "payload";
+import type { Payload, PayloadRequest } from "payload";
+import { contentTransaction } from "../content/service";
+import { sharedPolicyBanner } from "./shared-banner";
 import { visaCheckerEnabled } from "../../lib/immigration-policy-flags.ts";
 import { parsePolicyBannerBlock, derivePolicyBanner } from "../../lib/immigration-policy-banner.ts";
 
@@ -6,8 +8,21 @@ import { parsePolicyBannerBlock, derivePolicyBanner } from "../../lib/immigratio
 export async function readPolicyBanner(p: Payload, block: unknown, locale: string, asOf: string) {
   const ref = parsePolicyBannerBlock(block);
   if (!visaCheckerEnabled() || !["en", "zh"].includes(locale) || !ref) return null;
+  return contentTransaction(p, async (req) => {
+    const shared = await sharedPolicyBanner(p, req, ref.key, asOf, ref.unconfirmed);
+    return shared === undefined ? legacyBanner(p, ref, locale, asOf, req) : shared;
+  });
+}
+async function legacyBanner(
+  p: Payload,
+  ref: NonNullable<ReturnType<typeof parsePolicyBannerBlock>>,
+  locale: string,
+  asOf: string,
+  req: Partial<PayloadRequest>,
+) {
   const rows = await p.find({
     collection: "content-published",
+    req,
     where: { active: { equals: true } },
     pagination: false,
     depth: 0,
@@ -30,6 +45,7 @@ export async function readPolicyBanner(p: Payload, block: unknown, locale: strin
   if (current) return current;
   const events = await p.find({
     collection: "content-events",
+    req,
     depth: 0,
     overrideAccess: true,
     limit: 1,

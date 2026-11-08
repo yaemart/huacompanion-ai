@@ -36,7 +36,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
     setDirty(true);
     setChecked(false);
   }
-  async function action(action: SharedFactInput["action"]) {
+  async function action(action: SharedFactInput["action"], versionId?: number) {
     setBusy(true);
     setMessage("");
     try {
@@ -51,6 +51,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
+          versionId,
           groupId: group?.id,
           revision: draft?.revision,
           contentKey: key,
@@ -73,7 +74,19 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
       <h1>政策共用事实</h1>
-      <p>国家、停留、日期、口岸与来源只填一次。发布事实会让两语说明待复核；说明界面随后接入。</p>
+      <p>国家、停留、日期、口岸与来源只填一次。发布事实会让两语说明待复核。</p>
+      {group &&
+        ["zh", "en"].map((locale) => (
+          <button
+            key={locale}
+            disabled={busy || dirty}
+            onClick={() =>
+              window.location.assign(`/content-center/policy-facts?id=${group.id}&locale=${locale}`)
+            }
+          >
+            {locale === "zh" ? "中文" : "英文"}公开说明
+          </button>
+        ))}
       <p role="status">{busy ? "处理中…" : message}</p>
       <div className="workspace policy-workspace">
         <aside className="panel">
@@ -159,7 +172,16 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               {label}
             </button>
           ))}
-          <p>已发布历史：{desk.versions.map((v) => `第 ${v.revision} 版`).join("、") || "暂无"}</p>
+          <p>历史另存只生成新草稿，仍需重新审核。</p>
+          {desk.versions.map((v) => (
+            <button
+              key={v.id}
+              disabled={busy || dirty || !editable}
+              onClick={() => action("restore", v.id)}
+            >
+              另存第 {v.revision} 版为草稿
+            </button>
+          ))}
         </section>
       </div>
     </main>
