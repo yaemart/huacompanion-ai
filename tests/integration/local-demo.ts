@@ -43,8 +43,11 @@ try {
     counts[kind] = (
       await p.count({ collection: "content-drafts", where: { kind: { equals: kind } } })
     ).totalDocs;
-    assert.equal(counts[kind], kind === "guide" ? 12 : kind === "exhibition" ? 6 : 8);
+    assert.equal(counts[kind], kind === "guide" ? 12 : kind === "exhibition" ? 6 : 0);
   }
+  assert.equal((await p.count({ collection: "policy-groups" })).totalDocs, 4);
+  assert.equal((await p.count({ collection: "policy-fact-drafts" })).totalDocs, 4);
+  assert.equal((await p.count({ collection: "policy-note-drafts" })).totalDocs, 8);
   const all = await p.find({ collection: "inquiries", pagination: false, depth: 0 });
   assert.equal(all.totalDocs, 5);
   const own = await p.find({ collection: "inquiries", user: operations, overrideAccess: false });
@@ -87,7 +90,7 @@ try {
       pagination: false,
     })
   ).docs;
-  assert.equal(published.length, 38);
+  assert.equal(published.length, 32);
   for (const snapshot of published) {
     const current = await p.findByID({ collection: "content-drafts", id: snapshot.draftId });
     assert.equal(current.submittedBy, operations.id);
@@ -137,7 +140,14 @@ try {
   assert.ok(quotes.docs.every((q) => q.status === "draft" && !q.aiTask && !q.reviewStatus));
   assert.ok(admin.id);
   console.log(
-    JSON.stringify({ passed: true, fiveAccounts: true, counts, inquiries: 5, published: 38 }),
+    JSON.stringify({
+      passed: true,
+      fiveAccounts: true,
+      counts,
+      inquiries: 5,
+      published: 32,
+      sharedPolicyGroups: 4,
+    }),
   );
 } finally {
   await cleanupSelfCheck();

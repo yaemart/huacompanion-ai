@@ -38,6 +38,10 @@ export function assertDemo(state) {
     throw Error("拒绝操作：不是本工具的独立演示数据库。");
   }
 }
+export function assertPolicyDemoReady(state) {
+  if (state.seeded && state.policySeedVersion !== 1)
+    throw Error("旧演示政策需先受保护升级；不要reset，请按交接完成备份和精确清理。");
+}
 export function demoEnvironment(state, app, inherited = process.env, host = "127.0.0.1") {
   assertDemo(state);
   return {
@@ -60,6 +64,7 @@ export function demoEnvironment(state, app, inherited = process.env, host = "127
     SUPPORT_CALL_AI_ENABLED: "false",
     NEXT_TELEMETRY_DISABLED: "1",
     DISABLE_PAYLOAD_HMR: "true",
+    HUA_DEMO_SCHEMA_PUSH: "false",
     HUA_DEMO_ROOT: resolve(app, ".."),
     DOTENV_CONFIG_PATH: resolve(app, ".env.demo-unused"),
   };

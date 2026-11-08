@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { assertDemo } from "./lib/demo-environment.mjs";
+import { seedSharedPolicyDemo } from "./lib/policy-demo-seed";
 import { demoEntries } from "./lib/demo-fixtures";
 import type { Staff } from "../payload-types";
 const state = JSON.parse(
@@ -44,7 +45,7 @@ try {
   }
   await configureTrial(p, process.env, true);
   const today = shanghaiToday();
-  for (const entry of demoEntries(today, people.reviewer.id)) {
+  for (const entry of demoEntries(today)) {
     const body = entry.body;
     let draft = (
       await p.find({
@@ -56,7 +57,6 @@ try {
       draft = await mutateContent(p, people.operations, {
         action: "save",
         body,
-        ...(entry.policy ? { policy: entry.policy } : {}),
       });
     if (draft.reviewState === "draft")
       draft = await mutateContent(p, people.operations, {
@@ -73,6 +73,7 @@ try {
         exhibitionReviewed: true,
       });
   }
+  await seedSharedPolicyDemo(p, people.operations, today);
   const statuses = ["new", "needs-info", "processing", "closed", "new"] as const;
   for (let n = 1; n <= 5; n++) {
     const reference = `DEMO-INQUIRY-${n}`;
@@ -162,7 +163,7 @@ try {
     });
   }
   console.log(
-    "新版演示已载入：5页、3服务、5指南、3展会、3政策双语发布，政策及指南各1条待审；5咨询3申请2服务单2人工草稿5账号。真正待审核报价留待F。",
+    "新版演示已载入：5页、3服务、5指南、3展会、4组政策及8语说明草稿（须人工二审发布），指南1条待审；5咨询3申请2服务单2人工草稿5账号。真正待审核报价留待F。",
   );
 } finally {
   await p.destroy();

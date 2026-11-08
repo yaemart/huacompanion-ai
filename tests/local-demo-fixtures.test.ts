@@ -4,7 +4,7 @@ import { demoEntries } from "../scripts/lib/demo-fixtures.ts";
 import { validateContent } from "../src/lib/content-model.ts";
 
 test("demo material includes paired published pages, services, guides and exhibitions", () => {
-  const entries = demoEntries("2026-11-08", 1);
+  const entries = demoEntries("2026-11-08");
   for (const entry of entries) {
     validateContent(entry.body);
     assert.match(entry.body.title, /演示|DEMO/);
@@ -24,21 +24,8 @@ test("demo material includes paired published pages, services, guides and exhibi
     assert.ok(
       entries.some((e) => e.body.locale === locale && e.body.kind === "guide" && !e.publish),
     );
-    assert.ok(
-      entries.some(
-        (e) => e.body.locale === locale && e.body.kind === "immigration-policy" && !e.publish,
-      ),
-    );
   }
 });
-test("fictional policy seeds cover transit, expired and fixed unconfirmed dates without real nationalities", () => {
-  const policies = demoEntries("2026-11-08", 1)
-    .filter((e) => e.publish && e.policy && e.body.locale === "zh")
-    .map((e) => e.policy!);
-  assert.ok(policies.every((p) => !["DE", "US"].includes(p.countryCode)));
-  assert.equal(policies.find((p) => p.countryCode === "XY")?.validUntil, "2026-12-31");
-  const transit = policies.find((p) => p.countryCode === "XZ");
-  assert.equal(transit?.policyType, "transit-240h");
-  assert.match(transit?.publicNotes || "", /第三国/);
-  assert.ok(policies.some((p) => p.validUntil! < "2026-11-08"));
+test("general demo seeding never recreates legacy language policy records", () => {
+  assert.ok(demoEntries("2026-11-08").every((e) => e.body.kind !== "immigration-policy"));
 });
