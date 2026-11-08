@@ -40,4 +40,4 @@
 - [x] 说明SSR先RED再实现：事实只读、语言身份／高级标识、数值提示、待复核／缺事实、只读角色、禁自审、历史按钮状态及原文保留。
 - [x] HTTP验证新路由权限、Origin、locale、revision／factVersion冲突、畸形／过大JSON、no-store和开关默认404，显式测试开关不依赖本机配置。
 - [x] 浏览器两语独立编辑／审核／事实变更提示／历史另存，桌面和390窄屏；截图忽略目录，未上传明确说明，不冒称真机／新人计时。
-- [ ] check、相关新旧串行集成、生产构建及开关HTTP、配套恢复；一次独立全分支复核，Important/Critical单次RED→GREEN修复，提交唯一草稿PR并核对远端和对应head CI。
+- [x] check、相关新旧串行集成、生产构建及开关HTTP、配套恢复；一次独立全分支复核，Important/Critical单次RED→GREEN修复，提交唯一草稿PR并核对远端和对应head CI。
