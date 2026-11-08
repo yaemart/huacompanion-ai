@@ -16,6 +16,7 @@ import { resolve, basename } from "node:path";
 import { createServer } from "node:net";
 import { execFileSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
+import { webAddress } from "./demo-runtime.mjs";
 
 export function assertDemo(state) {
   try {
@@ -37,7 +38,7 @@ export function assertDemo(state) {
     throw Error("拒绝操作：不是本工具的独立演示数据库。");
   }
 }
-export function demoEnvironment(state, app, inherited = process.env) {
+export function demoEnvironment(state, app, inherited = process.env, host = "127.0.0.1") {
   assertDemo(state);
   return {
     PATH: inherited.PATH,
@@ -48,7 +49,7 @@ export function demoEnvironment(state, app, inherited = process.env) {
     APP_ENV: "local",
     DATABASE_URL: state.databaseURL,
     PAYLOAD_SECRET: state.secret,
-    APP_URL: "http://127.0.0.1:3100",
+    APP_URL: webAddress(host).url,
     NEXT_PUBLIC_FORM_MODE: "local",
     SITE_LOCALES: "en,zh",
     SEARCH_ENGINE_INDEXING: "false",
@@ -71,6 +72,9 @@ export function assertDemoPaths(root) {
     ".local/demo/postgres",
     ".local/demo/app/.local",
     ".local/demo/app/.local/content-media",
+    ".local/backups",
+    ".local/test-accounts.txt",
+    ".local/demo/accounts.txt",
   ]) {
     const dir = resolve(root, name);
     if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) throw Error("演示目录不能是符号链接");
@@ -156,10 +160,15 @@ export function prepareApp(root) {
       throw Error("演示配置格式变化，需更新启动器。");
     writeFileSync(
       configFile,
-      source.replace(
-        "export default buildConfig({",
-        'export default buildConfig({\n  cookiePrefix: "hua-demo",',
-      ),
+      source
+        .replace(
+          "export default buildConfig({",
+          'export default buildConfig({\n  cookiePrefix: "hua-demo",',
+        )
+        .replace(
+          'push: process.env.APP_ENV === "local",',
+          'push: process.env.APP_ENV === "local" && process.env.HUA_DEMO_SCHEMA_PUSH !== "false",',
+        ),
     );
   }
   for (const name of [
@@ -177,11 +186,11 @@ export function prepareApp(root) {
     symlinkSync(resolve(root, "node_modules"), resolve(app, "node_modules"), "dir");
   return app;
 }
-export async function ensureFree(port) {
+export async function ensureFree(port, host = "127.0.0.1") {
   const server = createServer();
   await new Promise((ok, fail) => {
     server.once("error", () => fail(Error(`端口${port}已占用；未停止其他程序。`)));
-    server.listen(port, "127.0.0.1", ok);
+    server.listen(port, host, ok);
   });
   await new Promise((ok) => server.close(ok));
 }

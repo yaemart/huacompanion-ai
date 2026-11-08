@@ -23,7 +23,7 @@ if [ -z "$runtime" ]; then
   exit 1
 fi
 export PATH="$(dirname -- "$runtime"):$PATH"
-"$runtime" scripts/demo.mjs "$choice"
+"$runtime" scripts/demo.mjs "$choice" "${@:2}"
 result=$?
 if [ -z "${1:-}" ]; then read -r -p '按回车关闭窗口，演示网站会继续运行。'; fi
 exit "$result"

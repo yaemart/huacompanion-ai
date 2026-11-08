@@ -16,6 +16,7 @@ import { randomBytes } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { createInterface } from "node:readline/promises";
+import { assertDemoInvocation, resolvePostgres, demoWeb, webAddress } from "./lib/demo-runtime.mjs";
 import {
   assertDemo,
   assertDemoPaths,
@@ -38,6 +39,7 @@ if (process.versions.node !== expectedNode)
   throw Error(`请使用Node ${expectedNode}，或双击「华伴演示.command」。`);
 if (action === "serve") {
   const state = JSON.parse(readFileSync(file, "utf8"));
+  const web = webAddress(process.argv[4]);
   const child = spawn(
     process.execPath,
     [
@@ -46,13 +48,13 @@ if (action === "serve") {
       app,
       "--webpack",
       "--hostname",
-      "127.0.0.1",
+      web.host,
       "--port",
       "3100",
     ],
     {
       cwd: app,
-      env: demoEnvironment(state, app),
+      env: demoEnvironment(state, app, process.env, web.host),
       stdio: "inherit",
       detached: true,
     },
@@ -88,6 +90,7 @@ if (action === "serve") {
     }
     lock = openSync(path.join(dir, "busy"), "wx", 0o600);
     writeFileSync(lock, String(process.pid));
+    assertDemoInvocation(existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null);
     if (!existsSync(file)) {
       if (action !== "start" && action !== "setup") throw Error("演示环境尚未建立，请先启动。");
       if (existsSync(path.join(data, "PG_VERSION")))
@@ -98,7 +101,7 @@ if (action === "serve") {
         secret: randomBytes(48).toString("hex"),
         databaseURL: `postgresql://hua_demo:${password}@127.0.0.1:55442/hua_companion_demo`,
         accounts: Object.fromEntries(
-          ["admin", "manager", "operations", "reviewer"].map((role) => [
+          ["admin", "manager", "operations", "reviewer", "newcomer"].map((role) => [
             role,
             {
               email: `${role}@demo.huacompanion.invalid`,
@@ -113,6 +116,7 @@ if (action === "serve") {
     }
     const state = JSON.parse(readFileSync(file, "utf8"));
     assertDemo(state);
+    const web = demoWeb(process.argv.includes("--lan"));
     secrets = [
       state.secret,
       decodeURIComponent(new URL(state.databaseURL).password),
@@ -125,17 +129,14 @@ if (action === "serve") {
       console.log("首次安装锁定依赖，请稍候……");
       execFileSync("npm", ["ci", "--no-audit", "--no-fund"], { cwd: root, stdio: "inherit" });
     }
-    const env = demoEnvironment(state, app);
-    const bin =
-      process.env.PG_BIN ||
-      execFileSync("brew", ["--prefix", "postgresql@15"], { encoding: "utf8" }).trim() + "/bin";
+    const env = demoEnvironment(state, app, process.env, web.host);
+    const bin = resolvePostgres(data);
     const pg = (tool, args = []) =>
       execFileSync(path.join(bin, tool), args, {
         env: { ...env, PGPASSWORD: decodeURIComponent(new URL(state.databaseURL).password) },
         encoding: "utf8",
         stdio: "pipe",
       });
-    if (!pg("postgres", ["--version"]).includes(" 15.")) throw Error("演示需要PostgreSQL15。");
     const args = ["-h", "127.0.0.1", "-p", "55442", "-U", "hua_demo"];
     const running = () => {
       try {
@@ -178,12 +179,18 @@ if (action === "serve") {
         rl.close();
         if (answer !== "RESET") throw Object.assign(Error("已取消"), { code: "DEMO_CANCELLED" });
         await stopWeb(dir);
+        if (!state.accounts.newcomer) {
+          state.accounts.newcomer = {
+            email: "newcomer@demo.huacompanion.invalid",
+            password: randomBytes(18).toString("base64url"),
+          };
+        }
       } else if (webOwner(dir)) {
-        console.log("演示已在运行：http://127.0.0.1:3100/zh；无需重复启动。");
+        console.log("演示已在运行；切换本机/手机模式前请先运行npm run local:stop。");
         process.exitCode = 0;
       }
       if (!webOwner(dir)) {
-        await ensureFree(3100);
+        await ensureFree(3100, web.host);
         if (!running()) {
           await ensureFree(55442);
           const cluster = prepareCluster(root, state);
@@ -238,8 +245,8 @@ if (action === "serve") {
             "SELECT 1 FROM pg_database WHERE datname='hua_companion_demo'",
           ]).trim() === "1";
         if (action === "reset") {
-          const backup = path.join(dir, `before-reset-${Date.now()}`);
-          mkdirSync(backup, { mode: 0o700 });
+          const backup = path.join(root, ".local/backups", `demo-${Date.now()}`);
+          mkdirSync(backup, { mode: 0o700, recursive: true });
           if (databaseExists())
             pg("pg_dump", [
               ...args,
@@ -253,6 +260,7 @@ if (action === "serve") {
               recursive: true,
             });
           state.seeded = false;
+          state.migrationsApplied = false;
           writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
           if (databaseExists()) pg("dropdb", [...args, "--force", "hua_companion_demo"]);
           const media = path.join(app, ".local/content-media");
@@ -270,9 +278,23 @@ if (action === "serve") {
           "仅本机演示使用，不要上传截图或分享密码。\n\n" + accounts + "\n",
           { mode: 0o600 },
         );
+        writeFileSync(
+          path.join(root, ".local/test-accounts.txt"),
+          "仅本机虚构演示，密码不要转发。\n\n" + accounts + "\n",
+          { mode: 0o600 },
+        );
         if (!state.seeded) {
           const log = openSync(path.join(dir, "seed.log"), "a", 0o600);
           try {
+            if (!state.migrationsApplied) {
+              execFileSync(process.execPath, ["--import", "tsx", "scripts/demo-migrate.ts"], {
+                cwd: app,
+                env: { ...env, HUA_DEMO_SCHEMA_PUSH: "false" },
+                stdio: ["ignore", log, log],
+              });
+              state.migrationsApplied = true;
+              writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
+            }
             execFileSync(process.execPath, ["--import", "tsx", "scripts/demo-seed.ts"], {
               cwd: app,
               env,
@@ -282,27 +304,36 @@ if (action === "serve") {
             closeSync(log);
           }
           state.seeded = true;
+          state.seedVersion = 2;
           writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
         }
         if (action !== "setup") {
           const token = randomBytes(16).toString("hex");
           const log = openSync(path.join(dir, "web.log"), "a", 0o600);
-          const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve", token], {
-            cwd: app,
-            env,
-            detached: true,
-            stdio: ["ignore", log, log],
-          });
+          const child = spawn(
+            process.execPath,
+            [fileURLToPath(import.meta.url), "serve", token, web.host],
+            {
+              cwd: app,
+              env,
+              detached: true,
+              stdio: ["ignore", log, log],
+            },
+          );
           closeSync(log);
-          writeFileSync(path.join(dir, "web.json"), JSON.stringify({ pid: child.pid, token }), {
-            mode: 0o600,
-          });
+          writeFileSync(
+            path.join(dir, "web.json"),
+            JSON.stringify({ pid: child.pid, token, host: web.host }),
+            {
+              mode: 0o600,
+            },
+          );
           child.unref();
           let ready = false;
           for (let i = 0; i < 180; i++) {
             try {
               ready = (
-                await fetch("http://127.0.0.1:3100/zh", {
+                await fetch(`${web.url}/zh`, {
                   signal: globalThis.AbortSignal.timeout(2000),
                 })
               ).ok;
@@ -317,8 +348,25 @@ if (action === "serve") {
           }
         }
         console.log(
-          "演示已就绪：http://127.0.0.1:3100/zh\n后台：http://127.0.0.1:3100/admin\n账号密码：.local/demo/accounts.txt\n关闭：npm run demo:stop；恢复初始状态：npm run demo:reset",
+          `演示已就绪：${web.url}/zh\n后台：${web.url}/admin\n账号密码：.local/test-accounts.txt\n关闭：npm run local:stop；重置：npm run local:reset`,
         );
+        if (state.seedVersion !== 2)
+          console.log("当前为旧演示数据。启动保留修改；备份并运行local:reset后可载入新版样例。");
+        if (web.host !== "127.0.0.1")
+          console.log(
+            "临时私网模式：仅可信Wi-Fi、虚构数据；用完local:stop，再普通local:start恢复仅本机。",
+          );
+        if (
+          action !== "setup" &&
+          process.platform === "darwin" &&
+          !process.argv.includes("--no-open")
+        ) {
+          try {
+            execFileSync("open", [`${web.url}/zh`], { stdio: "ignore" });
+          } catch {
+            console.log("请手动打开上述网址。");
+          }
+        }
       }
     }
   } catch (error) {
