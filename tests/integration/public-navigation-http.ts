@@ -38,7 +38,7 @@ for (const locale of ["en", "zh"]) {
   const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] || "";
   assert.equal(main.includes(`/tools/china-visa-free-checker`), enabled);
   const menu = html.match(/<nav id="main-nav"[\s\S]*?<\/nav>/)?.[0] || "";
-  assert.ok(menu.includes(`/${locale}/`));
+  assert.match(menu, new RegExp(`href="/${locale}/?"`));
   assert.equal(menu.includes("/tools/china-visa-free-checker"), enabled);
   assert.doesNotMatch(main, /Service directories|服务目录/);
   assert.doesNotMatch(await page(`/${locale}/guides`), /<small>0\s*published<\/small>/);

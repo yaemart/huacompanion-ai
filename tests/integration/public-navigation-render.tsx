@@ -58,6 +58,15 @@ function render(child: React.ReactNode, enabled = true, query = "") {
     </SiteProvider>,
   );
 }
+const emptyMenu =
+  render(
+    <PublicNavigationProvider value={buildPublicNavigation([], "http://127.0.0.1:3137")}>
+      <Header locale="en" />
+    </PublicNavigationProvider>,
+    false,
+  ).match(/<nav id="main-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+assert.match(emptyMenu, /href="\/en\/?"/);
+assert.doesNotMatch(emptyMenu, /href="\/en\/(services|guides|tools)/);
 const menu = render(<Header locale="en" />);
 assert.match(menu, /href="\/en\/guides"/);
 assert.doesNotMatch(
