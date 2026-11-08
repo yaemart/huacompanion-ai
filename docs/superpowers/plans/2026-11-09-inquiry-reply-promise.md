@@ -32,8 +32,8 @@
 
 **Interfaces:** defaultInquiryReplies与publicInquiryReplies(settings:unknown)→{zh:string,en:string}只白名单；readInquiryReplies()读取配置或默认；InquiryReceipt({locale,kind,reference})从SiteContext消费inquiryReplies（可选），reference空返回null。
 
-- [ ] 新增纯测试与真实组件SSR；先运行观察模块缺失RED；断言准确默认、分语空值回退、只投影两键、异常类型与超限拒绝回退、HTML转义、申请／空编号不显示承诺且本地提示保留。
-- [ ] 实现最小组件接入；本地Next layout／context文档已读，生成Payload类型；纯／SSR GREEN，不改提交API或客户数据存储。
-- [ ] 隔离库测试迁移往返旧列指纹、配置回滚保护、admin成功／其他角色拒绝及maxlength；生产build与HTTP配置仅两字段、不泄露事件配置、默认／自定义／清空后更新；既有intake／support回归。
-- [ ] 桌面1440／手机390实际表单提交、双语编号／承诺／本地未发邮件、管理员配置验证。配套备份恢复核对后源只装单个增量迁移，普通重启及test:demo，不reset。
+- [x] 新增纯测试与真实组件SSR；先运行观察模块缺失RED；断言准确默认、分语空值回退、只投影两键、异常类型与超限拒绝回退、HTML转义、申请／空编号不显示承诺且本地提示保留。
+- [x] 实现最小组件接入；本地Next layout／context文档已读，生成Payload类型；纯／SSR GREEN，不改提交API或客户数据存储。
+- [x] 隔离库测试迁移往返旧列指纹、配置回滚保护、admin成功／其他角色拒绝及maxlength；生产build与HTTP配置仅两字段、不泄露事件配置、默认／自定义／清空后更新；既有support回归；试运行本地HTTP提交预期503，隔离APP_ENV=local生产构建明确--intake-enabled验证原回执／幂等，保留HTTPS门禁。旧test:intake拒绝随机库名则保留保护，在CI合法临时库执行，不放宽guard。
+- [x] 桌面1440／手机390实际表单提交、双语编号／承诺／本地未发邮件、管理员配置验证。配套备份恢复核对后源只装单个增量迁移，普通重启及test:demo，不reset。
 - [ ] npm run check及相关集成通过后提交push尽早草稿PR，一次独立全分支复核；最终精确headCI／远端核对。记录新人／真机未验与附件实际状态，不自动合并。

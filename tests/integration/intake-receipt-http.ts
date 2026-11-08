@@ -66,6 +66,11 @@ try {
         body: JSON.stringify(input),
       });
     const r = await post();
+    if (!process.argv.includes("--intake-enabled")) {
+      assert.equal(r.status, 503);
+      assert.equal((await r.json()).error, "Intake is not enabled for this environment.");
+      continue;
+    }
     assert.equal(r.status, 201);
     const receipt = await r.json();
     assert.deepEqual(Object.keys(receipt).sort(), ["duplicate", "reference"]);
@@ -81,7 +86,7 @@ try {
   assert.ok((await page("en")).includes(defaultInquiryReplies.en));
   assert.ok((await page("zh")).includes(defaultInquiryReplies.zh));
   console.log(
-    "PASS production default/custom/cleared public replies, private settings denied/absent, original intake receipts and idempotency",
+    "PASS production default/custom/cleared public replies, private settings denied/absent, trial intake gate (or explicit local receipts/idempotency)",
   );
 } finally {
   await p.updateGlobal({
