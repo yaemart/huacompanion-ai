@@ -4,7 +4,12 @@ import { ContentBlocks } from "../content/ContentBlocks";
 import type { ContentBody } from "@/lib/content-model";
 import type { Locale } from "@/lib/locales";
 import { catalogCities, cityLabel } from "@/lib/catalog-options";
-import { effectiveExhibitionStatus, exhibitionPath, filterExhibitions } from "@/lib/exhibitions";
+import {
+  effectiveExhibitionStatus,
+  exhibitionPath,
+  filterExhibitions,
+  exhibitionMonths,
+} from "@/lib/exhibitions";
 import {
   exhibitionIndustries,
   exhibitionIndustryLabel,
@@ -42,6 +47,14 @@ export function ExhibitionPage({
       : undefined;
   const period = query.period === "past" || query.period === "all" ? query.period : "upcoming";
   const filtered = filterExhibitions(localItems, { ...query, period });
+  const months = exhibitionMonths(localItems, query.month);
+  const activeFilters = [
+    query.city,
+    query.industry,
+    query.month,
+    query.q?.trim(),
+    period !== "upcoming" ? period : "",
+  ].filter(Boolean).length;
   const count = Math.max(1, Math.ceil(filtered.length / 12));
   const page = Math.min(
     count,
@@ -232,54 +245,66 @@ export function ExhibitionPage({
             <span className="eyebrow">HUA COMPANION</span>
             <h1>{t("title")}</h1>
             <p className="lead">{t("intro")}</p>
-            <form action={base} method="get" className="catalog-filters exhibition-filters">
-              <label>
-                {t("search")}
-                <input name="q" maxLength={200} defaultValue={query.q || ""} />
-              </label>
-              <label>
-                {t("city")}
-                <select name="city" defaultValue={query.city || ""}>
-                  <option value="">{t("allCities")}</option>
-                  {catalogCities.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c[locale]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {t("industry")}
-                <select name="industry" defaultValue={query.industry || ""}>
-                  <option value="">{t("allIndustries")}</option>
-                  {exhibitionIndustries.map((i) => (
-                    <option key={i} value={i}>
-                      {exhibitionIndustryLabel(i, locale)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {t("month")}
-                <input
-                  type="month"
-                  name="month"
-                  defaultValue={/^\d{4}-\d{2}$/.test(query.month || "") ? query.month : ""}
-                />
-              </label>
-              <label>
-                {t("period")}
-                <select name="period" defaultValue={period}>
-                  <option value="upcoming">{t("upcoming")}</option>
-                  <option value="past">{t("archive")}</option>
-                  <option value="all">{t("all")}</option>
-                </select>
-              </label>
-              <button className="button" type="submit">
-                {t("filter")}
-              </button>
-              <Link href={base}>{t("reset")}</Link>
-            </form>
+            <details className="exhibition-filter-disclosure">
+              <summary>
+                {t("filters")}
+                {activeFilters > 0 && ` (${activeFilters})`}
+              </summary>
+              <form action={base} method="get" className="catalog-filters exhibition-filters">
+                <label>
+                  {t("search")}
+                  <input name="q" maxLength={200} defaultValue={query.q || ""} />
+                </label>
+                <label>
+                  {t("city")}
+                  <select name="city" defaultValue={query.city || ""}>
+                    <option value="">{t("allCities")}</option>
+                    {catalogCities.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c[locale]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {t("industry")}
+                  <select name="industry" defaultValue={query.industry || ""}>
+                    <option value="">{t("allIndustries")}</option>
+                    {exhibitionIndustries.map((i) => (
+                      <option key={i} value={i}>
+                        {exhibitionIndustryLabel(i, locale)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {t("month")}
+                  <select
+                    name="month"
+                    defaultValue={months.includes(query.month || "") ? query.month : ""}
+                  >
+                    <option value="">{t("allMonths")}</option>
+                    {months.map((month) => (
+                      <option key={month} value={month}>
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {t("period")}
+                  <select name="period" defaultValue={period}>
+                    <option value="upcoming">{t("upcoming")}</option>
+                    <option value="past">{t("archive")}</option>
+                    <option value="all">{t("all")}</option>
+                  </select>
+                </label>
+                <button className="button" type="submit">
+                  {t("filter")}
+                </button>
+                <Link href={base}>{t("reset")}</Link>
+              </form>
+            </details>
             <p aria-live="polite">
               {t("results")}: {filtered.length}
             </p>

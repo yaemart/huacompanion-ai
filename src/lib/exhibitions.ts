@@ -213,6 +213,31 @@ export function filterExhibitions<
       return (past ? -order : order) || a.title.localeCompare(b.title);
     });
 }
+/** Published calendar months, including spanning events and a valid bookmarked selection. */
+export function exhibitionMonths(
+  items: { kind: string; exhibition?: Exhibition }[],
+  selected = "",
+): string[] {
+  const months = new Set<string>();
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(selected)) months.add(selected);
+  for (const { kind, exhibition: e } of items) {
+    if (
+      kind !== "exhibition" ||
+      !e ||
+      !validExhibitionDate(e.startDate) ||
+      !validExhibitionDate(e.endDate) ||
+      e.startDate > e.endDate
+    )
+      continue;
+    const index = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1;
+    for (let i = index(e.startDate); i <= index(e.endDate); i++) {
+      months.add(
+        `${String(Math.floor(i / 12)).padStart(4, "0")}-${String((i % 12) + 1).padStart(2, "0")}`,
+      );
+    }
+  }
+  return [...months].sort();
+}
 export function exhibitionPath(body: { locale: string; slug: string }) {
   return `/${body.locale}/exhibitions/${body.slug}`;
 }

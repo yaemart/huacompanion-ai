@@ -2671,3 +2671,23 @@ html[dir="rtl"] .guide-copy {
   flex-wrap: wrap;
   gap: 12px;
 }
+
+.exhibition-filter-disclosure {
+  margin-block: 24px;
+  overflow-wrap: anywhere;
+}
+.exhibition-filter-disclosure > summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 12px 20px;
+  border: 1px solid #8ca595;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.exhibition-filter-disclosure > summary:focus-visible {
+  outline: 2px solid #204d40;
+  outline-offset: 4px;
+}
+.exhibition-filter-disclosure .exhibition-filters {
+  margin-block: 16px;
+}
