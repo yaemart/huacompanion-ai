@@ -1,6 +1,6 @@
 # 政策录入 B1：核实默认值与列表实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 完成政策 P0 第 5、6 条，使运营能直接看到、筛选、排序政策，并减少新建时重复填写。
 
@@ -34,10 +34,10 @@
 
 **Interfaces:** `policyListRow(draft, record?)` 返回只含 id/title/locale/country/policyType/reviewState/validUntil/lastVerifiedOn 的行；`filterPolicyRows(rows, filter, today)` 和 `sortPolicyRows(rows, key, direction)` 均不修改输入；`policyVerificationDefaults(userId, now)` 返回核实人和中国日期。API 增加 `policyRows`、`today`。
 
-- [ ] 写测试：时区跨日、新建默认值可改、已有空值不补；五列双向排序、空值最后、同值按 id 稳定；三种筛选和今天/第30/31天边界；引用不匹配不投影、内部字段不泄漏。
-- [ ] 运行 `node --experimental-strip-types --test tests/immigration-policy-list.test.ts`，预期新增函数缺失导致失败；集成新增断言先失败。
-- [ ] 实现纯函数及授权事务内批量关联，避免每条一查询，不变更写入或发布逻辑。
-- [ ] 同一单测及演示库内 `npm run test:policies:editor`、HTTP 集成通过。确认匿名/越权拒绝和旧字段原样保留。
+- [x] 写测试：时区跨日、新建默认值可改、已有空值不补；五列双向排序、空值最后、同值按 id 稳定；三种筛选和今天/第30/31天边界；引用不匹配不投影、内部字段不泄漏。
+- [x] 运行 `node --experimental-strip-types --test tests/immigration-policy-list.test.ts`，预期新增函数缺失导致失败；集成新增断言先失败。
+- [x] 实现纯函数及授权事务内批量关联，避免每条一查询，不变更写入或发布逻辑。
+- [x] 同一单测及演示库内 `npm run test:policies:editor`、HTTP 集成通过。确认匿名/越权拒绝和旧字段原样保留。
 
 ### Task 2: 可操作的表格及交付
 
@@ -45,7 +45,7 @@
 
 **Interfaces:** `PolicyList({rows, today, selectedId, disabled, onSelect})` 消费 Task 1 API；表头按钮切换升降序，筛选框提供全部/待审核/已退回/30天内到期。
 
-- [ ] 增加服务端渲染断言验证五列表头、排序语义、筛选、空列表和选中标记；先失败，再实现组件和替换工作台左侧列表。
-- [ ] 宽屏并排，窄屏纵向；表格容器可键盘聚焦、独立横向滚动，点击记录沿用现有未保存/忙碌禁用规则。
-- [ ] `npm run check`、渲染测试和编辑工作流/HTTP 集成通过；演示浏览器检查默认值、已有记录、排序、筛选和390px滚动，保存桌面/手机截图。
-- [ ] 记录实际验证、真人未验、剩余B第2–4条及不需要重置数据；一次全分支独立复核后提交、推送、建立PR并核对远端提交，不自动合并。
+- [x] 增加服务端渲染断言验证五列表头、排序语义、筛选、空列表和选中标记；先失败，再实现组件和替换工作台左侧列表。
+- [x] 宽屏并排，窄屏纵向；表格容器可键盘聚焦、独立横向滚动，点击记录沿用现有未保存/忙碌禁用规则。
+- [x] `npm run check`、渲染测试和编辑工作流/HTTP 集成通过；演示浏览器检查默认值、已有记录、排序、筛选和390px滚动，保存桌面/手机截图。
+- [x] 记录实际验证、真人未验、剩余B第2–4条及不需要重置数据；一次全分支独立复核后提交、推送、建立PR并核对远端提交，不自动合并。
