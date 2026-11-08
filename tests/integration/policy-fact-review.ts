@@ -17,7 +17,7 @@ import { relationID } from "../../src/cms/access";
 import { policyFixture } from "../helpers/policy-workflow-fixture";
 import { workflowAction, workflowRead, runWorkflowJobs } from "../../src/server/workflow/service";
 const url = new URL(process.env.DATABASE_URL || "");
-const clone = url.port === "55442" && /^\/hua_policy_c2_[a-f0-9]{32}$/.test(url.pathname);
+const clone = url.port === "55442" && /^\/hua_policy_c[23]_[a-f0-9]{32}$/.test(url.pathname);
 const ci = process.env.CI === "true" && url.port === "55438" && url.pathname === "/hua_companion";
 if (process.env.APP_ENV !== "local" || url.hostname !== "127.0.0.1" || (!clone && !ci))
   throw Error("Disposable fact-review clone or CI only");
