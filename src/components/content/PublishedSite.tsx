@@ -1,3 +1,5 @@
+import { CompanyTrust } from "../CompanyTrust";
+import type { PublicCompany } from "@/lib/public-company";
 import { VisaCheckerLink } from "../PublicNavigation";
 import type { Locale } from "@/lib/locales";
 import { publicText } from "@/lib/public-copy";
@@ -13,11 +15,13 @@ export function PublishedSite({
   slug,
   contents,
   languagePaths,
+  company,
 }: {
   locale: Locale;
   slug: string[];
   contents: ContentBody[];
   languagePaths?: Partial<Record<Locale, string | null>>;
+  company?: PublicCompany | null;
 }) {
   contents = contents.filter((d) => d.locale === locale);
   const section = slug[0] || "home";
@@ -58,7 +62,7 @@ export function PublishedSite({
         {section === "home" ? (
           <>
             <section className="section">
-              <span className="eyebrow">HUA COMPANION · SHANGHAI</span>
+              <span className="eyebrow">HUA COMPANION</span>
               <h1>{detail?.title || publicText(locale, "Your local companion in China.")}</h1>
               <p className="lead">{detail?.summary || empty}</p>
               {detail && (
@@ -68,6 +72,7 @@ export function PublishedSite({
                   blocks={detail.blocks}
                 />
               )}
+              <CompanyTrust locale={locale} company={company || null} />
               <div className="public-home-actions">
                 <VisaCheckerLink locale={locale} />
                 <Link className="button" href={`/${locale}/request`}>

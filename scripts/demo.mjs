@@ -285,6 +285,21 @@ if (action === "serve") {
           ]).trim() !== "t"
         )
           throw Error("政策迁移或旧数据检查未通过；未启动网站，请保留现场。");
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT count(*)=8 FROM information_schema.columns WHERE table_schema='public' " +
+              "AND table_name='public_company_settings' AND column_name IN " +
+              "('id','company_name','location_zh','location_en','email','phone','created_at','updated_at')",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "公开公司信息尚未迁移；请先配套备份并由开发者执行20261108_220000_public_company，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)

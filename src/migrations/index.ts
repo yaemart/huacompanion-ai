@@ -1,3 +1,4 @@
+import * as migration_20261108_220000_public_company from "./20261108_220000_public_company";
 import * as migration_20261108_160000_policy_note_tasks from "./20261108_160000_policy_note_tasks";
 import * as migration_20261108_140000_policy_shared_foundation from "./20261108_140000_policy_shared_foundation";
 import * as migration_20261108_120000_policy_stay_hours from "./20261108_120000_policy_stay_hours";
@@ -173,5 +174,10 @@ export const migrations = [
     up: migration_20261108_160000_policy_note_tasks.up,
     down: migration_20261108_160000_policy_note_tasks.down,
     name: "20261108_160000_policy_note_tasks",
+  },
+  {
+    up: migration_20261108_220000_public_company.up,
+    down: migration_20261108_220000_public_company.down,
+    name: "20261108_220000_public_company",
   },
 ];
