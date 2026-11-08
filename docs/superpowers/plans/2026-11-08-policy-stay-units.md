@@ -30,11 +30,11 @@
 
 **Files:** src/lib/immigration-policy{,-draft,-editor,-query}.ts；新src/lib/immigration-policy-stay.ts；src/cms/immigration/collections.ts；src/migrations/20261108_120000_policy_stay_hours.ts及index；payload-types.ts；PolicyFields.tsx；tests/immigration-policy-stay.test.ts；tests/integration/immigration-stay{,-render}.tsx/ts；相关CI/指南/小结。
 
-**Interfaces:** changePolicyType(value: PolicyForm, type: PolicyForm['policyType']): PolicyForm；policyStay(policy: Pick<PublicPolicyData,'policyType'|'maxStayDays'|'maxStayHours'>): {unit:'days'|'hours';maximum:number}。policyFields增加maxStayHours；publicPolicy仅在有显式小时值时增加该字段，旧JSON投影保留相同形状。
+**Interfaces:** changePolicyHours(value: PolicyForm, hours: number|null): PolicyForm（明确编辑时替换旧天数，旧历史保留）；changePolicyType(value: PolicyForm, type: PolicyForm['policyType']): PolicyForm；policyStay(policy: Pick<PublicPolicyData,'policyType'|'maxStayDays'|'maxStayHours'>): {unit:'days'|'hours';maximum:number}。policyFields增加maxStayHours；publicPolicy仅在有显式小时值时增加该字段，旧JSON投影保留相同形状。
 
-- [ ] 写并观察单元RED：三类型默认值、同类型不重置、手填口岸保留、互免空值、旧过境240兼容、显式小时及非法值、公开结果一致。
-- [ ] 写迁移/工作流集成RED：克隆演示备份up/down/up旧列摘要一致、小时回滚拒绝；旧稿局部保存及历史恢复、新小时发布/公开查询、自审与空口岸提交拒绝。
-- [ ] 实现最小修改；生成Payload类型；SSR检查小时标签/required和旧值只读提示，无默默写回。
-- [ ] 隔离备份和迁移；运行check及编辑/国家/工作流/公开查询/新迁移集成，记录实际结果。
-- [ ] 桌面和390浏览器检查三种类型、新值/手改及旧稿无变化；截图本机；新人时限仍待验。
-- [ ] 更新progress、handoff、一页中文小结；一次独立全分支复核；修复后提交推送一个草稿PR、核对远端和CI。
+- [x] 写并观察单元RED：三类型默认值、同类型不重置、手填口岸保留、互免空值、旧过境240兼容、显式小时及非法值、公开结果一致。
+- [x] 写迁移/工作流集成RED：克隆演示备份up/down/up旧列摘要一致、小时回滚拒绝；旧稿局部保存及历史恢复、新小时发布/公开查询、自审与空口岸提交拒绝。
+- [x] 实现最小修改；生成Payload类型；SSR检查小时标签/required和旧值只读提示，无默默写回。
+- [x] 隔离备份和迁移；运行check及编辑/国家/工作流/公开查询/新迁移集成，记录实际结果。
+- [x] 桌面和390浏览器检查三种类型、新值/手改及旧稿无变化；截图本机；新人时限仍待验。
+- [x] 更新progress、handoff、一页中文小结；一次独立全分支复核；修复后提交推送一个草稿PR、核对远端和CI。

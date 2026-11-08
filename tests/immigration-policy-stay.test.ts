@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changePolicyType, policyStay } from "../src/lib/immigration-policy-stay.ts";
+import {
+  changePolicyType,
+  changePolicyHours,
+  policyStay,
+} from "../src/lib/immigration-policy-stay.ts";
 import { policyForm } from "../src/lib/immigration-policy-editor.ts";
 import { validatePublicPolicy, publicPolicy } from "../src/lib/immigration-policy.ts";
 import { policyDraft } from "../src/lib/immigration-policy-draft.ts";
@@ -63,4 +67,32 @@ test("hour facts reject invalid values and non-transit hours; bilateral needs ve
       queryContext.verifiedOnOrBefore,
     ),
   );
+});
+
+test("empty and whitespace port lines do not suppress unilateral default", () => {
+  for (const portsAndRegions of [
+    [""],
+    ["  "],
+    ["所有对外国人开放的口岸", ""],
+    [" 所有对外国人开放的口岸 ", " "],
+  ]) {
+    assert.deepEqual(
+      changePolicyType({ ...policyForm(), portsAndRegions }, "unilateral").portsAndRegions,
+      ["所有对外国人开放的口岸"],
+    );
+  }
+});
+
+test("explicit hour editing clears the legacy fallback without mutating the old draft", () => {
+  const legacy = {
+    ...policyForm(),
+    policyType: "transit-240h" as const,
+    maxStayDays: 3,
+    maxStayHours: null,
+  };
+  const cleared = changePolicyHours(legacy, null);
+  assert.equal(cleared.maxStayHours, null);
+  assert.equal(cleared.maxStayDays, null);
+  assert.equal(legacy.maxStayDays, 3);
+  assert.equal(changePolicyHours(legacy, 144).maxStayHours, 144);
 });

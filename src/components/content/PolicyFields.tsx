@@ -1,7 +1,7 @@
 "use client";
 import type { PolicyCountry } from "@/lib/immigration-policy-entry";
 import { PolicyCountryField } from "./PolicyCountryField";
-import { changePolicyType } from "@/lib/immigration-policy-stay";
+import { changePolicyType, changePolicyHours } from "@/lib/immigration-policy-stay";
 import { policyTypes } from "@/lib/immigration-policy";
 import { policyLabels, type PolicyForm } from "@/lib/immigration-policy-editor";
 const fields = Object.entries(policyLabels).filter(([name]) => !name.startsWith("country"));
@@ -20,7 +20,11 @@ export function PolicyFields({
   const transit = value.policyType === "transit-240h";
   const visible = fields.filter(([key]) => key !== (transit ? "maxStayDays" : "maxStayHours"));
   function set<K extends keyof PolicyForm>(key: K, next: PolicyForm[K]) {
-    onChange({ ...value, [key]: next });
+    onChange(
+      key === "maxStayHours"
+        ? changePolicyHours(value, next as number | null)
+        : { ...value, [key]: next },
+    );
   }
   return (
     <section aria-label="政策资料">

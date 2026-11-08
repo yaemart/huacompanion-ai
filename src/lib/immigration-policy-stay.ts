@@ -6,7 +6,7 @@ export function changePolicyType(
   policyType: PolicyForm["policyType"],
 ): PolicyForm {
   if (value.policyType === policyType) return value;
-  const custom = value.portsAndRegions.filter((line) => line !== allPorts);
+  const custom = value.portsAndRegions.filter((line) => line.trim() && line.trim() !== allPorts);
   return {
     ...value,
     policyType,
@@ -14,6 +14,10 @@ export function changePolicyType(
     maxStayHours: policyType === "transit-240h" ? 240 : null,
     portsAndRegions: custom.length ? custom : policyType === "unilateral" ? [allPorts] : [],
   };
+}
+/** An explicit hour edit replaces the legacy day value, including clearing an unknown duration. */
+export function changePolicyHours(value: PolicyForm, maxStayHours: number | null): PolicyForm {
+  return { ...value, maxStayDays: null, maxStayHours };
 }
 /** Old transit snapshots already meant 240 hours; never multiply their legacy days. */
 export function policyStay(

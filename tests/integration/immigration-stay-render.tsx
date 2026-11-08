@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PolicyFields } from "../../src/components/content/PolicyFields";
 import { policyForm } from "../../src/lib/immigration-policy-editor";
-import { changePolicyType } from "../../src/lib/immigration-policy-stay";
+import { changePolicyType, changePolicyHours } from "../../src/lib/immigration-policy-stay";
 import { PolicyQueryResult } from "../../src/components/immigration/PolicyQueryResult";
 import { PolicyTable } from "../../src/components/immigration/PolicyTable";
 import { buildPolicyTable } from "../../src/lib/immigration-policy-table";
@@ -26,6 +26,22 @@ assert.match(transit, /最长停留（小时）/);
 assert.doesNotMatch(transit, /最长停留（天）/);
 assert.match(transit, /value="240"/);
 assert.match(transit, /<textarea required=""/);
+const legacy = {
+  ...policyForm(),
+  policyType: "transit-240h" as const,
+  maxStayDays: 3,
+  maxStayHours: null,
+};
+const cleared = renderToStaticMarkup(
+  <PolicyFields
+    value={changePolicyHours(legacy, null)}
+    countries={[]}
+    verifiers={[]}
+    onChange={() => {}}
+  />,
+);
+assert.match(cleared, /type="number"[^>]*value=""/);
+assert.doesNotMatch(cleared, /旧稿未单独记录小时/);
 const row = {
   ...queryPolicy({ policyType: "transit-240h" }),
   maxStayDays: null,

@@ -5,6 +5,8 @@ import config from "../../src/payload.config";
 import { mutateContent } from "../../src/server/content/service";
 import { readPolicyEditor } from "../../src/server/immigration/editor";
 import { listPublicPolicies } from "../../src/server/immigration/public";
+import { changePolicyHours } from "../../src/lib/immigration-policy-stay";
+import { policyFormInput } from "../../src/lib/immigration-policy-editor";
 import { queryImmigrationPolicies } from "../../src/lib/immigration-policy-query";
 import { policyFacts, policyFixture } from "../helpers/policy-workflow-fixture";
 import type { ContentBody } from "../../src/lib/content-model";
@@ -123,6 +125,16 @@ try {
     const preserved = await p.findByID({ collection: "immigration-policies", id: ref.id });
     assert.equal(preserved.maxStayDays, 3);
     assert.equal(preserved.maxStayHours, null);
+    draft = await mutateContent(p, editor, {
+      action: "save",
+      id: draft.id,
+      revision: draft.revision,
+      body: draft.body,
+      policy: policyFormInput(changePolicyHours(legacy.policy, null)),
+    });
+    const unknown = await p.findByID({ collection: "immigration-policies", id: ref.id });
+    assert.equal(unknown.maxStayDays, null);
+    assert.equal(unknown.maxStayHours, null);
     const version = (
       await p.findVersions({
         collection: "content-drafts",
