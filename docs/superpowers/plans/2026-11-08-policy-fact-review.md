@@ -1,6 +1,6 @@
 # 共用事实第2批：事实审核与说明复核待办
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 在隐藏新结构上完成事实编辑、送审、退回、发布、历史另存、下架；事实发布原子失效两语说明并创建站内待办。
 
@@ -36,11 +36,11 @@
 
 **Tasks:** syncSharedNoteTasks(p,req,group,versionId|null)按policy-note-review:<group>:<locale>:<version>幂等创建／关闭，现有说明工作稿revision+1、needsReview=true、reviewState=draft，保留旧版本引用及原文。无说明也创建两语言任务；初始无负责人，授权员工可领取。refreshSharedNoteAssignees(p)使用同序锁释放失效负责人，工作流读／运行前调用；不以领取／完成待办代替审核。可空policyGroup只加workflow-tasks，工作台仅政策板块可见；done拒绝；通用worker跳过这些任务，不发外部邮件。无新待办链接，等编辑器接入。
 
-- [ ] 单元RED：sharedFactDraft拒绝语言说明、未知键、非对象，保留不完整值并深拷贝；GREEN实现。
-- [ ] 克隆集成RED：缺新服务；覆盖新建／重复／国家、保存冻结、提交／退回／复提、参与人自审／管理员原因、当前核实人授权、伪造／撤销角色、陈旧修订。
-- [ ] GREEN实现事实服务和严格投影；两语说明失效和幂等任务；历史恢复和下架再发布；禁止修改历史。
-- [ ] 覆盖两语缺失／正在审核、原子失败、并发双发布；工作台权限／领取／释放失效人员／不许手工完成；无邮件任务。仅在隔离库运行。
-- [ ] 新迁移up/down/up保留71张旧表原列，down有policyGroup引用拒绝；完整空库迁移、schema push后约束检查；生成类型。
-- [ ] npm run check、原基础集成／审核／查询／workflow回归、隔离生产build；记录实际限制，独立全分支复核。
-- [ ] E1–E4/C1–C3场景表：旧UI回归；新事实审核与复核任务服务测试完成，不冒称新编辑器/公开读取或真人计时完成。源库不刷新／reset。
-- [ ] 提交、推送唯一草稿PR，核对origin提交和对应CI；本批合并后才继续说明审核／新编辑器。
+- [x] 单元RED：sharedFactDraft拒绝语言说明、未知键、非对象，保留不完整值并深拷贝；GREEN实现。
+- [x] 克隆集成RED：缺新服务；覆盖新建／重复／国家、保存冻结、提交／退回／复提、参与人自审／管理员原因、当前核实人授权、伪造／撤销角色、陈旧修订。
+- [x] GREEN实现事实服务和严格投影；两语说明失效和幂等任务；历史恢复和下架再发布；禁止修改历史。
+- [x] 覆盖两语缺失／正在审核、原子失败、并发双发布；工作台权限／领取／释放失效人员／不许手工完成；无邮件任务。仅在隔离库运行。
+- [x] 新迁移up/down/up保留71张旧表原列，down有policyGroup引用拒绝；完整空库迁移、schema push后约束检查；生成类型。
+- [x] npm run check、原基础集成／审核／查询及新待办集成、隔离生产build通过；旧通用workflow本地专用库限制拒绝，保留限制并交一次性CI核验；独立全分支复核无确定缺陷。
+- [x] E1–E4/C1–C3场景表：旧UI回归；新事实审核与复核任务服务测试完成，不冒称新编辑器/公开读取或真人计时完成。源库不刷新／reset。
+- [x] 提交、推送唯一草稿PR，核对origin提交和对应CI；本批合并后才继续说明审核／新编辑器。
