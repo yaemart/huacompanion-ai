@@ -1,7 +1,11 @@
 import type { Payload, PayloadRequest, Where } from "payload";
 import type { PolicyNoteDraft } from "../../../payload-types";
-import type { ContentUser } from "../../lib/content-model";
-import { isAdmin, relationID } from "../../cms/access";
+import { canEditContent, type ContentUser } from "../../lib/content-model";
+import { canReviewContent, isAdmin, relationID } from "../../cms/access";
+import { policyIdentity, policyTestCountriesAllowed } from "../../lib/immigration-policy-entry";
+import { sharedPolicyForm } from "../../lib/policy-shared-form";
+import { publicSharedFacts, validateSharedFacts } from "../../lib/policy-shared-facts";
+import { shanghaiToday } from "../../lib/exhibitions";
 import { policyNoteDraft, explanationFactWarning } from "../../lib/policy-shared-notes";
 import { contentTransaction, ContentError } from "../content/service";
 import { policyActor } from "./workflow";
@@ -47,10 +51,52 @@ export async function readSharedPolicyNote(
 ) {
   identity(groupId, locale);
   return contentTransaction(p, async (req) => {
-    await policyActor(p, req, user, "read");
+    const actor = await policyActor(p, req, user, "read");
     const group = await p.findByID({ collection: "policy-groups", id: groupId, req, depth: 0 });
     const records = await noteRecords(p, req, group.id, locale);
-    return { group, ...records, warning: explanationFactWarning(records.draft?.publicNotes || "") };
+    const id = relationID(group.activeFactVersion);
+    const fact = id
+      ? await p.findByID({ collection: "policy-fact-versions", id, req, depth: 0 })
+      : null;
+    if (fact && relationID(fact.group) !== group.id) throw Error("正式事实不属于该政策");
+    const today = shanghaiToday();
+    let facts = null;
+    if (fact) {
+      validateSharedFacts(fact.facts, today, policyTestCountriesAllowed(process.env));
+      facts = publicSharedFacts(fact.facts);
+    }
+    const draft = fact
+      ? null
+      : (
+          await p.find({
+            collection: "policy-fact-drafts",
+            req,
+            depth: 0,
+            limit: 1,
+            where: { group: { equals: group.id } },
+          })
+        ).docs[0];
+    return {
+      group,
+      ...records,
+      locale,
+      facts,
+      factRevision: fact?.revision ?? null,
+      defaultBody: {
+        title:
+          policyIdentity(sharedPolicyForm(fact?.facts || draft?.facts), locale)?.title ||
+          group.contentKey,
+        slug: group.contentKey,
+        publicNotes: "",
+      },
+      permissions: {
+        canEdit: canEditContent(actor),
+        canReview: canReviewContent(actor),
+        isAdmin: isAdmin(actor),
+        userId: actor.id,
+      },
+      warning: explanationFactWarning(records.draft?.publicNotes || ""),
+    };
   });
 }
 async function noteTask(

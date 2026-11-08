@@ -101,7 +101,10 @@
     "test:policies:facts:review": "node --import tsx tests/integration/policy-fact-review.ts",
     "test:policies:notes:review": "node --import tsx tests/integration/policy-note-review.ts",
     "test:policies:shared:editor": "node --import tsx tests/integration/policy-shared-editor.ts",
-    "test:policies:shared:editor:http": "node --import tsx tests/integration/policy-shared-editor-http.ts"
+    "test:policies:shared:editor:http": "node --import tsx tests/integration/policy-shared-editor-http.ts",
+    "test:policies:notes:editor": "node --import tsx tests/integration/policy-language-editor.ts",
+    "test:policies:notes:editor:render": "node --import tsx tests/integration/policy-note-editor-render.tsx",
+    "test:policies:notes:editor:http": "node --import tsx tests/integration/policy-note-editor-http.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
