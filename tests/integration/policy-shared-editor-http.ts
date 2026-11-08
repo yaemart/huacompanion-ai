@@ -51,28 +51,27 @@ try {
         .status,
       403,
     );
-    assert.equal(
-      (
-        await post(
-          {
-            action: "save",
-            contentKey: key + "-bad",
-            facts: { countryCode: "DE", verifiedBy: {} },
-          },
-          edit,
-        )
-      ).status,
-      400,
-    );
-    assert.equal(
-      (
-        await p.count({
-          collection: "policy-groups",
-          where: { contentKey: { equals: key + "-bad" } },
-        })
-      ).totalDocs,
-      0,
-    );
+    for (const malformed of [
+      { verifiedBy: {} },
+      { policyType: "__proto__" },
+      { policyType: "constructor" },
+      { policyType: "unknown-policy" },
+    ]) {
+      const invalid = await post(
+        { action: "save", contentKey: key + "-bad", facts: { countryCode: "DE", ...malformed } },
+        edit,
+      );
+      assert.equal(invalid.status, 400);
+      assert.equal(
+        (
+          await p.count({
+            collection: "policy-groups",
+            where: { contentKey: { equals: key + "-bad" } },
+          })
+        ).totalDocs,
+        0,
+      );
+    }
     const saved = await post(
       {
         action: "save",

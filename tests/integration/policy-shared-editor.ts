@@ -13,6 +13,8 @@ const clone = url.port === "55442" && /^\/hua_policy_c4_[a-f0-9]{32}$/.test(url.
 const ci = process.env.CI === "true" && url.port === "55438" && url.pathname === "/hua_companion";
 if (process.env.APP_ENV !== "local" || url.hostname !== "127.0.0.1" || (!clone && !ci))
   throw Error("Disposable shared-editor clone or CI only");
+const oldFlag = process.env.VISA_CHECKER_ENABLED;
+process.env.VISA_CHECKER_ENABLED = "true";
 const p = await getPayload({ config });
 try {
   await policyFixture(p, async ({ key, editor, reviewer, outsider, admin }) => {
@@ -213,6 +215,8 @@ try {
     }
   });
 } finally {
+  if (oldFlag === undefined) delete process.env.VISA_CHECKER_ENABLED;
+  else process.env.VISA_CHECKER_ENABLED = oldFlag;
   await p.destroy();
 }
 process.exit(0);

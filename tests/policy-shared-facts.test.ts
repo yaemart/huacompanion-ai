@@ -99,3 +99,11 @@ test("incomplete shared drafts reject malformed field types before editor hydrat
     portsAndRegions: [],
   });
 });
+
+test("shared fact drafts reject prototype names and unknown policy types", async () => {
+  const { sharedFactDraft } = await import("../src/lib/policy-shared-facts.ts");
+  for (const policyType of ["__proto__", "constructor", "toString", "unknown-policy"])
+    assert.throws(() => sharedFactDraft({ countryCode: "DE", policyType }), /政策类型/);
+  for (const policyType of [null, "unilateral", "bilateral", "transit-240h", "other"])
+    assert.equal(sharedFactDraft({ policyType }).policyType, policyType);
+});

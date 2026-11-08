@@ -1,5 +1,6 @@
 import {
   publicPolicy,
+  policyTypes,
   validatePolicyPublication,
   type PolicyPublicationData,
   type PublicPolicyData,
@@ -62,6 +63,8 @@ export function sharedFactDraft(value: unknown): Record<string, unknown> {
   const { maximumStay, stayUnit, ...draft } = value as Record<string, unknown>;
   if (stayUnit != null && stayUnit !== "days" && stayUnit !== "hours")
     throw Error("停留单位只接受天或小时");
+  if (draft.policyType != null && !policyTypes.some((type) => type === draft.policyType))
+    throw Error("政策类型无效");
   policyDraft({ ...draft, maxStayDays: maximumStay ?? null });
   return structuredClone(value as Record<string, unknown>);
 }
