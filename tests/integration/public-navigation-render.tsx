@@ -112,6 +112,7 @@ const css = registerHooks({
   },
 });
 const { CatalogPage } = await import("../../src/components/catalog/CatalogPage");
+const { PublishedSite } = await import("../../src/components/content/PublishedSite");
 css.deregister();
 const emptyCatalog = render(<CatalogPage items={[]} locale="en" kind="provider-profile" />);
 assert.doesNotMatch(emptyCatalog, /aria-label="Service navigation"/);
@@ -127,3 +128,5 @@ const subnavigation =
 assert.match(subnavigation, /href="\/en\/services\/projects"/);
 assert.doesNotMatch(subnavigation, /href="\/en\/providers"/);
 console.log("PASS catalog subnavigation hides empty directories");
+const home = render(<PublishedSite locale="en" slug={[]} contents={[]} />);
+assert.doesNotMatch(home, /HUA COMPANION · SHANGHAI/);

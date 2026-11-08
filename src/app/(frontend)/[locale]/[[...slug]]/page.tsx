@@ -1,3 +1,4 @@
+import { readPublicCompany } from "@/server/public-company";
 import { PublicPage } from "@/components/content/PublicPage";
 import { publishedContent as content } from "@/server/content/published";
 import { isSiteLocale, getSiteLocales } from "@/server/site-config";
@@ -223,6 +224,7 @@ async function ContentPage({ params, searchParams }: Props) {
   if (!["request", "apply"].includes(slug[0]))
     return (
       <PublishedSite
+        company={slug.length === 0 ? await readPublicCompany(locale) : undefined}
         locale={locale}
         slug={slug}
         contents={docs}

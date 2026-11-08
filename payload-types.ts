@@ -176,12 +176,14 @@ export interface Config {
     'workflow-settings': WorkflowSetting;
     'customer-settings': CustomerSetting;
     'seo-settings': SeoSetting;
+    'public-company-settings': PublicCompanySetting;
   };
   globalsSelect: {
     'support-settings': SupportSettingsSelect<false> | SupportSettingsSelect<true>;
     'workflow-settings': WorkflowSettingsSelect<false> | WorkflowSettingsSelect<true>;
     'customer-settings': CustomerSettingsSelect<false> | CustomerSettingsSelect<true>;
     'seo-settings': SeoSettingsSelect<false> | SeoSettingsSelect<true>;
+    'public-company-settings': PublicCompanySettingsSelect<false> | PublicCompanySettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -2689,6 +2691,22 @@ export interface SeoSetting {
   createdAt?: string | null;
 }
 /**
+ * 仅管理员填写经核实可公开的真实资料，保存后首页显示。留空不展示；不要填写私人联系方式或测试占位。所在地按中英文分别填写。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "public-company-settings".
+ */
+export interface PublicCompanySetting {
+  id: number;
+  companyName?: string | null;
+  locationZh?: string | null;
+  locationEn?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "support-settings_select".
  */
@@ -2751,6 +2769,20 @@ export interface SeoSettingsSelect<T extends boolean = true> {
         seoImage?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "public-company-settings_select".
+ */
+export interface PublicCompanySettingsSelect<T extends boolean = true> {
+  companyName?: T;
+  locationZh?: T;
+  locationEn?: T;
+  email?: T;
+  phone?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

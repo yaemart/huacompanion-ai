@@ -1,3 +1,4 @@
+import { PublicCompanySettings } from "./cms/company";
 import { businessCollections } from "./cms/business/collections";
 import { workflowCollections, workflowSettings } from "./cms/workflow/collections";
 import { qualityCollections } from "./cms/quality/collections";
@@ -42,7 +43,13 @@ export default buildConfig({
     push: process.env.APP_ENV === "local" && process.env.HUA_DEMO_SCHEMA_PUSH !== "false",
     migrationDir: path.resolve("src/migrations"),
   }),
-  globals: [supportSettings, workflowSettings, customerSettings, SEOSettings],
+  globals: [
+    supportSettings,
+    workflowSettings,
+    customerSettings,
+    SEOSettings,
+    PublicCompanySettings,
+  ],
   collections: [
     ...collections,
     ...contentCollections,
