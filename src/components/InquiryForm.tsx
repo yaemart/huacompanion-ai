@@ -15,6 +15,7 @@ import {
   type Values,
   type FormKind,
 } from "@/lib/forms";
+import { randomClientID } from "@/lib/client-id";
 import { Icon } from "./Icon";
 export type CatalogSelection = {
   source?: import("@/lib/catalog").CatalogSource;
@@ -200,7 +201,7 @@ export function InquiryForm({
     else {
       if (saving || receipt) return;
       request.current ??= {
-        key: crypto.randomUUID(),
+        key: randomClientID(),
         body: JSON.stringify({
           kind,
           locale,

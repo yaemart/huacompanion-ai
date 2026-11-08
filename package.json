@@ -90,7 +90,10 @@
     "demo": "bash 华伴演示.command start",
     "demo:stop": "bash 华伴演示.command stop",
     "demo:reset": "bash 华伴演示.command reset",
-    "test:demo": "bash 华伴演示.command test"
+    "test:demo": "bash 华伴演示.command test",
+    "local:start": "bash start.command start",
+    "local:stop": "bash start.command stop",
+    "local:reset": "bash start.command reset"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
