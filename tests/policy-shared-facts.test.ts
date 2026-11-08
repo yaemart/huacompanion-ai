@@ -62,3 +62,21 @@ test("public shared facts projection excludes staff/internal data and keeps sour
   assert.equal(publicSharedFacts(transit).maxStayHours, 144);
   assert.equal(publicSharedFacts(transit).maxStayDays, null);
 });
+
+test("shared fact drafts reject hidden fields and clone incomplete facts without mutation", async () => {
+  const { sharedFactDraft } = await import("../src/lib/policy-shared-facts.ts");
+  for (const value of [
+    null,
+    [],
+    "text",
+    { publicNotes: "language" },
+    { activeFactVersion: 1 },
+    { maximumStay: 30, unknown: true },
+  ])
+    assert.throws(() => sharedFactDraft(value));
+  const value = { countryCode: "XY", maximumStay: null, portsAndRegions: ["fictional"] };
+  const result = sharedFactDraft(value);
+  assert.deepEqual(result, value);
+  (result.portsAndRegions as string[]).push("new");
+  assert.deepEqual(value.portsAndRegions, ["fictional"]);
+});

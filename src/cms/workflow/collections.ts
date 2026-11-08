@@ -49,6 +49,7 @@ export const workflowCollections: CollectionConfig[] = [
     ...base,
     slug: "workflow-tasks",
     fields: [
+      rel("policyGroup", "policy-groups"),
       text("key", { required: true, unique: true }),
       rel("inquiry", "inquiries"),
       rel("contentDraft", "content-drafts"),

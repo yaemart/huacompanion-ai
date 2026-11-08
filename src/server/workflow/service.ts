@@ -1,3 +1,5 @@
+import { refreshSharedNoteAssignees } from "../immigration/shared-note-tasks";
+import { canAccessContentKind } from "../../cms/access";
 import { randomUUID } from "node:crypto";
 import type { Payload, PayloadRequest, RequiredDataFromCollectionSlug } from "payload";
 import type { WorkflowNotification, WorkflowTask, WorkflowMailJob } from "../../../payload-types";
@@ -59,13 +61,23 @@ async function unique<TSlug extends UniqueCollection>(
 async function visible(
   p: Payload,
   user: Staff,
-  doc: Pick<WorkflowTask, "inquiry" | "contentDraft">,
+  doc: Pick<WorkflowTask, "inquiry" | "contentDraft" | "policyGroup">,
   req?: Partial<PayloadRequest>,
 ) {
   if (!isActiveStaff(user)) return false;
   const inquiry = relationID(doc.inquiry),
     draft = relationID(doc.contentDraft);
   try {
+    if (relationID(doc.policyGroup) !== undefined) {
+      if (!canAccessContentKind(user, "immigration-policy")) return false;
+      await p.findByID({
+        collection: "policy-groups",
+        id: relationID(doc.policyGroup)!,
+        depth: 0,
+        req,
+      });
+      return true;
+    }
     if (inquiry !== undefined) {
       await p.findByID({
         collection: "inquiries",
@@ -318,6 +330,7 @@ function workflowView(d: WorkflowNotification | WorkflowTask) {
     title: d.title,
     inquiry: relationID(d.inquiry),
     contentDraft: relationID(d.contentDraft),
+    policyGroup: relationID(task.policyGroup),
     assignee: relationID(task.assignee),
     status: task.status,
     dueAt: task.dueAt,
@@ -330,6 +343,7 @@ type WorkflowView = ReturnType<typeof workflowView>;
 export async function workflowRead(payload: Payload, user: NonNullable<Staff>) {
   if (!isActiveStaff(user)) throw Error("Unauthorized");
   const p = payload;
+  await refreshSharedNoteAssignees(p);
   const notifications: WorkflowView[] = [],
     tasks: WorkflowView[] = [];
   for (const [collection, target] of [
@@ -452,8 +466,10 @@ async function actionWithinTransaction(
   } else {
     if (String(relationID(task.assignee)) !== String(user.id) && !isManager(user))
       throw Error("Forbidden");
-    if (input.action === "done") data.status = "done";
-    else if (input.action === "postpone") data.dueAt = postponeDate(input.dueAt, input.reason);
+    if (input.action === "done") {
+      if (relationID(task.policyGroup)) throw Error("请在政策说明审核通过后自动完成复核待办");
+      data.status = "done";
+    } else if (input.action === "postpone") data.dueAt = postponeDate(input.dueAt, input.reason);
     else throw Error("无效操作");
   }
   data.history = [
@@ -505,6 +521,7 @@ async function updateMailJob(
 }
 export async function runWorkflowJobs(payload: Payload) {
   const p = payload;
+  await refreshSharedNoteAssignees(p);
   const now = new Date();
   const settings = await p.findGlobal({ slug: "workflow-settings" });
   let reminders = 0,
@@ -523,7 +540,7 @@ export async function runWorkflowJobs(payload: Payload) {
     });
     for (const t of due.docs) {
       // Policy review thresholds own their in-app notifications; never send generic mail.
-      if (t.key.startsWith("policy-review:")) continue;
+      if (relationID(t.policyGroup) || t.key.startsWith("policy-review:")) continue;
       const event = {
         key: reminderKey(t.id, t.dueAt!),
         type: "task-due" as const,
