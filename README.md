@@ -101,3 +101,7 @@ docker compose --env-file .env.compose stop
 - 已实现未启用的[客户中心](docs/customer-center.md)、[AI 报价](docs/business-ai.md)、[客服](docs/customer-support.md)、[语音](docs/support-voice.md)、[通话](docs/support-calls.md)
 
 GitHub 仅保存源代码、依赖锁、迁移和文档；`.env*`、`.local`、客户资料、上传图片、备份和密钥不入仓库。接手电脑需要单独建立测试库与秘密配置，导入仓库不等于已部署。
+
+## 本地共用政策演示
+
+本机3100政策入口已接共用事实及两语独立说明；使用`npm run local:start`，不要为升级reset。新初始化／reset只建政策草稿，需运营提交、审核人发布后再测公开查询。其他电脑保留自己的库，先独立盘点备份升级，不能照搬本机清理ID。[本轮一页小结](docs/policy-demo-cutover-summary.md)及[本地测试指南](docs/local-testing-guide.md)。

@@ -1,7 +1,8 @@
-import { canReviewContent, isAdmin, contentKinds } from "@/cms/access";
+import { canReviewContent, isAdmin, contentKinds, canAccessContentKind } from "@/cms/access";
 import { canEditContent } from "@/lib/content-model";
 import { locales } from "@/lib/locales";
 import { contentAuth, checkOrigin, limitedJSON, failure } from "@/server/content/auth";
+import { ContentError } from "@/server/content/error";
 import { listPublished, mutateContent } from "@/server/content/service";
 export async function GET(req: Request) {
   try {
@@ -119,6 +120,12 @@ export async function POST(req: Request) {
     checkOrigin(req);
     const { p, user } = await contentAuth(req.headers);
     const input = await limitedJSON(req);
+    if (input?.body?.kind === "immigration-policy") {
+      if (!canAccessContentKind(user, "immigration-policy"))
+        throw new ContentError("无此板块权限", 403);
+      if ((await p.count({ collection: "policy-groups" })).totalDocs)
+        throw new ContentError("政策已使用中英共用事实，请重新打开政策工作台", 409);
+    }
     return Response.json(await mutateContent(p, user, input), {
       headers: { "Cache-Control": "no-store" },
     });

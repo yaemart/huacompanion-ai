@@ -39,7 +39,7 @@ export default buildConfig({
   i18n: { supportedLanguages: { zh, en }, fallbackLanguage: "zh" },
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URL, max: 10 },
-    push: process.env.APP_ENV === "local",
+    push: process.env.APP_ENV === "local" && process.env.HUA_DEMO_SCHEMA_PUSH !== "false",
     migrationDir: path.resolve("src/migrations"),
   }),
   globals: [supportSettings, workflowSettings, customerSettings, SEOSettings],

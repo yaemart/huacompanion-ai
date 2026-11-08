@@ -6,7 +6,7 @@ import type {
 } from "@/server/immigration/shared-notes-service";
 import { relationID } from "@/cms/access";
 import { explanationFactWarning } from "@/lib/policy-shared-notes";
-import { policyStateLabels } from "@/lib/immigration-policy-list";
+import { policyTypeLabels, policyStateLabels } from "@/lib/immigration-policy-list";
 export function PolicyNoteWorkbench({
   initial: desk,
 }: {
@@ -88,7 +88,8 @@ export function PolicyNoteWorkbench({
           {facts ? (
             <>
               <p>
-                {facts.countryNameZh} / {facts.countryNameEn} ·{" "}
+                {facts.countryNameZh} / {facts.countryNameEn}（{facts.countryCode}） ·{" "}
+                {policyTypeLabels[facts.policyType]} ·{" "}
                 {facts.maxStayHours != null
                   ? `${facts.maxStayHours} 小时`
                   : `${facts.maxStayDays} 天`}

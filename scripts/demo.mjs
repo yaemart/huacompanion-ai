@@ -25,6 +25,7 @@ import {
   ensureFree,
   webOwner,
   stopWeb,
+  assertPolicyDemoReady,
   prepareCluster,
   describeDemoFailure,
 } from "./lib/demo-environment.mjs";
@@ -269,6 +270,21 @@ if (action === "serve") {
           rmSync(media, { recursive: true, force: true });
         }
         if (!databaseExists()) pg("createdb", [...args, "hua_companion_demo"]);
+        assertPolicyDemoReady(state);
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT (SELECT count(*) FROM imm_policies)=0 " +
+              "AND (SELECT count(*) FROM content_drafts WHERE kind='immigration-policy')=0 " +
+              "AND (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('policy_shared_guard','policy_shared_immutable'))=7 " +
+              "AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='workflow_tasks' AND column_name='policy_group_id')",
+          ]).trim() !== "t"
+        )
+          throw Error("政策迁移或旧数据检查未通过；未启动网站，请保留现场。");
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)
@@ -304,7 +320,8 @@ if (action === "serve") {
             closeSync(log);
           }
           state.seeded = true;
-          state.seedVersion = 2;
+          state.seedVersion = 3;
+          state.policySeedVersion = 1;
           writeFileSync(file, JSON.stringify(state), { mode: 0o600 });
         }
         if (action !== "setup") {
@@ -350,7 +367,7 @@ if (action === "serve") {
         console.log(
           `演示已就绪：${web.url}/zh\n后台：${web.url}/admin\n账号密码：.local/test-accounts.txt\n关闭：npm run local:stop；重置：npm run local:reset`,
         );
-        if (state.seedVersion !== 2)
+        if (state.seedVersion !== 3)
           console.log("当前为旧演示数据。启动保留修改；备份并运行local:reset后可载入新版样例。");
         if (web.host !== "127.0.0.1")
           console.log(

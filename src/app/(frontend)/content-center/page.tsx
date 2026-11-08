@@ -1,4 +1,3 @@
-import { PolicyWorkbench } from "@/components/content/PolicyWorkbench";
 import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
 import { canAccessContentKind } from "@/cms/access";
 import { headers } from "next/headers";
@@ -21,7 +20,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
   }
   if (kind === "immigration-policy") {
     if (!canAccessContentKind(auth.user, kind)) notFound();
-    return <PolicyWorkbench />;
+    redirect("/content-center/policy-facts");
   }
   return (
     <ContentCenter

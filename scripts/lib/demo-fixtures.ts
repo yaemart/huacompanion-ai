@@ -1,10 +1,9 @@
 import type { ContentBody } from "../../src/lib/content-model";
-import type { PolicyPublicationData } from "../../src/lib/immigration-policy";
 import { emptyExhibition } from "../../src/lib/exhibitions.ts";
-export type DemoEntry = { body: ContentBody; publish: boolean; policy?: PolicyPublicationData };
+export type DemoEntry = { body: ContentBody; publish: boolean };
 const companyZh = "演示内容，非真实公司信息";
 const companyEn = "DEMO ONLY — not real company information";
-export function demoEntries(today: string, verifiedBy: number): DemoEntry[] {
+export function demoEntries(today: string): DemoEntry[] {
   const day = (offset: number) =>
     new Date(Date.parse(today) + offset * 86400000).toISOString().slice(0, 10);
   const entries: DemoEntry[] = [];
@@ -130,35 +129,6 @@ export function demoEntries(today: string, verifiedBy: number): DemoEntry[] {
         endDate: day(offset + 2),
         industries: ["other"],
         status: "announced",
-      };
-    }
-    for (const [n, code] of ["XY", "XZ", "XW", "XQ"].entries()) {
-      const e = add(
-        "immigration-policy",
-        `policy-${n + 1}`,
-        zh ? `虚构测试国家${code}` : `Fictional country ${code}`,
-        n < 3,
-      );
-      e.policy = {
-        countryCode: code,
-        countryNameZh: `虚构测试国家${code}`,
-        countryNameEn: `Fictional DEMO country ${code}`,
-        policyType: n === 1 ? "transit-240h" : "unilateral",
-        maxStayDays: n === 1 ? 10 : 30,
-        validFrom: n === 0 ? "2026-11-01" : day(-90),
-        validUntil: n === 0 ? "2026-12-31" : day(n === 2 ? -1 : 90),
-        lastVerifiedOn: today,
-        verifiedBy,
-        officialSourceUrl: "https://example.invalid/policy",
-        portsAndRegions: [zh ? "虚构演示口岸及停留区域" : "Fictional eligible port and region"],
-        publicNotes: zh
-          ? n === 1
-            ? "仅演示：须持前往第三国的联程机票，最多240小时。"
-            : "仅虚构演示，不代表真实政策。"
-          : n === 1
-            ? "Demo only: an onward ticket to a third country is required; maximum 240 hours."
-            : "Fictional demo only, not real policy.",
-        internalNotes: "DEMO ONLY",
       };
     }
   }
