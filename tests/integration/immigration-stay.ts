@@ -12,7 +12,9 @@ import { policyFacts, policyFixture } from "../helpers/policy-workflow-fixture";
 import type { ContentBody } from "../../src/lib/content-model";
 if (process.env.APP_ENV !== "local") throw Error("Local isolated only");
 const p = await getPayload({ config });
+const oldFlag = process.env.VISA_CHECKER_ENABLED;
 try {
+  process.env.VISA_CHECKER_ENABLED = "true";
   await policyFixture(p, async ({ body, editor, reviewer }) => {
     let draft = await mutateContent(p, editor, {
       action: "save",
@@ -159,6 +161,8 @@ try {
     );
   });
 } finally {
+  if (oldFlag === undefined) delete process.env.VISA_CHECKER_ENABLED;
+  else process.env.VISA_CHECKER_ENABLED = oldFlag;
   await p.destroy();
 }
 
