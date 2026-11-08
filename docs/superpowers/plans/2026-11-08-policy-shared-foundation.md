@@ -1,6 +1,6 @@
 # 共用事实第1批：数据基础实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 建立已批准共用事实的5类存储对象及约束；保留现有读写，尚不清理旧演示政策。
 
@@ -32,10 +32,10 @@
 
 **Interfaces:** validateSharedFacts(value: unknown, today: string, allowFictional: boolean): asserts value is SharedPolicyFacts；publicSharedFacts(facts: SharedPolicyFacts): PublicPolicyData（不含说明、核实人、内部备注）；SharedPolicyFacts沿用国家/日期/来源/核实字段，停留仅maximumStay和stayUnit。集合policy-groups、policy-fact-drafts、policy-fact-versions、policy-note-drafts、policy-note-versions。group.activeFactVersion唯一事实指针；两类正式版本不更新删除；note-draft的basedOnFactVersion及publishedNoteVersion均有同组约束，后者同时同语言。复核待办和发布事务由下一批使用这些接口实现。
 
-- [ ] 写单元RED：新事实显式单位/数值、合法天/小时、名单/日期、未知/私有说明键拒绝、公开固定投影无私有信息；原对象不被改写。
-- [ ] 写克隆集成RED：5表存在、重复组/工作稿/版本拒绝、错误跨组/跨语言指针拒绝、Payload及SQL快照改删拒绝；匿名/运营/审核人直接集合访问拒绝。
-- [ ] 实现最小结构及校验器；生成类型；up只新建5表及索引/FK/不可变触发器，down先检查5表均空，不cascade删除旧表。
-- [ ] 已批准清单只读复核；配套备份恢复到新库；在新库up/down/up及完整迁移注册检查，核对66表原列指纹不变；最后保留源库、移除本批临时库。
-- [ ] check及相关政策工作流/查询集成通过；一次独立全分支复核，记录实际验收/限制。
-- [ ] 本PR交付场景：E1–E4与客户C1–C3回归现有界面，无共用事实新操作；真实德美和真人计时仍未验。新同步发布/分语复核验收留下一批，不宣称C完成。
-- [ ] 提交推送同一分支，建立唯一草稿PR并核对最新远端/CI，不自动合并；之后须等用户合并才开下一批。
+- [x] 写单元RED：新事实显式单位/数值、合法天/小时、名单/日期、未知/私有说明键拒绝、公开固定投影无私有信息；原对象不被改写。
+- [x] 写克隆集成RED：5表存在、重复组/工作稿/版本拒绝、错误跨组/跨语言指针拒绝、Payload及SQL快照改删拒绝；匿名/运营/审核人直接集合访问拒绝。
+- [x] 实现最小结构及校验器；生成类型；up只新建5表及索引/FK/不可变触发器，down先检查5表均空，不cascade删除旧表。
+- [x] 已批准清单只读复核；配套备份恢复到新库；在新库up/down/up及完整迁移注册检查，核对66表原列指纹不变；最后保留源库、移除本批临时库。
+- [x] check及相关政策工作流/查询集成通过；一次独立全分支复核，记录实际验收/限制。
+- [x] 本PR交付场景：E1–E4与客户C1–C3回归现有界面，无共用事实新操作；真实德美和真人计时仍未验。新同步发布/分语复核验收留下一批，不宣称C完成。
+- [x] 提交推送同一分支，建立唯一草稿PR并核对最新远端/CI，不自动合并；之后须等用户合并才开下一批。
