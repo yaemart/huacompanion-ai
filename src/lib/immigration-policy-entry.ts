@@ -79,3 +79,5 @@ export function autoPolicyIdentity(
     if (!body[key] || body[key] === before?.[key]) updated[key] = after?.[key] ?? "";
   return updated;
 }
+
+export { identity as policyIdentity };

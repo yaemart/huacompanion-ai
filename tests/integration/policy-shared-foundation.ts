@@ -12,7 +12,7 @@ import {
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 import { contentTransaction } from "../../src/server/content/service";
 const url = new URL(process.env.DATABASE_URL || "");
-const clone = url.port === "55442" && /^\/hua_policy_c[123]_[a-f0-9]{32}$/.test(url.pathname);
+const clone = url.port === "55442" && /^\/hua_policy_c[1234]_[a-f0-9]{32}$/.test(url.pathname);
 const ci = process.env.CI === "true" && url.port === "55438" && url.pathname === "/hua_companion";
 if (process.env.APP_ENV !== "local" || url.hostname !== "127.0.0.1" || (!clone && !ci))
   throw Error("Only disposable shared-policy clone or CI is allowed");
