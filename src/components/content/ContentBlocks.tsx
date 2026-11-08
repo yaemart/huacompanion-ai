@@ -1,3 +1,4 @@
+import { PublishedLink } from "../PublicNavigation";
 import { PolicyBanner } from "../immigration/PolicyBanner";
 import { qualityStatusLabel } from "../../lib/quality";
 import type { Locale } from "../../lib/locales";
@@ -40,9 +41,7 @@ export function ContentBlocks({
           </figure>
         ) : b.type === "link" ? (
           <p key={i}>
-            <a href={b.url} rel="noopener noreferrer">
-              {b.text}
-            </a>
+            <PublishedLink href={b.url || ""}>{b.text}</PublishedLink>
           </p>
         ) : (
           <p key={i} style={{ whiteSpace: "pre-wrap" }}>

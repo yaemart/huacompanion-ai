@@ -1,4 +1,6 @@
 "use client";
+import { usePublicNavigation } from "./PublicNavigation";
+import { isPublishedDestination } from "../lib/public-navigation";
 import { toolLocales } from "@/lib/visa-search";
 import { supportText } from "@/lib/support";
 import Link from "next/link";
@@ -17,6 +19,7 @@ export function Header({
   languagePaths?: Partial<Record<Locale, string | null>>;
 }) {
   const path = usePathname();
+  const availability = usePublicNavigation();
   const { activeLocales, features, visaChecker } = useSiteConfig();
   const c = (en: string, zh?: string) => coreText(locale, en, zh);
   const [open, setOpen] = useState(false);
@@ -69,21 +72,24 @@ export function Header({
               {locale === "zh" ? "免签查询" : "Visa checker"}
             </Link>
           )}
-          {nav.map((label, i) => (
-            <Link
-              key={i}
-              onClick={() => setOpen(false)}
-              className={
-                path === `/${locale}${navPaths[i] ? "/" + navPaths[i] : ""}` ||
-                (navPaths[i] && path.startsWith(`/${locale}/${navPaths[i]}/`))
-                  ? "active"
-                  : ""
-              }
-              href={`/${locale}/${navPaths[i]}`}
-            >
-              {label[locale]}
-            </Link>
-          ))}
+          {nav.map((label, i) =>
+            availability &&
+            !isPublishedDestination(`/${locale}/${navPaths[i]}`, availability) ? null : (
+              <Link
+                key={i}
+                onClick={() => setOpen(false)}
+                className={
+                  path === `/${locale}${navPaths[i] ? "/" + navPaths[i] : ""}` ||
+                  (navPaths[i] && path.startsWith(`/${locale}/${navPaths[i]}/`))
+                    ? "active"
+                    : ""
+                }
+                href={`/${locale}/${navPaths[i]}`}
+              >
+                {label[locale]}
+              </Link>
+            ),
+          )}
         </nav>
         <div className="header-actions">
           {features.customerCenter && (

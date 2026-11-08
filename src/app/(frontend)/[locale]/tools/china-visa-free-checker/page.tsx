@@ -1,3 +1,4 @@
+import { PublicPage } from "@/components/content/PublicPage";
 import { pageSEO } from "@/server/seo";
 import { toolAlternates, toolLocales, visaToolPath } from "@/lib/visa-search";
 import { getSiteLocales } from "@/server/site-config";
@@ -64,7 +65,7 @@ export default async function VisaCheckerPage({ params }: Props) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const rows = buildPolicyTable(policies, today);
   return (
-    <>
+    <PublicPage>
       <a className="skip-link" href="#policy-main">
         {c.skip}
       </a>
@@ -117,6 +118,6 @@ export default async function VisaCheckerPage({ params }: Props) {
           </a>
         </div>
       </main>
-    </>
+    </PublicPage>
   );
 }

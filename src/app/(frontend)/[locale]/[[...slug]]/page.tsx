@@ -1,3 +1,5 @@
+import { PublicPage } from "@/components/content/PublicPage";
+import { publishedContent as content } from "@/server/content/published";
 import { isSiteLocale, getSiteLocales } from "@/server/site-config";
 import { LifestylePage } from "@/components/lifestyle/LifestylePage";
 import { isLife } from "@/lib/lifestyle";
@@ -17,14 +19,10 @@ import { Site } from "@/components/Site";
 import { isKnownRoute, type Locale } from "@/lib/routes";
 import { getPayload } from "payload";
 import config from "@/payload.config";
-import { listPublished, contentTransaction } from "@/server/content/service";
+import { contentTransaction } from "@/server/content/service";
 import { PublishedSite } from "@/components/content/PublishedSite";
-import { cache } from "react";
 import { contentMetadata } from "@/lib/seo";
 import { pageSEO } from "@/server/seo";
-const content = cache(async (locale: string) =>
-  listPublished(await getPayload({ config }), locale),
-);
 async function languagePaths(detail?: ContentBody) {
   if (!detail) return undefined;
   const all = (await Promise.all(getSiteLocales().map((locale) => content(locale)))).flat();
@@ -134,7 +132,10 @@ export async function generateMetadata({ params }: Props) {
     seoImage: override?.seoImage || detail?.seoImage,
   });
 }
-export default async function Page({ params, searchParams }: Props) {
+export default async function Page(props: Props) {
+  return <PublicPage>{await ContentPage(props)}</PublicPage>;
+}
+async function ContentPage({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;
   if (!isLocale(locale) || !isSiteLocale(locale)) notFound();
   const docs = await content(locale);

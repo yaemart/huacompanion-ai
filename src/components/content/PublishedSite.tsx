@@ -1,3 +1,4 @@
+import { VisaCheckerLink } from "../PublicNavigation";
 import type { Locale } from "@/lib/locales";
 import { publicText } from "@/lib/public-copy";
 import { isCatalog, catalogPath } from "@/lib/catalog";
@@ -41,12 +42,19 @@ export function PublishedSite({
       </a>
       <Header locale={locale} languagePaths={languagePaths} />
       <main id="main">
-        <nav className="section tight" aria-label={publicText(locale, "Service directories")}>
-          <Link href={`/${locale}/providers`}>{publicText(locale, "Find providers")}</Link> ·{" "}
-          <Link href={`/${locale}/services/projects`}>
-            {publicText(locale, "Hua service projects")}
-          </Link>
-        </nav>
+        {section === "services" &&
+          contents.some((d) => ["provider-profile", "service-project"].includes(d.kind)) && (
+            <nav className="section tight" aria-label={publicText(locale, "Service directories")}>
+              {contents.some((d) => d.kind === "provider-profile") && (
+                <Link href={`/${locale}/providers`}>{publicText(locale, "Find providers")}</Link>
+              )}{" "}
+              {contents.some((d) => d.kind === "service-project") && (
+                <Link href={`/${locale}/services/projects`}>
+                  {publicText(locale, "Hua service projects")}
+                </Link>
+              )}
+            </nav>
+          )}
         {section === "home" ? (
           <>
             <section className="section">
@@ -60,9 +68,12 @@ export function PublishedSite({
                   blocks={detail.blocks}
                 />
               )}
-              <Link className="button" href={`/${locale}/request`}>
-                {publicText(locale, "Plan your visit")} ↗
-              </Link>
+              <div className="public-home-actions">
+                <VisaCheckerLink locale={locale} />
+                <Link className="button" href={`/${locale}/request`}>
+                  {publicText(locale, "Plan your visit")} ↗
+                </Link>
+              </div>
               <img
                 src="/shanghai.svg"
                 alt={publicText(locale, "Shanghai illustration")}
