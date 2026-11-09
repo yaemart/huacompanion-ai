@@ -31,7 +31,7 @@ export const FollowUpTimeline: JSONFieldClientComponent = ({ path }) => {
       request.current = null;
       setMessage("跟进已追加保存。");
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "追加未完成，输入已保留，请重试");
+      setMessage("追加未完成，输入已保留，请重试。" + (e instanceof Error ? e.message : ""));
     } finally {
       setBusy(false);
     }

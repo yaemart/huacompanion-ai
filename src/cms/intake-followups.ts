@@ -1,5 +1,7 @@
 import type { CollectionBeforeChangeHook, Field } from "payload";
+import { Forbidden } from "payload";
 import { sql } from "@payloadcms/db-postgres";
+import { isOperator } from "./access";
 import { executeSQL } from "../server/db-types";
 export const followupField: Field = {
   name: "followUps",
@@ -28,6 +30,23 @@ export const guardIntakeFollowups: CollectionBeforeChangeHook = async ({
     const id = await req.transactionID;
     if (!id || !["inquiries", "providers"].includes(collection.slug))
       throw Error("跟进保护需要数据库事务");
+    if (isOperator(req.user)) {
+      const actor = await req.payload.findByID({
+        collection: "staff",
+        id: req.user!.id,
+        depth: 0,
+        req,
+      });
+      if (!isOperator(actor)) throw new Forbidden();
+      await req.payload.findByID({
+        collection: collection.slug,
+        id: originalDoc.id,
+        user: actor,
+        overrideAccess: false,
+        depth: 0,
+        req,
+      });
+    }
     const result = await executeSQL(
       req.payload,
       id,

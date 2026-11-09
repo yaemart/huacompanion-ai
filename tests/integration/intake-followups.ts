@@ -200,6 +200,56 @@ try {
       followUps((await p.findByID({ collection: kind, id: r.id, depth: 0 })).followUps).length,
       6,
     );
+    await db.query("SELECT pg_advisory_lock(726281)");
+    const untilQueued = async (n: number) => {
+      for (let i = 0; i < 100; i++) {
+        const q = await db.query(
+          "SELECT count(*)::int n FROM pg_stat_activity WHERE datname=current_database() AND wait_event='advisory'",
+        );
+        if (q.rows[0].n >= n) return;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      throw Error("Expected queued business lock");
+    };
+    const reassigned = p.update({
+      collection: kind,
+      id: r.id,
+      overrideAccess: false,
+      user: admin,
+      data: { owner: other.id },
+    });
+    let stale: Promise<boolean> | undefined;
+    try {
+      await untilQueued(1);
+      stale = p
+        .update({
+          collection: kind,
+          id: r.id,
+          overrideAccess: false,
+          user: op,
+          data: { name: "必须拒绝的过期编辑" },
+        })
+        .then(
+          () => true,
+          () => false,
+        );
+      await untilQueued(2);
+    } finally {
+      await db.query("SELECT pg_advisory_unlock(726281)");
+    }
+    await reassigned;
+    assert.equal(
+      await stale,
+      false,
+      "queued editor must not write/read new history after reassignment",
+    );
+    await p.update({
+      collection: kind,
+      id: r.id,
+      overrideAccess: false,
+      user: admin,
+      data: { owner: op.id },
+    });
     const beforeFailure = (await p.findByID({ collection: kind, id: r.id, depth: 0 })).followUps;
     await db.query(
       `CREATE FUNCTION e2_reject_audit() RETURNS trigger LANGUAGE plpgsql AS $$
