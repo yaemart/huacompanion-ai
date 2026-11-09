@@ -35,9 +35,10 @@ tests/integration/provider-options.ts。更新CI、指南、progress、handoff�
 providerOptionValue(kind,selected,unresolved)输出中文逗号分隔文本。
 ProviderOptions为Payload TextFieldClientComponent，原path／useField保持表单保存语义。
 
-- [ ] 写纯解析／序列化和真实SSR测试；运行确认缺功能RED。
-- [ ] 最小实现解析／保留旧值／可访问复选组，再运行GREEN。
-- [ ] 在providers独有字段配置接入，不改变inquiries的city或公开申请契约。
-- [ ] 隔离库运行原范围及保存重读测试，生产构建并浏览器实际操作。
-- [ ] 运行npm run check，记录实际输出，提交推送草稿PR。
-- [ ] 一次独立全分支复核；重要修复RED→GREEN；最终CI、远端、截图和本地交接实核。
+- [x] 写纯解析／序列化和真实SSR测试；运行确认缺功能RED。
+- [x] 最小实现解析／保留旧值／可访问复选组，再运行GREEN。
+- [x] 在providers独有字段配置接入，不改变inquiries的city或公开申请契约。
+- [x] 隔离库运行原范围及保存重读测试，生产构建并浏览器实际操作。
+- [x] 运行npm run check，记录实际输出，提交推送草稿PR。
+- [x] 一次独立全分支复核，无阻断问题；同path双实例辅助ID的Minor列为后续。
+- [x] 本地交接自检、配套备份、隔离验收清理及五图PR附件实核；精确HEAD的CI和远端由PR42最终交接核对，不预填成功。
