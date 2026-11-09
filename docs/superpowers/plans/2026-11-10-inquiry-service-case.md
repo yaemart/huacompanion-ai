@@ -28,7 +28,7 @@
 **Files:** lib/intake-case.ts纯ID／默认标题；cms/InquiryCase.tsx及IntakeCasePanel.tsx；cms/intake-editor.ts注册；server/business/service.ts编号查询；api/business/route.ts GET分支；business-center/page.tsx异步searchParams；BusinessDesk.tsx初始id；测试与CI／docs。
 **Interfaces:** inquiryCaseID(unknown): number|undefined；inquiryCaseTitle(reference,name): string；businessCaseForInquiry(p,user,id): Promise<{case:number|null}>。CMS POST仍businessAction(create)。
 
-- [ ] RED：写严格ID／标题纯测、真实面板SSR及DB按咨询定位模块缺失；测试查询失败／已有单／未保存的文字和禁用，观察正确失败。
-- [ ] GREEN：实现最小纯逻辑、锁内授权查询和GET、CMS独立UI／新标签链接、工作台URLid；补200外、原范围、并发幂等和事件／通知，修旧backend日志，保留notes断言。生成importMap，检查无schema变更。
-- [ ] 验收：完整check、DB与生产build／HTTP；克隆浏览器桌面／手机实际创建／打开／重载、未保存输入保留和重复只一单。源普通启动及五账号自检；截图上传PR，清理仅本轮克隆。
-- [ ] 收尾：实际记录与一页小结／指南；早建面向main草稿PR；一次独立整分支复核、重要问题一次TDD修复，次要项记账；最终head CI和上游一致；归档本计划记录，不自动合并。
+- [x] RED：写严格ID／标题纯测、真实面板SSR及DB按咨询定位模块缺失；测试查询失败／已有单／未保存的文字和禁用，观察正确失败。
+- [x] GREEN：实现最小纯逻辑、锁内授权查询和GET、CMS独立UI／新标签链接、工作台URLid；补200外、原范围、并发幂等和事件／通知，修旧backend日志，保留notes断言。生成importMap，检查无schema变更。
+- [x] 验收：完整check、DB与生产build／HTTP；克隆浏览器桌面／手机实际创建／打开／重载、未保存输入保留和重复只一单。源普通启动及五账号自检；截图上传PR，清理仅本轮克隆。
+- [x] 收尾：实际记录与一页小结／指南；早建面向main草稿PR；一次独立整分支复核、重要问题一次TDD修复，次要项记账；最终head CI和上游一致；归档本计划记录，不自动合并。
