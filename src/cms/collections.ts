@@ -1,3 +1,4 @@
+import { followupField, guardIntakeFollowups } from "./intake-followups";
 import { intakeEditorFields } from "./intake-editor";
 import { businessLock, inquiryWorkflowHook } from "../server/business/hooks";
 import {
@@ -366,6 +367,7 @@ export const Inquiries: CollectionConfig = {
   },
   versions: { maxPerDoc: 30 },
   fields: [
+    followupField,
     ...intakeFields,
     homeFulfilment,
     homeSharingLog,
@@ -429,13 +431,15 @@ export const Inquiries: CollectionConfig = {
     },
     {
       name: "notes",
-      label: "内部跟进记录",
+      label: "旧内部跟进记录（留档）",
       type: "textarea",
+      admin: { hidden: true },
+      access: { update: () => false },
       maxLength: 10000,
     },
   ],
   hooks: {
-    beforeChange: [businessLock, guardBusinessAssignment, guardHomeWorkflow],
+    beforeChange: [businessLock, guardIntakeFollowups, guardBusinessAssignment, guardHomeWorkflow],
     afterChange: [audit, inquiryWorkflowHook],
   },
 };
@@ -459,6 +463,7 @@ export const Providers: CollectionConfig = {
   },
   versions: { maxPerDoc: 30 },
   fields: [
+    followupField,
     ...intakeFields,
     housekeepingApplication,
     housekeepingVerification,
@@ -510,7 +515,13 @@ export const Providers: CollectionConfig = {
       defaultValue: false,
       access: fieldAdmin,
     },
-    { name: "notes", label: "内部审核备注", type: "textarea" },
+    {
+      name: "notes",
+      label: "旧内部审核备注（留档）",
+      type: "textarea",
+      admin: { hidden: true },
+      access: { update: () => false },
+    },
   ],
   hooks: {
     beforeChange: [
@@ -519,6 +530,7 @@ export const Providers: CollectionConfig = {
         return data;
       },
       businessLock,
+      guardIntakeFollowups,
       guardBusinessAssignment,
       guardHomeWorkflow,
     ],

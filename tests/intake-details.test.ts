@@ -52,3 +52,17 @@ test("free text and prototype-like legacy keys remain literal", () => {
   );
   assert.equal(rows[1].label, "其他资料（constructor）");
 });
+test("home enums are translated only for their actual field", () => {
+  assert.deepEqual(
+    intakeDetailRows({
+      homeService: "company",
+      homeFrequency: "provider",
+      homeFlexible: "once",
+    }).map((r) => r.value),
+    ["company", "provider", "once"],
+  );
+});
+test("invisible legacy values and empty array items do not create blank cards", () => {
+  assert.deepEqual(intakeDetailRows({ notes: "  \n\t", legacy: ["", "  "] }), []);
+  assert.equal(intakeDetailRows({ legacy: ["", "  甲  ", ""] })[0].value, "  甲  ");
+});

@@ -169,7 +169,7 @@ try {
       details: { forged: true },
       catalogSource: { forged: true },
       reference: "forged",
-      notes: "allowed",
+      name: "Allowed contact",
     },
   });
   const protectedRecord = await p.findByID({
@@ -183,7 +183,7 @@ try {
   assert.deepEqual(protectedRecord.details, { original: true });
   assert.deepEqual(protectedRecord.catalogSource, { original: true });
   assert.equal(protectedRecord.reference, a.reference);
-  assert.equal(protectedRecord.notes, "allowed");
+  assert.equal(protectedRecord.name, "Allowed contact");
   await assert.rejects(() =>
     p.create({
       collection: "teams",
@@ -228,7 +228,7 @@ try {
     id: provider.id,
     user: opA,
     overrideAccess: false,
-    data: { status: "contracted", publicApproved: true, notes: "reviewed" },
+    data: { status: "contracted", publicApproved: true },
   });
   const privateProvider = await p.findByID({
     collection: "providers",
