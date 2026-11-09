@@ -5,6 +5,7 @@ import type { Inquiry, ServiceCase, ServiceQuote, ServiceEvent } from "../../../
 import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
 import { transactionSession } from "../db-types";
+import { inquiryCaseID } from "../../lib/intake-case";
 type BusinessEventDetail = {
   fingerprint?: string;
   quote?: number;
@@ -86,6 +87,26 @@ export async function businessInquiry(
     user,
     depth: 0,
     req,
+  });
+}
+export async function businessCaseForInquiry(p: Payload, user: NonNullable<Staff>, value: unknown) {
+  const id = inquiryCaseID(value);
+  if (!id) throw new ContentError("咨询编号无效");
+  return businessTransaction(p, async (req) => {
+    const actor = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
+    await businessInquiry(p, actor, id, req).catch((e: unknown) => {
+      if ([403, 404].includes((e as { status: number }).status))
+        throw new ContentError("无权处理这条咨询，或咨询不存在", 403);
+      throw e;
+    });
+    const result = await p.find({
+      collection: "service-cases",
+      where: { inquiry: { equals: id } },
+      limit: 1,
+      depth: 0,
+      req,
+    });
+    return { case: result.docs[0]?.id ?? null };
   });
 }
 async function all<TSlug extends CollectionSlug>(

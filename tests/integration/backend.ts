@@ -179,9 +179,17 @@ try {
     id: inquiry.id,
     user: operations,
     overrideAccess: false,
-    data: { status: "processing", notes: "测试跟进" },
+    data: { status: "processing" },
   });
-  check("assigned operator can update follow-up");
+  const savedStatus = await payload.findByID({
+    collection: "inquiries",
+    id: inquiry.id,
+    user: operations,
+    overrideAccess: false,
+  });
+  assert.equal(savedStatus.status, "processing");
+  assert.equal(savedStatus.notes, own.notes);
+  check("assigned operator can update status without changing archived notes");
   await payload.update({
     collection: "inquiries",
     id: inquiry.id,

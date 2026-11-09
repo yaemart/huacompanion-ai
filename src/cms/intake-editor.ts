@@ -22,7 +22,18 @@ export function intakeEditorFields(fields: Field[], kind: "inquiry" | "provider"
       type: "collapsible",
       label: "处理操作",
       admin: { initCollapsed: false },
-      fields: selected(operations),
+      fields: [
+        ...selected(operations),
+        ...(kind === "inquiry"
+          ? [
+              {
+                name: "serviceCaseAction",
+                type: "ui" as const,
+                admin: { components: { Field: "/cms/InquiryCase#InquiryCase" } },
+              },
+            ]
+          : []),
+      ],
     },
     ...fields.filter((f) => !("name" in f) || ![...operations, ...metadata].includes(f.name)),
     {

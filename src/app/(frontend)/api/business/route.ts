@@ -1,11 +1,15 @@
 import { supportAuth } from "@/server/support/auth";
 import { checkOrigin, limitedJSON, failure } from "@/server/content/auth";
-import { businessRead, businessAction } from "@/server/business/service";
+import { businessRead, businessAction, businessCaseForInquiry } from "@/server/business/service";
 export const runtime = "nodejs";
 export async function GET(req: Request) {
   try {
     const { p, user } = await supportAuth(req.headers);
-    return Response.json(await businessRead(p, user, new URL(req.url).searchParams.get("id")), {
+    const query = new URL(req.url).searchParams;
+    const data = query.has("inquiry")
+      ? await businessCaseForInquiry(p, user, query.get("inquiry"))
+      : await businessRead(p, user, query.get("id"));
+    return Response.json(data, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (e) {
