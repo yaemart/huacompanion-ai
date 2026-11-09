@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import pg from "pg";
 import { getPayload } from "payload";
 import type { MigrateDownArgs } from "@payloadcms/db-postgres";
@@ -8,6 +10,7 @@ import { appendIntakeFollowup } from "../../src/server/intake-followups";
 import { down } from "../../src/migrations/20261109_120000_intake_followups";
 import { followUps } from "../../src/lib/intake-followups";
 import { reportingExport } from "../../src/server/reporting/service";
+import { saveIntake } from "../../src/server/intake";
 const url = new URL(process.env.DATABASE_URL || "");
 assert.equal(process.env.APP_ENV, "local");
 assert.equal(url.hostname, "127.0.0.1");
@@ -312,6 +315,59 @@ try {
       data: { active: true },
     });
   }
+  // Execute the actual Compose inquiry fixture block against this guarded clone.
+  // The Compose entry-point environment guard remains unchanged.
+  const source = readFileSync("scripts/smoke-compose.ts", "utf8");
+  const begin = source.indexOf("  for (const operator of operators) {");
+  const end = source.indexOf("  const provider =", begin);
+  assert.ok(begin > 0 && end > begin);
+  const inquiries: { id: number }[] = [];
+  await runInNewContext(`(async () => {${source.slice(begin, end)}})()`, {
+    p,
+    admin,
+    operators: [op],
+    inquiries,
+    appendIntakeFollowup,
+    randomUUID,
+    common: {
+      categories: ["transport"],
+      city: "Shanghai",
+      people: "2",
+      datesUnknown: true,
+      name: "Fictional compose regression",
+      email: `${run}-compose@example.invalid`,
+      language: "English",
+      consent: true,
+    },
+    saveIntake: async (input: unknown, key: string) => {
+      const receipt = await saveIntake(input, key);
+      const r = (
+        await p.find({
+          collection: "inquiries",
+          where: { reference: { equals: receipt.reference } },
+        })
+      ).docs[0];
+      records.push({ collection: "inquiries", id: r.id });
+      return receipt;
+    },
+  });
+  const fixture = await p.findByID({ collection: "inquiries", id: inquiries[0].id });
+  assert.equal(followUps(fixture.followUps)[0].body, "COMPOSE_INTERNAL_NOTE");
+  const ordinaryCSV = await reportingExport(p, op, {
+    entity: "inquiries",
+    filters: {},
+    includeSensitive: false,
+  });
+  assert.ok(!ordinaryCSV.csv.includes("COMPOSE_INTERNAL_NOTE"));
+  assert.ok(
+    (
+      await reportingExport(p, admin, {
+        entity: "inquiries",
+        filters: {},
+        includeSensitive: true,
+      })
+    ).csv.includes("COMPOSE_INTERNAL_NOTE"),
+  );
   console.log(
     "PASS E2 immutable legacy history, current scope, retries, concurrency, audit rollback, independent timestamp and safe export",
   );

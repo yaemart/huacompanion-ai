@@ -29,11 +29,11 @@
 
 **Interfaces:** lib/intake-followups.ts纯校验／显示／CSV → server/intake-followups.ts锁内追加 → api/intake-followups/route.ts鉴权 → cms/FollowUpTimeline.tsx受保护字段。collections既有钩子接只读历史保护；四列正式迁移及demo启动守卫；原敏感CSV接格式化结果。
 
-- [ ] RED：先写旧备注保留、严格输入、幂等键／作者显示，以及两项旧资料Minor的纯与SSR回归；观察缺模块／真实边界失败。
+- [x] RED：先写旧备注保留、严格输入、幂等键／作者显示，以及两项旧资料Minor的纯与SSR回归；观察缺模块／真实边界失败。
       Expected: 正确RED原因，无数据库密钥依赖。
-- [ ] GREEN：实现只读历史／字段、锁内追加／审计／幂等、迁移与CSV；生成类型／映射。测试普通CRUD不可改历史／notes，追加仅范围内当前员工，双并发均保留，同key同body一次、不同body冲突，记录作者时间不可由输入指定。
+- [x] GREEN：实现只读历史／字段、锁内追加／审计／幂等、迁移与CSV；生成类型／映射。测试普通CRUD不可改历史／notes，追加仅范围内当前员工，双并发均保留，同key同body一次、不同body冲突，记录作者时间不可由输入指定。
       Expected: 纯／SSR、迁移往返／拒绝有新数据回滚、相关集成通过；所有旧notes原文保留。
-- [ ] 验收：随机克隆生产build／HTTP Origin及权限／真实浏览器两类追加重载、保留其他修改、失败保留输入、桌面1440／手机390。停写源备份恢复全表与图片后单增量迁移，重启3100并五账号自检。
+- [x] 验收：随机克隆生产build／HTTP Origin及权限／真实浏览器两类追加重载、保留其他修改、失败保留输入、桌面1440／手机390。停写源备份恢复全表与图片后单增量迁移，重启3100并五账号自检。
       Expected: 无邮件／worker，无源数据覆盖，无重复／丢失；不是新人／真机通过。
-- [ ] 收尾：更新一页小结、指南、progress、handoff；check；早建草稿PR；一次独立整分支复核，重要项TDD一次修复；最终headCI／上游一致，上传有效截图；清理自建克隆，归档本计划记录。
+- [x] 收尾：更新一页小结、指南、progress、handoff；check；早建草稿PR；一次独立整分支复核，重要项TDD一次修复；最终headCI／上游一致见交接消息，上传有效截图；清理自建克隆，归档本计划记录。
       Expected: check全过、lint不增，业务≤400，PR待用户合并，明确可测E7跟进部分与剩余项。
