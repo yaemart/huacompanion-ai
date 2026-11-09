@@ -43,6 +43,7 @@ jobs:
       - run: node --import tsx tests/integration/public-company-render.tsx
       - run: node --import tsx tests/integration/exhibition-filters-render.tsx
       - run: node --import tsx tests/integration/intake-receipt-render.tsx
+      - run: node --import tsx tests/integration/intake-details-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -104,6 +105,7 @@ jobs:
           npm run test:support
           node --import tsx tests/integration/public-company.ts
           node --import tsx tests/integration/intake-receipt.ts
+          node --import tsx tests/integration/intake-editor.ts
           npm run test:reporting
           npm run test:intake
           npm run test:trial

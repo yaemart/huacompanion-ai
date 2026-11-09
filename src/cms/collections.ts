@@ -1,3 +1,4 @@
+import { intakeEditorFields } from "./intake-editor";
 import { businessLock, inquiryWorkflowHook } from "../server/business/hooks";
 import {
   housekeepingApplication,
@@ -155,7 +156,7 @@ const intakeFields: Field[] = [
     name: "details",
     label: "需求详情（初始提交）",
     type: "json",
-    admin: { readOnly: true },
+    admin: { readOnly: true, components: { Field: "/cms/IntakeDetailsField#IntakeDetailsField" } },
     access: protectedField,
   },
   {
@@ -438,6 +439,8 @@ export const Inquiries: CollectionConfig = {
     afterChange: [audit, inquiryWorkflowHook],
   },
 };
+Inquiries.fields = intakeEditorFields(Inquiries.fields, "inquiry");
+
 export const Providers: CollectionConfig = {
   slug: "providers",
   labels: { singular: "服务商申请", plural: "服务商入驻与合作" },
@@ -532,6 +535,8 @@ export const Providers: CollectionConfig = {
     afterChange: [audit, suspendProviderProjects],
   },
 };
+Providers.fields = intakeEditorFields(Providers.fields, "provider");
+
 export const Notifications: CollectionConfig = {
   slug: "notifications",
   labels: { singular: "通知任务", plural: "通知任务" },
