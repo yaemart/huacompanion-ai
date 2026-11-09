@@ -1,3 +1,4 @@
+import { readInquiryReplies } from "@/server/intake-receipt";
 import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
 import { googleVerification } from "@/server/seo";
 import { getPayload } from "payload";
@@ -22,10 +23,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = isLocale(value) ? value : "zh";
   const activeLocales = getSiteLocales();
   const features = await getPublicFeatures();
+  const inquiryReplies = await readInquiryReplies();
   return (
     <html lang={locale === "zh" ? "zh-CN" : locale} dir={localeDirection(locale)}>
       <body>
-        <SiteProvider value={{ activeLocales, features, visaChecker: visaCheckerEnabled() }}>
+        <SiteProvider
+          value={{ activeLocales, features, inquiryReplies, visaChecker: visaCheckerEnabled() }}
+        >
           {children}
         </SiteProvider>
       </body>

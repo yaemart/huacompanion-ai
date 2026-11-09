@@ -1,4 +1,5 @@
 "use client";
+import { InquiryReceipt } from "./InquiryReceipt";
 import { HousekeepingIntakeFields } from "./HousekeepingIntakeFields";
 import { homeText } from "@/lib/housekeeping-copy";
 import { homeRequestFields, homeProviderFields } from "@/lib/housekeeping";
@@ -717,21 +718,7 @@ export function InquiryForm({
               </p>
             )}
           </fieldset>
-          {receipt && (
-            <div className="preview-result" role="status">
-              <b>{c("Saved to the local test database.", "已保存到本地测试数据库。")}</b>
-              <p>
-                {c("Reference: ", "编号：")}
-                {receipt}
-              </p>
-              <p>
-                {c(
-                  "Email is not configured. No confirmation email has been sent.",
-                  "邮件服务尚未配置，未发送确认邮件。",
-                )}
-              </p>
-            </div>
-          )}
+          <InquiryReceipt locale={locale} kind={kind} reference={receipt} />
           {saveError && (
             <p role="alert" className="error-summary">
               {saveError}

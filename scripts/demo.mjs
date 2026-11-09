@@ -300,6 +300,20 @@ if (action === "serve") {
           throw Error(
             "公开公司信息尚未迁移；请先配套备份并由开发者执行20261108_220000_public_company，勿reset。",
           );
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT count(*)=2 FROM information_schema.columns WHERE table_schema='public' " +
+              "AND table_name='workflow_settings' AND column_name IN ('inquiry_reply_zh','inquiry_reply_en')",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "咨询回执尚未迁移；请先配套备份并由开发者执行20261109_080000_inquiry_reply，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)
