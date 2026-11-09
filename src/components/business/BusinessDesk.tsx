@@ -16,9 +16,9 @@ const initialQuote = () => ({
   lines: [{ label: "服务费用", quantity: 1, unitMinor: 0 }],
   internalCostMinor: "",
 });
-export default function BusinessDesk() {
+export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number }) {
   const [data, setData] = useState<any>({ inquiries: [], cases: [] }),
-    [id, setId] = useState<number>(),
+    [id, setId] = useState<number | undefined>(initialCaseID),
     [view, setView] = useState<any>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
