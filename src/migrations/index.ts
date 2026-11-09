@@ -1,3 +1,4 @@
+import * as migration_20261109_120000_intake_followups from "./20261109_120000_intake_followups";
 import * as migration_20261109_080000_inquiry_reply from "./20261109_080000_inquiry_reply";
 import * as migration_20261108_220000_public_company from "./20261108_220000_public_company";
 import * as migration_20261108_160000_policy_note_tasks from "./20261108_160000_policy_note_tasks";
@@ -185,5 +186,10 @@ export const migrations = [
     up: migration_20261109_080000_inquiry_reply.up,
     down: migration_20261109_080000_inquiry_reply.down,
     name: "20261109_080000_inquiry_reply",
+  },
+  {
+    up: migration_20261109_120000_intake_followups.up,
+    down: migration_20261109_120000_intake_followups.down,
+    name: "20261109_120000_intake_followups",
   },
 ];

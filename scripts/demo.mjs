@@ -314,6 +314,21 @@ if (action === "serve") {
           throw Error(
             "咨询回执尚未迁移；请先配套备份并由开发者执行20261109_080000_inquiry_reply，勿reset。",
           );
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT count(*)=4 FROM information_schema.columns WHERE table_schema='public' AND " +
+              "((table_name IN ('inquiries','providers') AND column_name='follow_ups') OR " +
+              "(table_name IN ('_inquiries_v','_providers_v') AND column_name='version_follow_ups'))",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "跟进时间线尚未迁移；请先配套备份并执行20261109_120000_intake_followups，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)

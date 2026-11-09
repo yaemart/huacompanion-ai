@@ -70,25 +70,14 @@ function text(key: string, value: string): string {
       .split(",")
       .map((v) => text("homeService", v))
       .join("、");
-  if (
-    ["homeService", "homeFlexible", "homeFrequency", "homeEquipment", "homeEntity"].includes(key) &&
-    [
-      "regular",
-      "deep",
-      "move-in",
-      "yes",
-      "no",
-      "once",
-      "recurring",
-      "provider",
-      "customer",
-      "confirm",
-      "company",
-      "team",
-      "other",
-    ].includes(value)
-  )
-    return homeText("zh", value);
+  const options: Record<string, string[]> = {
+    homeService: ["regular", "deep", "move-in"],
+    homeFlexible: ["yes", "no"],
+    homeFrequency: ["once", "recurring"],
+    homeEquipment: ["provider", "customer", "confirm"],
+    homeEntity: ["company", "team", "other"],
+  };
+  if (Object.hasOwn(options, key) && options[key].includes(value)) return homeText("zh", value);
   if (["language", "languages"].includes(key))
     return catalogLanguages.find((l) => l.code === value)?.zh ?? value;
   return value;
@@ -96,10 +85,13 @@ function text(key: string, value: string): string {
 export function intakeDetailRows(value: unknown): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [];
   function visit(value: unknown, label: string, key: string) {
-    if (value === null || value === undefined || value === "") return;
+    if (value === null || value === undefined || (typeof value === "string" && !value.trim()))
+      return;
     if (Array.isArray(value)) {
       if (value.every((v) => ["string", "number", "boolean"].includes(typeof v))) {
-        if (value.length) rows.push({ label, value: value.map((v) => scalar(v, key)).join("、") });
+        const visible = value.filter((v) => typeof v !== "string" || v.trim());
+        if (visible.length)
+          rows.push({ label, value: visible.map((v) => scalar(v, key)).join("、") });
       } else value.forEach((v, i) => visit(v, `${label} · 第 ${i + 1} 项`, key));
     } else if (typeof value === "object") {
       for (const [child, v] of Object.entries(value))

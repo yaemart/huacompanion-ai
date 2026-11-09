@@ -1,3 +1,4 @@
+import { followupText } from "../../lib/intake-followups";
 import type { CollectionSlug, Payload, Where } from "payload";
 import type { Staff } from "../../cms/access";
 import { isAdmin, isOperator, relationID } from "../../cms/access";
@@ -183,7 +184,7 @@ export async function reportingExport(p: Payload, user: Staff, input: unknown) {
     ];
     if ("organisation" in record)
       row.push(record.organisation, record.phone, record.languages, record.capabilities);
-    if (sensitive) row.push(record.notes);
+    if (sensitive) row.push(followupText(record.followUps, record.notes));
     if (sensitive && request.entity === "inquiries")
       row.push(
         quotes

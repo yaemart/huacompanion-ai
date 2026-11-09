@@ -6,6 +6,7 @@ import { getPayload } from "payload";
 import sharp from "sharp";
 import config from "../src/payload.config";
 import { saveIntake } from "../src/server/intake";
+import { appendIntakeFollowup } from "../src/server/intake-followups";
 import { configureTrial } from "../src/server/trial-config";
 
 const database = new URL(process.env.DATABASE_URL || "");
@@ -95,9 +96,15 @@ try {
         collection: "inquiries",
         id: inquiry.id,
         user: admin,
-        data: { team: operator.team, owner: operator.id, notes: "COMPOSE_INTERNAL_NOTE" },
+        data: { team: operator.team, owner: operator.id },
       }),
     );
+    await appendIntakeFollowup(p, admin, {
+      kind: "inquiries",
+      id: inquiry.id,
+      body: "COMPOSE_INTERNAL_NOTE",
+      key: randomUUID(),
+    });
   }
   const provider = await saveIntake(
     {

@@ -44,6 +44,7 @@ jobs:
       - run: node --import tsx tests/integration/exhibition-filters-render.tsx
       - run: node --import tsx tests/integration/intake-receipt-render.tsx
       - run: node --import tsx tests/integration/intake-details-render.tsx
+      - run: node --import tsx tests/integration/intake-followups-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -97,6 +98,8 @@ jobs:
         env:
           APP_ENV: local
         run: |
+          node --import tsx tests/integration/intake-followups-migration.ts
+          node --import tsx tests/integration/intake-followups.ts
           npm run test:content
           npm run test:business
           npm run test:workflow
@@ -141,6 +144,7 @@ jobs:
           node --import tsx tests/integration/exhibition-filters-http.ts
           node --import tsx tests/integration/public-company-http.ts
           node --import tsx tests/integration/intake-receipt-http.ts
+          node --import tsx tests/integration/intake-followups-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=false npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http --disabled

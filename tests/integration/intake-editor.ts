@@ -161,10 +161,10 @@ try {
       id: record.id,
       overrideAccess: false,
       user: op,
-      data: { name: "虚构改名", details: { purpose: "篡改" }, source: "manual", notes: "虚构跟进" },
+      data: { name: "虚构改名", details: { purpose: "篡改" }, source: "manual" },
     });
     assert.equal(saved.name, "虚构改名");
-    assert.equal(saved.notes, "虚构跟进");
+    assert.equal(saved.notes ?? null, null);
     assert.deepEqual(saved.details, original);
     assert.equal(saved.source, "website");
     if (collection === "providers") {

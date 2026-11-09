@@ -346,6 +346,16 @@ export interface Inquiry {
   notes?: string | null;
   updatedAt: string;
   createdAt: string;
+
+  followUps?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -408,6 +418,16 @@ export interface Provider {
   notes?: string | null;
   updatedAt: string;
   createdAt: string;
+
+  followUps?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
 }
 /**
  * 本地阶段未配置邮件服务。任务已保存，不代表邮件已发送。
@@ -1776,6 +1796,8 @@ export interface InquiriesSelect<T extends boolean = true> {
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
+
+  followUps?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1821,6 +1843,8 @@ export interface ProvidersSelect<T extends boolean = true> {
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
+
+  followUps?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
