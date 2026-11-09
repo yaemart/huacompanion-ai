@@ -4,7 +4,11 @@ export const housekeepingApplication: Field = {
   name: "housekeepingApplication",
   label: "家政入驻原始资料",
   type: "json",
-  admin: { readOnly: true, condition: (d) => d.categories?.includes("housekeeping") },
+  admin: {
+    readOnly: true,
+    condition: (d) => d.categories?.includes("housekeeping"),
+    components: { Field: "/cms/IntakeDetailsField#IntakeDetailsField" },
+  },
   access: { create: () => false, update: () => false },
 };
 export const housekeepingVerification: Field = {
