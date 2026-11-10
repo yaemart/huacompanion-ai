@@ -1,4 +1,5 @@
 "use client";
+import { useId } from "react";
 import {
   providerOptionList,
   providerOptions,
@@ -20,9 +21,10 @@ export function ProviderOptionsPanel({
   error?: string;
   onChange: (value: string) => void;
 }) {
+  const instanceID = useId();
   const { selected, unresolved } = providerOptions(kind, value),
     label = kind === "languages" ? "支持语言" : "服务区域",
-    helpID = `${path}-options-help`;
+    helpID = `${path}-options-help-${instanceID}`;
   return (
     <fieldset
       disabled={disabled}

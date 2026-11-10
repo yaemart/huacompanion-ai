@@ -44,7 +44,13 @@ export function intakeEditorFields(fields: Field[], kind: "inquiry" | "provider"
                 admin: { components: { Field: "/cms/InquiryCase#InquiryCase" } },
               },
             ]
-          : []),
+          : [
+              {
+                name: "providerReviewAction",
+                type: "ui" as const,
+                admin: { components: { Field: "/cms/ProviderReview#ProviderReview" } },
+              },
+            ]),
       ],
     },
     ...fields.filter((f) => !("name" in f) || ![...operations, ...metadata].includes(f.name)),

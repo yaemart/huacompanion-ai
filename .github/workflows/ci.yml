@@ -47,6 +47,7 @@ jobs:
       - run: node --import tsx tests/integration/intake-followups-render.tsx
       - run: node --import tsx tests/integration/intake-case-render.tsx
       - run: node --import tsx tests/integration/provider-options-render.tsx
+      - run: node --import tsx tests/integration/provider-review-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -104,6 +105,7 @@ jobs:
           node --import tsx tests/integration/intake-followups.ts
           node --import tsx tests/integration/intake-case.ts
           node --import tsx tests/integration/provider-options.ts
+          node --import tsx tests/integration/provider-review.ts
           npm run test:integration
           npm run test:content
           npm run test:business
@@ -151,6 +153,7 @@ jobs:
           node --import tsx tests/integration/intake-receipt-http.ts
           node --import tsx tests/integration/intake-followups-http.ts
           node --import tsx tests/integration/intake-case-http.ts
+          node --import tsx tests/integration/provider-review-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
           VISA_CHECKER_ENABLED=false npm run test:policies:notes:editor:http
           npm run test:policies:banner -- --http --disabled

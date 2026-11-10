@@ -1,3 +1,4 @@
+import { reviewProviderForTest } from "../helpers/provider-review";
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -63,6 +64,7 @@ try {
   assert.equal(provider.publicApproved, false);
   assert.ok(!JSON.stringify(provider.details).includes("FORGED"));
   assert.equal((provider.housekeepingApplication as any).homeServices, "regular,deep");
+  await reviewProviderForTest(p, admin, provider.id, "verified");
   await assert.rejects(() =>
     p.update({
       collection: "providers",
@@ -367,12 +369,7 @@ try {
     }
     console.log("PASS HTTP catalog, stale links and seven locale entry pages");
   }
-  await p.update({
-    collection: "providers",
-    id: provider.id,
-    user: admin,
-    data: { status: "paused", publicApproved: false },
-  });
+  await reviewProviderForTest(p, admin, provider.id, "paused");
   assert.ok(!(await listPublished(p, "en")).some((x) => x.contentKey === run));
   await assert.rejects(() =>
     saveIntake(

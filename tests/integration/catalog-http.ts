@@ -1,3 +1,4 @@
+import { reviewProviderForTest } from "../helpers/provider-review";
 import "dotenv/config";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
@@ -34,6 +35,9 @@ const post = async (input: any) => {
   assert.ok(r.ok, JSON.stringify(d));
   return d;
 };
+const admin = (
+  await p.find({ collection: "staff", where: { role: { equals: "admin" } }, limit: 1 })
+).docs[0];
 const key = "http-catalog-" + Date.now();
 const drafts: number[] = [];
 const apply = await saveIntake(
@@ -62,10 +66,12 @@ const provider = (
   })
 ).docs[0];
 try {
+  await reviewProviderForTest(p, admin, provider.id, "verified");
   await p.update({
     collection: "providers",
     id: provider.id,
-    data: { status: "verified", publicApproved: true },
+    user: admin,
+    data: { publicApproved: true },
   });
   const image = await sharp({
     create: { width: 2, height: 2, channels: 3, background: "#ffffff" },
@@ -205,11 +211,7 @@ try {
   assert.equal(r.status, 201, await r.text());
   assert.equal((await send(request, id)).status, 200);
   assert.equal((await send({ ...request, source: { provider: key } }, id)).status, 409);
-  await p.update({
-    collection: "providers",
-    id: provider.id,
-    data: { publicApproved: false, status: "paused" },
-  });
+  await reviewProviderForTest(p, admin, provider.id, "paused");
   assert.equal((await fetch(base + "/en/providers/" + key)).status, 404);
   assert.equal((await fetch(base + "/api/content-media/" + media.id)).status, 404);
   assert.equal((await fetch(base + "/api/public/catalog?locale=en&key=" + key)).status, 404);
@@ -232,11 +234,7 @@ try {
       revision: d.revision,
     });
   }
-  await p.update({
-    collection: "providers",
-    id: provider.id,
-    data: { publicApproved: false, status: "paused" },
-  });
+  await reviewProviderForTest(p, admin, provider.id, "paused");
   await p.destroy();
 }
 process.exit(0);
