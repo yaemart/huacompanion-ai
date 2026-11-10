@@ -1,3 +1,5 @@
+import { quoteTime } from "./quote-time.ts";
+
 export const businessStages = [
   "received",
   "discovery",
@@ -36,7 +38,7 @@ export function validateQuote(input: any, now = Date.now()) {
     terms = bounded(input.terms, "变更规则");
   if (!["CNY", "USD", "EUR", "GBP", "AED"].includes(input.currency))
     throw Error("请选择支持的币种");
-  const end = Date.parse(input.expiresAt);
+  const end = quoteTime(input.expiresAt);
   if (!Number.isFinite(end) || end <= now || end > now + 366 * 86400000)
     throw Error("有效期须在未来一年内");
   if (!Array.isArray(input.lines) || !input.lines.length || input.lines.length > 30)

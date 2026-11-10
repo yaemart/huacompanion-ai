@@ -329,6 +329,20 @@ if (action === "serve") {
           throw Error(
             "跟进时间线尚未迁移；请先配套备份并执行20261109_120000_intake_followups，勿reset。",
           );
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT to_regclass('public.quote_template_settings') IS NOT NULL AND " +
+              "to_regclass('public.quote_template_settings_templates') IS NOT NULL",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "报价模板尚未迁移；请先配套备份并执行20261111_100000_quote_templates，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)

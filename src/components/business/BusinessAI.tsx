@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { aiTaskLabels } from "@/lib/business-ai";
 import { locales, localeNames } from "@/lib/locales";
+import { quoteLocalTime } from "@/lib/quote-time";
 const initial = () => ({
   title: "",
   scope: "",
@@ -75,9 +76,7 @@ export default function BusinessAI({
   function edit(q: any) {
     setQuote({
       ...q,
-      expiresAt: new Date(Date.parse(q.expiresAt) - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16),
+      expiresAt: quoteLocalTime(q.expiresAt),
     });
     setChecked(false);
   }
@@ -156,7 +155,7 @@ export default function BusinessAI({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const value = { ...quote, expiresAt: new Date(quote.expiresAt).toISOString() };
+            const value = { ...quote, expiresAt: new FormData(e.currentTarget).get("expiresAt") };
             void (selected
               ? action(selected.status === "adopted" ? "revise" : "adopt", {
                   task: selected.id,
@@ -242,9 +241,10 @@ export default function BusinessAI({
               </select>
             </label>
             <label>
-              报价有效期（本机时间）
+              报价有效期（北京时间）
               <input
                 type="datetime-local"
+                name="expiresAt"
                 required
                 value={quote.expiresAt}
                 onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}

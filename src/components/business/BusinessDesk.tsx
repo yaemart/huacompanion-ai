@@ -5,6 +5,9 @@ import QuoteReview from "./QuoteReview";
 import BusinessAI from "./BusinessAI";
 import { aiQuoteSendAllowed } from "../../lib/business-ai";
 import CustomerLink from "../customer/CustomerLink";
+import { fillQuoteTerms, type QuoteTemplate } from "../../lib/quote-templates";
+import { serviceCategoryOptions } from "../../lib/routes";
+import { quoteTimeLabel } from "../../lib/quote-time";
 const initialQuote = () => ({
   title: "",
   scope: "",
@@ -25,6 +28,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     [inquiry, setInquiry] = useState(""),
     [title, setTitle] = useState(""),
     [quote, setQuote] = useState(initialQuote),
+    [templateCategory, setTemplateCategory] = useState(""),
     [stage, setStage] = useState("discovery"),
     [reason, setReason] = useState(""),
     [summary, setSummary] = useState(""),
@@ -102,6 +106,8 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     }
   }
   const c = view?.case;
+  const templates: QuoteTemplate[] = view?.quoteTemplates ?? [];
+  const template = templates.find(({ category }) => category === templateCategory);
   return (
     <main className="section support-page">
       <p>
@@ -119,6 +125,8 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
             onClick={() => {
               setId(undefined);
               setView(undefined);
+              setQuote(initialQuote());
+              setTemplateCategory("");
             }}
           >
             新建服务单
@@ -129,9 +137,11 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <button
                   disabled={busy}
                   onClick={() => {
+                    if (x.id === id) return;
                     setView(undefined);
                     setId(x.id);
                     setQuote(initialQuote());
+                    setTemplateCategory("");
                   }}
                 >
                   #{x.id} {x.title} · {stageLabels[x.stage]}
@@ -268,7 +278,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   </ul>
                   <p>
                     合计 {(q.totalMinor / 100).toFixed(2)} {q.currency} · 有效至{" "}
-                    {new Date(q.expiresAt).toLocaleString()}
+                    {quoteTimeLabel(q.expiresAt)}
                   </p>
                   {view.canCost && q.internalCostMinor != null && (
                     <p>内部成本（客户不可见）：{(q.internalCostMinor / 100).toFixed(2)}</p>
@@ -297,11 +307,12 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
+                    const expiresAt = new FormData(e.currentTarget).get("expiresAt");
                     if (
                       await act("quote", {
                         quote: {
                           ...quote,
-                          expiresAt: new Date(quote.expiresAt).toISOString(),
+                          expiresAt,
                           ...(quote.internalCostMinor !== ""
                             ? {
                                 internalCostMinor: Math.round(
@@ -316,6 +327,37 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   }}
                 >
                   <fieldset disabled={busy}>
+                    {templates.length > 0 && (
+                      <div>
+                        <label>
+                          按服务类型选模板
+                          <select
+                            value={template ? templateCategory : ""}
+                            onChange={(e) => setTemplateCategory(e.target.value)}
+                          >
+                            <option value="">请选择</option>
+                            {templates.map(({ category }) => (
+                              <option key={category} value={category}>
+                                {
+                                  serviceCategoryOptions.find((item) => item.value === category)
+                                    ?.label
+                                }
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button
+                          type="button"
+                          disabled={!template}
+                          onClick={() =>
+                            template && setQuote((draft) => fillQuoteTerms(draft, template))
+                          }
+                        >
+                          填入模板
+                        </button>
+                        <p>只填空白的包含、不包含和变更与取消规则，已有文字保留。</p>
+                      </div>
+                    )}
                     {[
                       ["title", "方案名称"],
                       ["scope", "服务范围"],
@@ -345,9 +387,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                       </select>
                     </label>
                     <label>
-                      有效期（本机时间）
+                      有效期（北京时间）
                       <input
                         type="datetime-local"
+                        name="expiresAt"
                         required
                         value={quote.expiresAt}
                         onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}

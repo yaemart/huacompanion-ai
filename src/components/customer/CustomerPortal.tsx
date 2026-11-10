@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Locale } from "@/lib/locales";
 import { customerCopy, customerStatus, customerNotificationCopy } from "@/lib/customer-copy";
+import { quoteTimeLabel } from "@/lib/quote-time";
 export default function CustomerPortal({ locale }: { locale: Locale }) {
   const t = customerCopy(locale),
     nt = customerNotificationCopy[locale];
@@ -249,7 +250,7 @@ export default function CustomerPortal({ locale }: { locale: Locale }) {
                       </strong>
                     </p>
                     <p>
-                      {t[23]}: {date(q.expiresAt)}
+                      {t[23]}: {quoteTimeLabel(q.expiresAt, locale)}
                     </p>
                     {q.status === "sent" &&
                       Number(c.latestQuote) === Number(q.id) &&

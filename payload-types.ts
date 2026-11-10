@@ -177,6 +177,7 @@ export interface Config {
     'customer-settings': CustomerSetting;
     'seo-settings': SeoSetting;
     'public-company-settings': PublicCompanySetting;
+    'quote-template-settings': QuoteTemplateSetting;
   };
   globalsSelect: {
     'support-settings': SupportSettingsSelect<false> | SupportSettingsSelect<true>;
@@ -184,6 +185,7 @@ export interface Config {
     'customer-settings': CustomerSettingsSelect<false> | CustomerSettingsSelect<true>;
     'seo-settings': SeoSettingsSelect<false> | SeoSettingsSelect<true>;
     'public-company-settings': PublicCompanySettingsSelect<false> | PublicCompanySettingsSelect<true>;
+    'quote-template-settings': QuoteTemplateSettingsSelect<false> | QuoteTemplateSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -2844,4 +2846,45 @@ export interface Auth {
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}
+}
+/**
+ * 每类服务可保存一份模板。只填写可给客户看的文字，修改不会更新已保存的报价。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quote-template-settings".
+ */
+export interface QuoteTemplateSetting {
+  id: number;
+  templates?:
+    | {
+        category:
+          'housekeeping' | 'medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival';
+        enabled?: boolean | null;
+        included: string;
+        excluded: string;
+        terms: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quote-template-settings_select".
+ */
+export interface QuoteTemplateSettingsSelect<T extends boolean = true> {
+  templates?:
+    | T
+    | {
+        category?: T;
+        enabled?: T;
+        included?: T;
+        excluded?: T;
+        terms?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
