@@ -35,9 +35,10 @@ src/cms/ProviderReview.tsx／ProviderReviewPanel.tsx；api/provider-review/route
 reviewProvider(Payload,Staff,unknown)返回status、publicApproved、updatedAt、duplicate；
 guardProviderReview只认服务端Symbol，普通status update只读。
 
-- [ ] 输入和Panel、helpID双实例测试先RED，再实现GREEN。
-- [ ] 隔离库写真实允许／越权／审计回滚／并发／排队转交测试先RED，最小事务与hook实现GREEN。
-- [ ] 接入专用API和Payload面板；旧夹具走真实命令；map及生产build通过。
-- [ ] 真实HTTP、主管和运营桌面／手机操作，保存基准／跟进保留／他人冲突验收。
-- [ ] check、相关集成通过，推送草稿PR；一次独立复核，阻断修复RED→GREEN。
-- [ ] 配套备份、普通重启、指南／一页小结／交接，截图、最终HEAD CI及远端实核。
+- [x] 输入和Panel、helpID双实例测试先RED，再实现GREEN。
+- [x] 隔离库写真实允许／越权／审计回滚／并发／排队转交测试先RED，最小事务与hook实现GREEN。
+- [x] 接入专用API和Payload面板；旧夹具走真实命令；map及生产build通过。
+- [x] 真实HTTP、主管和运营桌面／手机操作，保存基准／跟进保留／他人冲突验收。
+- [x] check、相关集成通过，推送草稿PR43；一次独立复核无阻断，无需复核修复。
+- [x] 配套备份、普通重启、指南／一页小结／交接、六截图附件与临时环境清理。
+- [ ] 最终文档HEAD的CI与远端，在PR43和最终交接消息实核，不预报本提交成功。
