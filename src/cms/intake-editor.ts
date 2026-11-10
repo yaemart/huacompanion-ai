@@ -2,6 +2,18 @@ import type { Field } from "payload";
 
 /** Nameless layout wrappers retain the original field paths and access functions. */
 export function intakeEditorFields(fields: Field[], kind: "inquiry" | "provider"): Field[] {
+  if (kind === "provider")
+    fields = fields.map((field) =>
+      field.type === "text" && ["languages", "city"].includes(field.name)
+        ? {
+            ...field,
+            admin: {
+              ...field.admin,
+              components: { Field: "/cms/ProviderOptions#ProviderOptions" },
+            },
+          }
+        : field,
+    );
   const operations =
     kind === "inquiry"
       ? ["status", "owner", "nextFollowUp", "coordinationStage"]

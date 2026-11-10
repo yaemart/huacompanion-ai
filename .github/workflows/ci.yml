@@ -46,6 +46,7 @@ jobs:
       - run: node --import tsx tests/integration/intake-details-render.tsx
       - run: node --import tsx tests/integration/intake-followups-render.tsx
       - run: node --import tsx tests/integration/intake-case-render.tsx
+      - run: node --import tsx tests/integration/provider-options-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -102,6 +103,7 @@ jobs:
           node --import tsx tests/integration/intake-followups-migration.ts
           node --import tsx tests/integration/intake-followups.ts
           node --import tsx tests/integration/intake-case.ts
+          node --import tsx tests/integration/provider-options.ts
           npm run test:integration
           npm run test:content
           npm run test:business
