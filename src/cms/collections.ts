@@ -1,4 +1,5 @@
 import { followupField, guardIntakeFollowups } from "./intake-followups";
+import { guardProviderReview } from "./provider-review";
 import { intakeEditorFields } from "./intake-editor";
 import { businessLock, inquiryWorkflowHook } from "../server/business/hooks";
 import {
@@ -463,6 +464,13 @@ export const Providers: CollectionConfig = {
   },
   versions: { maxPerDoc: 30 },
   fields: [
+    {
+      name: "editBase",
+      type: "text",
+      virtual: true,
+      admin: { hidden: true },
+      hooks: { afterRead: [({ siblingData }) => siblingData.updatedAt] },
+    },
     followupField,
     ...intakeFields,
     housekeepingApplication,
@@ -499,7 +507,8 @@ export const Providers: CollectionConfig = {
       type: "select",
       defaultValue: "applied",
       required: true,
-      access: fieldAdmin,
+      admin: { readOnly: true },
+      access: { ...fieldAdmin, update: () => false },
       options: [
         { label: "已申请", value: "applied" },
         { label: "待补资料", value: "needs-info" },
@@ -530,6 +539,7 @@ export const Providers: CollectionConfig = {
         return data;
       },
       businessLock,
+      guardProviderReview,
       guardIntakeFollowups,
       guardBusinessAssignment,
       guardHomeWorkflow,

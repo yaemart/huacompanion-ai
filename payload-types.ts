@@ -363,6 +363,7 @@ export interface Inquiry {
  */
 export interface Provider {
   id: number;
+  editBase?: string | null;
   reference: string;
   name: string;
   email: string;
@@ -1804,6 +1805,7 @@ export interface InquiriesSelect<T extends boolean = true> {
  * via the `definition` "providers_select".
  */
 export interface ProvidersSelect<T extends boolean = true> {
+  editBase?: T;
   reference?: T;
   name?: T;
   email?: T;

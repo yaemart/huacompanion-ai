@@ -1,3 +1,4 @@
+import { reviewProviderForTest } from "../helpers/provider-review";
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -105,10 +106,12 @@ async function publish(d: any) {
 try {
   let d = await reviewed(providerBody, provider.id);
   await assert.rejects(() => publish(d));
+  await reviewProviderForTest(p, admin, provider.id, "verified");
   await p.update({
     collection: "providers",
     id: provider.id,
-    data: { status: "verified", publicApproved: true },
+    user: admin,
+    data: { publicApproved: true },
   });
   d = await publish(d);
   let project = await publish(await reviewed(projectBody));
@@ -157,11 +160,7 @@ try {
   await assert.rejects(() =>
     saveIntake({ ...input, source: { project: "missing" } }, randomUUID()),
   );
-  await p.update({
-    collection: "providers",
-    id: provider.id,
-    data: { status: "paused", publicApproved: false },
-  });
+  await reviewProviderForTest(p, admin, provider.id, "paused");
   live = await listPublished(p, "en");
   assert.equal(
     live.some((x) => x.contentKey === run),
@@ -169,10 +168,12 @@ try {
   );
   assert.equal(live.find((x) => x.contentKey === run + "-project")?.acceptingInquiries, false);
   await assert.rejects(() => saveIntake(input, randomUUID()));
+  await reviewProviderForTest(p, admin, provider.id, "verified");
   await p.update({
     collection: "providers",
     id: provider.id,
-    data: { status: "verified", publicApproved: true },
+    user: admin,
+    data: { publicApproved: true },
   });
   assert.equal(
     (await listPublished(p, "en")).find((x) => x.contentKey === run + "-project")
@@ -230,11 +231,7 @@ try {
       revision: d.revision,
     });
   }
-  await p.update({
-    collection: "providers",
-    id: provider.id,
-    data: { status: "paused", publicApproved: false },
-  });
+  await reviewProviderForTest(p, admin, provider.id, "paused");
   await p.destroy();
 }
 
