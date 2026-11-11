@@ -46,6 +46,21 @@
 .content-center .content-identifiers summary {
   cursor: pointer;
 }
+.content-center .policy-banner-fields {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.content-center .policy-banner-selection {
+  display: none;
+}
+.content-center .policy-banner-unconfirmed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.content-center .policy-banner-unconfirmed input {
+  width: auto;
+}
 .content-center textarea {
   min-height: 100px;
 }
@@ -149,6 +164,9 @@
   outline: 2px solid #183e35;
 }
 @media (max-width: 750px) {
+  .content-center .policy-banner-selection {
+    display: block;
+  }
   .content-center .guide-comparison .guide-reference {
     max-height: none;
     position: static;

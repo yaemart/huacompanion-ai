@@ -1,6 +1,7 @@
 import { ContentError } from "./error";
 import { allocateContentIdentifiers, initialContentIdentifiers } from "./identifiers";
 import { prepareGuideTranslation } from "./guide-translation";
+import { assertPublishedBannerReferences } from "../immigration/banner-picker";
 import {
   policyActor,
   savePolicyDraft,
@@ -230,6 +231,13 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         if (current.everPublished && old.slug !== body.slug)
           throw new ContentError("已发布的网址不能修改");
       }
+      if (input.action === "save")
+        await assertPublishedBannerReferences(
+          p,
+          req,
+          (current?.body as ContentBody | undefined)?.blocks ?? [],
+          body,
+        );
       if (body.kind !== "immigration-policy" && (!current || current.slug !== body.slug)) {
         const allocated = await allocateContentIdentifiers(p, req, body, {
           draftId: current?.id,
