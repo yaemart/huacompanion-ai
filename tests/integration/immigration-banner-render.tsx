@@ -44,13 +44,38 @@ for (const locale of ["en", "zh"] as const) {
 const fields = renderToStaticMarkup(
   <PolicyBannerFields
     value={{ type: "policy-banner", text: "policy-test", policyUnconfirmed: true }}
+    locale="zh"
     onChange={() => {}}
   />,
 );
-assert.match(fields, /value="policy-test"/);
+assert.match(fields, /保留原有引用：policy-test/);
 assert.match(fields, /checked=""/);
-assert.match(fields, /内容标识/);
+assert.doesNotMatch(fields, /<select|type="search"/);
 assert.match(fields, /type="checkbox"/);
+const editableFields = renderToStaticMarkup(
+  <PolicyBannerFields
+    value={{ type: "policy-banner", text: "published" }}
+    locale="en"
+    lookup={{
+      choices: [
+        {
+          key: "published",
+          countryCode: "XY",
+          countryNameZh: "虚构",
+          countryNameEn: "Fictional",
+          policyType: "other",
+          validFrom: "2026-01-01",
+        },
+      ],
+      loading: false,
+      error: undefined,
+      refresh: () => {},
+    }}
+    onChange={() => {}}
+  />,
+);
+assert.match(editableFields, /搜索已发布政策/);
+assert.match(editableFields, /<option value="published" selected="">Fictional \(XY\)/);
 console.log(
   "PASS bilingual banner states, reviewed date/source evidence, safe text, null/no-link and structured editor controls",
 );

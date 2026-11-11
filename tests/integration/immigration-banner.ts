@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import { readPolicyBanner } from "../../src/server/immigration/banner";
-import { mutateContent } from "../../src/server/content/service";
+import { contentTransaction, mutateContent } from "../../src/server/content/service";
+import { policyBannerChoicesFor } from "../../src/server/immigration/banner-picker";
 import { policyFixture, policyFacts } from "../helpers/policy-workflow-fixture";
 
 if (process.env.APP_ENV !== "local") throw Error("Dedicated local fixtures only");
@@ -45,6 +46,26 @@ try {
     });
     assert.equal((await read())?.status, "expiring");
     assert.deepEqual(await readPolicyBanner(p, block, "zh", today), unknown);
+    const picker = (locale: string) =>
+      contentTransaction(p, (req) => policyBannerChoicesFor(p, req, outsider, "guide", locale));
+    assert.ok((await picker("en")).some((choice) => choice.key === key));
+    assert.ok(!(await picker("zh")).some((choice) => choice.key === key));
+    const formal = (
+      await p.find({
+        collection: "content-published",
+        where: { and: [{ draftId: { equals: policy.id } }, { active: { equals: true } }] },
+        limit: 1,
+      })
+    ).docs[0];
+    const formalBody = formal.body as { policy: Record<string, unknown> };
+    await p.update({
+      collection: "content-published",
+      id: formal.id,
+      data: { body: { ...formalBody, policy: { ...formalBody.policy, internalNotes: "private" } } },
+    });
+    assert.ok(!(await picker("en")).some((choice) => choice.key === key));
+    assert.deepEqual(await read(), unknown);
+    await p.update({ collection: "content-published", id: formal.id, data: { body: formal.body } });
     const articleBody = {
       ...body,
       kind: "guide",
@@ -53,6 +74,8 @@ try {
       blocks: [{ type: "paragraph", text: "Fictional local article" }, block],
       sources: [{ id: "test", title: "Fictional source", url: "https://example.invalid/source" }],
     };
+    const zhBody = { ...articleBody, locale: "zh" };
+    await assert.rejects(mutateContent(p, outsider, { action: "save", body: zhBody }), /重新选择/);
     let article = await mutateContent(p, outsider, { action: "save", body: articleBody });
     article = await mutateContent(p, outsider, {
       action: "submit",
@@ -96,7 +119,13 @@ try {
     if (http) {
       let zhArticle = await mutateContent(p, outsider, {
         action: "save",
-        body: { ...articleBody, locale: "zh" },
+        body: { ...zhBody, blocks: [articleBody.blocks[0]] },
+      });
+      // Preserve the HTTP case for an article saved before the picker existed.
+      zhArticle = await p.update({
+        collection: "content-drafts",
+        id: zhArticle.id,
+        data: { body: zhBody },
       });
       zhArticle = await mutateContent(p, outsider, {
         action: "submit",

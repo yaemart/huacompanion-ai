@@ -138,6 +138,7 @@ jobs:
           npm run test:policies:data
           npm run test:policies:query
           npm run test:policies:banner
+          node --import tsx tests/integration/policy-banner-picker.ts
           npm run test:policies:reminders
       - name: Verify production policy pages with feature off and on
         env:

@@ -2,7 +2,8 @@
 import "./content-center.css";
 import { requestContentReturn } from "@/lib/content-return";
 import { fixedContentPages, fixedSlugForKey } from "@/lib/content-identifiers";
-import { PolicyBannerFields } from "./PolicyBannerFields";
+import { PolicyBannerFields, usePolicyBannerChoices } from "./PolicyBannerFields";
+import { isPolicyBannerLocale } from "@/lib/policy-banner-picker";
 import { ArticleEditor } from "./ArticleEditor";
 import { GuideReference } from "./GuideReference";
 import {
@@ -154,6 +155,13 @@ export function ContentCenter({
   const [material, setMaterial] = useState("");
   const [targetLocale, setTargetLocale] = useState("en");
   const [taskKind, setTaskKind] = useState("draft");
+  const bannerLocale = isPolicyBannerLocale(body.locale) ? body.locale : null;
+  const canChooseBanner = policyBannersEnabled && editable && !!bannerLocale && tab === "content";
+  const bannerLookup = usePolicyBannerChoices(
+    body.kind,
+    body.locale,
+    canChooseBanner && body.blocks.some(({ type }) => type === "policy-banner"),
+  );
   const guideLocale = selected?.kind === "guide" ? guideTargetLocale(selected.locale) : null;
   const existingGuide =
     guideLocale &&
@@ -286,6 +294,11 @@ export function ContentCenter({
     }
   }
   async function action(action: string, extra: any = {}) {
+    if (
+      action === "save" &&
+      body.blocks.some(({ type, text }) => type === "policy-banner" && !text)
+    )
+      return setMessage("请先选择已发布政策，或移除空横幅后保存。");
     if (
       action === "save" &&
       (body.blocks.length > 200 ||
@@ -1174,7 +1187,12 @@ export function ContentCenter({
                     </select>
                   )}
                   {b?.type === "policy-banner" ? (
-                    <PolicyBannerFields value={b} onChange={(patch) => block(i, patch)} />
+                    <PolicyBannerFields
+                      value={b}
+                      locale={bannerLocale ?? "zh"}
+                      lookup={canChooseBanner ? bannerLookup : undefined}
+                      onChange={(patch) => block(i, patch)}
+                    />
                   ) : b?.type === "image" ? (
                     <textarea
                       aria-label="图片说明"
@@ -1199,7 +1217,7 @@ export function ContentCenter({
               <button onClick={() => field("blocks", [...body.blocks, { type: "image" }])}>
                 ＋ 在文末添加图片
               </button>
-              {policyBannersEnabled && (
+              {policyBannersEnabled && bannerLocale && (
                 <button
                   onClick={() => field("blocks", [...body.blocks, { type: "policy-banner" }])}
                 >
