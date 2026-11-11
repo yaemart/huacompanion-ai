@@ -4,6 +4,12 @@ import { requestContentReturn } from "@/lib/content-return";
 import { fixedContentPages, fixedSlugForKey } from "@/lib/content-identifiers";
 import { PolicyBannerFields } from "./PolicyBannerFields";
 import { ArticleEditor } from "./ArticleEditor";
+import { GuideReference } from "./GuideReference";
+import {
+  guideTargetLocale,
+  prefillGuideTranslation,
+  type GuideTranslation,
+} from "@/lib/guide-translation";
 import type { ContentDraft, ContentMedia } from "../../../payload-types";
 import { catalogLanguages } from "@/lib/catalog-options";
 import { contentSections, sectionFor, filterContent } from "@/lib/content-sections";
@@ -27,7 +33,7 @@ import { lifeText } from "@/lib/lifestyle-copy";
 import { emptyInstitution } from "@/lib/institutions";
 import { emptyExhibition, effectiveExhibitionStatus } from "@/lib/exhibitions";
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ContentBody, Block } from "@/lib/content-model";
 const empty = (): ContentBody => ({
   kind: "guide",
@@ -79,6 +85,10 @@ export function ContentCenter({
     tasks: [],
   });
   const [selected, setSelected] = useState<any>(null);
+  const [guideReference, setGuideReference] = useState<ContentDraft | null>(null);
+  const savedForm = useRef<ContentBody | null>(null);
+  const listRequest = useRef(0);
+  const comparisonRequest = useRef(0);
   const [body, setBody] = useState<ContentBody>(() => ({
     ...empty(),
     ...(isLife(initialKind) ? { kind: initialKind, lifestyle: emptyLifestyle(initialKind) } : {}),
@@ -144,21 +154,48 @@ export function ContentCenter({
   const [material, setMaterial] = useState("");
   const [targetLocale, setTargetLocale] = useState("en");
   const [taskKind, setTaskKind] = useState("draft");
+  const guideLocale = selected?.kind === "guide" ? guideTargetLocale(selected.locale) : null;
+  const existingGuide =
+    guideLocale &&
+    data.drafts.some(
+      (draft: ContentDraft) =>
+        draft.kind === "guide" &&
+        draft.contentKey === selected.contentKey &&
+        draft.locale === guideLocale,
+    );
+  const guideChanged =
+    !!guideReference &&
+    (data.drafts.some(
+      (draft: ContentDraft) =>
+        draft.id === guideReference.id && draft.revision > guideReference.revision,
+    ) ||
+      (selected?.sourceDraft === guideReference.id &&
+        selected.sourceRevision < guideReference.revision));
   async function load() {
+    const request = ++listRequest.current;
     const r = await fetch("/api/content-center", { cache: "no-store" });
     const d = await r.json();
+    if (request !== listRequest.current) return null;
     if (!r.ok) {
       if ([401, 403].includes(r.status)) {
         setData({ drafts: [], published: [], media: [], tasks: [] });
         setSelected(null);
+        comparisonRequest.current++;
+        setGuideReference(null);
         setBody(empty());
         window.location.assign("/admin/login");
       }
       throw Error(d.error);
     }
     setData(d);
+    const guideAccess = d.permissions.canEdit && d.permissions.contentKinds.includes("guide");
+    if (!guideAccess) {
+      comparisonRequest.current++;
+      setGuideReference(null);
+    }
     setSelected((previous: any) => {
       if (previous && !d.drafts.some((draft: any) => draft.id === previous.id)) {
+        if (previous.kind === "guide" && guideAccess && d.draftsTruncated) return previous;
         setBody(empty());
         return null;
       }
@@ -167,8 +204,10 @@ export function ContentCenter({
     return d;
   }
   useEffect(() => {
+    let initializing = true;
     load()
       .then((d) => {
+        if (!d) return;
         const permitted = d.permissions?.contentKinds || [];
         const kind = permitted.includes(initialKind) ? initialKind : permitted[0];
         if (kind) {
@@ -183,24 +222,68 @@ export function ContentCenter({
           if (initialKind && !permitted.includes(initialKind)) setKindFilter("");
         }
       })
-      .catch((e) => setMessage(e.message));
+      .catch((e) => setMessage(e.message))
+      .finally(() => {
+        initializing = false;
+      });
     const refresh = () => {
-      load().catch((e) => setMessage(e.message));
+      if (!initializing) load().catch((e) => setMessage(e.message));
     };
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, []);
-  function select(d: any) {
+  function select(d: any, reference: ContentDraft | null = null) {
+    listRequest.current++;
     setSelected(d);
+    setGuideReference(reference);
     setOverrideReason("");
-    setProviderRef(d.providerRef ? String(d.providerRef) : "");
+    setProviderRef(d?.providerRef ? String(d.providerRef) : "");
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
     setInstitutionReviewed(false);
     setLifeReviewed(false);
-    setBody({ ...d.body, category: sectionFor(d.body) });
+    const locale = reference && guideTargetLocale(reference.locale);
+    const next = d
+      ? { ...d.body, category: sectionFor(d.body) }
+      : reference && locale
+        ? prefillGuideTranslation(reference, locale)
+        : empty();
+    savedForm.current = next;
+    setBody(next);
     setVersions([]);
     setMessage("");
+  }
+  async function compareGuide(mode: "open" | "refresh" | "existing" | "back") {
+    const id = mode === "open" ? selected?.id : guideReference?.id;
+    if (!id || busy) return;
+    if (mode === "open" && body !== savedForm.current)
+      return setMessage("请先保存本稿修改，再打开双语对照。");
+    const request = ++comparisonRequest.current;
+    setBusy(true);
+    try {
+      const r = await fetch(`/api/content-center?guideTranslation=${id}`, { cache: "no-store" });
+      const result = await r.json();
+      if (request !== comparisonRequest.current) return;
+      if (!r.ok) throw Error(result.error);
+      const { source, target }: GuideTranslation = result;
+      if (mode === "refresh") {
+        setGuideReference(source);
+        return setMessage("已读取最新原文，右侧译文保留。");
+      }
+      if (mode === "existing" && !target) return setMessage("该语言还没有已保存的工作稿。");
+      if (
+        mode !== "open" &&
+        body !== savedForm.current &&
+        !window.confirm("离开将丢弃未保存的译文。请先复制需要保留的文字。")
+      )
+        return;
+      if (mode === "back") select(source);
+      else select(target, source);
+    } catch (e) {
+      setMessage((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
   async function action(action: string, extra: any = {}) {
     if (
@@ -225,6 +308,9 @@ export function ContentCenter({
           ...(action === "save"
             ? {
                 body,
+                ...(!selected && guideReference
+                  ? { guideSource: { id: guideReference.id, revision: guideReference.revision } }
+                  : {}),
                 ...(["provider-profile", "institution", "venue", "activity"].includes(body.kind) &&
                 isAdmin
                   ? { providerRef: providerRef ? Number(providerRef) : null }
@@ -248,7 +334,7 @@ export function ContentCenter({
         if ([401, 403].includes(r.status)) await load();
         throw Error(d.error);
       }
-      select(d);
+      select(d, guideReference);
       const refreshed = await load().then(
         () => true,
         () => false,
@@ -389,12 +475,13 @@ export function ContentCenter({
         </p>
       )}
       {tab === "content" && (
-        <div className="workspace">
-          <aside className="panel">
+        <div className={guideReference ? "workspace guide-comparison" : "workspace"}>
+          <aside className="panel" hidden={!!guideReference}>
             <button
               disabled={!canEdit || busy}
               onClick={() => {
                 setSelected(null);
+                setGuideReference(null);
                 setBody({
                   ...empty(),
                   kind: (kindFilter || allowedKinds[0] || "guide") as ContentBody["kind"],
@@ -706,7 +793,7 @@ export function ContentCenter({
                 query: search,
               },
             ).map((d: any) => (
-              <button className="item" key={d.id} onClick={() => select(d)}>
+              <button className="item" key={d.id} disabled={busy} onClick={() => select(d)}>
                 {d.title}
                 <small>
                   {contentSections.find((s) => s.id === sectionFor(d.body))?.zh} · {d.locale} ·{" "}
@@ -724,8 +811,25 @@ export function ContentCenter({
               </button>
             ))}
           </aside>
+          {guideReference && (
+            <GuideReference
+              key={guideReference.id}
+              source={guideReference}
+              changed={guideChanged}
+              busy={busy}
+              onBack={() => compareGuide("back")}
+              onRefresh={() => compareGuide("refresh")}
+              onExisting={selected ? undefined : () => compareGuide("existing")}
+            />
+          )}
           <section className="panel">
-            <h2>{selected ? "编辑工作稿" : "新建工作稿"}</h2>
+            <h2>{guideReference ? "编辑译文" : selected ? "编辑工作稿" : "新建工作稿"}</h2>
+            {!guideReference && canEdit && guideLocale && (
+              <button disabled={busy} onClick={() => compareGuide("open")}>
+                {existingGuide ? "打开" : "添加"}
+                {guideLocale === "en" ? "英文版" : "中文版"}
+              </button>
+            )}
             {selected &&
               isCatalog(body.kind) &&
               data.published.some(
@@ -744,7 +848,7 @@ export function ContentCenter({
                   内容类型
                   <select
                     value={body.kind}
-                    disabled={!!selected}
+                    disabled={!!selected || !!guideReference}
                     onChange={(e) => field("kind", e.target.value)}
                   >
                     {Object.entries(kinds)
@@ -760,7 +864,7 @@ export function ContentCenter({
                   语言
                   <select
                     value={body.locale}
-                    disabled={!!selected}
+                    disabled={!!selected || !!guideReference}
                     onChange={(e) => field("locale", e.target.value)}
                   >
                     {catalogLanguages.map((l) => (
@@ -883,7 +987,7 @@ export function ContentCenter({
                   内容标识（同一内容的各语言版本共用）
                   <input
                     value={body.contentKey}
-                    disabled={!!selected}
+                    disabled={!!selected || !!guideReference}
                     maxLength={100}
                     placeholder="首次保存时生成"
                     onChange={(e) => field("contentKey", e.target.value)}
@@ -893,7 +997,11 @@ export function ContentCenter({
                   网址标识（小写英文、数字和连字符）
                   <input
                     value={body.slug}
-                    disabled={body.kind === "page" || selected?.everPublished}
+                    disabled={
+                      body.kind === "page" ||
+                      selected?.everPublished ||
+                      (!!guideReference && !selected)
+                    }
                     maxLength={100}
                     placeholder={body.kind === "page" ? "由网站页面决定" : "首次保存时生成"}
                     onChange={(e) => field("slug", e.target.value)}
@@ -1267,6 +1375,7 @@ export function ContentCenter({
                   </>
                 )}
                 <button
+                  disabled={busy}
                   onClick={async () => {
                     const r = await fetch(`/api/content-center?versions=${selected.id}`);
                     const d = await r.json();
@@ -1280,6 +1389,8 @@ export function ContentCenter({
                 {data.drafts
                   .filter(
                     (d: any) =>
+                      !guideReference &&
+                      !(canEdit && guideLocale === d.locale) &&
                       d.kind === body.kind &&
                       d.locale !== body.locale &&
                       (body.kind === "page"
@@ -1288,7 +1399,9 @@ export function ContentCenter({
                   )
                   .map((d: any) => (
                     <p key={d.id}>
-                      <button onClick={() => select(d)}>打开 {d.locale} 对应内容</button>
+                      <button disabled={busy} onClick={() => select(d)}>
+                        打开 {d.locale} 对应内容
+                      </button>
                       {d.sourceRevision && d.sourceRevision !== selected.revision
                         ? "原文已变化，译文需复核"
                         : ""}

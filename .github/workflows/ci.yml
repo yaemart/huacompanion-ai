@@ -111,6 +111,7 @@ jobs:
           npm run test:integration
           npm run test:content
           node --import tsx tests/integration/content-identifiers.ts
+          node --import tsx tests/integration/guide-translation.ts
           npm run test:business
           npm run test:workflow
           npm run test:quality

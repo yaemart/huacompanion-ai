@@ -1,5 +1,6 @@
 import { ContentError } from "./error";
 import { allocateContentIdentifiers, initialContentIdentifiers } from "./identifiers";
+import { prepareGuideTranslation } from "./guide-translation";
 import {
   policyActor,
   savePolicyDraft,
@@ -37,6 +38,7 @@ interface ContentActionInput {
   revision?: unknown;
   versionId?: unknown;
   body?: unknown;
+  guideSource?: unknown;
   providerRef?: unknown;
   overrideReason?: unknown;
   note?: unknown;
@@ -149,6 +151,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     throw new ContentError("只有内容编辑可修改或提交工作稿", 403);
   if (["publish", "unpublish", "return"].includes(input.action) && !canReviewContent(user))
     throw new ContentError("只有内容审核员可审核发布", 403);
+  if (input.guideSource !== undefined && (input.action !== "save" || input.id !== undefined))
+    throw new ContentError("只能在首次保存时关联原稿");
   const result = await contentTransaction(p, async (tx) => {
     const req = { ...tx, context: { policyWorkflow: true } };
     const current = input.id
@@ -204,6 +208,11 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
       rawBody = versions.docs[0].version.body;
     }
     if (["save", "restore"].includes(input.action)) {
+      const translation =
+        input.guideSource === undefined
+          ? null
+          : await prepareGuideTranslation(p, user, input.guideSource, rawBody, req);
+      if (translation) rawBody = translation.body;
       const identifiers =
         !current && input.action === "save" ? initialContentIdentifiers(rawBody) : null;
       if (identifiers) rawBody = identifiers.body;
@@ -279,6 +288,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         delete body.policy;
       }
       const data = {
+        ...translation?.lineage,
         ...(["provider-profile", "institution", "venue", "activity"].includes(body.kind)
           ? { providerRef }
           : {}),
