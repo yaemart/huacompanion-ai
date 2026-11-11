@@ -1,8 +1,9 @@
 "use client";
 import "./content-center.css";
 import { requestContentReturn } from "@/lib/content-return";
+import { fixedContentPages, fixedSlugForKey } from "@/lib/content-identifiers";
 import { PolicyBannerFields } from "./PolicyBannerFields";
-import type { ContentMedia } from "../../../payload-types";
+import type { ContentDraft, ContentMedia } from "../../../payload-types";
 import { catalogLanguages } from "@/lib/catalog-options";
 import { contentSections, sectionFor, filterContent } from "@/lib/content-sections";
 import { catalogCities } from "@/lib/catalog-options";
@@ -114,6 +115,15 @@ export function ContentCenter({
   const isAdmin = !!permissions.isAdmin;
   const allowedKinds: string[] = permissions.contentKinds || [];
   const editable = canEdit && selected?.reviewState !== "review";
+  const fixedPageLocked =
+    selected?.kind === "page" &&
+    (!!fixedSlugForKey(selected.contentKey) ||
+      data.drafts.some(
+        (draft: Pick<ContentDraft, "id" | "kind" | "contentKey">) =>
+          draft.id !== selected.id &&
+          draft.kind === "page" &&
+          draft.contentKey === selected.contentKey,
+      ));
   const selfReview =
     !!selected &&
     [
@@ -228,14 +238,17 @@ export function ContentCenter({
         if ([401, 403].includes(r.status)) await load();
         throw Error(d.error);
       }
-      await load();
       select(d);
+      const refreshed = await load().then(
+        () => true,
+        () => false,
+      );
       setMessage(
-        action === "publish"
+        (action === "publish"
           ? "已发布到本地网站"
           : action === "unpublish"
             ? "已下架"
-            : "已保存；修改不会改变当前正式版",
+            : "已保存；修改不会改变当前正式版") + (refreshed ? "" : "；列表暂未刷新"),
       );
     } catch (e) {
       setMessage((e as Error).message);
@@ -251,6 +264,7 @@ export function ContentCenter({
           ? { ...value, housekeeping: value.housekeeping || emptyHousekeeping() }
           : value,
       ...(key === "kind" && isLife(value) ? { lifestyle: emptyLifestyle(value) } : {}),
+      ...(key === "kind" && (value === "page" || body.kind === "page") ? { slug: "" } : {}),
       ...(key === "kind" && value === "institution" && !body.institution
         ? { institution: emptyInstitution() }
         : {}),
@@ -740,14 +754,26 @@ export function ContentCenter({
                   </select>
                 </label>
               </div>
-              <label>
-                内容标识（各语言共用，例如 arrival-guide）
-                <input
-                  value={body.contentKey}
-                  disabled={!!selected}
-                  onChange={(e) => field("contentKey", e.target.value)}
-                />
-              </label>
+              {body.kind === "page" && (
+                <label>
+                  网站页面
+                  <select
+                    value={body.slug}
+                    disabled={selected?.everPublished || fixedPageLocked}
+                    onChange={(e) => field("slug", e.target.value)}
+                  >
+                    <option value="">请选择要编辑的页面</option>
+                    {fixedContentPages.map(({ slug, label }) => (
+                      <option value={slug} key={slug}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  {fixedPageLocked && (
+                    <small>该工作稿已关联此固定页面，其他页面请另建工作稿。</small>
+                  )}
+                </label>
+              )}
               {isLife(body.kind) && (
                 <>
                   <LifestyleFields
@@ -822,22 +848,41 @@ export function ContentCenter({
               )}
               {body.kind === "exhibition" && (
                 <p>
-                  每届展会使用独立内容标识（例如
-                  industry-show-2027）；同一届的各语言版本共用标识。下一届请新建，保留往届归档。
+                  每届展会使用独立内容标识；同一届的各语言版本共用标识。下一届请新建，保留往届归档。
                 </p>
               )}
-              <label>
-                网址标识（小写英文与连字符）
-                <input
-                  value={body.slug}
-                  disabled={selected?.everPublished}
-                  onChange={(e) => field("slug", e.target.value)}
-                />
-              </label>
               <label>
                 标题
                 <input value={body.title} onChange={(e) => field("title", e.target.value)} />
               </label>
+              <details key={selected?.id ?? "new-content"} className="content-identifiers">
+                <summary>高级</summary>
+                <p>
+                  {selected
+                    ? "内容标识保持不变，曾发布的网址不能修改。"
+                    : "留空时在首次保存后显示自动生成的标识。"}
+                </p>
+                <label>
+                  内容标识（同一内容的各语言版本共用）
+                  <input
+                    value={body.contentKey}
+                    disabled={!!selected}
+                    maxLength={100}
+                    placeholder="首次保存时生成"
+                    onChange={(e) => field("contentKey", e.target.value)}
+                  />
+                </label>
+                <label>
+                  网址标识（小写英文、数字和连字符）
+                  <input
+                    value={body.slug}
+                    disabled={body.kind === "page" || selected?.everPublished}
+                    maxLength={100}
+                    placeholder={body.kind === "page" ? "由网站页面决定" : "首次保存时生成"}
+                    onChange={(e) => field("slug", e.target.value)}
+                  />
+                </label>
+              </details>
               <label>
                 摘要
                 <textarea
@@ -1228,7 +1273,14 @@ export function ContentCenter({
                 </button>
                 <p>发布及预览只使用已保存版本；请先保存正在编辑的内容。</p>
                 {data.drafts
-                  .filter((d: any) => d.contentKey === body.contentKey && d.locale !== body.locale)
+                  .filter(
+                    (d: any) =>
+                      d.kind === body.kind &&
+                      d.locale !== body.locale &&
+                      (body.kind === "page"
+                        ? d.slug === body.slug
+                        : d.contentKey === body.contentKey),
+                  )
                   .map((d: any) => (
                     <p key={d.id}>
                       <button onClick={() => select(d)}>打开 {d.locale} 对应内容</button>

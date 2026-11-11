@@ -110,6 +110,7 @@ jobs:
           node --import tsx tests/integration/quote-templates.ts
           npm run test:integration
           npm run test:content
+          node --import tsx tests/integration/content-identifiers.ts
           npm run test:business
           npm run test:workflow
           npm run test:quality

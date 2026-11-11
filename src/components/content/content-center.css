@@ -38,6 +38,14 @@
   display: block;
   margin: 14px 0;
 }
+.content-center .content-identifiers {
+  padding: 10px;
+  border: 1px solid #cbd8ce;
+  border-radius: 6px;
+}
+.content-center .content-identifiers summary {
+  cursor: pointer;
+}
 .content-center textarea {
   min-height: 100px;
 }
