@@ -3,6 +3,7 @@ import "./content-center.css";
 import { requestContentReturn } from "@/lib/content-return";
 import { fixedContentPages, fixedSlugForKey } from "@/lib/content-identifiers";
 import { PolicyBannerFields } from "./PolicyBannerFields";
+import { ArticleEditor } from "./ArticleEditor";
 import type { ContentDraft, ContentMedia } from "../../../payload-types";
 import { catalogLanguages } from "@/lib/catalog-options";
 import { contentSections, sectionFor, filterContent } from "@/lib/content-sections";
@@ -202,6 +203,15 @@ export function ContentCenter({
     setMessage("");
   }
   async function action(action: string, extra: any = {}) {
+    if (
+      action === "save" &&
+      (body.blocks.length > 200 ||
+        body.blocks.some(
+          ({ type, text }) =>
+            type !== "image" && type !== "policy-banner" && (text?.length ?? 0) > 10000,
+        ))
+    )
+      return setMessage("正文最多 200 段，每段最多 10,000 字符。请修改超限内容后保存。");
     setBusy(true);
     setMessage("");
     try {
@@ -284,6 +294,13 @@ export function ContentCenter({
       body.blocks.map((b, i) => (i === index ? { ...b, ...value } : b)),
     );
   }
+  let articleStart = 0;
+  const articleParts = [...body.blocks, null].flatMap((b, i) => {
+    if (b && b.type !== "image" && b.type !== "policy-banner") return [];
+    const first = articleStart;
+    articleStart = i + 1;
+    return [{ b, i, first }];
+  });
   async function task(action: string, id?: number) {
     setBusy(true);
     try {
@@ -1024,75 +1041,63 @@ export function ContentCenter({
                 </>
               )}
               <h2>正文</h2>
-              {body.blocks.map((b, i) => (
-                <div className="block" key={i}>
-                  <select
-                    aria-label={`段落${i + 1}类型`}
-                    value={b.type}
-                    onChange={(e) => block(i, { type: e.target.value as Block["type"] })}
-                  >
-                    {[
-                      ["paragraph", "段落"],
-                      ["heading", "小标题"],
-                      ["list", "列表（每行一项）"],
-                      ["link", "链接"],
-                      ["image", "图片"],
-                      ...(policyBannersEnabled || b.type === "policy-banner"
-                        ? [["policy-banner", "政策状态横幅"]]
-                        : []),
-                    ].map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                  {b.type === "image" && (
+              <p>可直接粘贴整篇文章。选中文字可添加格式，点击已有链接可修改网址。</p>
+              {articleParts.map(({ b, i, first }) => (
+                <div key={`${selected?.id ?? "new"}-${selected?.revision ?? 0}-${first}`}>
+                  <ArticleEditor
+                    blocks={body.blocks.slice(first, i)}
+                    disabled={busy || !editable}
+                    onChange={(next) =>
+                      field("blocks", body.blocks.toSpliced(first, i - first, ...next))
+                    }
+                  />
+                  {b?.type === "image" && (
                     <select
                       aria-label="选择图片"
                       value={b.mediaId || ""}
                       onChange={(e) => block(i, { mediaId: Number(e.target.value) })}
                     >
                       <option value="">请选择已上传图片</option>
-                      {data.media.map((m: any) => (
+                      {data.media.map((m: ContentMedia) => (
                         <option key={m.id} value={m.id}>
                           {m.alt}
                         </option>
                       ))}
                     </select>
                   )}
-                  {b.type === "policy-banner" ? (
+                  {b?.type === "policy-banner" ? (
                     <PolicyBannerFields value={b} onChange={(patch) => block(i, patch)} />
-                  ) : (
+                  ) : b?.type === "image" ? (
                     <textarea
-                      aria-label={`段落${i + 1}内容`}
+                      aria-label="图片说明"
                       value={b.text || ""}
                       onChange={(e) => block(i, { text: e.target.value })}
                     />
+                  ) : null}
+                  {b && (
+                    <button
+                      onClick={() =>
+                        field(
+                          "blocks",
+                          body.blocks.filter((_, j) => j !== i),
+                        )
+                      }
+                    >
+                      {b.type === "image" ? "移除图片" : "移除政策横幅"}
+                    </button>
                   )}
-                  {b.type === "link" && (
-                    <input
-                      aria-label="链接网址"
-                      value={b.url || ""}
-                      onChange={(e) => block(i, { url: e.target.value })}
-                    />
-                  )}
-                  <button
-                    onClick={() =>
-                      field(
-                        "blocks",
-                        body.blocks.filter((_, j) => j !== i),
-                      )
-                    }
-                  >
-                    移除此段
-                  </button>
                 </div>
               ))}
-              <button
-                onClick={() => field("blocks", [...body.blocks, { type: "paragraph", text: "" }])}
-              >
-                ＋ 添加正文段落
+              <button onClick={() => field("blocks", [...body.blocks, { type: "image" }])}>
+                ＋ 在文末添加图片
               </button>
+              {policyBannersEnabled && (
+                <button
+                  onClick={() => field("blocks", [...body.blocks, { type: "policy-banner" }])}
+                >
+                  ＋ 在文末添加政策横幅
+                </button>
+              )}
               <h2>资料来源</h2>
               <p>请人工核实，提供网址不代表系统已经读取或核实该来源。</p>
               {body.sources.map((s, i) => (

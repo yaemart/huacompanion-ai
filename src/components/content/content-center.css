@@ -49,6 +49,12 @@
 .content-center textarea {
   min-height: 100px;
 }
+.content-center .article-text {
+  min-height: 112px;
+  background: white;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
 .content-center .workspace {
   display: grid;
   grid-template-columns: 280px 1fr;
