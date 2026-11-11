@@ -13,6 +13,7 @@ import { type Exhibition, validateExhibition, publicExhibition } from "./exhibit
 import { isLocale, type Locale } from "./locales.ts";
 import { type Catalog, isCatalog, validateCatalog, publicCatalog } from "./catalog.ts";
 import { hasRole, isAdmin, type Staff } from "../cms/access.ts";
+import { fixedContentPages, isContentIdentifier } from "./content-identifiers.ts";
 export type ContentUser = Staff;
 export const canEditContent = (user: ContentUser) => isAdmin(user) || hasRole(user, "editor");
 export type Block = {
@@ -109,16 +110,13 @@ export function validateContent(value: unknown): asserts value is ContentBody {
     !isLocale(d.locale)
   )
     throw Error("内容类型或语言无效");
-  if (!/^[a-z0-9][a-z0-9-]{0,99}$/.test(d.slug) || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(d.contentKey))
+  if (!isContentIdentifier(d.slug) || !isContentIdentifier(d.contentKey))
     throw Error("网址标识只允许小写英文、数字和连字符");
   if (!d.title?.trim() || d.title.length > 200 || (d.summary?.length || 0) > 2000)
     throw Error("请填写有效标题与摘要");
   if (d.seoImage !== undefined && (!Number.isSafeInteger(d.seoImage) || d.seoImage < 1))
     throw Error("请选择有效分享图片");
-  if (
-    d.kind === "page" &&
-    !["home", "about", "contact", "partners", "privacy", "terms"].includes(d.slug)
-  )
+  if (d.kind === "page" && !fixedContentPages.some((page) => page.slug === d.slug))
     throw Error("网站页面仅支持 home/about/contact/partners/privacy/terms");
   if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
   if (d.kind === "exhibition") validateExhibition(d.exhibition);

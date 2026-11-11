@@ -1,4 +1,5 @@
 import { ContentError } from "./error";
+import { allocateContentIdentifiers, initialContentIdentifiers } from "./identifiers";
 import {
   policyActor,
   savePolicyDraft,
@@ -203,6 +204,9 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
       rawBody = versions.docs[0].version.body;
     }
     if (["save", "restore"].includes(input.action)) {
+      const identifiers =
+        !current && input.action === "save" ? initialContentIdentifiers(rawBody) : null;
+      if (identifiers) rawBody = identifiers.body;
       validateContent(rawBody);
       if (!canAccessContentKind(user, rawBody.kind)) throw new ContentError("无此板块权限", 403);
       const body = publicBody({ ...rawBody, policy: undefined });
@@ -216,6 +220,14 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
           throw new ContentError("内容类型、标识和语言不能修改");
         if (current.everPublished && old.slug !== body.slug)
           throw new ContentError("已发布的网址不能修改");
+      }
+      if (body.kind !== "immigration-policy" && (!current || current.slug !== body.slug)) {
+        const allocated = await allocateContentIdentifiers(p, req, body, {
+          draftId: current?.id,
+          autoSlug: identifiers?.autoSlug,
+          autoKey: identifiers?.autoKey,
+        });
+        Object.assign(body, allocated);
       }
       const imageBlocks: ContentBody["blocks"] = body.blocks;
       const imageIDs = new Set<number>(
