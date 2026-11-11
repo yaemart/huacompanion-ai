@@ -60,6 +60,21 @@
   grid-template-columns: 280px 1fr;
   gap: 24px;
 }
+.content-center .guide-comparison {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+.content-center .guide-comparison > .panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.content-center .guide-reference {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+}
+.content-center .guide-reference-toggle {
+  display: none;
+}
 .content-center .panel {
   padding: 20px;
   border: 1px solid #cbd8ce;
@@ -134,6 +149,16 @@
   outline: 2px solid #183e35;
 }
 @media (max-width: 750px) {
+  .content-center .guide-comparison .guide-reference {
+    max-height: none;
+    position: static;
+  }
+  .content-center .guide-reference-toggle {
+    display: inline-block;
+  }
+  .content-center #guide-reference-body:not(.is-expanded) {
+    display: none;
+  }
   .content-center .workspace {
     grid-template-columns: 1fr;
   }

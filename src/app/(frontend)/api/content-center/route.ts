@@ -3,11 +3,18 @@ import { canEditContent } from "@/lib/content-model";
 import { locales } from "@/lib/locales";
 import { contentAuth, checkOrigin, limitedJSON, failure } from "@/server/content/auth";
 import { ContentError } from "@/server/content/error";
+import { readGuideTranslation } from "@/server/content/guide-translation";
 import { listPublished, mutateContent } from "@/server/content/service";
 export async function GET(req: Request) {
   try {
     const { p, user } = await contentAuth(req.headers);
-    const id = new URL(req.url).searchParams.get("versions");
+    const params = new URL(req.url).searchParams;
+    const guide = params.get("guideTranslation");
+    if (guide !== null)
+      return Response.json(await readGuideTranslation(p, user, Number(guide)), {
+        headers: { "Cache-Control": "no-store" },
+      });
+    const id = params.get("versions");
     if (id) {
       await p.findByID({
         collection: "content-drafts",
@@ -87,6 +94,7 @@ export async function GET(req: Request) {
         },
         providers,
         drafts: drafts.docs,
+        draftsTruncated: drafts.hasNextPage,
         published: published.docs
           .filter((d) => drafts.docs.some((draft) => draft.id === d.draftId))
           .map((d) => {
