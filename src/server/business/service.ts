@@ -6,6 +6,11 @@ import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
 import { transactionSession } from "../db-types";
 import { inquiryCaseID } from "../../lib/intake-case";
+import {
+  quoteTemplates,
+  templatesForCategories,
+  type QuoteTemplate,
+} from "../../lib/quote-templates";
 type BusinessEventDetail = {
   fingerprint?: string;
   quote?: number;
@@ -142,6 +147,7 @@ type BusinessDetail = {
   quotes: ServiceQuote[];
   events: ServiceEvent[];
   canCost: boolean;
+  quoteTemplates: QuoteTemplate[];
 };
 type BusinessList = {
   inquiries: (Pick<Inquiry, "id" | "reference" | "name" | "city" | "status"> & {
@@ -171,6 +177,7 @@ export async function businessRead(
   if (id) {
     const c = await caseRecord(db, id);
     const inquiry = await businessInquiry(p, user, relationID(c.inquiry));
+    const settings = await p.findGlobal({ slug: "quote-template-settings", depth: 0 });
     return {
       case: c,
       inquiry,
@@ -179,6 +186,10 @@ export async function businessRead(
       ),
       events: await all(db, "service-events", { serviceCase: { equals: c.id } }),
       canCost: isManager(user),
+      quoteTemplates: templatesForCategories(
+        quoteTemplates(settings.templates),
+        inquiry.categories,
+      ),
     };
   }
   const qs = await p.find({

@@ -1,5 +1,6 @@
 import { PublicCompanySettings } from "./cms/company";
 import { businessCollections } from "./cms/business/collections";
+import { quoteTemplateSettings } from "./cms/business/quote-templates";
 import { workflowCollections, workflowSettings } from "./cms/workflow/collections";
 import { qualityCollections } from "./cms/quality/collections";
 import { customerCollections, customerSettings } from "./cms/customer/collections";
@@ -49,6 +50,7 @@ export default buildConfig({
     customerSettings,
     SEOSettings,
     PublicCompanySettings,
+    quoteTemplateSettings,
   ],
   collections: [
     ...collections,

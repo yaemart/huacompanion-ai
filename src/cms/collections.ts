@@ -1,3 +1,4 @@
+import { serviceCategoryOptions } from "../lib/routes";
 import { followupField, guardIntakeFollowups } from "./intake-followups";
 import { guardProviderReview } from "./provider-review";
 import { intakeEditorFields } from "./intake-editor";
@@ -43,16 +44,6 @@ const ownerAccess: { create: FieldAccess; update: FieldAccess } = {
   update: ({ req }) => isManager(req.user),
 };
 const protectedField = { create: () => false, update: () => false };
-const categoryOptions = [
-  { label: "家政与居家服务", value: "housekeeping" },
-  { label: "医疗机构对接", value: "medical" },
-  { label: "展会与商务访问", value: "business" },
-  { label: "接送机与交通", value: "transport" },
-  { label: "酒店与长期住宿", value: "stays" },
-  { label: "旅游机构对接", value: "travel" },
-  { label: "翻译与陪同", value: "interpretation" },
-  { label: "来华准备与生活协助", value: "arrival" },
-];
 const audit: CollectionAfterChangeHook = async ({
   req,
   doc,
@@ -150,7 +141,7 @@ const intakeFields: Field[] = [
     label: "服务类别",
     type: "select",
     hasMany: true,
-    options: categoryOptions,
+    options: serviceCategoryOptions,
     required: true,
   },
   { name: "city", label: "城市／服务区域", type: "text", required: true },

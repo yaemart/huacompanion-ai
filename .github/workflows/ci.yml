@@ -106,6 +106,8 @@ jobs:
           node --import tsx tests/integration/intake-case.ts
           node --import tsx tests/integration/provider-options.ts
           node --import tsx tests/integration/provider-review.ts
+          node --import tsx tests/integration/quote-templates-migration.ts
+          node --import tsx tests/integration/quote-templates.ts
           npm run test:integration
           npm run test:content
           npm run test:business
