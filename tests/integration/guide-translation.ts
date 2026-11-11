@@ -35,6 +35,7 @@ try {
     slug: key,
     title: "虚构：中文版",
     category: 2,
+    sourceTopic: "visa",
     order: 5,
     blocks: [{ type: "paragraph", text: "原文" }],
     sources: [{ id: "ref", title: "资料", url: "https://example.org/", checkedAt: "2026-11-11" }],
@@ -66,7 +67,7 @@ try {
   await assert.rejects(mutateContent(p, editor, input), conflict);
   const fresh = {
     ...input,
-    body: { ...body, contentKey: "forged", slug: "forged" },
+    body: { ...body, contentKey: "forged", slug: "forged", sourceTopic: undefined },
     guideSource: { id: source.id, revision: updated.revision },
   };
   const [first, second] = await Promise.allSettled([
@@ -81,6 +82,7 @@ try {
   assert.match(target.slug, /^arrival-guide-/);
   assert.equal(target.sourceDraft, source.id);
   assert.equal(target.sourceRevision, updated.revision);
+  assert.equal((target.body as { sourceTopic?: string }).sourceTopic, "visa");
   assert.deepEqual((await readGuideTranslation(p, editor, source.id)).target?.body, target.body);
   assert.equal((await readGuideTranslation(p, editor, target.id)).target?.id, source.id);
   await assert.rejects(

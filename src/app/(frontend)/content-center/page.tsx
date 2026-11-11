@@ -1,4 +1,5 @@
 import { visaCheckerEnabled } from "@/lib/immigration-policy-flags";
+import { visaSourceKeys } from "@/lib/content-source-verification";
 import { canAccessContentKind } from "@/cms/access";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -26,6 +27,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
     <ContentCenter
       key={kind || "all"}
       initialKind={kind}
+      visaKeys={visaSourceKeys(process.env)}
       policyBannersEnabled={visaCheckerEnabled()}
     />
   );

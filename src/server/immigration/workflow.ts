@@ -2,7 +2,12 @@ import type { Payload, PayloadRequest } from "payload";
 import type { ContentDraft, ImmigrationPolicy } from "../../../payload-types";
 import { canEditContent, type ContentUser, type ContentBody } from "../../lib/content-model";
 import { policyDraft, policyFields } from "../../lib/immigration-policy-draft";
-import { publicPolicy, validatePolicyPublication } from "../../lib/immigration-policy";
+import {
+  isPolicyCalendarDate,
+  publicPolicy,
+  validatePolicyPublication,
+} from "../../lib/immigration-policy";
+import { shanghaiToday } from "../../lib/exhibitions";
 import { canAccessContentKind, relationID, canReviewContent } from "../../cms/access";
 import { ContentError } from "../content/error";
 import {
@@ -126,6 +131,10 @@ export async function checkPolicyDraft(p: Payload, req: Req, current: ContentDra
     const record = await referencedPolicy(p, req, current);
     if (record.policyType === "transit-240h" && !record.portsAndRegions?.length)
       throw new ContentError("240小时过境政策提交审核前必须填写适用口岸或区域条件");
+    if (!isPolicyCalendarDate(record.lastVerifiedOn))
+      throw new ContentError("提交审核前请填写有效的最后核实日期。");
+    if (record.lastVerifiedOn > shanghaiToday())
+      throw new ContentError("最后核实日期不能晚于今天（北京时间）。");
   }
 }
 
@@ -144,8 +153,7 @@ export async function publishPolicy(
     portsAndRegions: (record.portsAndRegions || []).map((row) => row.label),
     verifiedBy: relationID(record.verifiedBy),
   };
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
-  validatePolicyPublication(fields, today);
+  validatePolicyPublication(fields, shanghaiToday());
   const verifier = await p.findByID({ collection: "staff", id: fields.verifiedBy, depth: 0, req });
   if (!canAccessContentKind(verifier, "immigration-policy"))
     throw new ContentError("核实人必须为启用且获政策板块授权的员工", 403);

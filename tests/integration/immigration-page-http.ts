@@ -157,7 +157,12 @@ if (enabled) {
               slug,
               title,
               sources: [
-                { id: "fictional", title: "Fixture source", url: "https://example.invalid/visa" },
+                {
+                  id: "fictional",
+                  title: "Fixture source",
+                  url: "https://example.invalid/visa",
+                  checkedAt: today,
+                },
               ],
             },
           });

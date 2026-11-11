@@ -29,6 +29,7 @@ export function prefillGuideTranslation(
     blocks: [],
     category: sectionFor(body),
     order: body.order,
+    ...(body.sourceTopic ? { sourceTopic: body.sourceTopic } : {}),
     sources: body.sources.map(({ id, title, url, checkedAt }) => ({ id, title, url, checkedAt })),
   };
 }

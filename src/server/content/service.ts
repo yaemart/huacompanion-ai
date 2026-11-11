@@ -2,6 +2,7 @@ import { ContentError } from "./error";
 import { allocateContentIdentifiers, initialContentIdentifiers } from "./identifiers";
 import { prepareGuideTranslation } from "./guide-translation";
 import { assertPublishedBannerReferences } from "../immigration/banner-picker";
+import { sourceDateIssue, visaSourceKeys } from "../../lib/content-source-verification";
 import {
   policyActor,
   savePolicyDraft,
@@ -20,7 +21,11 @@ import {
 } from "../../cms/access";
 import { isLife, lifeCanEnquire, validateLifePublication } from "../../lib/lifestyle";
 import { validateInstitutionPublication } from "../../lib/institutions";
-import { validateExhibitionPublication, effectiveExhibitionStatus } from "../../lib/exhibitions";
+import {
+  validateExhibitionPublication,
+  effectiveExhibitionStatus,
+  shanghaiToday,
+} from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
 import { eligibleProvider, allSnapshots, suspendProjectsForKey } from "../catalog/eligibility";
 import type { Payload, PayloadRequest } from "payload";
@@ -51,6 +56,11 @@ interface ContentActionInput {
   policy?: unknown;
 }
 export { ContentError } from "./error";
+function checkSourceDates(body: ContentBody) {
+  const issue = sourceDateIssue(body, visaSourceKeys(process.env), shanghaiToday());
+  if (issue) throw new ContentError(issue);
+}
+
 // All content writes use this transaction lock; generic collection mutations are denied.
 export async function contentTransaction<T>(
   p: Payload,
@@ -336,6 +346,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     }
     if (!current) throw new ContentError("内容不存在", 404);
     if (input.action === "submit") {
+      checkSourceDates(current.body as unknown as ContentBody);
       await checkPolicyDraft(p, req, current);
       return p.update({
         collection: "content-drafts",
@@ -396,6 +407,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     validateContent(clean);
     if (input.action === "publish") {
       if (current.reviewState !== "review") throw new ContentError("请先提交审核");
+      checkSourceDates(clean);
       if (!clean.blocks.length && clean.kind !== "immigration-policy")
         throw new ContentError("正文不能为空");
       if (clean.kind === "immigration-policy")

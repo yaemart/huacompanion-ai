@@ -4,6 +4,11 @@ import { requestContentReturn } from "@/lib/content-return";
 import { fixedContentPages, fixedSlugForKey } from "@/lib/content-identifiers";
 import { PolicyBannerFields, usePolicyBannerChoices } from "./PolicyBannerFields";
 import { isPolicyBannerLocale } from "@/lib/policy-banner-picker";
+import {
+  requiresSourceDates,
+  sourceTopics,
+  type VisaSourceKeys,
+} from "@/lib/content-source-verification";
 import { ArticleEditor } from "./ArticleEditor";
 import { GuideReference } from "./GuideReference";
 import {
@@ -32,7 +37,7 @@ import { LifestyleFields } from "./LifestyleFields";
 import { emptyLifestyle, isLife, lifeCategories, effectiveLifeStatus } from "@/lib/lifestyle";
 import { lifeText } from "@/lib/lifestyle-copy";
 import { emptyInstitution } from "@/lib/institutions";
-import { emptyExhibition, effectiveExhibitionStatus } from "@/lib/exhibitions";
+import { emptyExhibition, effectiveExhibitionStatus, shanghaiToday } from "@/lib/exhibitions";
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
 import { useEffect, useRef, useState } from "react";
 import type { ContentBody, Block } from "@/lib/content-model";
@@ -75,9 +80,11 @@ const states: Record<string, string> = {
 export function ContentCenter({
   initialKind = "",
   policyBannersEnabled = false,
+  visaKeys = { guide: undefined, faq: [] },
 }: {
   initialKind?: string;
   policyBannersEnabled?: boolean;
+  visaKeys?: VisaSourceKeys;
 }) {
   const [data, setData] = useState<any>({
     drafts: [],
@@ -156,6 +163,7 @@ export function ContentCenter({
   const [targetLocale, setTargetLocale] = useState("en");
   const [taskKind, setTaskKind] = useState("draft");
   const bannerLocale = isPolicyBannerLocale(body.locale) ? body.locale : null;
+  const datesRequired = requiresSourceDates(body, visaKeys);
   const canChooseBanner = policyBannersEnabled && editable && !!bannerLocale && tab === "content";
   const bannerLookup = usePolicyBannerChoices(
     body.kind,
@@ -1225,6 +1233,25 @@ export function ContentCenter({
                 </button>
               )}
               <h2>资料来源</h2>
+              <label>
+                资料主题
+                <select
+                  value={body.sourceTopic ?? ""}
+                  onChange={(e) => field("sourceTopic", e.target.value || undefined)}
+                >
+                  <option value="">未标记</option>
+                  {Object.entries(sourceTopics).map(([topic, name]) => (
+                    <option key={topic} value={topic}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p>
+                {datesRequired
+                  ? "送审和发布前，至少添加一条来源，并填写每条来源的人工核实日期。"
+                  : "涉及政策、就医或签证的稿件请选择相应主题。"}
+              </p>
               <p>请人工核实，提供网址不代表系统已经读取或核实该来源。</p>
               {body.sources.map((s, i) => (
                 <div className="block" key={i}>
@@ -1251,9 +1278,11 @@ export function ContentCenter({
                     }
                   />
                   <label>
-                    人工核实日期（可选）
+                    人工核实日期{datesRequired ? "（送审必填）" : "（可选）"}
                     <input
                       type="date"
+                      required={datesRequired}
+                      max={datesRequired ? shanghaiToday() : undefined}
                       value={s.checkedAt || ""}
                       onChange={(e) =>
                         field(

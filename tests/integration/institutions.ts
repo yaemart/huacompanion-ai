@@ -130,10 +130,13 @@ try {
     /只有内容审核员/,
   );
   await assert.rejects(() => publish(draft, {}), /人工核验/);
-  const missing = await submit(
-    await save({ ...body, contentKey: `${run}-missing`, slug: `${run}-missing`, sources: [] }),
-  );
-  await assert.rejects(() => publish(missing), /资料来源/);
+  const missing = await save({
+    ...body,
+    contentKey: `${run}-missing`,
+    slug: `${run}-missing`,
+    sources: [],
+  });
+  await assert.rejects(() => submit(missing), /添加.*来源/);
   const mismatched = await submit(
     await save({
       ...body,
