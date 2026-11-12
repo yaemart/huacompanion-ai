@@ -104,6 +104,7 @@ jobs:
         run: |
           node --import tsx tests/integration/intake-followups-migration.ts
           node --import tsx tests/integration/intake-followups.ts
+          node --import tsx tests/integration/inquiry-status.ts
           node --import tsx tests/integration/intake-case.ts
           node --import tsx tests/integration/provider-options.ts
           node --import tsx tests/integration/provider-review.ts
@@ -159,6 +160,7 @@ jobs:
           node --import tsx tests/integration/public-company-http.ts
           node --import tsx tests/integration/intake-receipt-http.ts
           node --import tsx tests/integration/intake-followups-http.ts
+          node --import tsx tests/integration/inquiry-status.ts --http
           node --import tsx tests/integration/intake-case-http.ts
           node --import tsx tests/integration/provider-review-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
