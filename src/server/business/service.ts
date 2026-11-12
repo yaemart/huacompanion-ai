@@ -148,6 +148,7 @@ type BusinessDetail = {
   events: ServiceEvent[];
   canCost: boolean;
   quoteTemplates: QuoteTemplate[];
+  features: { customerCenter: boolean };
 };
 type BusinessList = {
   inquiries: (Pick<Inquiry, "id" | "reference" | "name" | "city" | "status"> & {
@@ -177,7 +178,10 @@ export async function businessRead(
   if (id) {
     const c = await caseRecord(db, id);
     const inquiry = await businessInquiry(p, user, relationID(c.inquiry));
-    const settings = await p.findGlobal({ slug: "quote-template-settings", depth: 0 });
+    const [settings, customer] = await Promise.all([
+      p.findGlobal({ slug: "quote-template-settings", depth: 0 }),
+      p.findGlobal({ slug: "customer-settings", depth: 0 }).catch(() => undefined),
+    ]);
     return {
       case: c,
       inquiry,
@@ -186,6 +190,9 @@ export async function businessRead(
       ),
       events: await all(db, "service-events", { serviceCase: { equals: c.id } }),
       canCost: isManager(user),
+      features: {
+        customerCenter: customer?.enabled === true,
+      },
       quoteTemplates: templatesForCategories(
         quoteTemplates(settings.templates),
         inquiry.categories,

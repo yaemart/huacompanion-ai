@@ -70,6 +70,7 @@ try {
   });
   const id = created.case;
   const read = () => businessRead(p, admin, id);
+  assert.deepEqual((await read()).features, { customerCenter: true });
   const act = async (action: string, extra: any = {}) =>
     businessAction(p, admin, {
       action,
@@ -170,6 +171,9 @@ try {
       .totalDocs > 0,
   );
   await p.updateGlobal({ slug: "customer-settings", data: { enabled: false } });
+  assert.deepEqual((await read()).features, { customerCenter: false });
+  assert.equal((await read()).case.stage, "completed");
+  assert.ok((await read()).quotes.some((q) => q.id === replacement.id));
   await assert.rejects(() => confirmQuote(p, customer, { quote: updated.id, key: randomUUID() }));
   console.log(
     "PASS business immutable quotes, integer totals, scope, stale revisions, replacement/duplicate confirmations, fulfilment gates, privacy and linked notifications",

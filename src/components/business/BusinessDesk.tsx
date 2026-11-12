@@ -106,6 +106,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     }
   }
   const c = view?.case;
+  const customerCenter = view?.features?.customerCenter === true;
   const templates: QuoteTemplate[] = view?.quoteTemplates ?? [];
   const template = templates.find(({ category }) => category === templateCategory);
   return (
@@ -115,7 +116,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
         <a href="/support-center">客服工作台</a>
       </p>
       <h1>方案报价与服务履约</h1>
-      <p>报价发出表示客户中心可查看，不代表邮件已送达。客户确认不代表预约、付款或资源已落实。</p>
+      <p>
+        {customerCenter && "客户可在客户中心查看已发出的报价。"}
+        发送记录不代表邮件已送达。客户确认不代表预约、付款或资源已落实。
+      </p>
       {error && <p role="alert">{error}</p>}
       <div className="support-grid">
         <aside className="support-panel">
@@ -193,7 +197,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 </a>{" "}
                 · {stageLabels[c.stage]} · 版本 {c.revision}
               </p>
-              <CustomerLink inquiryID={view.inquiry.id} />
+              {customerCenter && <CustomerLink inquiryID={view.inquiry.id} />}
               <BusinessAI
                 key={id}
                 id={id}
@@ -201,21 +205,23 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 quotes={view.quotes}
                 onChange={() => refresh(id)}
               />
-              <details>
-                <summary>客户可见进度说明</summary>
-                <textarea
-                  aria-label="客户进度说明"
-                  maxLength={4000}
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                />
-                <button
-                  disabled={busy}
-                  onClick={() => act("summary", { customerSummary: summary })}
-                >
-                  保存说明
-                </button>
-              </details>
+              {customerCenter && (
+                <details>
+                  <summary>客户可见进度说明</summary>
+                  <textarea
+                    aria-label="客户进度说明"
+                    maxLength={4000}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                  />
+                  <button
+                    disabled={busy}
+                    onClick={() => act("summary", { customerSummary: summary })}
+                  >
+                    保存说明
+                  </button>
+                </details>
+              )}
               <fieldset disabled={busy}>
                 <legend>处理阶段</legend>
                 <select

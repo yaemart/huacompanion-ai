@@ -174,9 +174,11 @@ export function SupportDesk() {
                 <button disabled={busy} onClick={() => act("takeover")}>
                   人工接手
                 </button>
-                <button disabled={busy || !c.aiConsent} onClick={() => act("resume")}>
-                  恢复 AI
-                </button>
+                {data.features?.aiReception?.available && (
+                  <button disabled={busy || !c.aiConsent} onClick={() => act("resume")}>
+                    恢复 AI
+                  </button>
+                )}
                 <button disabled={busy} onClick={() => act("resolve")}>
                   标记已解决
                 </button>
@@ -268,7 +270,7 @@ export function SupportDesk() {
                         onDone={refresh}
                       />
                     )}
-                    {m.author === "customer" && (
+                    {m.author === "customer" && data.features?.translation?.available && (
                       <button
                         disabled={busy || !c.aiConsent}
                         onClick={() => act("translate", { message: m.id, locale: "zh" })}

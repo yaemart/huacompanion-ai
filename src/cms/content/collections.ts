@@ -4,6 +4,7 @@ import type { CollectionConfig } from "payload";
 import { contentScope, isAdmin } from "../access";
 import { mediaScope } from "./media-access";
 import { contentSections, sectionFor } from "../../lib/content-sections";
+import { contentAgentAvailable } from "../../lib/content-agent-availability";
 const closed = () => false;
 const access: NonNullable<CollectionConfig["access"]> = {
   create: closed,
@@ -155,6 +156,7 @@ export const AgentTasks: CollectionConfig = {
     group,
     useAsTitle: "title",
     description: "模型未配置时不会发起调用。使用内容工作台管理任务。",
+    hidden: !contentAgentAvailable,
   },
   access: {
     ...access,

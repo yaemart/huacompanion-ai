@@ -39,6 +39,7 @@ jobs:
       - run: node --import tsx tests/integration/immigration-entry-render.tsx
       - run: node --import tsx tests/integration/immigration-stay-render.tsx
       - run: node --import tsx tests/integration/public-navigation-render.tsx
+      - run: node --import tsx tests/integration/content-feature-panels-render.tsx
       - run: node --import tsx tests/integration/public-footer-render.tsx
       - run: node --import tsx tests/integration/public-company-render.tsx
       - run: node --import tsx tests/integration/exhibition-filters-render.tsx
