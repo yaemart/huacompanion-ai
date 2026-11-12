@@ -80,18 +80,16 @@ export default function BusinessAI({
     });
     setChecked(false);
   }
+  if (!data.enabled && !data.tasks.length) return null;
   return (
     <section className="support-message">
-      <h3>AI 服务方案与报价助手</h3>
-      <p>
-        {data.enabled
-          ? "模型已配置，任务由后台处理。"
-          : "模型未配置：可以保存生成任务，不会发送摘要或产生模拟结果。"}
-      </p>
-      <p>
-        只填写去除身份资料的业务摘要。费用由员工提供，AI
-        不自行定价。采纳后仍须主管审核才能发给客户。
-      </p>
+      <h3>{data.enabled ? "AI 服务方案与报价助手" : "已有报价生成记录"}</h3>
+      {data.enabled && (
+        <p>
+          只填写去除身份资料的业务摘要。费用由员工提供，AI
+          不自行定价。采纳后仍须主管审核才能发给客户。
+        </p>
+      )}
       {message && <p role="status">{message}</p>}
       <button disabled={busy} onClick={() => refresh().catch((e) => setMessage(e.message))}>
         刷新生成状态
@@ -132,11 +130,8 @@ export default function BusinessAI({
                 整理此结果为报价草稿
               </button>
             )}
-            {t.status === "unconfigured" && (
-              <button
-                disabled={busy || !data.enabled}
-                onClick={() => action("queue", { task: t.id })}
-              >
+            {data.enabled && t.status === "unconfigured" && (
+              <button disabled={busy} onClick={() => action("queue", { task: t.id })}>
                 配置后重新排队
               </button>
             )}
@@ -148,13 +143,14 @@ export default function BusinessAI({
           </li>
         ))}
       </ul>
-      <details open={!!selected}>
+      <details open={!!selected} hidden={!data.enabled && !selected}>
         <summary>
           {selected ? `整理任务 #${selected.id} 的报价草稿` : "填写生成要求与已核实费用"}
         </summary>
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!data.enabled && !selected) return;
             const value = { ...quote, expiresAt: new FormData(e.currentTarget).get("expiresAt") };
             void (selected
               ? action(selected.status === "adopted" ? "revise" : "adopt", {
@@ -352,13 +348,7 @@ export default function BusinessAI({
                 已逐项整理事实、费用、规则和待核实事项
               </label>
             )}
-            <button>
-              {selected
-                ? "保存待主管审核的草稿"
-                : data.enabled
-                  ? "提交 AI 生成任务"
-                  : "保存任务（等待配置）"}
-            </button>
+            <button>{selected ? "保存待主管审核的草稿" : "提交 AI 生成任务"}</button>
             {selected && (
               <button
                 type="button"

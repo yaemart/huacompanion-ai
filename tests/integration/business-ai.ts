@@ -112,7 +112,11 @@ try {
   });
   await businessAIAction(p, admin, { action: "queue", id, task: t.id });
   await runBusinessAIJob(p, adapter, { dailyTokens: 1000000 });
-  let tasks = (await businessAIRead(p, admin, id)).tasks;
+  assert.equal((await businessAIRead(p, admin, id)).enabled, true);
+  process.env.BUSINESS_AI_ENABLED = "false";
+  const history = await businessAIRead(p, admin, id);
+  assert.equal(history.enabled, false);
+  let tasks = history.tasks;
   assert.equal(tasks[0].status, "succeeded");
   assert.equal(tasks[0].result.quote.totalMinor, 50000);
   await assert.rejects(async () =>
@@ -136,6 +140,7 @@ try {
     (await businessAIAction(p, admin, { action: "adopt", id, task: t.id })).adoptedQuote,
     adopted.adoptedQuote,
   );
+  process.env.BUSINESS_AI_ENABLED = "true";
   let quote = (await read(id)).quotes[0];
   assert.equal(quote.reviewStatus, "pending");
   assert.equal(quote.scope, "Human corrected scope");

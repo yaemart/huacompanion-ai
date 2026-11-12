@@ -80,10 +80,12 @@ const states: Record<string, string> = {
 export function ContentCenter({
   initialKind = "",
   policyBannersEnabled = false,
+  contentAIAvailable = false,
   visaKeys = { guide: undefined, faq: [] },
 }: {
   initialKind?: string;
   policyBannersEnabled?: boolean;
+  contentAIAvailable?: boolean;
   visaKeys?: VisaSourceKeys;
 }) {
   const [data, setData] = useState<any>({
@@ -477,13 +479,14 @@ export function ContentCenter({
         </p>
       )}
       <p>
-        编辑与 AI 生成的内容先进入草稿，只有授权审核员核验后才能发布。网站与未来 App 共用正式内容。
+        {contentAIAvailable ? "编辑与 AI 生成的内容" : "编辑内容"}
+        先进入草稿，只有授权审核员核验后才能发布。网站与未来 App 共用正式内容。
       </p>
       <nav>
         {[
           ["content", "编辑与发布"],
           ["media", "图片素材"],
-          ["agent", "AI 内容任务"],
+          ...(contentAIAvailable ? [["agent", "AI 内容任务"]] : []),
         ].map(([id, label]) => (
           <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>
             {label}
@@ -1524,7 +1527,7 @@ export function ContentCenter({
           ))}
         </section>
       )}
-      {tab === "agent" && (
+      {contentAIAvailable && tab === "agent" && (
         <section className="panel">
           <h2>AI 内容任务</h2>
           <p className="notice">
