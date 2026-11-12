@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { LineCost, QuoteAmount, QuoteLineView } from "../../lib/quote-lines";
+import {
+  partyNameKey,
+  quotePartiesDiffer,
+  type LineCost,
+  type QuoteAmount,
+  type QuoteLineView,
+} from "../../lib/quote-lines";
 import type { quoteLineOptions } from "../../server/business/quote-lines";
 
 export function quotePartySummary(line: QuoteLineView, costs?: LineCost[]) {
@@ -11,6 +17,7 @@ export function quotePartySummary(line: QuoteLineView, costs?: LineCost[]) {
     `签约方：${line.contractName || "待补"}`,
     `收款方：${line.payeeName || "待补"}`,
   ];
+  if (line.partyDifferenceReason) parts.push(`主体差异原因：${line.partyDifferenceReason}`);
   if (costs) {
     const cost = costs.find(({ lineId }) => lineId === line.lineId)?.costMinor;
     parts.push(`本项成本合计：${cost == null ? "待补成本" : (cost / 100).toFixed(2)}`);
@@ -25,9 +32,18 @@ export function quotePartyInput(form: FormData, rows: QuoteAmount[], canCost: bo
       const row = { label, quantity, unitMinor };
       const party = form.get(`party-${i}`);
       if (party === "company") return { ...row, serviceSource: "company" };
+      const contractName = String(form.get(`contract-${i}`) ?? "").trim();
+      const payeeProviderId = form.get(`payee-${i}`);
+      const reason = String(form.get(`party-reason-${i}`) ?? "").trim();
+      const parties = {
+        ...row,
+        ...(contractName && { contractName }),
+        ...(payeeProviderId && { payeeProviderId: Number(payeeProviderId) }),
+        ...(reason && { partyDifferenceReason: reason }),
+      };
       if (party === "manual")
-        return { ...row, serviceSource: "manual", serviceName: form.get(`name-${i}`) };
-      return { ...row, serviceSource: "provider", providerId: Number(party) };
+        return { ...parties, serviceSource: "manual", serviceName: form.get(`name-${i}`) };
+      return { ...parties, serviceSource: "provider", providerId: Number(party) };
     }),
     lineCosts: canCost
       ? rows.map((_, i) => {
@@ -50,6 +66,23 @@ export function QuoteLineParties({
   enabled: boolean;
 }) {
   const [party, setParty] = useState("company");
+  const [manualName, setManualName] = useState("");
+  const [contractName, setContractName] = useState("");
+  const [payeeId, setPayeeId] = useState("");
+  const [reason, setReason] = useState("");
+  const isCompany = party === "company";
+  const serviceProvider = options.providers.find(({ id }) => String(id) === party);
+  const serviceName = party === "manual" ? manualName.trim() : (serviceProvider?.name ?? "");
+  const payee = options.providers.find(({ id }) => String(id) === payeeId);
+  const contract = contractName.trim() || serviceName;
+  const contractProviderId =
+    partyNameKey(contract) === partyNameKey(serviceName) ? serviceProvider?.id : undefined;
+  const differs = quotePartiesDiffer(
+    contract,
+    payee?.name ?? serviceName,
+    contractProviderId,
+    payee?.id ?? serviceProvider?.id,
+  );
   const missing =
     party !== "company" &&
     party !== "manual" &&
@@ -62,7 +95,12 @@ export function QuoteLineParties({
         <select
           name={`party-${index}`}
           value={party}
-          onChange={(event) => setParty(event.target.value)}
+          onChange={(event) => {
+            setParty(event.target.value);
+            setContractName("");
+            setPayeeId("");
+            setReason("");
+          }}
         >
           <option value="company">华伴自营 · {options.companyName || "主体名称未配置"}</option>
           {missing && (
@@ -81,10 +119,64 @@ export function QuoteLineParties({
       <div hidden={party !== "manual"}>
         <label>
           手填服务方名称
-          <input name={`name-${index}`} required maxLength={200} disabled={party !== "manual"} />
+          <input
+            name={`name-${index}`}
+            required
+            maxLength={200}
+            disabled={party !== "manual"}
+            value={manualName}
+            onChange={(event) => setManualName(event.target.value)}
+          />
         </label>
       </div>
-      <p>{party === "company" ? "华伴统筹" : "合作对接"}，签约方与收款方按服务方带入。</p>
+      {isCompany ? (
+        <p>
+          华伴统筹。签约方和收款方均为{options.companyName || "华伴公司主体（待配置）"}，已锁定。
+        </p>
+      ) : (
+        <fieldset>
+          <legend>合作对接</legend>
+          <label>
+            签约方
+            <input
+              name={`contract-${index}`}
+              value={contractName}
+              onChange={(event) => setContractName(event.target.value)}
+              placeholder={serviceName || "同实际服务方"}
+              maxLength={200}
+            />
+          </label>
+          <label>
+            收款方
+            <select
+              name={`payee-${index}`}
+              value={payeeId}
+              onChange={(event) => setPayeeId(event.target.value)}
+            >
+              <option value="">同实际服务方{serviceName && ` · ${serviceName}`}</option>
+              {payeeId && !payee && <option value={payeeId}>原收款方不可用，请重新选择</option>}
+              {options.providers.map(({ id, name }) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>签约方留空时使用实际服务方。当前未开放华伴代收。</p>
+          {differs && (
+            <label>
+              签约方与收款方不同的原因（必填）
+              <textarea
+                name={`party-reason-${index}`}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                maxLength={2000}
+                required
+              />
+            </label>
+          )}
+        </fieldset>
+      )}
       {canCost && (
         <label>
           本项成本合计（可留空）

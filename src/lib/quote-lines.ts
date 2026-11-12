@@ -6,10 +6,32 @@ export type QuoteLineView = QuoteAmount & {
   serviceName?: string;
   contractName?: string;
   payeeName?: string;
+  partyDifferenceReason?: string;
   serviceSource?: PartySource;
   providerId?: number;
+  payeeProviderId?: number;
 };
 export type LineCost = { lineId: string; costMinor: number };
+
+export function partyNameKey(value: string) {
+  return value
+    .normalize("NFKC")
+    .replace(/\p{Cf}/gu, "")
+    .trim()
+    .replace(/\s+/gu, " ")
+    .toLowerCase();
+}
+
+export function quotePartiesDiffer(
+  contractName: string,
+  payeeName: string,
+  contractProviderId?: number,
+  payeeProviderId?: number,
+) {
+  if (contractProviderId !== undefined && payeeProviderId !== undefined)
+    return contractProviderId !== payeeProviderId;
+  return partyNameKey(contractName) !== partyNameKey(payeeName);
+}
 
 export function quoteLinesView(value: unknown, format: unknown, staff = false): QuoteLineView[] {
   if (!Array.isArray(value)) return [];
@@ -24,8 +46,10 @@ export function quoteLinesView(value: unknown, format: unknown, staff = false): 
       serviceName,
       contractName,
       payeeName,
+      partyDifferenceReason,
       serviceSource,
       providerId,
+      payeeProviderId,
     } = row as Partial<QuoteLineView>;
     if (typeof label !== "string" || typeof quantity !== "number" || typeof unitMinor !== "number")
       return [];
@@ -37,9 +61,12 @@ export function quoteLinesView(value: unknown, format: unknown, staff = false): 
     if (typeof contractName === "string") line.contractName = contractName;
     if (typeof payeeName === "string") line.payeeName = payeeName;
     if (staff) {
+      if (typeof partyDifferenceReason === "string")
+        line.partyDifferenceReason = partyDifferenceReason;
       if (serviceSource === "company" || serviceSource === "provider" || serviceSource === "manual")
         line.serviceSource = serviceSource;
       if (typeof providerId === "number") line.providerId = providerId;
+      if (typeof payeeProviderId === "number") line.payeeProviderId = payeeProviderId;
     }
     return [line];
   });

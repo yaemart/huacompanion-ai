@@ -20,7 +20,8 @@ export async function POST(req: Request) {
   try {
     checkOrigin(req);
     const { p, user } = await supportAuth(req.headers);
-    return Response.json(await businessAction(p, user, await limitedJSON(req, 50000)), {
+    // A quote can contain 30 items with 2,000 characters of explanation per item.
+    return Response.json(await businessAction(p, user, await limitedJSON(req, 600000)), {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (e) {
