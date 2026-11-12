@@ -79,6 +79,16 @@ try {
       key: randomUUID(),
       ...extra,
     });
+  async function approveFixture(quote: number) {
+    await act("submit-review", { quote });
+    await act("review", {
+      quote,
+      quoteUpdatedAt: (await read()).quotes.find((item) => item.id === quote)?.updatedAt,
+      decision: "approved",
+      selfReview: true,
+      reason: "Fictional integration fixture administrator exception",
+    });
+  }
   await assert.rejects(() =>
     act("stage", { stage: "completed", reason: "Cannot skip fulfilment" }),
   );
@@ -107,10 +117,26 @@ try {
     0,
     "Unsent withdrawn draft must remain private",
   );
+  // Simulate a quote sent before the second-review rule was introduced.
+  await p.update({
+    collection: "service-quotes",
+    id: privateDraft.id,
+    data: { status: "sent", sentAt: new Date().toISOString() },
+  });
+  await p.update({
+    collection: "service-cases",
+    id,
+    data: { latestQuote: privateDraft.id, stage: "awaiting-confirmation" },
+  });
+  assert.equal((await customerBusinessRead(p, customer)).cases[0].quotes[0].id, privateDraft.id);
+  const legacyConfirmation = { quote: privateDraft.id, key: randomUUID() };
+  await confirmQuote(p, customer, legacyConfirmation);
+  assert.equal((await confirmQuote(p, customer, legacyConfirmation)).duplicate, true);
   await act("quote", { quote: offer });
   const quote = (await read()).quotes.find((q: any) => q.status === "draft");
   assert.ok(quote);
   await assert.rejects(() => confirmQuote(p, customer, { quote: quote.id, key: randomUUID() }));
+  await approveFixture(quote.id);
   await act("send", { quote: quote.id });
   await assert.rejects(() => confirmQuote(p, outsider, { quote: quote.id, key: randomUUID() }));
   const view = await customerBusinessRead(p, customer);
@@ -119,6 +145,7 @@ try {
   await act("quote", { quote: { ...offer, title: "Revised support" } });
   const updated = (await read()).quotes.find((x: any) => x.status === "draft");
   assert.ok(updated);
+  await approveFixture(updated.id);
   await act("send", { quote: updated.id });
   await assert.rejects(() => confirmQuote(p, customer, { quote: quote.id, key: randomUUID() }));
   const confirmations = await Promise.all([
@@ -140,6 +167,7 @@ try {
   await act("quote", { quote: { ...offer, title: "Changed after arrangement" } });
   const replacement = (await read()).quotes.find((x: any) => x.status === "draft");
   assert.ok(replacement);
+  await approveFixture(replacement.id);
   await act("send", { quote: replacement.id });
   const resetView = (await customerBusinessRead(p, customer)).cases[0];
   assert.equal(resetView.publicArrangement, "");

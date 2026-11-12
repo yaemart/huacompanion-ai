@@ -1,4 +1,3 @@
-import { aiQuoteSendAllowed } from "../../lib/business-ai";
 import { createHash } from "node:crypto";
 import type { Payload, PayloadRequest, CollectionSlug, Where } from "payload";
 import type { Inquiry, ServiceCase, ServiceQuote, ServiceEvent } from "../../../payload-types";
@@ -6,17 +5,16 @@ import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
 import { transactionSession } from "../db-types";
 import { inquiryCaseID } from "../../lib/intake-case";
+import { quoteReviewProof, quoteReviewState, type QuoteReviewDetail } from "./quote-review";
 import {
   quoteTemplates,
   templatesForCategories,
   type QuoteTemplate,
 } from "../../lib/quote-templates";
-type BusinessEventDetail = {
+type BusinessEventDetail = QuoteReviewDetail & {
   fingerprint?: string;
-  quote?: number;
   expiresAt?: string;
   reason?: string;
-  decision?: string;
   revision?: number;
 };
 type QuoteDraft = Pick<
@@ -42,6 +40,8 @@ interface BusinessActionInput {
   reason?: unknown;
   quote?: unknown;
   decision?: string;
+  selfReview?: boolean;
+  quoteUpdatedAt?: unknown;
   scheduledAt?: string;
   publicArrangement?: unknown;
   internalArrangement?: unknown;
@@ -55,7 +55,7 @@ interface QuoteConfirmationInput {
   key?: unknown;
 }
 
-import { isOperator, isManager, relationID } from "../../cms/access";
+import { isOperator, isManager, isAdmin, relationID } from "../../cms/access";
 import { validID } from "../../lib/support";
 import { validateQuote, allowedTransition, canConfirmQuote, publicQuote } from "../../lib/business";
 import { ContentError } from "../content/service";
@@ -133,18 +133,34 @@ function reason(input: Pick<BusinessActionInput, "reason">) {
   if (!v) throw new ContentError("请填写操作原因或完成说明");
   return v;
 }
+function checkedQuote(input: unknown) {
+  try {
+    return validateQuote(input);
+  } catch (e) {
+    throw new ContentError((e as Error).message);
+  }
+}
 async function caseRecord(p: Payload, id: unknown, req?: Partial<PayloadRequest>) {
   return p.findByID({ collection: "service-cases", id: validID(id), depth: 0, req });
 }
-function staffQuote(q: ServiceQuote, user: NonNullable<Staff>) {
+function staffQuote(q: ServiceQuote, user: NonNullable<Staff>, events: ServiceEvent[]) {
   const result = { ...q };
   if (!isManager(user)) delete result.internalCostMinor;
-  return result;
+  const isAuthor = relationID(q.createdBy) === user.id;
+  return {
+    ...result,
+    review: {
+      state: quoteReviewState(q, events),
+      isAuthor,
+      canReview: isManager(user) && (!isAuthor || isAdmin(user)),
+    },
+  };
 }
+export type StaffQuote = ReturnType<typeof staffQuote>;
 type BusinessDetail = {
   case: ServiceCase;
   inquiry: Inquiry;
-  quotes: ServiceQuote[];
+  quotes: StaffQuote[];
   events: ServiceEvent[];
   canCost: boolean;
   quoteTemplates: QuoteTemplate[];
@@ -178,17 +194,18 @@ export async function businessRead(
   if (id) {
     const c = await caseRecord(db, id);
     const inquiry = await businessInquiry(p, user, relationID(c.inquiry));
-    const [settings, customer] = await Promise.all([
+    const [settings, customer, events] = await Promise.all([
       p.findGlobal({ slug: "quote-template-settings", depth: 0 }),
       p.findGlobal({ slug: "customer-settings", depth: 0 }).catch(() => undefined),
+      all(db, "service-events", { serviceCase: { equals: c.id } }),
     ]);
     return {
       case: c,
       inquiry,
       quotes: (await all(db, "service-quotes", { serviceCase: { equals: c.id } })).map((q) =>
-        staffQuote(q, user),
+        staffQuote(q, user, events),
       ),
-      events: await all(db, "service-events", { serviceCase: { equals: c.id } }),
+      events,
       canCost: isManager(user),
       features: {
         customerCenter: customer?.enabled === true,
@@ -296,12 +313,7 @@ export async function businessAction(
         )
       )
         throw new ContentError("当前阶段不可创建报价", 409);
-      let quote: QuoteDraft;
-      try {
-        quote = validateQuote(input.quote);
-      } catch (e) {
-        throw new ContentError((e as Error).message);
-      }
+      let quote: QuoteDraft = checkedQuote(input.quote);
       const quoteInput = input.quote as Pick<ServiceQuote, "internalCostMinor">;
       if (quoteInput.internalCostMinor !== undefined && quoteInput.internalCostMinor !== null) {
         if (!isManager(actor)) throw new ContentError("内部成本仅主管可维护", 403);
@@ -328,13 +340,9 @@ export async function businessAction(
         req,
       });
       detail.quote = created.id;
-    } else if (action === "send") {
-      if (
-        !["received", "discovery", "quoting", "awaiting-confirmation", "accepted"].includes(
-          c!.stage,
-        )
-      )
-        throw new ContentError("当前阶段不可发出报价", 409);
+    } else if (action === "submit-review" || action === "review" || action === "send") {
+      if (action === "review" && !isManager(actor))
+        throw new ContentError("仅主管或管理员可审核报价", 403);
       const quote = await db.findByID({
         collection: "service-quotes",
         id: validID(input.quote),
@@ -342,73 +350,93 @@ export async function businessAction(
         req,
       });
       if (relationID(quote.serviceCase) !== c!.id || quote.status !== "draft")
-        throw new ContentError("只能发出本服务单的草稿报价", 409);
-      if (!aiQuoteSendAllowed(quote))
-        throw new ContentError("AI 报价须经主管人工审核通过后才能发出", 409);
-      try {
-        validateQuote(quote);
-      } catch (e) {
-        throw new ContentError((e as Error).message);
-      }
-      for (const old of await all(
+        throw new ContentError("只能操作本服务单的草稿报价", 409);
+      detail.quote = quote.id;
+      const reviews = await all(
         db,
-        "service-quotes",
-        { and: [{ serviceCase: { equals: c!.id } }, { status: { in: ["sent", "accepted"] } }] },
+        "service-events",
+        { serviceCase: { equals: c!.id }, action: { equals: "review" } },
         req,
-      ))
+      );
+      const state = quoteReviewState(quote, reviews);
+      if (action === "submit-review") {
+        if (state !== "unsubmitted")
+          throw new ContentError("此版本已送审；退回后请另存新版本", 409);
+        checkedQuote(quote);
         await db.update({
           collection: "service-quotes",
-          id: old.id,
-          data: { status: "superseded" },
+          id: quote.id,
+          data: { reviewStatus: "pending", reviewedBy: null, reviewedAt: null, reviewReason: null },
           req,
         });
-      await db.update({
-        collection: "service-quotes",
-        id: quote.id,
-        data: { status: "sent", sentAt: new Date().toISOString() },
-        req,
-      });
-      change = {
-        latestQuote: quote.id,
-        acceptedQuote: null,
-        stage: "awaiting-confirmation",
-        resourceConfirmed: false,
-        scheduledAt: null,
-        publicArrangement: "",
-        internalArrangement: "",
-        provider: null,
-      };
-      detail = { ...detail, quote: quote.id, expiresAt: quote.expiresAt };
-    } else if (action === "review") {
-      if (!isManager(actor)) throw new ContentError("仅主管可审核 AI 报价", 403);
-      const quote = await db.findByID({
-        collection: "service-quotes",
-        id: validID(input.quote),
-        depth: 0,
-        req,
-      });
-      if (
-        relationID(quote.serviceCase) !== c!.id ||
-        quote.status !== "draft" ||
-        !quote.aiTask ||
-        quote.reviewStatus !== "pending"
-      )
-        throw new ContentError("此 AI 草稿当前不可审核", 409);
-      if (!["approved", "rejected"].includes(input.decision!))
-        throw new ContentError("请选择审核结果");
-      const note = reason(input);
-      await db.update({
-        collection: "service-quotes",
-        id: quote.id,
-        data: {
-          reviewStatus: input.decision as "approved" | "rejected",
-          reviewedBy: actor.id,
-          reviewedAt: new Date().toISOString(),
-          reviewReason: note,
-        },
-        req,
-      });
-      detail = { ...detail, quote: quote.id, decision: input.decision, reason: note };
+      } else if (action === "review") {
+        const selfReview = relationID(quote.createdBy) === actor.id;
+        if (selfReview && (!isAdmin(actor) || input.selfReview !== true))
+          throw new ContentError("起草人不能审核自己的报价；管理员例外须明确确认并写明原因", 403);
+        if (state !== "pending") throw new ContentError("此草稿当前不在待审核状态", 409);
+        if (input.quoteUpdatedAt !== quote.updatedAt)
+          throw new ContentError("报价已变更，请刷新后核对当前版本再审核", 409);
+        const decision = input.decision;
+        if (decision !== "approved" && decision !== "rejected")
+          throw new ContentError("请选择审核结果");
+        const note = reason(input);
+        if (decision === "approved") checkedQuote(quote);
+        const reviewedAt = new Date().toISOString();
+        const reviewed = await db.update({
+          collection: "service-quotes",
+          id: quote.id,
+          data: { reviewStatus: decision, reviewedBy: actor.id, reviewedAt, reviewReason: note },
+          req,
+        });
+        detail = {
+          ...detail,
+          ...quoteReviewProof(quote),
+          decision,
+          reason: note,
+          reviewedAt,
+          quoteUpdatedAt: reviewed.updatedAt,
+          selfReview,
+        };
+      } else {
+        if (
+          !["received", "discovery", "quoting", "awaiting-confirmation", "accepted"].includes(
+            c!.stage,
+          )
+        )
+          throw new ContentError("当前阶段不可发出报价", 409);
+        if (state !== "approved")
+          throw new ContentError("此报价版本须由有权限的第二人审核通过后才能发出", 409);
+        checkedQuote(quote);
+        for (const old of await all(
+          db,
+          "service-quotes",
+          { and: [{ serviceCase: { equals: c!.id } }, { status: { in: ["sent", "accepted"] } }] },
+          req,
+        ))
+          await db.update({
+            collection: "service-quotes",
+            id: old.id,
+            data: { status: "superseded" },
+            req,
+          });
+        await db.update({
+          collection: "service-quotes",
+          id: quote.id,
+          data: { status: "sent", sentAt: new Date().toISOString() },
+          req,
+        });
+        change = {
+          latestQuote: quote.id,
+          acceptedQuote: null,
+          stage: "awaiting-confirmation",
+          resourceConfirmed: false,
+          scheduledAt: null,
+          publicArrangement: "",
+          internalArrangement: "",
+          provider: null,
+        };
+        detail.expiresAt = quote.expiresAt;
+      }
     } else if (action === "withdraw") {
       const quote = await db.findByID({
         collection: "service-quotes",

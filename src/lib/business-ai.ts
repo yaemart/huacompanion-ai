@@ -84,13 +84,3 @@ export function validateAIResult(value: any, input: ReturnType<typeof validateAI
   });
   return { quote, questions: value.questions as string[], warnings: value.warnings as string[] };
 }
-export function aiQuoteSendAllowed(q: any) {
-  return (
-    !q.aiTask ||
-    (q.reviewStatus === "approved" &&
-      !!q.reviewedBy &&
-      !!q.reviewedAt &&
-      typeof q.reviewReason === "string" &&
-      !!q.reviewReason.trim())
-  );
-}

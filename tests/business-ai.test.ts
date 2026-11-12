@@ -1,11 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  validateAIRequest,
-  validateAIResult,
-  aiQuoteSendAllowed,
-  businessAIConfig,
-} from "../src/lib/business-ai.ts";
+import { validateAIRequest, validateAIResult, businessAIConfig } from "../src/lib/business-ai.ts";
 const input = {
   brief: "Two days of exhibition interpretation",
   locale: "en",
@@ -56,21 +51,6 @@ test("AI output rejects hidden actions, unknown fields and unbounded questions",
   assert.throws(() => validateAIResult({ ...good, send: true }, source));
   assert.throws(() => validateAIResult({ ...good, questions: Array(21).fill("q") }, source));
   assert.throws(() => validateAIResult({ ...good, scope: "" }, source));
-});
-test("AI quote cannot be sent without explicit human approval", () => {
-  assert.equal(aiQuoteSendAllowed({}), true);
-  assert.equal(aiQuoteSendAllowed({ aiTask: 4 }), false);
-  assert.equal(aiQuoteSendAllowed({ aiTask: 4, reviewStatus: "approved" }), false);
-  assert.equal(
-    aiQuoteSendAllowed({
-      aiTask: 4,
-      reviewStatus: "approved",
-      reviewedBy: 2,
-      reviewedAt: new Date().toISOString(),
-      reviewReason: "Checked",
-    }),
-    true,
-  );
 });
 test("business AI is disabled unless explicitly configured with a bounded budget", () => {
   assert.equal(businessAIConfig({}).enabled, false);
