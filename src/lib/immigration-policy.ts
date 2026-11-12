@@ -65,8 +65,8 @@ export function validatePublicPolicy(
     throw Error(hours ? "最长停留小时必须为正整数" : "最长停留天数必须为正整数");
   if (data.policyType !== "transit-240h" && data.maxStayHours != null)
     throw Error("非过境政策请填写天数，不使用小时");
-  if (!isPolicyCalendarDate(data.validFrom) || !isPolicyCalendarDate(data.lastVerifiedOn))
-    throw Error("生效日及最后核实日期需为有效日历日");
+  if (!isPolicyCalendarDate(data.validFrom)) throw Error("请填写有效的生效日");
+  if (!isPolicyCalendarDate(data.lastVerifiedOn)) throw Error("请填写有效的最后核实日期");
   if (
     data.validUntil != null &&
     (!isPolicyCalendarDate(data.validUntil) || data.validUntil < data.validFrom)

@@ -14,6 +14,7 @@ import { isLocale, type Locale } from "./locales.ts";
 import { type Catalog, isCatalog, validateCatalog, publicCatalog } from "./catalog.ts";
 import { hasRole, isAdmin, type Staff } from "../cms/access.ts";
 import { fixedContentPages, isContentIdentifier } from "./content-identifiers.ts";
+import { isSourceTopic, type SourceTopic } from "./content-source-verification.ts";
 export type ContentUser = Staff;
 export const canEditContent = (user: ContentUser) => isAdmin(user) || hasRole(user, "editor");
 export type Block = {
@@ -51,6 +52,7 @@ export type ContentBody = {
   summary?: string;
   blocks: Block[];
   sources: Source[];
+  sourceTopic?: SourceTopic;
   policyRef?: { id: number; revision: number };
   policy?: PublicPolicyData;
   catalog?: Catalog;
@@ -123,6 +125,7 @@ export function validateContent(value: unknown): asserts value is ContentBody {
   if (isLife(d.kind)) validateLifestyle(d.lifestyle, d.kind);
   if (d.kind === "institution") validateInstitution(d.institution);
   checkBlocks(d.blocks);
+  if (d.sourceTopic !== undefined && !isSourceTopic(d.sourceTopic)) throw Error("资料主题无效");
   if (!Array.isArray(d.sources) || d.sources.length > 30) throw Error("来源格式无效");
   const ids = new Set();
   for (const s of d.sources) {
@@ -213,6 +216,7 @@ export function publicBody(d: ContentBody): ContentBody {
       url: s.url,
       checkedAt: s.checkedAt,
     })),
+    ...(d.sourceTopic ? { sourceTopic: d.sourceTopic } : {}),
     category: d.category || 0,
     order: d.order || 0,
     author: d.author || "",

@@ -66,6 +66,8 @@ try {
       });
       return draft;
     };
+    await assert.rejects(() => step("submit"), /核实日期/);
+    await step("save", editor, { body, policy: { lastVerifiedOn: "2026-01-01" } });
     await step("submit");
     await assert.rejects(() => step("save", editor, { body, policy: policyFacts(editor.id) }), {
       status: 409,

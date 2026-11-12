@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PolicyCountryField } from "../../src/components/content/PolicyCountryField";
 import { PolicyIdentityFields } from "../../src/components/content/PolicyIdentityFields";
+import { PolicyFields } from "../../src/components/content/PolicyFields";
 import { policyCountryOptions } from "../../src/lib/immigration-policy-entry";
 import { policyForm } from "../../src/lib/immigration-policy-editor";
 import type { ContentBody } from "../../src/lib/content-model";
@@ -55,6 +56,16 @@ const legacy = renderToStaticMarkup(
   <PolicyIdentityFields body={{ ...body, locale: "es" }} existing published onChange={() => {}} />,
 );
 assert.match(legacy, /<option value="es" selected="">es<\/option>/);
+const facts = renderToStaticMarkup(
+  <PolicyFields
+    shared
+    value={value}
+    verifiers={[]}
+    countries={policyCountryOptions(false)}
+    onChange={() => {}}
+  />,
+);
+assert.match(facts, /<label>最后核实日期（送审必填）<input[^>]*required=""/);
 console.log(
   "PASS native country search/select, existing invalid-code prompt, preserved names, no external resources and collapsed/manual/locked advanced fields",
 );

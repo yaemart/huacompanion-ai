@@ -3,6 +3,7 @@ import type { PolicyCountry } from "@/lib/immigration-policy-entry";
 import { PolicyCountryField } from "./PolicyCountryField";
 import { changePolicyType, changePolicyHours } from "@/lib/immigration-policy-stay";
 import { policyTypes } from "@/lib/immigration-policy";
+import { shanghaiToday } from "@/lib/exhibitions";
 import { policyLabels, type PolicyForm } from "@/lib/immigration-policy-editor";
 const fields = Object.entries(policyLabels).filter(([name]) => !name.startsWith("country"));
 const typeLabels = ["单方面免签", "互免", "240小时过境", "其他"];
@@ -45,6 +46,7 @@ export function PolicyFields({
         return (
           <label key={key}>
             {label}
+            {key === "lastVerifiedOn" && "（送审必填）"}
             {key === "policyType" ? (
               <select
                 value={value.policyType ?? ""}
@@ -90,6 +92,8 @@ export function PolicyFields({
               />
             ) : (
               <input
+                required={key === "lastVerifiedOn"}
+                max={key === "lastVerifiedOn" ? shanghaiToday() : undefined}
                 type={
                   ["maxStayDays", "maxStayHours"].includes(key)
                     ? "number"

@@ -1,6 +1,6 @@
 import type { Payload, PayloadRequest } from "payload";
 import { canAccessContentKind } from "../../cms/access";
-import { canEditContent, type ContentUser } from "../../lib/content-model";
+import { canEditContent, type ContentBody, type ContentUser } from "../../lib/content-model";
 import { guideTargetLocale, type GuideTranslation } from "../../lib/guide-translation";
 import { ContentError } from "./error";
 
@@ -69,8 +69,15 @@ export async function prepareGuideTranslation(
     body.locale !== locale
   )
     throw new ContentError("译文的类型或语言与原稿不匹配");
+  const sourceTopic = (source.body as ContentBody).sourceTopic;
+  const selectedTopic = "sourceTopic" in body ? body.sourceTopic : undefined;
   return {
-    body: { ...body, contentKey: source.contentKey, slug: "" },
+    body: {
+      ...body,
+      sourceTopic: selectedTopic === undefined ? sourceTopic : selectedTopic,
+      contentKey: source.contentKey,
+      slug: "",
+    },
     lineage: { sourceDraft: source.id, sourceRevision: source.revision },
   };
 }
