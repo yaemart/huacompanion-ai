@@ -2,6 +2,8 @@ import { serviceCategoryOptions } from "../lib/routes";
 import { followupField, guardIntakeFollowups } from "./intake-followups";
 import { guardProviderReview } from "./provider-review";
 import { intakeEditorFields } from "./intake-editor";
+import { guardInquiryStatus, lockInquiryWrite } from "./inquiry-status";
+import { inquiryStatusLabels, coordinationStageLabels } from "../lib/inquiry-status";
 import { businessLock, inquiryWorkflowHook } from "../server/business/hooks";
 import {
   housekeepingApplication,
@@ -383,30 +385,15 @@ export const Inquiries: CollectionConfig = {
       type: "select",
       required: true,
       defaultValue: "new",
-      options: [
-        { label: "新咨询", value: "new" },
-        { label: "待补充", value: "needs-info" },
-        { label: "处理中", value: "processing" },
-        { label: "已报价", value: "quoted" },
-        { label: "已成交", value: "won" },
-        { label: "已关闭", value: "closed" },
-      ],
+      admin: { components: { Field: "/cms/InquiryStatus#InquiryStatus" } },
+      options: Object.entries(inquiryStatusLabels).map(([value, label]) => ({ value, label })),
     },
     {
       name: "coordinationStage",
       label: "协调进度",
       type: "select",
-      admin: { description: "记录实际协调进展；处理状态用于整体业务管理。" },
-      options: [
-        { label: "待受理", value: "received" },
-        { label: "联系客户", value: "contacting" },
-        { label: "与机构／服务商确认", value: "confirming" },
-        { label: "方案待确认", value: "proposal" },
-        { label: "已确认人员与预约", value: "scheduled" },
-        { label: "售后跟进", value: "aftercare" },
-        { label: "已完成", value: "completed" },
-        { label: "已关闭", value: "closed" },
-      ],
+      admin: { hidden: true, description: "记录实际协调进展；处理状态用于整体业务管理。" },
+      options: Object.entries(coordinationStageLabels).map(([value, label]) => ({ value, label })),
     },
     {
       name: "owner",
@@ -431,7 +418,13 @@ export const Inquiries: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [businessLock, guardIntakeFollowups, guardBusinessAssignment, guardHomeWorkflow],
+    beforeOperation: [lockInquiryWrite],
+    beforeChange: [
+      guardInquiryStatus,
+      guardIntakeFollowups,
+      guardBusinessAssignment,
+      guardHomeWorkflow,
+    ],
     afterChange: [audit, inquiryWorkflowHook],
   },
 };
