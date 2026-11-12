@@ -416,20 +416,16 @@ try {
 } finally {
   if (settings)
     await p.updateGlobal({ slug: "customer-settings", data: { enabled: settings.enabled } });
-  if (secondReviewerID)
+  // Preserve linked test history while retiring the temporary administrator roles.
+  for (const id of [secondReviewerID, temporaryStaff?.id]) {
+    if (!id) continue;
     await p.update({
       collection: "staff",
-      id: secondReviewerID,
+      id,
       user: admin,
-      data: { active: false },
+      data: { role: "operations", active: false },
     });
-  if (temporaryStaff)
-    await p.update({
-      collection: "staff",
-      id: temporaryStaff.id,
-      user: admin,
-      data: { active: false },
-    });
+  }
   for (const k of Object.keys(process.env)) if (!(k in env)) delete process.env[k];
   Object.assign(process.env, env);
   await p.destroy();
