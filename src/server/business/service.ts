@@ -1,11 +1,19 @@
 import { createHash } from "node:crypto";
 import type { Payload, PayloadRequest, CollectionSlug, Where } from "payload";
-import type { Inquiry, ServiceCase, ServiceQuote, ServiceEvent } from "../../../payload-types";
+import type {
+  Inquiry,
+  ServiceCase,
+  ServiceQuote,
+  ServiceEvent,
+  ServiceQuoteLineCost,
+} from "../../../payload-types";
 import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
 import { transactionSession } from "../db-types";
 import { inquiryCaseID } from "../../lib/intake-case";
 import { quoteReviewProof, quoteReviewState, type QuoteReviewDetail } from "./quote-review";
+import { prepareQuoteLines, quoteLineOptions } from "./quote-lines";
+import { quoteLinesView } from "../../lib/quote-lines";
 import {
   quoteTemplates,
   templatesForCategories,
@@ -26,6 +34,7 @@ type QuoteDraft = Pick<
   | "terms"
   | "currency"
   | "lines"
+  | "lineFormat"
   | "totalMinor"
   | "expiresAt"
   | "internalCostMinor"
@@ -143,12 +152,25 @@ function checkedQuote(input: unknown) {
 async function caseRecord(p: Payload, id: unknown, req?: Partial<PayloadRequest>) {
   return p.findByID({ collection: "service-cases", id: validID(id), depth: 0, req });
 }
-function staffQuote(q: ServiceQuote, user: NonNullable<Staff>, events: ServiceEvent[]) {
+function staffQuote(
+  q: ServiceQuote,
+  user: NonNullable<Staff>,
+  events: ServiceEvent[],
+  costs?: ServiceQuoteLineCost[],
+) {
   const result = { ...q };
   if (!isManager(user)) delete result.internalCostMinor;
   const isAuthor = relationID(q.createdBy) === user.id;
   return {
     ...result,
+    lines: quoteLinesView(q.lines, q.lineFormat, true),
+    ...(costs && q.lineFormat === 2
+      ? {
+          lineCosts: costs
+            .filter(({ quote }) => relationID(quote) === q.id)
+            .map(({ lineId, costMinor }) => ({ lineId, costMinor })),
+        }
+      : {}),
     review: {
       state: quoteReviewState(q, events),
       isAuthor,
@@ -163,6 +185,7 @@ type BusinessDetail = {
   quotes: StaffQuote[];
   events: ServiceEvent[];
   canCost: boolean;
+  quoteLineOptions: Awaited<ReturnType<typeof quoteLineOptions>>;
   quoteTemplates: QuoteTemplate[];
   features: { customerCenter: boolean };
 };
@@ -192,20 +215,31 @@ export async function businessRead(
   if (!isOperator(user)) throw new ContentError("需要业务运营权限", 403);
   const db = p;
   if (id) {
+    user = await db.findByID({ collection: "staff", id: user.id, depth: 0 });
     const c = await caseRecord(db, id);
     const inquiry = await businessInquiry(p, user, relationID(c.inquiry));
-    const [settings, customer, events] = await Promise.all([
+    const [settings, customer, events, quotes, lineOptions] = await Promise.all([
       p.findGlobal({ slug: "quote-template-settings", depth: 0 }),
       p.findGlobal({ slug: "customer-settings", depth: 0 }).catch(() => undefined),
       all(db, "service-events", { serviceCase: { equals: c.id } }),
+      all(db, "service-quotes", { serviceCase: { equals: c.id } }),
+      quoteLineOptions(p, user),
     ]);
+    const ids = quotes.filter((q) => q.lineFormat === 2).map((q) => q.id);
+    const costs =
+      isManager(user) && ids.length
+        ? await all(db, "service-quote-line-costs", { quote: { in: ids } })
+        : undefined;
     return {
       case: c,
       inquiry,
-      quotes: (await all(db, "service-quotes", { serviceCase: { equals: c.id } })).map((q) =>
-        staffQuote(q, user, events),
-      ),
-      events,
+      quotes: quotes.map((q) => staffQuote(q, user, events, costs)),
+      events: events.map((event) => {
+        const detail = { ...(event.detail as BusinessEventDetail) };
+        delete detail.fingerprint;
+        return { ...event, detail };
+      }),
+      quoteLineOptions: lineOptions,
       canCost: isManager(user),
       features: {
         customerCenter: customer?.enabled === true,
@@ -284,6 +318,11 @@ export async function businessAction(
       action === "create" ? await businessInquiry(p, actor, input.inquiry, req) : null;
     let c = action === "create" ? null : await caseRecord(db, input.id, req);
     const q = inquiry || (await businessInquiry(p, actor, relationID(c!.inquiry), req));
+    const quoteInput = input.quote as (QuoteDraft & { lineCosts?: unknown }) | undefined;
+    if (action === "quote" && !isManager(actor)) {
+      if (quoteInput?.internalCostMinor != null || quoteInput?.lineCosts !== undefined)
+        throw new ContentError("内部成本仅主管或管理员可维护", 403);
+    }
     const key = `staff:${actor.id}:${keyOf(input.key)}`;
     const hash = fingerprint(input);
     const prior = (await all(db, "service-events", { dedupe: { equals: key } }, req))[0];
@@ -313,10 +352,10 @@ export async function businessAction(
         )
       )
         throw new ContentError("当前阶段不可创建报价", 409);
-      let quote: QuoteDraft = checkedQuote(input.quote);
-      const quoteInput = input.quote as Pick<ServiceQuote, "internalCostMinor">;
-      if (quoteInput.internalCostMinor !== undefined && quoteInput.internalCostMinor !== null) {
-        if (!isManager(actor)) throw new ContentError("内部成本仅主管可维护", 403);
+      const checked = checkedQuote(input.quote);
+      const split = await prepareQuoteLines(db, actor, req, input.quote, checked.lines);
+      let quote: QuoteDraft = split ? { ...checked, lines: split.lines, lineFormat: 2 } : checked;
+      if (quoteInput?.internalCostMinor != null) {
         if (
           !Number.isSafeInteger(quoteInput.internalCostMinor) ||
           quoteInput.internalCostMinor < 0 ||
@@ -339,6 +378,12 @@ export async function businessAction(
         },
         req,
       });
+      for (const cost of split?.lineCosts ?? [])
+        await db.create({
+          collection: "service-quote-line-costs",
+          data: { ...cost, quote: created.id },
+          req,
+        });
       detail.quote = created.id;
     } else if (action === "submit-review" || action === "review" || action === "send") {
       if (action === "review" && !isManager(actor))
@@ -351,6 +396,7 @@ export async function businessAction(
       });
       if (relationID(quote.serviceCase) !== c!.id || quote.status !== "draft")
         throw new ContentError("只能操作本服务单的草稿报价", 409);
+      if (quote.lineFormat === 2) throw new ContentError("新版费用项当前只开放保存草稿", 409);
       detail.quote = quote.id;
       const reviews = await all(
         db,

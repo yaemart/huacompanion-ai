@@ -7,7 +7,16 @@ import CustomerLink from "../customer/CustomerLink";
 import { fillQuoteTerms, type QuoteTemplate } from "../../lib/quote-templates";
 import { serviceCategoryOptions } from "../../lib/routes";
 import { quoteTimeLabel } from "../../lib/quote-time";
-const initialQuote = () => ({
+import { randomClientID } from "../../lib/client-id";
+import { QuoteLineParties, quotePartyInput, quotePartySummary } from "./QuoteLineParties";
+import type { StaffQuote } from "../../server/business/service";
+const draftLine = (label: string, clientKey: string) => ({
+  clientKey,
+  label,
+  quantity: 1,
+  unitMinor: 0,
+});
+const initialQuote = (clientKey = "initial") => ({
   title: "",
   scope: "",
   included: "",
@@ -15,7 +24,7 @@ const initialQuote = () => ({
   terms: "",
   currency: "CNY",
   expiresAt: "",
-  lines: [{ label: "服务费用", quantity: 1, unitMinor: 0 }],
+  lines: [draftLine("服务费用", clientKey)],
   internalCostMinor: "",
 });
 export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number }) {
@@ -27,6 +36,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     [inquiry, setInquiry] = useState(""),
     [title, setTitle] = useState(""),
     [quote, setQuote] = useState(initialQuote),
+    [splitQuote, setSplitQuote] = useState(false),
     [templateCategory, setTemplateCategory] = useState(""),
     [stage, setStage] = useState("discovery"),
     [reason, setReason] = useState(""),
@@ -250,7 +260,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <p>服务器会检查阶段顺序；客户确认与报价发出由对应操作生成。</p>
               </fieldset>
               <h3>方案与报价版本</h3>
-              {view.quotes.map((q: any) => (
+              {view.quotes.map((q: StaffQuote) => (
                 <article key={q.id} className="support-message">
                   <strong>
                     第{q.revision}版 · {q.title} ·{" "}
@@ -262,7 +272,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                           accepted: "客户已确认",
                           superseded: "被新版替代",
                           withdrawn: "已撤回",
-                        } as any
+                        } as const
                       )[q.status]
                     }
                   </strong>
@@ -275,12 +285,14 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     变更规则：{q.terms}
                   </p>
                   <ul>
-                    {q.lines.map((l: any, i: number) => (
-                      <li key={i}>
+                    {q.lines.map((l, i) => (
+                      <li key={l.lineId ?? i}>
                         {l.label} × {l.quantity}：{(l.unitMinor / 100).toFixed(2)} {q.currency}
+                        {l.lineId && <p>{quotePartySummary(l, q.lineCosts)}</p>}
                       </li>
                     ))}
                   </ul>
+                  {q.lineFormat !== 2 && <p>此版本未记录费用项主体。</p>}
                   <p>
                     合计 {(q.totalMinor / 100).toFixed(2)} {q.currency} · 有效至{" "}
                     {quoteTimeLabel(q.expiresAt)}
@@ -291,7 +303,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   <QuoteReview quote={q} busy={busy} act={act} />
                   {q.status === "draft" && (
                     <button
-                      disabled={busy || q.review.state !== "approved"}
+                      disabled={busy || q.lineFormat === 2 || q.review.state !== "approved"}
                       onClick={() => act("send", { quote: q.id })}
                     >
                       发出此版本
@@ -312,23 +324,27 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    const expiresAt = new FormData(e.currentTarget).get("expiresAt");
+                    const form = new FormData(e.currentTarget);
+                    const expiresAt = form.get("expiresAt");
                     if (
                       await act("quote", {
                         quote: {
                           ...quote,
                           expiresAt,
-                          ...(quote.internalCostMinor !== ""
+                          ...(quote.internalCostMinor !== "" && !splitQuote
                             ? {
                                 internalCostMinor: Math.round(
                                   Number(quote.internalCostMinor) * 100,
                                 ),
                               }
                             : { internalCostMinor: undefined }),
+                          ...(splitQuote ? quotePartyInput(form, quote.lines, view.canCost) : {}),
                         },
                       })
-                    )
-                      setQuote(initialQuote());
+                    ) {
+                      setQuote(initialQuote(randomClientID()));
+                      setSplitQuote(false);
+                    }
                   }}
                 >
                   <fieldset disabled={busy}>
@@ -401,8 +417,16 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}
                       />
                     </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={splitQuote}
+                        onChange={(event) => setSplitQuote(event.target.checked)}
+                      />
+                      录入新版费用项主体与成本（保存草稿）
+                    </label>
                     {quote.lines.map((l, i) => (
-                      <fieldset key={i}>
+                      <fieldset key={l.clientKey}>
                         <legend>费用 {i + 1}</legend>
                         <label>
                           名称
@@ -457,6 +481,12 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                             }
                           />
                         </label>
+                        <QuoteLineParties
+                          index={i}
+                          options={view.quoteLineOptions}
+                          canCost={view.canCost}
+                          enabled={splitQuote}
+                        />
                         {quote.lines.length > 1 && (
                           <button
                             type="button"
@@ -475,13 +505,13 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                       onClick={() =>
                         setQuote({
                           ...quote,
-                          lines: [...quote.lines, { label: "", quantity: 1, unitMinor: 0 }],
+                          lines: [...quote.lines, draftLine("", randomClientID())],
                         })
                       }
                     >
                       增加费用项
                     </button>
-                    {view.canCost && (
+                    {view.canCost && !splitQuote && (
                       <label>
                         内部成本（可留空，金额同币种）
                         <input

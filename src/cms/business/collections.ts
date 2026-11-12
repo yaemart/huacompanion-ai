@@ -90,6 +90,7 @@ export const businessCollections: CollectionConfig[] = [
       { name: "terms", type: "textarea", required: true, maxLength: 4000 },
       text("currency", { required: true }),
       { name: "lines", type: "json", required: true },
+      { name: "lineFormat", type: "number", min: 2, max: 2 },
       { name: "totalMinor", type: "number", required: true },
       { name: "internalCostMinor", type: "number", min: 0 },
       { name: "expiresAt", type: "date", required: true },
@@ -102,6 +103,18 @@ export const businessCollections: CollectionConfig[] = [
       relation("reviewedBy", "staff"),
       { name: "reviewedAt", type: "date" },
       { name: "reviewReason", type: "textarea", maxLength: 2000 },
+    ],
+  },
+  {
+    ...base,
+    slug: "service-quote-line-costs",
+    lockDocuments: false,
+    timestamps: false,
+    indexes: [{ fields: ["quote", "lineId"], unique: true }],
+    fields: [
+      relation("quote", "service-quotes", { required: true }),
+      text("lineId", { required: true }),
+      { name: "costMinor", type: "number", min: 0, max: 1000000000, required: true },
     ],
   },
   {

@@ -99,6 +99,7 @@ export interface Config {
     'business-ai-tasks': BusinessAiTask;
     'service-cases': ServiceCase;
     'service-quotes': ServiceQuote;
+    'service-quote-line-costs': ServiceQuoteLineCost;
     'service-events': ServiceEvent;
     'workflow-events': WorkflowEvent;
     'workflow-notifications': WorkflowNotification;
@@ -150,6 +151,7 @@ export interface Config {
     'business-ai-tasks': BusinessAiTasksSelect<false> | BusinessAiTasksSelect<true>;
     'service-cases': ServiceCasesSelect<false> | ServiceCasesSelect<true>;
     'service-quotes': ServiceQuotesSelect<false> | ServiceQuotesSelect<true>;
+    'service-quote-line-costs': ServiceQuoteLineCostsSelect<false> | ServiceQuoteLineCostsSelect<true>;
     'service-events': ServiceEventsSelect<false> | ServiceEventsSelect<true>;
     'workflow-events': WorkflowEventsSelect<false> | WorkflowEventsSelect<true>;
     'workflow-notifications': WorkflowNotificationsSelect<false> | WorkflowNotificationsSelect<true>;
@@ -1211,6 +1213,7 @@ export interface ServiceQuote {
     | number
     | boolean
     | null;
+  lineFormat?: number | null;
   totalMinor: number;
   internalCostMinor?: number | null;
   expiresAt: string;
@@ -1237,6 +1240,16 @@ export interface CustomerAccount {
   active?: boolean | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-quote-line-costs".
+ */
+export interface ServiceQuoteLineCost {
+  id: number;
+  quote: number | ServiceQuote;
+  lineId: string;
+  costMinor: number;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2342,6 +2355,7 @@ export interface ServiceQuotesSelect<T extends boolean = true> {
   terms?: T;
   currency?: T;
   lines?: T;
+  lineFormat?: T;
   totalMinor?: T;
   internalCostMinor?: T;
   expiresAt?: T;
@@ -2356,6 +2370,15 @@ export interface ServiceQuotesSelect<T extends boolean = true> {
   reviewReason?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "service-quote-line-costs_select".
+ */
+export interface ServiceQuoteLineCostsSelect<T extends boolean = true> {
+  quote?: T;
+  lineId?: T;
+  costMinor?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

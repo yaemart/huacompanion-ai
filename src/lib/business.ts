@@ -1,4 +1,5 @@
 import { quoteTime } from "./quote-time.ts";
+import { quoteLinesView, type QuoteLineView } from "./quote-lines.ts";
 
 export const businessStages = [
   "received",
@@ -98,8 +99,8 @@ export function allowedTransition(from: string, to: string, confirmed: boolean, 
     (!["scheduled", "in-service"].includes(to) || arranged)
   );
 }
-export function publicQuote(q: any) {
-  return Object.fromEntries(
+export function publicQuote(q: any): Record<string, unknown> & { lines: QuoteLineView[] } {
+  const summary = Object.fromEntries(
     [
       "id",
       "revision",
@@ -110,11 +111,11 @@ export function publicQuote(q: any) {
       "excluded",
       "terms",
       "currency",
-      "lines",
       "totalMinor",
       "expiresAt",
       "sentAt",
       "confirmedAt",
     ].map((k) => [k, q[k] ?? null]),
   );
+  return { ...summary, lines: quoteLinesView(q.lines, q.lineFormat) };
 }

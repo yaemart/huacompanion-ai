@@ -19,6 +19,7 @@ export default function QuoteReview({
   const [exception, setException] = useState(false);
   const { state, canReview, isAuthor } = quote.review;
   const draft = quote.status === "draft";
+  if (draft && quote.lineFormat === 2) return <p>新版费用项已保存，送审将在逐项审核接入后开放。</p>;
   if (!draft && !quote.reviewStatus && !quote.aiTask) return null;
   const approveDisabled = !reason.trim() || (isAuthor && !exception);
   async function decide(decision: "approved" | "rejected") {
