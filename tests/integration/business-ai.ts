@@ -15,6 +15,7 @@ const db = p as any;
 const run = randomUUID();
 const env = { ...process.env };
 let temporaryStaff: any;
+let secondReviewerID: number | undefined;
 let settings: any;
 let admin: any;
 const offer = {
@@ -164,11 +165,38 @@ try {
     },
   });
   assert.equal((await customerBusinessRead(p, customer)).cases[0].quotes.length, 0);
-  await act(id, "review", {
+  await assert.rejects(
+    () =>
+      act(id, "review", {
+        quote: quote.id,
+        quoteUpdatedAt: quote.updatedAt,
+        decision: "approved",
+        reason: "The author cannot approve an AI quote without the administrator exception",
+      }),
+    { status: 403 },
+  );
+  const secondReviewer = await p.create({
+    collection: "staff",
+    user: admin,
+    data: {
+      name: "Fictional AI quote second reviewer",
+      email: `quote-reviewer-${run}@example.invalid`,
+      password: randomUUID(),
+      role: "admin",
+    },
+  });
+  secondReviewerID = secondReviewer.id;
+  await businessAction(p, secondReviewer, {
+    action: "review",
+    id,
+    revision: (await read(id)).case.revision,
+    key: randomUUID(),
     quote: quote.id,
+    quoteUpdatedAt: quote.updatedAt,
     decision: "approved",
     reason: "Manually checked scope, rates and availability caveat",
   });
+  assert.equal((await read(id)).quotes[0].reviewedBy, secondReviewer.id);
   await act(id, "send", { quote: quote.id });
   const visible = (await customerBusinessRead(p, customer)).cases[0].quotes[0];
   assert.equal(visible.scope, "Human corrected scope");
@@ -354,7 +382,10 @@ try {
   });
   await act(correction.id, "review", {
     quote: ca.adoptedQuote,
+    quoteUpdatedAt: (await read(correction.id)).quotes.find((quote) => quote.id === ca.adoptedQuote)
+      ?.updatedAt,
     decision: "rejected",
+    selfReview: true,
     reason: "Needs correction",
   });
   await assert.rejects(() => act(correction.id, "send", { quote: ca.adoptedQuote }));
@@ -385,6 +416,13 @@ try {
 } finally {
   if (settings)
     await p.updateGlobal({ slug: "customer-settings", data: { enabled: settings.enabled } });
+  if (secondReviewerID)
+    await p.update({
+      collection: "staff",
+      id: secondReviewerID,
+      user: admin,
+      data: { active: false },
+    });
   if (temporaryStaff)
     await p.update({
       collection: "staff",

@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { businessStages, stageLabels } from "../../lib/business";
 import QuoteReview from "./QuoteReview";
 import BusinessAI from "./BusinessAI";
-import { aiQuoteSendAllowed } from "../../lib/business-ai";
 import CustomerLink from "../customer/CustomerLink";
 import { fillQuoteTerms, type QuoteTemplate } from "../../lib/quote-templates";
 import { serviceCategoryOptions } from "../../lib/routes";
@@ -289,10 +288,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   {view.canCost && q.internalCostMinor != null && (
                     <p>内部成本（客户不可见）：{(q.internalCostMinor / 100).toFixed(2)}</p>
                   )}
-                  <QuoteReview quote={q} canReview={view.canCost} busy={busy} act={act} />
+                  <QuoteReview quote={q} busy={busy} act={act} />
                   {q.status === "draft" && (
                     <button
-                      disabled={busy || !aiQuoteSendAllowed(q)}
+                      disabled={busy || q.review.state !== "approved"}
                       onClick={() => act("send", { quote: q.id })}
                     >
                       发出此版本

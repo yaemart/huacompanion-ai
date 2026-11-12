@@ -115,6 +115,8 @@ jobs:
           node --import tsx tests/integration/content-identifiers.ts
           node --import tsx tests/integration/guide-translation.ts
           npm run test:business
+          node --import tsx tests/integration/quote-review.ts
+          npm run test:business:ai
           npm run test:workflow
           npm run test:quality
           npm run test:customer
@@ -161,6 +163,7 @@ jobs:
           node --import tsx tests/integration/intake-receipt-http.ts
           node --import tsx tests/integration/intake-followups-http.ts
           node --import tsx tests/integration/inquiry-status.ts --http
+          node --import tsx tests/integration/quote-review.ts --http
           node --import tsx tests/integration/intake-case-http.ts
           node --import tsx tests/integration/provider-review-http.ts
           VISA_CHECKER_ENABLED=false npm run test:policies:shared:editor:http
