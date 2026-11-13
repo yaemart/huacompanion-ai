@@ -16,7 +16,9 @@ assert.ok(
 const p = await getPayload({ config });
 const run = randomUUID();
 const password = randomUUID();
+const company = await p.findGlobal({ slug: "public-company-settings" });
 try {
+  await p.updateGlobal({ slug: "public-company-settings", data: { companyName: "虚构二审主体" } });
   const [admin] = (
     await p.find({
       collection: "staff",
@@ -87,7 +89,8 @@ try {
     terms: "资源确认后预约",
     currency: "CNY",
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
-    lines: [{ label: "陪同服务", quantity: 2, unitMinor: 15000 }],
+    lineFormat: 2,
+    lines: [{ label: "陪同服务", quantity: 2, unitMinor: 15000, serviceSource: "company" }],
   };
   const draft = async (actor: Staff, change: object = {}) => {
     await act(actor, "quote", { quote: { ...offer, ...change } });
@@ -165,7 +168,7 @@ try {
   await assert.rejects(review(manager, supervisorDraft.id, { selfReview: true }), { status: 403 });
   await review(admin, supervisorDraft.id);
   await send(manager, supervisorDraft.id);
-  const exception = await draft(admin, { internalCostMinor: 8000 });
+  const exception = await draft(admin, { lineCosts: [8000] });
   await submit(admin, exception.id);
   await assert.rejects(review(admin, exception.id), { status: 403 });
   await assert.rejects(review(admin, exception.id, { selfReview: true, reason: "" }), {
@@ -176,12 +179,15 @@ try {
   assert.equal(exceptionEvent.actor, admin.id);
   assert.equal((exceptionEvent.detail as { selfReview?: boolean }).selfReview, true);
   assert.equal(
-    (await read(author)).quotes.find((quote) => quote.id === exception.id)?.internalCostMinor,
+    (await read(author)).quotes.find((quote) => quote.id === exception.id)?.lineCosts,
     undefined,
   );
   await send(admin, exception.id);
 
-  const legacy = await draft(author);
+  const legacy = await draft(author, {
+    lineFormat: null,
+    lines: [{ label: "旧版陪同服务", quantity: 2, unitMinor: 15000 }],
+  });
   await p.update({
     collection: "service-quotes",
     id: legacy.id,
@@ -193,9 +199,8 @@ try {
     },
   });
   await assert.rejects(send(author, legacy.id), { status: 409 });
-  await submit(author, legacy.id);
-  await review(manager, legacy.id);
-  await send(author, legacy.id);
+  await assert.rejects(submit(author, legacy.id), /另存新版/);
+  await assert.rejects(review(manager, legacy.id), /另存新版/);
   if (process.argv.includes("--http")) {
     const base = process.env.APP_URL || "";
     assert.match(base, /^http:\/\/127\.0\.0\.1:\d+$/);
@@ -258,6 +263,10 @@ try {
     "PASS manual quote submission, scoped second-person review, audited admin exception, revision and content binding",
   );
 } finally {
+  await p.updateGlobal({
+    slug: "public-company-settings",
+    data: { companyName: company.companyName ?? null },
+  });
   await p.destroy();
 }
 process.exit(0);

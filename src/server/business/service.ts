@@ -30,6 +30,8 @@ type BusinessEventDetail = QuoteReviewDetail & {
   expiresAt?: string;
   reason?: string;
   revision?: number;
+  baseQuote?: number;
+  sourceTask?: number;
   collectionLines?: { lineId: string; reason: string; note: string }[];
 };
 type QuoteDraft = Pick<
@@ -55,6 +57,10 @@ interface BusinessActionInput {
   title?: unknown;
   reason?: unknown;
   quote?: unknown;
+  baseQuote?: unknown;
+  sourceUpdatedAt?: unknown;
+  sourceTask?: unknown;
+  checked?: boolean;
   decision?: string;
   selfReview?: boolean;
   quoteUpdatedAt?: unknown;
@@ -362,6 +368,59 @@ export async function businessAction(
         throw new ContentError("当前阶段不可创建报价", 409);
       const checked = checkedQuote(input.quote);
       const split = await prepareQuoteLines(db, actor, req, input.quote, checked.lines);
+      const source =
+        input.baseQuote === undefined
+          ? undefined
+          : await db.findByID({
+              collection: "service-quotes",
+              id: validID(input.baseQuote),
+              disableErrors: true,
+              depth: 0,
+              req,
+            });
+      const task =
+        input.sourceTask === undefined
+          ? undefined
+          : await db.findByID({
+              collection: "business-ai-tasks",
+              id: validID(input.sourceTask),
+              disableErrors: true,
+              depth: 0,
+              req,
+            });
+      if (
+        (input.baseQuote !== undefined && relationID(source?.serviceCase) !== c!.id) ||
+        (input.sourceTask !== undefined && relationID(task?.serviceCase) !== c!.id)
+      )
+        throw new ContentError("来源记录不存在", 404);
+      if ((source || task) && !split) throw new ContentError("请补齐新版费用项主体后保存");
+      if (source) {
+        if (source.updatedAt !== input.sourceUpdatedAt)
+          throw new ContentError("来源报价已变更，请刷新后另存", 409);
+        detail.baseQuote = source.id;
+      }
+      if (task) {
+        if (
+          source ||
+          task.status !== "succeeded" ||
+          !task.result ||
+          task.updatedAt !== input.sourceUpdatedAt ||
+          (task.input as { caseRevision?: unknown } | null)?.caseRevision !== c!.revision ||
+          (task.input as { inquiryUpdatedAt?: unknown } | null)?.inquiryUpdatedAt !== q.updatedAt
+        )
+          throw new ContentError("AI 草稿或服务单已变更，请核对后重试", 409);
+        const author = await db.findByID({
+          collection: "staff",
+          id: relationID(task.createdBy)!,
+          depth: 0,
+          req,
+        });
+        await businessInquiry(p, author, q.id, req);
+      }
+      const aiTask = task?.id ?? relationID(source?.aiTask);
+      if (aiTask && input.checked !== true)
+        throw new ContentError("请确认已逐项核对 AI 草稿后再保存");
+      detail.sourceTask = aiTask;
       let quote: QuoteDraft = split ? { ...checked, lines: split.lines, lineFormat: 2 } : checked;
       if (quoteInput?.internalCostMinor != null) {
         if (
@@ -383,6 +442,7 @@ export async function businessAction(
           revision: old.reduce((n: number, v) => Math.max(n, v.revision), 0) + 1,
           status: "draft",
           createdBy: actor.id,
+          ...(aiTask && { aiTask }),
         },
         req,
       });
@@ -393,6 +453,13 @@ export async function businessAction(
           req,
         });
       detail.quote = created.id;
+      if (task)
+        await db.update({
+          collection: "business-ai-tasks",
+          id: task.id,
+          req,
+          data: { status: "adopted", adoptedQuote: created.id },
+        });
       const collectionLines = split?.lines.flatMap(({ lineId, collection }) =>
         collection ? [{ lineId, ...collection }] : [],
       );
@@ -408,6 +475,8 @@ export async function businessAction(
       });
       if (relationID(quote.serviceCase) !== c!.id || quote.status !== "draft")
         throw new ContentError("只能操作本服务单的草稿报价", 409);
+      if (quote.lineFormat !== 2)
+        throw new ContentError("旧版报价须另存新版、补齐主体并重新审核后才能发出", 409);
       detail.quote = quote.id;
       const reviews = await all(
         db,

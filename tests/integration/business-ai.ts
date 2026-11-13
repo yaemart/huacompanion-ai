@@ -17,6 +17,7 @@ const env = { ...process.env };
 let temporaryStaff: any;
 let secondReviewerID: number | undefined;
 let settings: any;
+let companyName: string | null | undefined;
 let admin: any;
 const offer = {
   brief: "Two days of exhibition assistance",
@@ -173,7 +174,7 @@ try {
         decision: "approved",
         reason: "The author cannot approve an AI quote without the administrator exception",
       }),
-    { status: 403 },
+    { status: 409 },
   );
   const secondReviewer = await p.create({
     collection: "staff",
@@ -186,18 +187,71 @@ try {
     },
   });
   secondReviewerID = secondReviewer.id;
+  // Preserve the state of a legacy quote approved before the conversion requirement.
+  await p.update({
+    collection: "service-quotes",
+    id: quote.id,
+    data: {
+      reviewStatus: "approved",
+      reviewedBy: secondReviewer.id,
+      reviewedAt: new Date().toISOString(),
+      reviewReason: "Historical review",
+    },
+  });
+  assert.equal((await read(id)).quotes[0].reviewedBy, secondReviewer.id);
+  await assert.rejects(act(id, "send", { quote: quote.id }), /另存新版/);
+  const oldAIQuote = (await read(id)).quotes[0];
+  const oldAITask = (await businessAIRead(p, admin, id)).tasks[0];
+  companyName = (await p.findGlobal({ slug: "public-company-settings" })).companyName ?? null;
+  await p.updateGlobal({
+    slug: "public-company-settings",
+    data: { companyName: "Fictional company" },
+  });
+  const copied = {
+    baseQuote: oldAIQuote.id,
+    sourceUpdatedAt: oldAIQuote.updatedAt,
+    checked: true,
+    quote: {
+      ...oldAIQuote,
+      lineFormat: 2,
+      lines: oldAIQuote.lines.map((line) => ({
+        ...line,
+        serviceSource: "manual",
+        serviceName: "Fictional interpreter",
+      })),
+    },
+  };
+  await assert.rejects(act(id, "quote", { ...copied, checked: false }), /逐项核对/);
+  await act(id, "quote", copied);
+  const newAIQuote = (await read(id)).quotes.find((row) => row.lineFormat === 2)!;
+  assert.equal(newAIQuote.review.state, "unsubmitted");
+  assert.equal(newAIQuote.aiTask, t.id);
+  assert.deepEqual(
+    (await read(id)).quotes.find((row) => row.id === oldAIQuote.id),
+    oldAIQuote,
+  );
+  assert.deepEqual((await businessAIRead(p, admin, id)).tasks[0], oldAITask);
+  await assert.rejects(act(id, "send", { quote: newAIQuote.id }), { status: 409 });
+  await act(id, "submit-review", { quote: newAIQuote.id });
+  await assert.rejects(
+    act(id, "review", {
+      quote: newAIQuote.id,
+      decision: "approved",
+      reason: "The author cannot approve without the administrator exception",
+    }),
+    { status: 403 },
+  );
   await businessAction(p, secondReviewer, {
     action: "review",
     id,
     revision: (await read(id)).case.revision,
     key: randomUUID(),
-    quote: quote.id,
-    quoteUpdatedAt: quote.updatedAt,
+    quote: newAIQuote.id,
+    quoteUpdatedAt: (await read(id)).quotes.find((row) => row.id === newAIQuote.id)?.updatedAt,
     decision: "approved",
-    reason: "Manually checked scope, rates and availability caveat",
+    reason: "Manually confirmed the new quote and all parties",
   });
-  assert.equal((await read(id)).quotes[0].reviewedBy, secondReviewer.id);
-  await act(id, "send", { quote: quote.id });
+  await act(id, "send", { quote: newAIQuote.id });
   const visible = (await customerBusinessRead(p, customer)).cases[0].quotes[0];
   assert.equal(visible.scope, "Human corrected scope");
   assert.equal("aiTask" in visible, false);
@@ -372,6 +426,31 @@ try {
   const cor = await create(correction.id);
   await runBusinessAIJob(p, adapter, { dailyTokens: 1000000 });
   const cr = (await businessAIRead(p, admin, correction.id)).tasks[0];
+  const direct = await setup();
+  const directTask = await create(direct.id);
+  await runBusinessAIJob(p, adapter, { dailyTokens: 1000000 });
+  const directResult = (await businessAIRead(p, admin, direct.id)).tasks[0];
+  const directInput = {
+    sourceTask: directTask.id,
+    sourceUpdatedAt: directResult.updatedAt,
+    checked: true,
+    quote: {
+      ...directResult.result.quote,
+      lineFormat: 2,
+      lines: offer.lines.map((line) => ({
+        ...line,
+        serviceSource: "company",
+      })),
+    },
+  };
+  await assert.rejects(act(correction.id, "quote", directInput), { status: 404 });
+  await act(direct.id, "quote", directInput);
+  const adoptedNew = (await read(direct.id)).quotes[0];
+  assert.equal(adoptedNew.aiTask, directTask.id);
+  assert.equal(adoptedNew.review.state, "unsubmitted");
+  const retained = (await businessAIRead(p, admin, direct.id)).tasks[0];
+  assert.equal(retained.adoptedQuote, adoptedNew.id);
+  assert.deepEqual(retained.result, directResult.result);
   const ca = await businessAIAction(p, admin, {
     action: "adopt",
     id: correction.id,
@@ -380,13 +459,10 @@ try {
     quote: cr.result.quote,
     checked: true,
   });
-  await act(correction.id, "review", {
-    quote: ca.adoptedQuote,
-    quoteUpdatedAt: (await read(correction.id)).quotes.find((quote) => quote.id === ca.adoptedQuote)
-      ?.updatedAt,
-    decision: "rejected",
-    selfReview: true,
-    reason: "Needs correction",
+  await p.update({
+    collection: "service-quotes",
+    id: ca.adoptedQuote!,
+    data: { reviewStatus: "rejected", reviewReason: "Historical review requested correction" },
   });
   await assert.rejects(() => act(correction.id, "send", { quote: ca.adoptedQuote }));
   try {
@@ -414,6 +490,8 @@ try {
       "cancellation, budget, malformed output, timeout and revoked actor",
   );
 } finally {
+  if (companyName !== undefined)
+    await p.updateGlobal({ slug: "public-company-settings", data: { companyName } });
   if (settings)
     await p.updateGlobal({ slug: "customer-settings", data: { enabled: settings.enabled } });
   // Preserve linked test history while retiring the temporary administrator roles.

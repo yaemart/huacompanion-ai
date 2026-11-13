@@ -239,10 +239,49 @@ try {
   const legacy = (
     await p.find({ collection: "service-quotes", where: { serviceCase: { equals: id } }, depth: 0 })
   ).docs[0];
+  await assert.rejects(act(manager, "send", legacy.id), /另存新版/);
+  await assert.rejects(
+    businessAction(p, outsider, {
+      action: "quote",
+      id,
+      baseQuote: legacy.id,
+      sourceUpdatedAt: legacy.updatedAt,
+      revision: (await read()).case.revision,
+      key: randomUUID(),
+      quote: newDraft,
+    }),
+    { status: 404 },
+  );
+  await assert.rejects(
+    businessAction(p, op, {
+      action: "quote",
+      id,
+      baseQuote: legacy.id,
+      sourceUpdatedAt: "outdated",
+      revision: (await read()).case.revision,
+      key: randomUUID(),
+      quote: newDraft,
+    }),
+    /来源报价已变更/,
+  );
+  await assert.rejects(
+    businessAction(p, op, {
+      action: "quote",
+      id,
+      baseQuote: legacy.id,
+      sourceUpdatedAt: legacy.updatedAt,
+      revision: (await read()).case.revision,
+      key: randomUUID(),
+      quote: { ...newDraft, lineCosts: [0, 0, 0] },
+    }),
+    { status: 403 },
+  );
   const cost = 93719;
   const write = {
     action: "quote",
     id,
+    baseQuote: legacy.id,
+    sourceUpdatedAt: legacy.updatedAt,
     revision: (await read()).case.revision,
     key: randomUUID(),
     quote: {
@@ -269,6 +308,14 @@ try {
   assert.equal((await businessAction(p, manager, write)).duplicate, true);
   const view = await read();
   const quote = view.quotes.find((row) => row.lineFormat === 2)!;
+  assert.equal(quote.review.state, "unsubmitted");
+  assert.ok(
+    view.events.some(
+      (event) =>
+        (event.detail as { baseQuote?: number; quote?: number }).baseQuote === legacy.id &&
+        (event.detail as { quote?: number }).quote === quote.id,
+    ),
+  );
   assert.equal(quote.totalMinor, 138000);
   assert.equal(quote.internalCostMinor ?? null, null);
   assert.equal(view.quotes.find((row) => row.id === legacy.id)?.internalCostMinor, 67321);
@@ -597,6 +644,48 @@ try {
     };
     const operator = await login(op.email);
     const supervisor = await login(manager.email);
+    const otherCase = await p.create({
+      collection: "service-cases",
+      data: {
+        inquiry: (
+          await p.create({
+            collection: "inquiries",
+            user: admin,
+            data: {
+              ...inquiry,
+              team: other.id,
+              owner: null,
+              reference: "QOTHER-" + key,
+              requestKey: "other-" + key,
+              contentHash: "other-" + key,
+            },
+          })
+        ).id,
+        title: "虚构其他服务单",
+        stage: "received",
+        revision: 1,
+      },
+    });
+    const foreignQuote = await p.create({
+      collection: "service-quotes",
+      data: { ...legacy, dedupe: randomUUID(), serviceCase: otherCase.id },
+    });
+    for (const baseQuote of [foreignQuote.id, 2147483647]) {
+      const response = await fetch(base + "/api/business", {
+        method: "POST",
+        headers: { Authorization: operator, Origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "quote",
+          id,
+          revision: (await read()).case.revision,
+          key: randomUUID(),
+          baseQuote,
+          sourceUpdatedAt: foreignQuote.updatedAt,
+          quote: newDraft,
+        }),
+      });
+      assert.equal(response.status, 404);
+    }
     const readHTTP = async (authorization: string) => {
       const response = await fetch(base + `/api/business?id=${id}`, {
         headers: { Authorization: authorization },

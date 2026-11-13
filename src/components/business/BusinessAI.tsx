@@ -1,14 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { aiTaskLabels } from "@/lib/business-ai";
+import type { QuoteAmount } from "@/lib/quote-lines";
 import { locales, localeNames } from "@/lib/locales";
-import { quoteLocalTime } from "@/lib/quote-time";
 const initial = () => ({
-  title: "",
-  scope: "",
-  included: "",
-  excluded: "",
-  terms: "",
   currency: "CNY",
   expiresAt: "",
   lines: [{ label: "服务费用", quantity: 1, unitMinor: 0 }],
@@ -16,12 +11,18 @@ const initial = () => ({
 export default function BusinessAI({
   id,
   revision,
-  quotes,
+  onCopy,
   onChange,
 }: {
   id: number;
   revision: number;
-  quotes: any[];
+  onCopy: (
+    draft: Omit<ReturnType<typeof initial>, "lines"> & { lines: QuoteAmount[] } & Record<
+        "title" | "scope" | "included" | "excluded" | "terms",
+        string
+      >,
+    task: { id: number; updatedAt: string },
+  ) => void;
   onChange: () => Promise<void>;
 }) {
   const [data, setData] = useState<any>({ tasks: [], enabled: false }),
@@ -29,8 +30,6 @@ export default function BusinessAI({
     [locale, setLocale] = useState("en"),
     [privacy, setPrivacy] = useState(false),
     [quote, setQuote] = useState<any>(initial),
-    [selected, setSelected] = useState<any>(null),
-    [checked, setChecked] = useState(false),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const retry = useRef<{ signature: string; key: string } | null>(null);
@@ -61,24 +60,12 @@ export default function BusinessAI({
       retry.current = null;
       await refresh();
       await onChange();
-      if (action === "adopt" || action === "revise") {
-        setSelected(null);
-        setQuote(initial());
-        setChecked(false);
-        setMessage("已保存待审核报价草稿，客户暂不可见。");
-      } else setMessage("操作已保存。");
+      setMessage("操作已保存。");
     } catch (e) {
       setMessage((e as Error).message);
     } finally {
       setBusy(false);
     }
-  }
-  function edit(q: any) {
-    setQuote({
-      ...q,
-      expiresAt: quoteLocalTime(q.expiresAt),
-    });
-    setChecked(false);
   }
   if (!data.enabled && !data.tasks.length) return null;
   return (
@@ -113,23 +100,12 @@ export default function BusinessAI({
                 </ul>
               </details>
             )}
-            {["succeeded", "adopted"].includes(t.status) && (
-              <button
-                disabled={busy}
-                onClick={() => {
-                  const last = quotes
-                    .filter(
-                      (q) =>
-                        Number(typeof q.aiTask === "object" ? q.aiTask?.id : q.aiTask) === t.id,
-                    )
-                    .sort((a, b) => b.revision - a.revision)[0];
-                  setSelected({ ...t, baseQuote: last?.id });
-                  edit(last || t.result.quote);
-                }}
-              >
+            {t.status === "succeeded" && t.result?.quote && (
+              <button disabled={busy} onClick={() => onCopy(t.result.quote, t)}>
                 整理此结果为报价草稿
               </button>
             )}
+            {t.status === "adopted" && <p>已采纳，请在报价版本中另存。</p>}
             {data.enabled && t.status === "unconfigured" && (
               <button disabled={busy} onClick={() => action("queue", { task: t.id })}>
                 配置后重新排队
@@ -143,36 +119,26 @@ export default function BusinessAI({
           </li>
         ))}
       </ul>
-      <details open={!!selected} hidden={!data.enabled && !selected}>
-        <summary>
-          {selected ? `整理任务 #${selected.id} 的报价草稿` : "填写生成要求与已核实费用"}
-        </summary>
+      <details hidden={!data.enabled}>
+        <summary>填写生成要求与已核实费用</summary>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!data.enabled && !selected) return;
-            const value = { ...quote, expiresAt: new FormData(e.currentTarget).get("expiresAt") };
-            void (selected
-              ? action(selected.status === "adopted" ? "revise" : "adopt", {
-                  task: selected.id,
-                  baseQuote: selected.baseQuote,
-                  quote: value,
-                  checked,
-                })
-              : action("create", {
-                  request: {
-                    brief,
-                    locale,
-                    privacyConfirmed: privacy,
-                    currency: value.currency,
-                    expiresAt: value.expiresAt,
-                    lines: value.lines,
-                  },
-                }));
+            if (!data.enabled) return;
+            const expiresAt = new FormData(e.currentTarget).get("expiresAt");
+            void action("create", {
+              request: {
+                brief,
+                locale,
+                privacyConfirmed: privacy,
+                ...quote,
+                expiresAt,
+              },
+            });
           }}
         >
           <fieldset disabled={busy}>
-            {!selected ? (
+            {data.enabled && (
               <>
                 <label>
                   目标语言
@@ -202,27 +168,6 @@ export default function BusinessAI({
                   />
                   已去除身份及敏感资料，同意启用模型后将此摘要和费用明细用于生成
                 </label>
-              </>
-            ) : (
-              <>
-                {[
-                  ["title", "方案名称"],
-                  ["scope", "服务范围"],
-                  ["included", "包含项目"],
-                  ["excluded", "不包含项目"],
-                  ["terms", "变更与取消规则"],
-                ].map(([k, label]) => (
-                  <label key={k}>
-                    {label}
-                    <textarea
-                      required
-                      maxLength={k === "title" ? 200 : 4000}
-                      value={quote[k]}
-                      onChange={(e) => setQuote({ ...quote, [k]: e.target.value })}
-                    />
-                  </label>
-                ))}
-                <p>先解决原稿中的待核实事项；采纳后还需主管独立执行审核操作。</p>
               </>
             )}
             <label>
@@ -337,30 +282,7 @@ export default function BusinessAI({
               ).toFixed(2)}{" "}
               {quote.currency}
             </p>
-            {selected && (
-              <label>
-                <input
-                  type="checkbox"
-                  required
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                />
-                已逐项整理事实、费用、规则和待核实事项
-              </label>
-            )}
-            <button>{selected ? "保存待主管审核的草稿" : "提交 AI 生成任务"}</button>
-            {selected && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelected(null);
-                  setQuote(initial());
-                  setChecked(false);
-                }}
-              >
-                退出整理
-              </button>
-            )}
+            <button>提交 AI 生成任务</button>
           </fieldset>
         </form>
       </details>

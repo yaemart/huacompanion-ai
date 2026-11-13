@@ -6,7 +6,7 @@ import BusinessAI from "./BusinessAI";
 import CustomerLink from "../customer/CustomerLink";
 import { fillQuoteTerms, type QuoteTemplate } from "../../lib/quote-templates";
 import { serviceCategoryOptions } from "../../lib/routes";
-import { quoteTimeLabel } from "../../lib/quote-time";
+import { quoteLocalTime, quoteTimeLabel } from "../../lib/quote-time";
 import { randomClientID } from "../../lib/client-id";
 import { QuoteLineParties, quotePartyInput, quotePartySummary } from "./QuoteLineParties";
 import type { StaffQuote } from "../../server/business/service";
@@ -25,8 +25,15 @@ const initialQuote = (clientKey = "initial") => ({
   currency: "CNY",
   expiresAt: "",
   lines: [draftLine("服务费用", clientKey)],
-  internalCostMinor: "",
 });
+type DraftSource = Parameters<React.ComponentProps<typeof BusinessAI>["onCopy"]>[0];
+type DraftOrigin = {
+  kind: "quote" | "task";
+  id: number;
+  updatedAt: string;
+  ai: boolean;
+  editorKey: string;
+};
 export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number }) {
   const [data, setData] = useState<any>({ inquiries: [], cases: [] }),
     [id, setId] = useState<number | undefined>(initialCaseID),
@@ -36,7 +43,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     [inquiry, setInquiry] = useState(""),
     [title, setTitle] = useState(""),
     [quote, setQuote] = useState(initialQuote),
-    [splitQuote, setSplitQuote] = useState(false),
+    [source, setSource] = useState<DraftOrigin>(),
     [templateCategory, setTemplateCategory] = useState(""),
     [stage, setStage] = useState("discovery"),
     [reason, setReason] = useState(""),
@@ -46,7 +53,33 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     [internal, setInternal] = useState(""),
     [provider, setProvider] = useState(""),
     [confirmed, setConfirmed] = useState(false);
-  const retry = useRef<{ signature: string; key: string } | null>(null);
+  const retry = useRef<{ signature: string; key: string; revision?: number } | null>(null);
+  const quoteEditor = useRef<HTMLDetailsElement>(null);
+  const quoteTitle = useRef<HTMLTextAreaElement>(null);
+  function copyQuote(original: DraftSource, origin: Omit<DraftOrigin, "editorKey">) {
+    if (busy) return;
+    if (
+      (source || quote.title || quote.scope || quote.included || quote.excluded || quote.terms) &&
+      !window.confirm("替换当前未保存的报价内容？")
+    )
+      return;
+    const { title, scope, included, excluded, terms, currency, expiresAt, lines } = original;
+    setQuote({
+      ...{ title, scope, included, excluded, terms, currency },
+      expiresAt: quoteLocalTime(expiresAt),
+      lines: lines.map(({ label, quantity, unitMinor }) => ({
+        label,
+        quantity,
+        unitMinor,
+        clientKey: randomClientID(),
+      })),
+    });
+    setSource({ ...origin, editorKey: randomClientID() });
+    if (quoteEditor.current) quoteEditor.current.open = true;
+  }
+  useEffect(() => {
+    if (source) quoteTitle.current?.focus();
+  }, [source]);
   async function read(target?: number) {
     const r = await fetch("/api/business" + (target ? "?id=" + target : ""), { cache: "no-store" });
     const j = await r.json();
@@ -91,20 +124,27 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     setBusy(true);
     setError("");
     const input = { action, ...(id ? { id, revision: view?.case.revision } : {}), ...extra };
-    const signature = JSON.stringify(input);
+    const signature = JSON.stringify({ ...input, revision: undefined });
     if (retry.current?.signature !== signature)
-      retry.current = { signature, key: crypto.randomUUID() };
+      retry.current = { signature, key: crypto.randomUUID(), revision: input.revision };
     try {
       const r = await fetch("/api/business", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...input, key: retry.current.key }),
+        body: JSON.stringify({
+          ...input,
+          revision: retry.current.revision,
+          key: retry.current.key,
+        }),
       });
       const j = await r.json();
-      if (!r.ok) throw Error(j.error);
-      retry.current = null;
+      if (!r.ok) {
+        if (r.status < 500) retry.current = null;
+        throw Error(j.error);
+      }
       if (action === "create") setId(j.case);
       await refresh(j.case);
+      retry.current = null;
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -139,6 +179,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
               setId(undefined);
               setView(undefined);
               setQuote(initialQuote());
+              setSource(undefined);
               setTemplateCategory("");
             }}
           >
@@ -154,6 +195,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     setView(undefined);
                     setId(x.id);
                     setQuote(initialQuote());
+                    setSource(undefined);
                     setTemplateCategory("");
                   }}
                 >
@@ -211,7 +253,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 key={id}
                 id={id}
                 revision={c.revision}
-                quotes={view.quotes}
+                onCopy={(draft, task) => copyQuote(draft, { kind: "task", ...task, ai: true })}
                 onChange={() => refresh(id)}
               />
               {customerCenter && (
@@ -301,7 +343,23 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     <p>内部成本（客户不可见）：{(q.internalCostMinor / 100).toFixed(2)}</p>
                   )}
                   <QuoteReview key={q.updatedAt} quote={q} busy={busy} act={act} />
-                  {q.status === "draft" && (
+                  {(q.status === "draft" || q.aiTask || q.sentAt) && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        copyQuote(q, {
+                          kind: "quote",
+                          id: q.id,
+                          updatedAt: q.updatedAt,
+                          ai: !!q.aiTask,
+                        })
+                      }
+                    >
+                      以新格式另存一版
+                    </button>
+                  )}
+                  {q.status === "draft" && q.lineFormat === 2 && (
                     <button
                       disabled={busy || q.review.state !== "approved"}
                       onClick={() => act("send", { quote: q.id })}
@@ -319,35 +377,47 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   )}
                 </article>
               ))}
-              <details>
+              <details ref={quoteEditor}>
                 <summary>新建报价版本</summary>
                 <form
+                  key={source?.editorKey ?? "new"}
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const form = new FormData(e.currentTarget);
-                    const expiresAt = form.get("expiresAt");
                     if (
                       await act("quote", {
+                        ...(source && {
+                          [source.kind === "quote" ? "baseQuote" : "sourceTask"]: source.id,
+                          sourceUpdatedAt: source.updatedAt,
+                        }),
+                        ...(source?.ai && { checked: form.has("checked-ai-source") }),
                         quote: {
                           ...quote,
-                          expiresAt,
-                          ...(quote.internalCostMinor !== "" && !splitQuote
-                            ? {
-                                internalCostMinor: Math.round(
-                                  Number(quote.internalCostMinor) * 100,
-                                ),
-                              }
-                            : { internalCostMinor: undefined }),
-                          ...(splitQuote ? quotePartyInput(form, quote.lines, view.canCost) : {}),
+                          expiresAt: form.get("expiresAt"),
+                          ...quotePartyInput(form, quote.lines, view.canCost),
                         },
                       })
                     ) {
                       setQuote(initialQuote(randomClientID()));
-                      setSplitQuote(false);
+                      setSource(undefined);
                     }
                   }}
                 >
                   <fieldset disabled={busy}>
+                    {source && (
+                      <p>
+                        已带入来源的费用与条款。请逐项选择实际服务方并核对有效期。
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuote(initialQuote(randomClientID()));
+                            setSource(undefined);
+                          }}
+                        >
+                          退出另存
+                        </button>
+                      </p>
+                    )}
                     {templates.length > 0 && (
                       <div>
                         <label>
@@ -390,6 +460,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         {l}
                         <textarea
                           required
+                          ref={k === "title" ? quoteTitle : undefined}
                           maxLength={k === "title" ? 200 : 4000}
                           value={(quote as any)[k]}
                           onChange={(e) => setQuote({ ...quote, [k]: e.target.value })}
@@ -416,14 +487,6 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         value={quote.expiresAt}
                         onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}
                       />
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={splitQuote}
-                        onChange={(event) => setSplitQuote(event.target.checked)}
-                      />
-                      录入新版费用项主体与成本（保存草稿）
                     </label>
                     {quote.lines.map((l, i) => (
                       <fieldset key={l.clientKey}>
@@ -485,7 +548,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                           index={i}
                           options={view.quoteLineOptions}
                           canCost={view.canCost}
-                          enabled={splitQuote}
+                          requireParty={!!source}
                         />
                         {quote.lines.length > 1 && (
                           <button
@@ -511,18 +574,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     >
                       增加费用项
                     </button>
-                    {view.canCost && !splitQuote && (
+                    {source?.ai && (
                       <label>
-                        内部成本（可留空，金额同币种）
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={quote.internalCostMinor}
-                          onChange={(e) =>
-                            setQuote({ ...quote, internalCostMinor: e.target.value })
-                          }
-                        />
+                        <input type="checkbox" name="checked-ai-source" required />
+                        已逐项核对 AI 草稿的事实、费用、规则和待核实事项
                       </label>
                     )}
                     <button>保存新版本草稿</button>

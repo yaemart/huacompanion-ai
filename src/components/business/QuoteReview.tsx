@@ -25,6 +25,7 @@ export default function QuoteReview({
   });
   const { state, canReview, isAuthor } = quote.review;
   const draft = quote.status === "draft";
+  const legacyDraft = draft && quote.lineFormat !== 2;
   if (!draft && !quote.reviewStatus && !quote.aiTask) return null;
   const approveDisabled = !reason.trim() || (isAuthor && !exception);
   const required = quote.lines.filter(
@@ -63,7 +64,8 @@ export default function QuoteReview({
         {quote.aiTask && `AI 来源任务 #${relationID(quote.aiTask)} · `}二审：{labels[state]}
       </p>
       {quote.reviewReason && <p>审核记录：{quote.reviewReason}</p>}
-      {draft && state === "unsubmitted" && (
+      {legacyDraft && <p>请选择「以新格式另存一版」，补齐主体后送审。</p>}
+      {draft && !legacyDraft && state === "unsubmitted" && (
         <>
           <p>
             {quote.reviewStatus === "approved"
@@ -79,8 +81,11 @@ export default function QuoteReview({
           </button>
         </>
       )}
-      {draft && state === "rejected" && <p>请按审核意见在「新建报价版本」中修订并送审。</p>}
+      {draft && !legacyDraft && state === "rejected" && (
+        <p>请按审核意见在「新建报价版本」中修订并送审。</p>
+      )}
       {draft &&
+        !legacyDraft &&
         state === "pending" &&
         (canReview ? (
           <fieldset disabled={busy}>
