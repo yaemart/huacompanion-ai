@@ -2758,6 +2758,7 @@ export interface SeoSetting {
 export interface PublicCompanySetting {
   id: number;
   companyName?: string | null;
+  allowQuoteCollection?: boolean | null;
   locationZh?: string | null;
   locationEn?: string | null;
   email?: string | null;
@@ -2840,6 +2841,7 @@ export interface SeoSettingsSelect<T extends boolean = true> {
  */
 export interface PublicCompanySettingsSelect<T extends boolean = true> {
   companyName?: T;
+  allowQuoteCollection?: T;
   locationZh?: T;
   locationEn?: T;
   email?: T;

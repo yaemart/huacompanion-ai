@@ -11,8 +11,14 @@ import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
 import { transactionSession } from "../db-types";
 import { inquiryCaseID } from "../../lib/intake-case";
-import { quoteReviewProof, quoteReviewState, type QuoteReviewDetail } from "./quote-review";
-import { prepareQuoteLines, quoteLineOptions } from "./quote-lines";
+import {
+  confirmsQuoteLines,
+  quoteApproval,
+  quoteReviewProof,
+  quoteReviewState,
+  type QuoteReviewDetail,
+} from "./quote-review";
+import { prepareQuoteLines, quoteLineOptions, quoteLineReviewRequirements } from "./quote-lines";
 import { quoteLinesView } from "../../lib/quote-lines";
 import {
   quoteTemplates,
@@ -24,6 +30,7 @@ type BusinessEventDetail = QuoteReviewDetail & {
   expiresAt?: string;
   reason?: string;
   revision?: number;
+  collectionLines?: { lineId: string; reason: string; note: string }[];
 };
 type QuoteDraft = Pick<
   ServiceQuote,
@@ -51,6 +58,7 @@ interface BusinessActionInput {
   decision?: string;
   selfReview?: boolean;
   quoteUpdatedAt?: unknown;
+  confirmations?: unknown;
   scheduledAt?: string;
   publicArrangement?: unknown;
   internalArrangement?: unknown;
@@ -385,6 +393,10 @@ export async function businessAction(
           req,
         });
       detail.quote = created.id;
+      const collectionLines = split?.lines.flatMap(({ lineId, collection }) =>
+        collection ? [{ lineId, ...collection }] : [],
+      );
+      if (collectionLines?.length) detail.collectionLines = collectionLines;
     } else if (action === "submit-review" || action === "review" || action === "send") {
       if (action === "review" && !isManager(actor))
         throw new ContentError("仅主管或管理员可审核报价", 403);
@@ -396,7 +408,6 @@ export async function businessAction(
       });
       if (relationID(quote.serviceCase) !== c!.id || quote.status !== "draft")
         throw new ContentError("只能操作本服务单的草稿报价", 409);
-      if (quote.lineFormat === 2) throw new ContentError("新版费用项当前只开放保存草稿", 409);
       detail.quote = quote.id;
       const reviews = await all(
         db,
@@ -409,6 +420,7 @@ export async function businessAction(
         if (state !== "unsubmitted")
           throw new ContentError("此版本已送审；退回后请另存新版本", 409);
         checkedQuote(quote);
+        await quoteLineReviewRequirements(p, actor, req, quote);
         await db.update({
           collection: "service-quotes",
           id: quote.id,
@@ -426,7 +438,13 @@ export async function businessAction(
         if (decision !== "approved" && decision !== "rejected")
           throw new ContentError("请选择审核结果");
         const note = reason(input);
-        if (decision === "approved") checkedQuote(quote);
+        if (decision === "approved") {
+          checkedQuote(quote);
+          const required = await quoteLineReviewRequirements(p, actor, req, quote);
+          if (required && !confirmsQuoteLines(input.confirmations, required))
+            throw new ContentError("请逐项确认签约收款主体差异和华伴代收");
+          detail.confirmations = required;
+        }
         const reviewedAt = new Date().toISOString();
         const reviewed = await db.update({
           collection: "service-quotes",
@@ -453,6 +471,9 @@ export async function businessAction(
         if (state !== "approved")
           throw new ContentError("此报价版本须由有权限的第二人审核通过后才能发出", 409);
         checkedQuote(quote);
+        const required = await quoteLineReviewRequirements(p, actor, req, quote);
+        if (required && !confirmsQuoteLines(quoteApproval(quote, reviews)?.confirmations, required))
+          throw new ContentError("此版本仍需逐项确认，请另存并重新审核", 409);
         for (const old of await all(
           db,
           "service-quotes",

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   partyNameKey,
+  collectionReasons,
   quotePartiesDiffer,
   type LineCost,
   type QuoteAmount,
@@ -18,6 +19,7 @@ export function quotePartySummary(line: QuoteLineView, costs?: LineCost[]) {
     `收款方：${line.payeeName || "待补"}`,
   ];
   if (line.partyDifferenceReason) parts.push(`主体差异原因：${line.partyDifferenceReason}`);
+  if (line.collection) parts.push(`代收说明：${line.collection.note}`);
   if (costs) {
     const cost = costs.find(({ lineId }) => lineId === line.lineId)?.costMinor;
     parts.push(`本项成本合计：${cost == null ? "待补成本" : (cost / 100).toFixed(2)}`);
@@ -35,10 +37,18 @@ export function quotePartyInput(form: FormData, rows: QuoteAmount[], canCost: bo
       const contractName = String(form.get(`contract-${i}`) ?? "").trim();
       const payeeProviderId = form.get(`payee-${i}`);
       const reason = String(form.get(`party-reason-${i}`) ?? "").trim();
+      const collectByCompany = payeeProviderId === "company";
       const parties = {
         ...row,
         ...(contractName && { contractName }),
-        ...(payeeProviderId && { payeeProviderId: Number(payeeProviderId) }),
+        ...(payeeProviderId && !collectByCompany && { payeeProviderId: Number(payeeProviderId) }),
+        ...(collectByCompany && {
+          collectByCompany,
+          collection: {
+            reason: form.get(`collection-reason-${i}`),
+            note: form.get(`collection-note-${i}`),
+          },
+        }),
         ...(reason && { partyDifferenceReason: reason }),
       };
       if (party === "manual")
@@ -74,14 +84,15 @@ export function QuoteLineParties({
   const serviceProvider = options.providers.find(({ id }) => String(id) === party);
   const serviceName = party === "manual" ? manualName.trim() : (serviceProvider?.name ?? "");
   const payee = options.providers.find(({ id }) => String(id) === payeeId);
+  const collects = payeeId === "company";
   const contract = contractName.trim() || serviceName;
   const contractProviderId =
     partyNameKey(contract) === partyNameKey(serviceName) ? serviceProvider?.id : undefined;
   const differs = quotePartiesDiffer(
     contract,
-    payee?.name ?? serviceName,
+    collects ? options.companyName : (payee?.name ?? serviceName),
     contractProviderId,
-    payee?.id ?? serviceProvider?.id,
+    collects ? undefined : (payee?.id ?? serviceProvider?.id),
   );
   const missing =
     party !== "company" &&
@@ -135,7 +146,7 @@ export function QuoteLineParties({
         </p>
       ) : (
         <fieldset>
-          <legend>合作对接</legend>
+          <legend>{collects ? "华伴统筹" : "合作对接"}</legend>
           <label>
             签约方
             <input
@@ -154,7 +165,14 @@ export function QuoteLineParties({
               onChange={(event) => setPayeeId(event.target.value)}
             >
               <option value="">同实际服务方{serviceName && ` · ${serviceName}`}</option>
-              {payeeId && !payee && <option value={payeeId}>原收款方不可用，请重新选择</option>}
+              {(options.allowCollection || collects) && (
+                <option value="company">
+                  {options.allowCollection ? "华伴代收" : "华伴代收已关闭，请重新选择"}
+                </option>
+              )}
+              {payeeId && !payee && !collects && (
+                <option value={payeeId}>原收款方不可用，请重新选择</option>
+              )}
               {options.providers.map(({ id, name }) => (
                 <option key={id} value={id}>
                   {name}
@@ -162,7 +180,26 @@ export function QuoteLineParties({
               ))}
             </select>
           </label>
-          <p>签约方留空时使用实际服务方。当前未开放华伴代收。</p>
+          <p>签约方留空时使用实际服务方。{!options.allowCollection && "当前未开放华伴代收。"}</p>
+          {collects && (
+            <>
+              <label>
+                代收原因
+                <select name={`collection-reason-${index}`} defaultValue="" required>
+                  <option value="">请选择</option>
+                  {Object.entries(collectionReasons).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                代收说明
+                <textarea name={`collection-note-${index}`} maxLength={2000} required />
+              </label>
+            </>
+          )}
           {differs && (
             <label>
               签约方与收款方不同的原因（必填）

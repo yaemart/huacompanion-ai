@@ -4,7 +4,7 @@ import { guardProviderReview } from "./provider-review";
 import { intakeEditorFields } from "./intake-editor";
 import { guardInquiryStatus, lockInquiryWrite } from "./inquiry-status";
 import { inquiryStatusLabels, coordinationStageLabels } from "../lib/inquiry-status";
-import { businessLock, inquiryWorkflowHook } from "../server/business/hooks";
+import { businessLock, inquiryWorkflowHook, lockBusiness } from "../server/business/hooks";
 import {
   housekeepingApplication,
   housekeepingVerification,
@@ -517,6 +517,12 @@ export const Providers: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeDelete: [
+      async ({ req }) => {
+        await catalogLock(req);
+        await lockBusiness(req);
+      },
+    ],
     beforeChange: [
       async ({ req, data }) => {
         await catalogLock(req);

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { StaffQuote } from "../../server/business/service";
 import { relationID } from "../../cms/access";
+import { collectionReasons } from "../../lib/quote-lines";
+import type { QuoteConfirmations } from "../../server/business/quote-review";
 
 const labels = { unsubmitted: "待送审", pending: "待审核", approved: "已通过", rejected: "已退回" };
 
@@ -17,11 +19,28 @@ export default function QuoteReview({
 }) {
   const [reason, setReason] = useState("");
   const [exception, setException] = useState(false);
+  const [confirmed, setConfirmed] = useState<QuoteConfirmations>({
+    difference: [],
+    collection: [],
+  });
   const { state, canReview, isAuthor } = quote.review;
   const draft = quote.status === "draft";
-  if (draft && quote.lineFormat === 2) return <p>新版费用项已保存，送审将在逐项审核接入后开放。</p>;
   if (!draft && !quote.reviewStatus && !quote.aiTask) return null;
   const approveDisabled = !reason.trim() || (isAuthor && !exception);
+  const required = quote.lines.filter(
+    (line) => line.lineId && (line.partyDifferenceReason || line.collection),
+  );
+  const missing = required.some(
+    ({ lineId, partyDifferenceReason, collection }) =>
+      (partyDifferenceReason && !confirmed.difference.includes(lineId!)) ||
+      (collection && !confirmed.collection.includes(lineId!)),
+  );
+  function confirm(kind: keyof QuoteConfirmations, id: string, checked: boolean) {
+    setConfirmed((state) => ({
+      ...state,
+      [kind]: checked ? [...state[kind], id] : state[kind].filter((item) => item !== id),
+    }));
+  }
   async function decide(decision: "approved" | "rejected") {
     if (
       await act("review", {
@@ -30,10 +49,12 @@ export default function QuoteReview({
         decision,
         reason,
         selfReview: isAuthor && exception,
+        ...(decision === "approved" && quote.lineFormat === 2 && { confirmations: confirmed }),
       })
     ) {
       setReason("");
       setException(false);
+      setConfirmed({ difference: [], collection: [] });
     }
   }
   return (
@@ -65,6 +86,32 @@ export default function QuoteReview({
           <fieldset disabled={busy}>
             <legend>报价审核</legend>
             <p>请逐项核对服务范围、费用、资源和取消规则。审核通过后可另行发出。</p>
+            {required.map((line) => (
+              <fieldset key={line.lineId}>
+                <legend>
+                  {quote.lines.indexOf(line) + 1}. {line.label}
+                </legend>
+                {line.partyDifferenceReason && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      onChange={(e) => confirm("difference", line.lineId!, e.target.checked)}
+                    />
+                    已确认本项签约方与收款方的差异及原因
+                  </label>
+                )}
+                {line.collection && (
+                  <label>
+                    {collectionReasons[line.collection.reason as keyof typeof collectionReasons]} ·
+                    <input
+                      type="checkbox"
+                      onChange={(e) => confirm("collection", line.lineId!, e.target.checked)}
+                    />
+                    已确认本项由华伴代收，并已与服务商约定转付
+                  </label>
+                )}
+              </fieldset>
+            ))}
             {isAuthor && (
               <label>
                 <input
@@ -85,7 +132,7 @@ export default function QuoteReview({
             </label>
             <button
               type="button"
-              disabled={approveDisabled}
+              disabled={approveDisabled || missing}
               onClick={() => void decide("approved")}
             >
               审核通过
