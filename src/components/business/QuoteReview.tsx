@@ -23,7 +23,7 @@ export default function QuoteReview({
     difference: [],
     collection: [],
   });
-  const { state, canReview, isAuthor } = quote.review;
+  const { state, canReview, isAuthor, needsResubmission } = quote.review;
   const draft = quote.status === "draft";
   const legacyDraft = draft && quote.lineFormat !== 2;
   if (!draft && !quote.reviewStatus && !quote.aiTask) return null;
@@ -68,16 +68,18 @@ export default function QuoteReview({
       {draft && !legacyDraft && state === "unsubmitted" && (
         <>
           <p>
-            {quote.reviewStatus === "approved"
-              ? "当前版本需要重新审核。"
-              : "送审并通过后可发出此版本。"}
+            {needsResubmission
+              ? "对客报价说明已更新，请重新提交审核。"
+              : quote.reviewStatus === "approved"
+                ? "当前版本需要重新审核。"
+                : "送审并通过后可发出此版本。"}
           </p>
           <button
             type="button"
             disabled={busy}
             onClick={() => void act("submit-review", { quote: quote.id })}
           >
-            {quote.reviewStatus === "approved" ? "重新提交审核" : "提交审核"}
+            {needsResubmission || quote.reviewStatus === "approved" ? "重新提交审核" : "提交审核"}
           </button>
         </>
       )}

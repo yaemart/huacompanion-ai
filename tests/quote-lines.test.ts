@@ -30,3 +30,31 @@ test("new quote projection exposes party names but keeps sources, costs and reas
   assert.deepEqual(result.lines, [{ ...amount, ...parties }]);
   assert.equal(Object.hasOwn(result, "lineCosts"), false);
 });
+
+test("sent fee notices are read from the saved version and collection takes precedence", () => {
+  const quote = publicQuote({
+    lineFormat: 2,
+    lines: [
+      { ...amount, mode: "referral" },
+      { ...amount, mode: "managed", collectionNotice: "历史代收原文" },
+      {
+        ...amount,
+        mode: "managed",
+        customerNotice: "不显示的通用说明",
+        collectionNotice: "发出时的代收文案",
+        collection: { reason: "other", note: "内部原因" },
+      },
+      { ...amount, mode: "referral", customerNotice: "发出时的合作文案" },
+    ],
+  });
+  assert.deepEqual(
+    quote.lines.map(({ customerNotice, collectionNotice }) => [customerNotice, collectionNotice]),
+    [
+      [undefined, undefined],
+      [undefined, "历史代收原文"],
+      [undefined, "发出时的代收文案"],
+      ["发出时的合作文案", undefined],
+    ],
+  );
+  assert.ok(!JSON.stringify(quote).includes("内部原因"));
+});

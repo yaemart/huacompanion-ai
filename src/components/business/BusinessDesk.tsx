@@ -331,6 +331,15 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                       <li key={l.lineId ?? i}>
                         {l.label} × {l.quantity}：{(l.unitMinor / 100).toFixed(2)} {q.currency}
                         {l.lineId && <p>{quotePartySummary(l, q.lineCosts)}</p>}
+                        {!q.review.needsResubmission &&
+                          (q.sentAt ||
+                            q.reviewStatus === "pending" ||
+                            q.reviewStatus === "approved") &&
+                          (l.collectionNotice || l.customerNotice) && (
+                            <p className="quote-notice">
+                              客户版说明：{l.collectionNotice || l.customerNotice}
+                            </p>
+                          )}
                       </li>
                     ))}
                   </ul>

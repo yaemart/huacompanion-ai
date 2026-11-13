@@ -2758,7 +2758,22 @@ export interface SeoSetting {
 export interface PublicCompanySetting {
   id: number;
   companyName?: string | null;
+  /**
+   * 报价设置。仅在律师确认业务边界后启用。
+   */
   allowQuoteCollection?: boolean | null;
+  /**
+   * 留空使用默认文案：本项由上述服务方直接为您提供服务并收款，华伴负责协调沟通。 已发出的报价保留当时的文案。
+   */
+  quoteReferralNotice?: string | null;
+  /**
+   * 留空使用默认文案：本项由华伴负责安排并收款。 已发出的报价保留当时的文案。
+   */
+  quoteManagedNotice?: string | null;
+  /**
+   * 留空使用默认文案：本项由华伴统一收款后支付给服务方 已发出的报价保留当时的文案。
+   */
+  quoteCollectionNotice?: string | null;
   locationZh?: string | null;
   locationEn?: string | null;
   email?: string | null;
@@ -2842,6 +2857,9 @@ export interface SeoSettingsSelect<T extends boolean = true> {
 export interface PublicCompanySettingsSelect<T extends boolean = true> {
   companyName?: T;
   allowQuoteCollection?: T;
+  quoteReferralNotice?: T;
+  quoteManagedNotice?: T;
+  quoteCollectionNotice?: T;
   locationZh?: T;
   locationEn?: T;
   email?: T;

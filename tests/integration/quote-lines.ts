@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { getPayload, type Payload } from "payload";
 import pg from "pg";
 import type { MigrateDownArgs } from "@payloadcms/db-postgres";
@@ -14,6 +14,8 @@ import { reportingExport } from "../../src/server/reporting/service";
 import { reviewProvider } from "../../src/server/provider-review";
 import { prepareQuoteLines } from "../../src/server/business/quote-lines";
 import { down } from "../../src/migrations/20261113_100000_quote_line_foundation";
+import { down as removeQuoteCopy } from "../../src/migrations/20261113_120000_quote_customer_copy";
+import { customerCookie, customerHash } from "../../src/lib/customer";
 
 const url = new URL(process.env.DATABASE_URL || "");
 assert.equal(process.env.APP_ENV, "local");
@@ -27,6 +29,11 @@ const key = randomUUID();
 const password = randomUUID();
 const company = await p.findGlobal({ slug: "public-company-settings" });
 const companyNameForTest = "虚构华伴公司主体";
+const notices = {
+  quoteReferralNotice: "虚构第一版合作说明",
+  quoteManagedNotice: "虚构第一版统筹说明",
+  quoteCollectionNotice: "虚构第一版代收说明",
+};
 const customerSettings = await p.findGlobal({ slug: "customer-settings" });
 try {
   const [admin] = (
@@ -382,7 +389,38 @@ try {
     p.find({ collection: "service-quote-line-costs", user: manager, overrideAccess: false }),
     { status: 403 },
   );
+  const saveNotices = (data: Record<string, string | null>, user: Staff = admin) =>
+    p.updateGlobal({ slug: "public-company-settings", data, user, overrideAccess: false });
+  for (const user of [op, manager, { ...manager, role: "admin" } as Staff])
+    await assert.rejects(saveNotices(notices, user), { status: 403 });
+  const savedNotices = await saveNotices(notices);
+  assert.equal(savedNotices.quoteManagedNotice, notices.quoteManagedNotice);
+  const stillAdmin = await p.create({
+    collection: "staff",
+    user: admin,
+    data: {
+      name: "虚构已降权管理员",
+      email: `copy-admin-${key}@example.invalid`,
+      password,
+      role: "admin",
+    },
+  });
+  await p.update({
+    collection: "staff",
+    user: admin,
+    id: stillAdmin.id,
+    data: { role: "operations" },
+  });
+  await assert.rejects(saveNotices(notices, stillAdmin), { status: 403 });
+  await assert.rejects(saveNotices({ quoteManagedNotice: "长".repeat(1001) }), { status: 400 });
   await act(op, "submit-review", quote.id);
+  const reviewCopy = () => read().then((view) => view.quotes.find((row) => row.id === quote.id)!);
+  const noticeOf = (line: { customerNotice?: string }) => line.customerNotice;
+  assert.deepEqual((await reviewCopy()).lines.map(noticeOf), [
+    notices.quoteManagedNotice,
+    undefined,
+    notices.quoteReferralNotice,
+  ]);
   const reviewQuote = async (actor: Staff, confirmations: object) =>
     businessAction(p, actor, {
       action: "review",
@@ -403,6 +441,12 @@ try {
   await assert.rejects(reviewQuote(outsider, { difference: [difference] }), { status: 404 });
   await assert.rejects(act(manager, "send", quote.id), { status: 409 });
   await reviewQuote(admin, { difference: [difference] });
+  await saveNotices({ quoteManagedNotice: "虚构发出前改稿" });
+  assert.equal((await reviewCopy()).review.needsResubmission, true);
+  await assert.rejects(act(op, "send", quote.id), /重新提交审核/);
+  await act(op, "submit-review", quote.id);
+  await reviewQuote(admin, { difference: [difference] });
+  await saveNotices({ quoteCollectionNotice: "虚构仅修改未用到的文案" });
   await p.updateGlobal({ slug: "public-company-settings", data: { companyName: null } });
   await assert.rejects(act(op, "send", quote.id), /配置华伴公司主体/);
   await p.updateGlobal({
@@ -472,6 +516,11 @@ try {
   });
   await p.updateGlobal({ slug: "customer-settings", data: { enabled: true } });
   const visible = (await customerBusinessRead(p, customer)).cases[0].quotes[0];
+  assert.deepEqual(visible.lines.map(noticeOf), [
+    "虚构发出前改稿",
+    undefined,
+    notices.quoteReferralNotice,
+  ]);
   assert.equal(visible.lines[1].contractName, "虚构签约方");
   assert.equal(visible.lines[1].payeeName, "虚构已签约服务商");
   for (const forbidden of [
@@ -514,6 +563,7 @@ try {
   await assert.rejects(toggle(true, { ...manager, role: "admin" }), { status: 403 });
   await assert.rejects(act(op, "quote", partyChange(collectionLine)), /当前未开放代收/);
   await toggle(true);
+  await saveNotices({ quoteCollectionNotice: notices.quoteCollectionNotice });
   await assert.rejects(
     act(op, "quote", partyChange({ ...collectionLine, collection: null })),
     /代收原因/,
@@ -548,6 +598,12 @@ try {
     { lineId: collectedLine, ...collectionLine.collection },
   ]);
   await act(op, "submit-review", pendingCollection.id);
+  await saveNotices({ quoteCollectionNotice: "虚构待审期间改稿" });
+  await assert.rejects(
+    reviewCollection({ difference: [collectedLine], collection: [collectedLine] }),
+    /重新提交审核/,
+  );
+  await act(op, "submit-review", pendingCollection.id);
   await assert.rejects(reviewCollection({ difference: [collectedLine] }), /逐项确认/);
   await assert.rejects(reviewCollection({ collection: [collectedLine] }), /逐项确认/);
   await assert.rejects(
@@ -574,7 +630,8 @@ try {
   const sentCollection = (await customerBusinessRead(p, customer)).cases[0].quotes.find(
     (row) => row.id === pendingCollection.id,
   );
-  assert.equal(sentCollection?.lines[0].collectionNotice, "本项由华伴统一收款后支付给服务方");
+  assert.equal(sentCollection?.lines[0].collectionNotice, "虚构待审期间改稿");
+  assert.equal(noticeOf(sentCollection!.lines[0]), undefined);
   assert.ok(!JSON.stringify(sentCollection).includes(collectionLine.collection.note));
   assert.ok(!JSON.stringify(sentCollection).includes("confirmations"));
   await assert.rejects(reviewCollection(confirmations), { status: 409 });
@@ -595,10 +652,54 @@ try {
     ],
   );
   await p.updateGlobal({ slug: "public-company-settings", data: { companyName: "虚构第三主体" } });
+  await saveNotices({
+    quoteReferralNotice: "虚构后续合作说明",
+    quoteManagedNotice: "虚构后续统筹说明",
+    quoteCollectionNotice: "虚构后续代收说明",
+  });
   const historical = (await customerBusinessRead(p, customer)).cases[0].quotes.find(
     (row) => row.id === pendingCollection.id,
   );
   assert.deepEqual(historical, sentCollection);
+  const earlier = (await customerBusinessRead(p, customer)).cases[0].quotes.find(
+    (row) => row.id === quote.id,
+  );
+  assert.deepEqual(earlier?.lines, visible.lines);
+  await saveNotices({ quoteReferralNotice: " ", quoteManagedNotice: null });
+  await act(op, "quote", newDraft);
+  const defaultDraft = (await read()).quotes.sort((a, b) => b.revision - a.revision)[0];
+  await act(op, "submit-review", defaultDraft.id);
+  const defaultsInReview = (await read()).quotes.find((row) => row.id === defaultDraft.id);
+  assert.deepEqual(defaultsInReview?.lines.map(noticeOf), [
+    "本项由华伴负责安排并收款。",
+    "本项由上述服务方直接为您提供服务并收款，华伴负责协调沟通。",
+    "本项由上述服务方直接为您提供服务并收款，华伴负责协调沟通。",
+  ]);
+  await act(
+    op,
+    "quote",
+    partyChange({
+      ...lines[2],
+      serviceName: contracted.organisation,
+      payeeProviderId: contracted.id,
+    }),
+  );
+  const matchingNames = (await read()).quotes.sort((a, b) => b.revision - a.revision)[0];
+  await act(op, "submit-review", matchingNames.id);
+  const matchingNamesInReview = (await read()).quotes.find((row) => row.id === matchingNames.id);
+  assert.equal(matchingNamesInReview?.lines[0].customerNotice, undefined);
+  const rollback = new pg.Client({ connectionString: url.toString() });
+  await rollback.connect();
+  try {
+    await assert.rejects(
+      removeQuoteCopy({
+        db: { execute: (sql: string) => rollback.query(sql) },
+      } as unknown as MigrateDownArgs),
+      /Preserve quote notice settings and versions/,
+    );
+  } finally {
+    await rollback.end();
+  }
   await assert.rejects(
     act(op, "quote", partyChange({ ...lines[2], serviceName: "虚构新主体" })),
     /当前未开放代收/,
@@ -644,6 +745,40 @@ try {
     };
     const operator = await login(op.email);
     const supervisor = await login(manager.email);
+    const settingsURL = base + "/api/globals/public-company-settings";
+    const updateSettings = (authorization: string) =>
+      fetch(settingsURL, {
+        method: "POST",
+        headers: { Authorization: authorization, Origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteManagedNotice: "虚构 HTTP 未授权改写" }),
+      });
+    assert.equal((await updateSettings(operator)).status, 403);
+    assert.equal((await updateSettings(supervisor)).status, 403);
+    const token = randomBytes(32).toString("hex");
+    await p.create({
+      collection: "customer-sessions",
+      data: {
+        customer: customer.id,
+        tokenHash: customerHash(token),
+        expiresAt: new Date(Date.now() + 600000).toISOString(),
+      },
+    });
+    const customerURL = base + "/api/business/customer";
+    assert.equal((await fetch(customerURL)).status, 401);
+    const publicResponse = await fetch(customerURL, {
+      headers: { cookie: customerCookie + "=" + token },
+    });
+    assert.equal(publicResponse.status, 200);
+    assert.equal(publicResponse.headers.get("cache-control"), "no-store");
+    const customerView = await publicResponse.json();
+    assert.deepEqual(
+      customerView.cases[0].quotes,
+      (await customerBusinessRead(p, customer)).cases[0].quotes,
+    );
+    assert.equal(
+      (await fetch(settingsURL, { headers: { cookie: customerCookie + "=" + token } })).status,
+      403,
+    );
     const otherCase = await p.create({
       collection: "service-cases",
       data: {
@@ -727,7 +862,7 @@ try {
       });
       assert.equal(raw.status, 403);
     }
-    console.log("PASS HTTP private cost collection denied, scoped manager DTO only and no-store");
+    console.log("PASS HTTP quote copy permissions, customer history, private costs and no-store");
   }
   console.log(
     "PASS quote parties, role/scoped costs, private storage, legacy snapshots and customer/CSV projection",
@@ -738,6 +873,9 @@ try {
     data: {
       companyName: company.companyName ?? null,
       allowQuoteCollection: company.allowQuoteCollection ?? false,
+      quoteReferralNotice: company.quoteReferralNotice ?? null,
+      quoteManagedNotice: company.quoteManagedNotice ?? null,
+      quoteCollectionNotice: company.quoteCollectionNotice ?? null,
     },
   });
   await p.updateGlobal({ slug: "customer-settings", data: { enabled: customerSettings.enabled } });
