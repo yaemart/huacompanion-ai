@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { businessStages, stageLabels } from "../../lib/business";
 import QuoteReview from "./QuoteReview";
+import { QuoteMarginAmounts } from "./QuoteMargin";
 import BusinessAI from "./BusinessAI";
 import CustomerLink from "../customer/CustomerLink";
 import { fillQuoteTerms, type QuoteTemplate } from "../../lib/quote-templates";
@@ -330,7 +331,19 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     {q.lines.map((l, i) => (
                       <li key={l.lineId ?? i}>
                         {l.label} × {l.quantity}：{(l.unitMinor / 100).toFixed(2)} {q.currency}
-                        {l.lineId && <p>{quotePartySummary(l, q.lineCosts)}</p>}
+                        {l.lineId && <p>{quotePartySummary(l)}</p>}
+                        {q.margin && (
+                          <QuoteMarginAmounts
+                            amounts={q.margin.lines[i]}
+                            currency={q.currency}
+                            costLabel="本项成本合计"
+                            missingCost={
+                              q.lineFormat !== 2 && q.internalCostMinor != null
+                                ? "尚未分摊"
+                                : "待补成本"
+                            }
+                          />
+                        )}
                         {!q.review.needsResubmission &&
                           (q.sentAt ||
                             q.reviewStatus === "pending" ||
@@ -348,8 +361,20 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     合计 {(q.totalMinor / 100).toFixed(2)} {q.currency} · 有效至{" "}
                     {quoteTimeLabel(q.expiresAt)}
                   </p>
-                  {view.canCost && q.internalCostMinor != null && (
-                    <p>内部成本（客户不可见）：{(q.internalCostMinor / 100).toFixed(2)}</p>
+                  {q.margin && (
+                    <section aria-label="整单毛利（内部）">
+                      <strong>整单毛利（内部）</strong>
+                      <QuoteMarginAmounts
+                        amounts={q.margin.total}
+                        currency={q.currency}
+                        costLabel={q.lineFormat === 2 ? "成本合计" : "原总成本"}
+                        missingCost="待补成本"
+                      />
+                      {q.margin.total.costMinor === null && <p>成本不完整，暂不计算整单毛利。</p>}
+                      {q.lineFormat !== 2 && q.internalCostMinor != null && (
+                        <p>历史成本尚未分摊到费用项。</p>
+                      )}
+                    </section>
                   )}
                   <QuoteReview key={q.updatedAt} quote={q} busy={busy} act={act} />
                   {(q.status === "draft" || q.aiTask || q.sentAt) && (

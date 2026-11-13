@@ -5,13 +5,12 @@ import {
   partyNameKey,
   collectionReasons,
   quotePartiesDiffer,
-  type LineCost,
   type QuoteAmount,
   type QuoteLineView,
 } from "../../lib/quote-lines";
 import type { quoteLineOptions } from "../../server/business/quote-lines";
 
-export function quotePartySummary(line: QuoteLineView, costs?: LineCost[]) {
+export function quotePartySummary(line: QuoteLineView) {
   const parts = [
     line.mode === "managed" ? "华伴统筹" : "合作对接",
     `服务方：${line.serviceName || "待补"}${line.serviceSource === "manual" ? "（手填）" : ""}`,
@@ -20,10 +19,6 @@ export function quotePartySummary(line: QuoteLineView, costs?: LineCost[]) {
   ];
   if (line.partyDifferenceReason) parts.push(`主体差异原因：${line.partyDifferenceReason}`);
   if (line.collection) parts.push(`代收说明：${line.collection.note}`);
-  if (costs) {
-    const cost = costs.find(({ lineId }) => lineId === line.lineId)?.costMinor;
-    parts.push(`本项成本合计：${cost == null ? "待补成本" : (cost / 100).toFixed(2)}`);
-  }
   return parts.join(" · ");
 }
 

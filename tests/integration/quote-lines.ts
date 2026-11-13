@@ -326,6 +326,23 @@ try {
   assert.equal(quote.totalMinor, 138000);
   assert.equal(quote.internalCostMinor ?? null, null);
   assert.equal(view.quotes.find((row) => row.id === legacy.id)?.internalCostMinor, 67321);
+  const expectedMargin = {
+    lines: [
+      { subtotalMinor: 46000, costMinor: 0, marginMinor: 46000 },
+      { subtotalMinor: 46000, costMinor: null, marginMinor: null },
+      { subtotalMinor: 46000, costMinor: cost, marginMinor: -47719 },
+    ],
+    total: { subtotalMinor: 138000, costMinor: null, marginMinor: null },
+  };
+  assert.deepEqual(quote.margin, expectedMargin);
+  assert.deepEqual(
+    (await read(admin)).quotes.find((row) => row.id === quote.id)?.margin,
+    expectedMargin,
+  );
+  assert.deepEqual(view.quotes.find((row) => row.id === legacy.id)?.margin, {
+    lines: [{ subtotalMinor: 46000, costMinor: null, marginMinor: null }],
+    total: { subtotalMinor: 46000, costMinor: 67321, marginMinor: -21321 },
+  });
   assert.deepEqual(
     await p.findByID({ collection: "service-quotes", id: legacy.id, depth: 0 }),
     legacy,
@@ -380,6 +397,9 @@ try {
     "lineCosts",
     "internalCostMinor",
     "costMinor",
+    '"margin"',
+    "marginMinor",
+    "-47719",
     String(cost),
     "fingerprint",
   ])
@@ -527,6 +547,9 @@ try {
     "lineCosts",
     "costMinor",
     "internalCostMinor",
+    '"margin"',
+    "marginMinor",
+    "-47719",
     "providerId",
     "payeeProviderId",
     "serviceSource",
@@ -535,12 +558,14 @@ try {
     String(cost),
   ])
     assert.ok(!JSON.stringify(visible).includes(forbidden), forbidden);
-  assert.equal(
-    (await reportingExport(p, admin, { entity: "inquiries", includeSensitive: true })).csv.includes(
-      String(cost),
-    ),
-    false,
-  );
+  const exported = (
+    await reportingExport(p, admin, { entity: "inquiries", includeSensitive: true })
+  ).csv;
+  for (const forbidden of [String(cost), "-47719", "毛利", "marginMinor"])
+    assert.ok(!exported.includes(forbidden), forbidden);
+  const ordinaryCSV = (await reportingExport(p, op, { entity: "inquiries" })).csv;
+  for (const forbidden of [String(cost), "67321", "-47719", "毛利", "marginMinor"])
+    assert.ok(!ordinaryCSV.includes(forbidden), forbidden);
   const toggle = (allowQuoteCollection: boolean, user = admin) =>
     p.updateGlobal({
       slug: "public-company-settings",
@@ -720,6 +745,7 @@ try {
     (await read(manager)).quotes.find((row) => row.id === quote.id)?.lineCosts,
     undefined,
   );
+  assert.equal((await read(manager)).quotes.find((row) => row.id === quote.id)?.margin, undefined);
   await assert.rejects(businessAction(p, manager, write), { status: 403 });
   await assert.rejects(
     businessAction(p, manager, {
@@ -745,6 +771,12 @@ try {
     };
     const operator = await login(op.email);
     const supervisor = await login(manager.email);
+    const otherSupervisor = await login(outsider.email);
+    const outsideScope = await fetch(base + `/api/business?id=${id}`, {
+      headers: { Authorization: otherSupervisor },
+    });
+    assert.equal(outsideScope.status, 400); // HTTP masks Payload's scoped not-found error.
+    assert.deepEqual(Object.keys(await outsideScope.json()), ["error"]);
     const settingsURL = base + "/api/globals/public-company-settings";
     const updateSettings = (authorization: string) =>
       fetch(settingsURL, {
@@ -830,7 +862,9 @@ try {
       return (await response.json()).quotes.find((row: { id: number }) => row.id === quote.id);
     };
     assert.equal(Object.hasOwn(await readHTTP(operator), "lineCosts"), false);
+    assert.equal(Object.hasOwn(await readHTTP(operator), "margin"), false);
     assert.equal((await readHTTP(supervisor)).lineCosts.length, 2);
+    assert.deepEqual((await readHTTP(supervisor)).margin, expectedMargin);
     const postQuote = async (input: object) =>
       fetch(base + "/api/business", {
         method: "POST",
