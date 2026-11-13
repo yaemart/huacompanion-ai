@@ -15,6 +15,7 @@ const db = p as any;
 const run = randomUUID();
 let admin: any;
 let settings: any;
+let companyName: string | null | undefined;
 try {
   admin = (
     await p.find({
@@ -24,6 +25,11 @@ try {
     })
   ).docs[0];
   settings = await p.findGlobal({ slug: "customer-settings" });
+  companyName = (await p.findGlobal({ slug: "public-company-settings" })).companyName ?? null;
+  await p.updateGlobal({
+    slug: "public-company-settings",
+    data: { companyName: "Fictional company" },
+  });
   await p.updateGlobal({ slug: "customer-settings", data: { enabled: true } });
   const q = await p.create({
     collection: "inquiries",
@@ -104,6 +110,12 @@ try {
     internalCostMinor: 10000,
   };
   const key = randomUUID();
+  const sendable = {
+    ...offer,
+    internalCostMinor: undefined,
+    lineFormat: 2,
+    lines: offer.lines.map((line) => ({ ...line, serviceSource: "company" })),
+  };
   const input = { action: "quote", id, revision: (await read()).case.revision, key, quote: offer };
   await businessAction(p, admin, input);
   assert.equal((await businessAction(p, admin, input)).duplicate, true);
@@ -132,7 +144,7 @@ try {
   const legacyConfirmation = { quote: privateDraft.id, key: randomUUID() };
   await confirmQuote(p, customer, legacyConfirmation);
   assert.equal((await confirmQuote(p, customer, legacyConfirmation)).duplicate, true);
-  await act("quote", { quote: offer });
+  await act("quote", { quote: sendable });
   const quote = (await read()).quotes.find((q: any) => q.status === "draft");
   assert.ok(quote);
   await assert.rejects(() => confirmQuote(p, customer, { quote: quote.id, key: randomUUID() }));
@@ -142,7 +154,7 @@ try {
   const view = await customerBusinessRead(p, customer);
   assert.equal(view.cases[0].quotes[0].totalMinor, 30000);
   assert.equal("internalCostMinor" in view.cases[0].quotes[0], false);
-  await act("quote", { quote: { ...offer, title: "Revised support" } });
+  await act("quote", { quote: { ...sendable, title: "Revised support" } });
   const updated = (await read()).quotes.find((x: any) => x.status === "draft");
   assert.ok(updated);
   await approveFixture(updated.id);
@@ -164,7 +176,7 @@ try {
     resourceConfirmed: true,
   });
   assert.ok((await customerBusinessRead(p, customer)).cases[0].publicArrangement);
-  await act("quote", { quote: { ...offer, title: "Changed after arrangement" } });
+  await act("quote", { quote: { ...sendable, title: "Changed after arrangement" } });
   const replacement = (await read()).quotes.find((x: any) => x.status === "draft");
   assert.ok(replacement);
   await approveFixture(replacement.id);
@@ -207,6 +219,8 @@ try {
     "PASS business immutable quotes, integer totals, scope, stale revisions, replacement/duplicate confirmations, fulfilment gates, privacy and linked notifications",
   );
 } finally {
+  if (companyName !== undefined)
+    await p.updateGlobal({ slug: "public-company-settings", data: { companyName } });
   if (settings)
     await p.updateGlobal({ slug: "customer-settings", data: { enabled: settings.enabled } });
   await p.destroy();

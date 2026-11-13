@@ -68,14 +68,14 @@ export function QuoteLineParties({
   index,
   options,
   canCost,
-  enabled,
+  requireParty = false,
 }: {
   index: number;
   options: Awaited<ReturnType<typeof quoteLineOptions>>;
   canCost: boolean;
-  enabled: boolean;
+  requireParty?: boolean;
 }) {
-  const [party, setParty] = useState("company");
+  const [party, setParty] = useState(requireParty ? "" : "company");
   const [manualName, setManualName] = useState("");
   const [contractName, setContractName] = useState("");
   const [payeeId, setPayeeId] = useState("");
@@ -95,16 +95,18 @@ export function QuoteLineParties({
     collects ? undefined : (payee?.id ?? serviceProvider?.id),
   );
   const missing =
+    !!party &&
     party !== "company" &&
     party !== "manual" &&
     !options.providers.some(({ id }) => String(id) === party);
   return (
-    <fieldset hidden={!enabled} disabled={!enabled}>
+    <fieldset>
       <p>更换服务方会更新经营模式、签约方和收款方。</p>
       <label>
         实际服务方
         <select
           name={`party-${index}`}
+          required
           value={party}
           onChange={(event) => {
             setParty(event.target.value);
@@ -113,6 +115,7 @@ export function QuoteLineParties({
             setReason("");
           }}
         >
+          {requireParty && <option value="">请选择实际服务方</option>}
           <option value="company">华伴自营 · {options.companyName || "主体名称未配置"}</option>
           {missing && (
             <option value={party} disabled>
@@ -144,7 +147,7 @@ export function QuoteLineParties({
         <p>
           华伴统筹。签约方和收款方均为{options.companyName || "华伴公司主体（待配置）"}，已锁定。
         </p>
-      ) : (
+      ) : party ? (
         <fieldset>
           <legend>{collects ? "华伴统筹" : "合作对接"}</legend>
           <label>
@@ -213,7 +216,7 @@ export function QuoteLineParties({
             </label>
           )}
         </fieldset>
-      )}
+      ) : null}
       {canCost && (
         <label>
           本项成本合计（可留空）

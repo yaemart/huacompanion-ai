@@ -54,6 +54,7 @@ const taskDTO = (t: any) => ({
   error: t.error,
   model: t.model,
   createdAt: t.createdAt,
+  updatedAt: t.updatedAt,
   adoptedQuote: relationID(t.adoptedQuote),
 });
 export async function businessAIRead(p: Payload, user: any, caseID: unknown) {

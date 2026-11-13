@@ -114,8 +114,8 @@ jobs:
           npm run test:content
           node --import tsx tests/integration/content-identifiers.ts
           node --import tsx tests/integration/guide-translation.ts
-          npm run test:business
           node --import tsx tests/integration/quote-line-migration.ts
+          npm run test:business
           node --import tsx tests/integration/quote-lines.ts
           node --import tsx tests/integration/quote-review.ts
           npm run test:business:ai
