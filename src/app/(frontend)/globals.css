@@ -2621,6 +2621,10 @@ html[dir="rtl"] .guide-copy {
   white-space: pre-wrap;
   margin: 8px 0;
 }
+.quote-notice {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .support-message.customer {
   background: #e5eee3;
   margin-inline-start: 24px;

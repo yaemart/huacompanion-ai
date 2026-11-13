@@ -341,12 +341,13 @@ if (action === "serve") {
               "to_regclass('public.service_quote_line_costs') IS NOT NULL AND " +
               "EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' " +
               "AND table_name='service_quotes' AND column_name='line_format') AND " +
-              "EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' " +
-              "AND table_name='public_company_settings' AND column_name='allow_quote_collection')",
+              "(SELECT count(*)=4 FROM information_schema.columns WHERE table_schema='public' " +
+              "AND table_name='public_company_settings' AND column_name IN " +
+              "('allow_quote_collection','quote_referral_notice','quote_managed_notice','quote_collection_notice'))",
           ]).trim() !== "t"
         )
           throw Error(
-            "报价迁移缺失；请配套备份，核对截至20261113_110000_quote_line_review的迁移，勿reset。",
+            "报价迁移缺失；请配套备份，核对截至20261113_120000_quote_customer_copy的迁移，勿reset。",
           );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)

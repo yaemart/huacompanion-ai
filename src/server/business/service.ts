@@ -15,10 +15,15 @@ import {
   confirmsQuoteLines,
   quoteApproval,
   quoteReviewProof,
-  quoteReviewState,
   type QuoteReviewDetail,
 } from "./quote-review";
 import { prepareQuoteLines, quoteLineOptions, quoteLineReviewRequirements } from "./quote-lines";
+import {
+  quoteLinesWithNotices,
+  quoteReviewWithNotices,
+  readQuoteNoticeSettings,
+  type QuoteNoticeSettings,
+} from "./quote-notices";
 import { quoteLinesView } from "../../lib/quote-lines";
 import {
   quoteTemplates,
@@ -170,6 +175,7 @@ function staffQuote(
   q: ServiceQuote,
   user: NonNullable<Staff>,
   events: ServiceEvent[],
+  notices: QuoteNoticeSettings,
   costs?: ServiceQuoteLineCost[],
 ) {
   const result = { ...q };
@@ -186,7 +192,7 @@ function staffQuote(
         }
       : {}),
     review: {
-      state: quoteReviewState(q, events),
+      ...quoteReviewWithNotices(q, events, notices),
       isAuthor,
       canReview: isManager(user) && (!isAuthor || isAdmin(user)),
     },
@@ -232,12 +238,13 @@ export async function businessRead(
     user = await db.findByID({ collection: "staff", id: user.id, depth: 0 });
     const c = await caseRecord(db, id);
     const inquiry = await businessInquiry(p, user, relationID(c.inquiry));
-    const [settings, customer, events, quotes, lineOptions] = await Promise.all([
+    const [settings, customer, events, quotes, lineOptions, notices] = await Promise.all([
       p.findGlobal({ slug: "quote-template-settings", depth: 0 }),
       p.findGlobal({ slug: "customer-settings", depth: 0 }).catch(() => undefined),
       all(db, "service-events", { serviceCase: { equals: c.id } }),
       all(db, "service-quotes", { serviceCase: { equals: c.id } }),
       quoteLineOptions(p, user),
+      readQuoteNoticeSettings(p),
     ]);
     const ids = quotes.filter((q) => q.lineFormat === 2).map((q) => q.id);
     const costs =
@@ -247,7 +254,7 @@ export async function businessRead(
     return {
       case: c,
       inquiry,
-      quotes: quotes.map((q) => staffQuote(q, user, events, costs)),
+      quotes: quotes.map((q) => staffQuote(q, user, events, notices, costs)),
       events: events.map((event) => {
         const detail = { ...(event.detail as BusinessEventDetail) };
         delete detail.fingerprint;
@@ -484,7 +491,10 @@ export async function businessAction(
         { serviceCase: { equals: c!.id }, action: { equals: "review" } },
         req,
       );
-      const state = quoteReviewState(quote, reviews);
+      const notices = await readQuoteNoticeSettings(p, req);
+      const { state, needsResubmission } = quoteReviewWithNotices(quote, reviews, notices);
+      if (action !== "submit-review" && needsResubmission)
+        throw new ContentError("对客报价说明已更新，请重新提交审核", 409);
       if (action === "submit-review") {
         if (state !== "unsubmitted")
           throw new ContentError("此版本已送审；退回后请另存新版本", 409);
@@ -493,7 +503,13 @@ export async function businessAction(
         await db.update({
           collection: "service-quotes",
           id: quote.id,
-          data: { reviewStatus: "pending", reviewedBy: null, reviewedAt: null, reviewReason: null },
+          data: {
+            lines: quoteLinesWithNotices(quote, notices),
+            reviewStatus: "pending",
+            reviewedBy: null,
+            reviewedAt: null,
+            reviewReason: null,
+          },
           req,
         });
       } else if (action === "review") {

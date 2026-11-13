@@ -267,6 +267,7 @@ export async function quoteLineReviewRequirements(
     const { serviceName, ...parties } = line;
     delete parties.lineId;
     delete parties.collectionNotice;
+    delete parties.customerNotice;
     delete parties.payeeName;
     if (parties.contractName === serviceName) delete parties.contractName;
     return line.serviceSource === "manual" ? { ...parties, serviceName } : parties;
@@ -282,7 +283,6 @@ export async function quoteLineReviewRequirements(
       "contractName",
       "payeeName",
       "partyDifferenceReason",
-      "collectionNotice",
     ] as const) {
       if (line[field] !== current[field])
         throw new ContentError("费用项主体资料已变更，请另存新版本", 409);

@@ -248,7 +248,9 @@ export default function CustomerPortal({ locale }: { locale: Locale }) {
                               {locale === "zh" ? "收款方" : "Payee"} · {l.payeeName}
                             </p>
                           )}
-                          {l.collectionNotice && <p>{l.collectionNotice}</p>}
+                          {(l.collectionNotice || l.customerNotice) && (
+                            <p className="quote-notice">{l.collectionNotice || l.customerNotice}</p>
+                          )}
                         </li>
                       ))}
                     </ul>

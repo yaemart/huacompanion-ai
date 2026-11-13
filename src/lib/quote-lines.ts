@@ -12,6 +12,7 @@ export type QuoteLineView = QuoteAmount & {
   payeeProviderId?: number;
   collection?: { reason: string; note: string };
   collectionNotice?: string;
+  customerNotice?: string;
 };
 export type LineCost = { lineId: string; costMinor: number };
 export const collectionReasons = {
@@ -20,6 +21,14 @@ export const collectionReasons = {
   other: "其他",
 } as const;
 export const collectionNotice = "本项由华伴统一收款后支付给服务方";
+export const quoteNoticeDefaults = {
+  quoteReferralNotice: "本项由上述服务方直接为您提供服务并收款，华伴负责协调沟通。",
+  quoteManagedNotice: "本项由华伴负责安排并收款。",
+  quoteCollectionNotice: collectionNotice,
+};
+export type QuoteNoticeKey = keyof typeof quoteNoticeDefaults;
+export const quoteNoticeKeys = Object.keys(quoteNoticeDefaults) as QuoteNoticeKey[];
+export const quoteNoticeMaxLength = 1000;
 
 export function partyNameKey(value: string) {
   return value
@@ -60,6 +69,7 @@ export function quoteLinesView(value: unknown, format: unknown, staff = false): 
       payeeProviderId,
       collection,
       collectionNotice,
+      customerNotice,
     } = row as Partial<QuoteLineView>;
     if (typeof label !== "string" || typeof quantity !== "number" || typeof unitMinor !== "number")
       return [];
@@ -71,6 +81,8 @@ export function quoteLinesView(value: unknown, format: unknown, staff = false): 
     if (typeof contractName === "string") line.contractName = contractName;
     if (typeof payeeName === "string") line.payeeName = payeeName;
     if (typeof collectionNotice === "string") line.collectionNotice = collectionNotice;
+    else if (typeof customerNotice === "string" && !collection)
+      line.customerNotice = customerNotice;
     if (staff) {
       if (typeof collection?.reason === "string" && typeof collection.note === "string")
         line.collection = { reason: collection.reason, note: collection.note };

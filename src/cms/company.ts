@@ -1,6 +1,13 @@
 import { APIError, type GlobalConfig } from "payload";
 import { isAdmin, relationID } from "./access";
 import { lockBusiness } from "../server/business/hooks";
+import { quoteNoticeDefaults, quoteNoticeKeys, quoteNoticeMaxLength } from "../lib/quote-lines";
+
+const quoteNoticeLabels = {
+  quoteReferralNotice: "合作对接",
+  quoteManagedNotice: "华伴统筹",
+  quoteCollectionNotice: "代收",
+};
 
 export const PublicCompanySettings: GlobalConfig = {
   slug: "public-company-settings",
@@ -19,11 +26,14 @@ export const PublicCompanySettings: GlobalConfig = {
       async ({ args, operation, overrideAccess, req }) => {
         if (operation !== "update" || (!overrideAccess && !isAdmin(req.user))) return;
         await lockBusiness(req);
-        if (!overrideAccess && Object.hasOwn(args.data, "allowQuoteCollection")) {
+        if (
+          !overrideAccess &&
+          ["allowQuoteCollection", ...quoteNoticeKeys].some((key) => Object.hasOwn(args.data, key))
+        ) {
           const id = relationID(req.user);
           const actor =
             id && (await req.payload.findByID({ collection: "staff", id, req, depth: 0 }));
-          if (!actor || !isAdmin(actor)) throw new APIError("仅管理员可修改代收设置", 403);
+          if (!actor || !isAdmin(actor)) throw new APIError("仅管理员可修改报价设置", 403);
         }
       },
     ],
@@ -58,6 +68,15 @@ export const PublicCompanySettings: GlobalConfig = {
       defaultValue: false,
       admin: { description: "报价设置。仅在律师确认业务边界后启用。" },
     },
+    ...quoteNoticeKeys.map((name) => ({
+      name,
+      label: `客户版报价说明 · ${quoteNoticeLabels[name]}`,
+      type: "textarea" as const,
+      maxLength: quoteNoticeMaxLength,
+      admin: {
+        description: `留空使用默认文案：${quoteNoticeDefaults[name]} 已发出的报价保留当时的文案。`,
+      },
+    })),
     { name: "locationZh", label: "所在地（中文）", type: "text", maxLength: 300 },
     { name: "locationEn", label: "所在地（英文）", type: "text", maxLength: 300 },
     { name: "email", label: "公开联系邮箱", type: "email" },

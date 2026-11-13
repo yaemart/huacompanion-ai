@@ -5,6 +5,7 @@ import pg from "pg";
 import type { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 import { up, down } from "../../src/migrations/20261108_220000_public_company";
 import { up as addCollectionSetting } from "../../src/migrations/20261113_110000_quote_line_review";
+import { up as addQuoteCopySettings } from "../../src/migrations/20261113_120000_quote_customer_copy";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import { publicCompany } from "../../src/lib/public-company";
@@ -39,7 +40,8 @@ try {
   if (!exists) await up(args);
   const existing = (
     await client.query(
-      "SELECT company_name, location_zh, location_en, email, phone FROM public_company_settings",
+      "SELECT company_name, location_zh, location_en, email, phone, " +
+        "quote_referral_notice, quote_managed_notice, quote_collection_notice FROM public_company_settings",
     )
   ).rows;
   assert.ok(
@@ -49,6 +51,7 @@ try {
   await down(args as unknown as MigrateDownArgs);
   await up(args);
   await addCollectionSetting(args);
+  await addQuoteCopySettings(args);
   assert.equal(await fingerprint(), before, "migration round-trip preserves every old row");
   console.log("PASS additive empty-table migration round-trip and old table fingerprints");
 } finally {
