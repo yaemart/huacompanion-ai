@@ -251,13 +251,27 @@ try {
   await assert.rejects(readStaffToday(p, op, now), { status: 403 });
   console.log("PASS personal today, Beijing cutoff, completion, scoped reviews and revoked access");
 } finally {
-  await p.updateGlobal({
-    slug: "public-company-settings",
-    data: {
-      companyName: company.companyName ?? null,
-      quoteManagedNotice: company.quoteManagedNotice ?? null,
-    },
-  });
-  await p.destroy();
+  try {
+    const { docs } = await p.find({
+      collection: "inquiries",
+      where: { contentHash: { equals: key } },
+      depth: 0,
+      pagination: false,
+    });
+    if (docs.length) {
+      const where = { inquiry: { in: docs.map(({ id }) => id) } };
+      await p.delete({ collection: "workflow-tasks", where });
+      assert.equal((await p.count({ collection: "workflow-tasks", where })).totalDocs, 0);
+    }
+    await p.updateGlobal({
+      slug: "public-company-settings",
+      data: {
+        companyName: company.companyName ?? null,
+        quoteManagedNotice: company.quoteManagedNotice ?? null,
+      },
+    });
+  } finally {
+    await p.destroy();
+  }
 }
 process.exit(0);
