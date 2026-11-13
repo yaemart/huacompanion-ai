@@ -300,10 +300,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   {view.canCost && q.internalCostMinor != null && (
                     <p>内部成本（客户不可见）：{(q.internalCostMinor / 100).toFixed(2)}</p>
                   )}
-                  <QuoteReview quote={q} busy={busy} act={act} />
+                  <QuoteReview key={q.updatedAt} quote={q} busy={busy} act={act} />
                   {q.status === "draft" && (
                     <button
-                      disabled={busy || q.lineFormat === 2 || q.review.state !== "approved"}
+                      disabled={busy || q.review.state !== "approved"}
                       onClick={() => act("send", { quote: q.id })}
                     >
                       发出此版本

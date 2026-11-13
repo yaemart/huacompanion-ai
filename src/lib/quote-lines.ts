@@ -10,8 +10,16 @@ export type QuoteLineView = QuoteAmount & {
   serviceSource?: PartySource;
   providerId?: number;
   payeeProviderId?: number;
+  collection?: { reason: string; note: string };
+  collectionNotice?: string;
 };
 export type LineCost = { lineId: string; costMinor: number };
+export const collectionReasons = {
+  "one-payment": "客户要求统一付款",
+  "foreign-currency": "服务商不能直接收外币",
+  other: "其他",
+} as const;
+export const collectionNotice = "本项由华伴统一收款后支付给服务方";
 
 export function partyNameKey(value: string) {
   return value
@@ -50,6 +58,8 @@ export function quoteLinesView(value: unknown, format: unknown, staff = false): 
       serviceSource,
       providerId,
       payeeProviderId,
+      collection,
+      collectionNotice,
     } = row as Partial<QuoteLineView>;
     if (typeof label !== "string" || typeof quantity !== "number" || typeof unitMinor !== "number")
       return [];
@@ -60,7 +70,10 @@ export function quoteLinesView(value: unknown, format: unknown, staff = false): 
     if (typeof serviceName === "string") line.serviceName = serviceName;
     if (typeof contractName === "string") line.contractName = contractName;
     if (typeof payeeName === "string") line.payeeName = payeeName;
+    if (typeof collectionNotice === "string") line.collectionNotice = collectionNotice;
     if (staff) {
+      if (typeof collection?.reason === "string" && typeof collection.note === "string")
+        line.collection = { reason: collection.reason, note: collection.note };
       if (typeof partyDifferenceReason === "string")
         line.partyDifferenceReason = partyDifferenceReason;
       if (serviceSource === "company" || serviceSource === "provider" || serviceSource === "manual")

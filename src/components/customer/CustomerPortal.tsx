@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Locale } from "@/lib/locales";
 import { customerCopy, customerStatus, customerNotificationCopy } from "@/lib/customer-copy";
 import { quoteTimeLabel } from "@/lib/quote-time";
+import type { QuoteLineView } from "@/lib/quote-lines";
 export default function CustomerPortal({ locale }: { locale: Locale }) {
   const t = customerCopy(locale),
     nt = customerNotificationCopy[locale];
@@ -230,13 +231,24 @@ export default function CustomerPortal({ locale }: { locale: Locale }) {
                         ),
                     )}
                     <ul>
-                      {q.lines?.map((l: any, i: number) => (
-                        <li key={i}>
+                      {q.lines?.map((l: QuoteLineView, i: number) => (
+                        <li key={l.lineId ?? i}>
                           {l.label} × {l.quantity} ·{" "}
                           {new Intl.NumberFormat(locale, {
                             style: "currency",
                             currency: q.currency,
                           }).format(l.unitMinor / 100)}
+                          {l.lineId && (
+                            <p>
+                              {locale === "zh" ? "实际服务方" : "Service provider"} ·{" "}
+                              {l.serviceName}
+                              <br />
+                              {locale === "zh" ? "签约方" : "Contracting party"} · {l.contractName}
+                              <br />
+                              {locale === "zh" ? "收款方" : "Payee"} · {l.payeeName}
+                            </p>
+                          )}
+                          {l.collectionNotice && <p>{l.collectionNotice}</p>}
                         </li>
                       ))}
                     </ul>

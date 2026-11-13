@@ -1,10 +1,14 @@
 import type { CollectionBeforeChangeHook, CollectionAfterChangeHook } from "payload";
 import { relationID } from "../../cms/access";
 import { enqueueWorkflowEvent } from "../workflow/service";
-export const businessLock: CollectionBeforeChangeHook = async ({ req, data }) => {
+import { transactionSession } from "../db-types";
+export async function lockBusiness(req: Parameters<CollectionBeforeChangeHook>[0]["req"]) {
   const id = await req.transactionID;
-  if (id && (req.payload.db as any).sessions?.[id])
-    await (req.payload.db as any).sessions[id].db.execute("SELECT pg_advisory_xact_lock(726281)");
+  if (id)
+    await transactionSession(req.payload, id)?.db.execute("SELECT pg_advisory_xact_lock(726281)");
+}
+export const businessLock: CollectionBeforeChangeHook = async ({ req, data }) => {
+  await lockBusiness(req);
   return data;
 };
 export const inquiryWorkflowHook: CollectionAfterChangeHook = async ({

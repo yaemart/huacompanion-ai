@@ -11,6 +11,7 @@ import {
   customerBusinessRead,
 } from "../../src/server/business/service";
 import { reportingExport } from "../../src/server/reporting/service";
+import { reviewProvider } from "../../src/server/provider-review";
 import { prepareQuoteLines } from "../../src/server/business/quote-lines";
 import { down } from "../../src/migrations/20261113_100000_quote_line_foundation";
 
@@ -25,6 +26,7 @@ const p = await getPayload({ config });
 const key = randomUUID();
 const password = randomUUID();
 const company = await p.findGlobal({ slug: "public-company-settings" });
+const companyNameForTest = "虚构华伴公司主体";
 const customerSettings = await p.findGlobal({ slug: "customer-settings" });
 try {
   const [admin] = (
@@ -145,7 +147,7 @@ try {
   await p.updateGlobal({
     slug: "public-company-settings",
     user: admin,
-    data: { companyName: null },
+    data: { companyName: null, allowQuoteCollection: false },
   });
   assert.equal(
     (await prepareQuoteLines(p, op, {}, partyChange(customParties), [amount]))?.lines[0].payeeName,
@@ -157,6 +159,7 @@ try {
     data: { companyName: "虚构华伴公司主体" },
   });
   const options = (await read(op)).quoteLineOptions;
+  assert.equal(options.allowCollection, false);
   assert.equal(options.companyName, "虚构华伴公司主体");
   assert.deepEqual(options.providers.map(({ id }) => id).sort(), [vendor.id, contracted.id].sort());
   assert.equal(Object.hasOwn(options.providers[0], "email"), false);
@@ -332,8 +335,49 @@ try {
     p.find({ collection: "service-quote-line-costs", user: manager, overrideAccess: false }),
     { status: 403 },
   );
-  await assert.rejects(act(op, "submit-review", quote.id), { status: 409 });
+  await act(op, "submit-review", quote.id);
+  const reviewQuote = async (actor: Staff, confirmations: object) =>
+    businessAction(p, actor, {
+      action: "review",
+      id,
+      quote: quote.id,
+      revision: (await read()).case.revision,
+      quoteUpdatedAt: (await read()).quotes.find((row) => row.id === quote.id)?.updatedAt,
+      decision: "approved",
+      reason: "虚构逐项核对",
+      confirmations,
+      key: randomUUID(),
+    });
+  const difference = quote.lines[1].lineId!;
+  await assert.rejects(reviewQuote(manager, { difference: [difference] }), { status: 403 });
+  await assert.rejects(reviewQuote(admin, {}), /逐项确认/);
+  await assert.rejects(reviewQuote(admin, { difference: [quote.lines[0].lineId] }), /逐项确认/);
+  await assert.rejects(reviewQuote(op, { difference: [difference] }), { status: 403 });
+  await assert.rejects(reviewQuote(outsider, { difference: [difference] }), { status: 404 });
   await assert.rejects(act(manager, "send", quote.id), { status: 409 });
+  await reviewQuote(admin, { difference: [difference] });
+  await p.updateGlobal({ slug: "public-company-settings", data: { companyName: null } });
+  await assert.rejects(act(op, "send", quote.id), /配置华伴公司主体/);
+  await p.updateGlobal({
+    slug: "public-company-settings",
+    data: { companyName: companyNameForTest },
+  });
+  const pausedPayee = await reviewProvider(p, admin, {
+    id: contracted.id,
+    status: "paused",
+    updatedAt: contracted.updatedAt,
+    reason: "虚构发出前失效",
+    key: randomUUID(),
+  });
+  await assert.rejects(act(op, "send", quote.id), /收款方/);
+  await reviewProvider(p, admin, {
+    id: contracted.id,
+    status: "contracted",
+    updatedAt: pausedPayee.updatedAt,
+    reason: "虚构恢复签约",
+    key: randomUUID(),
+  });
+  await act(op, "send", quote.id);
   await p.updateGlobal({
     slug: "public-company-settings",
     user: admin,
@@ -380,12 +424,6 @@ try {
     },
   });
   await p.updateGlobal({ slug: "customer-settings", data: { enabled: true } });
-  // A trusted fixture marks a quote sent to exercise the real customer projection.
-  await p.update({
-    collection: "service-quotes",
-    id: quote.id,
-    data: { status: "sent", sentAt: new Date().toISOString() },
-  });
   const visible = (await customerBusinessRead(p, customer)).cases[0].quotes[0];
   assert.equal(visible.lines[1].contractName, "虚构签约方");
   assert.equal(visible.lines[1].payeeName, "虚构已签约服务商");
@@ -406,6 +444,117 @@ try {
       String(cost),
     ),
     false,
+  );
+  const toggle = (allowQuoteCollection: boolean, user = admin) =>
+    p.updateGlobal({
+      slug: "public-company-settings",
+      data: { allowQuoteCollection },
+      select: { allowQuoteCollection: false },
+      user,
+      overrideAccess: false,
+    });
+  const collectionLine = {
+    ...lines[1],
+    collectByCompany: true,
+    partyDifferenceReason: differenceReason,
+    collection: { reason: "one-payment", note: "虚构代收说明，仅测试" },
+  };
+  const longName = await provider("长".repeat(210), "verified");
+  await act(op, "quote", partyChange({ ...lines[1], providerId: longName.id }));
+  const longDraft = (await read()).quotes.sort((a, b) => b.revision - a.revision)[0];
+  await act(op, "submit-review", longDraft.id);
+  await assert.rejects(toggle(true, manager), { status: 403 });
+  await assert.rejects(toggle(true, { ...manager, role: "admin" }), { status: 403 });
+  await assert.rejects(act(op, "quote", partyChange(collectionLine)), /当前未开放代收/);
+  await toggle(true);
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...collectionLine, collection: null })),
+    /代收原因/,
+  );
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...collectionLine, partyDifferenceReason: undefined })),
+    /签约方与收款方不同/,
+  );
+  await act(op, "quote", partyChange(collectionLine));
+  const pendingCollection = (await read()).quotes.sort((a, b) => b.revision - a.revision)[0];
+  const collectedLine = pendingCollection.lines[0].lineId!;
+  const reviewCollection = async (confirmations: object, quoteUpdatedAt?: string) =>
+    businessAction(p, manager, {
+      action: "review",
+      id,
+      quote: pendingCollection.id,
+      revision: (await read()).case.revision,
+      quoteUpdatedAt:
+        quoteUpdatedAt ??
+        (await read()).quotes.find((row) => row.id === pendingCollection.id)?.updatedAt,
+      decision: "approved",
+      reason: "虚构转付确认",
+      confirmations,
+      key: randomUUID(),
+    });
+  assert.equal(pendingCollection.lines[0].payeeName, "虚构新主体");
+  const draftAudit = (await read()).events.find((event) => {
+    const detail = event.detail as { quote?: number };
+    return event.action === "quote" && detail.quote === pendingCollection.id;
+  });
+  assert.deepEqual((draftAudit?.detail as { collectionLines?: unknown }).collectionLines, [
+    { lineId: collectedLine, ...collectionLine.collection },
+  ]);
+  await act(op, "submit-review", pendingCollection.id);
+  await assert.rejects(reviewCollection({ difference: [collectedLine] }), /逐项确认/);
+  await assert.rejects(reviewCollection({ collection: [collectedLine] }), /逐项确认/);
+  await assert.rejects(
+    reviewCollection({ difference: [collectedLine], collection: [difference] }),
+    /逐项确认/,
+  );
+  const confirmations = { difference: [collectedLine], collection: [collectedLine] };
+  await assert.rejects(reviewCollection(confirmations, pendingCollection.updatedAt), {
+    status: 409,
+  });
+  await reviewCollection(confirmations);
+  const approval = (await read()).events.find(
+    (event) =>
+      event.action === "review" &&
+      (event.detail as { quote?: number }).quote === pendingCollection.id,
+  );
+  assert.deepEqual((approval?.detail as { confirmations?: unknown }).confirmations, confirmations);
+  await toggle(false);
+  await assert.rejects(act(op, "send", pendingCollection.id), /当前未开放代收/);
+  assert.equal((await read()).quotes.find((row) => row.id === quote.id)?.status, "sent");
+  await toggle(true);
+  await act(op, "send", pendingCollection.id);
+  await toggle(false);
+  const sentCollection = (await customerBusinessRead(p, customer)).cases[0].quotes.find(
+    (row) => row.id === pendingCollection.id,
+  );
+  assert.equal(sentCollection?.lines[0].collectionNotice, "本项由华伴统一收款后支付给服务方");
+  assert.ok(!JSON.stringify(sentCollection).includes(collectionLine.collection.note));
+  assert.ok(!JSON.stringify(sentCollection).includes("confirmations"));
+  await assert.rejects(reviewCollection(confirmations), { status: 409 });
+  const gateAudit = (
+    await p.find({
+      collection: "audit-events",
+      where: { action: { equals: "quote-collection-setting" } },
+      sort: "-id",
+      depth: 0,
+      limit: 2,
+    })
+  ).docs;
+  assert.deepEqual(
+    gateAudit.map(({ actor, before, after }) => [actor, before, after]),
+    [
+      [admin.id, { allowQuoteCollection: true }, { allowQuoteCollection: false }],
+      [admin.id, { allowQuoteCollection: false }, { allowQuoteCollection: true }],
+    ],
+  );
+  await p.updateGlobal({ slug: "public-company-settings", data: { companyName: "虚构第三主体" } });
+  const historical = (await customerBusinessRead(p, customer)).cases[0].quotes.find(
+    (row) => row.id === pendingCollection.id,
+  );
+  assert.deepEqual(historical, sentCollection);
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...lines[2], serviceName: "虚构新主体" })),
+    /当前未开放代收/,
   );
   await p.update({
     collection: "staff",
@@ -497,7 +646,10 @@ try {
 } finally {
   await p.updateGlobal({
     slug: "public-company-settings",
-    data: { companyName: company.companyName ?? null },
+    data: {
+      companyName: company.companyName ?? null,
+      allowQuoteCollection: company.allowQuoteCollection ?? false,
+    },
   });
   await p.updateGlobal({ slug: "customer-settings", data: { enabled: customerSettings.enabled } });
   await p.destroy();

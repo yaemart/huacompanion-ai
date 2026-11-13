@@ -1,6 +1,7 @@
 import * as migration_20261109_120000_intake_followups from "./20261109_120000_intake_followups";
 import * as migration_20261111_100000_quote_templates from "./20261111_100000_quote_templates";
 import * as migration_20261113_100000_quote_line_foundation from "./20261113_100000_quote_line_foundation";
+import * as migration_20261113_110000_quote_line_review from "./20261113_110000_quote_line_review";
 import * as migration_20261109_080000_inquiry_reply from "./20261109_080000_inquiry_reply";
 import * as migration_20261108_220000_public_company from "./20261108_220000_public_company";
 import * as migration_20261108_160000_policy_note_tasks from "./20261108_160000_policy_note_tasks";
@@ -203,5 +204,10 @@ export const migrations = [
     up: migration_20261113_100000_quote_line_foundation.up,
     down: migration_20261113_100000_quote_line_foundation.down,
     name: "20261113_100000_quote_line_foundation",
+  },
+  {
+    up: migration_20261113_110000_quote_line_review.up,
+    down: migration_20261113_110000_quote_line_review.down,
+    name: "20261113_110000_quote_line_review",
   },
 ];

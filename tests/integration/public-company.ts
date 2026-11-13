@@ -4,6 +4,7 @@ import { randomUUID, randomBytes, createHash } from "node:crypto";
 import pg from "pg";
 import type { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 import { up, down } from "../../src/migrations/20261108_220000_public_company";
+import { up as addCollectionSetting } from "../../src/migrations/20261113_110000_quote_line_review";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import { publicCompany } from "../../src/lib/public-company";
@@ -47,6 +48,7 @@ try {
   );
   await down(args as unknown as MigrateDownArgs);
   await up(args);
+  await addCollectionSetting(args);
   assert.equal(await fingerprint(), before, "migration round-trip preserves every old row");
   console.log("PASS additive empty-table migration round-trip and old table fingerprints");
 } finally {
