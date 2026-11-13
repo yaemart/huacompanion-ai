@@ -49,6 +49,7 @@ jobs:
       - run: node --import tsx tests/integration/intake-case-render.tsx
       - run: node --import tsx tests/integration/provider-options-render.tsx
       - run: node --import tsx tests/integration/provider-review-render.tsx
+      - run: node --import tsx tests/integration/quote-margin-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:

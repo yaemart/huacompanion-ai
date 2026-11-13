@@ -25,6 +25,7 @@ import {
   type QuoteNoticeSettings,
 } from "./quote-notices";
 import { quoteLinesView } from "../../lib/quote-lines";
+import { quoteMargin } from "./quote-margin";
 import {
   quoteTemplates,
   templatesForCategories,
@@ -179,18 +180,21 @@ function staffQuote(
   costs?: ServiceQuoteLineCost[],
 ) {
   const result = { ...q };
-  if (!isManager(user)) delete result.internalCostMinor;
+  const canCost = isManager(user);
+  if (!canCost) delete result.internalCostMinor;
   const isAuthor = relationID(q.createdBy) === user.id;
+  const lines = quoteLinesView(q.lines, q.lineFormat, true);
+  const lineCosts =
+    canCost && q.lineFormat === 2
+      ? (costs ?? [])
+          .filter(({ quote }) => relationID(quote) === q.id)
+          .map(({ lineId, costMinor }) => ({ lineId, costMinor }))
+      : undefined;
   return {
     ...result,
-    lines: quoteLinesView(q.lines, q.lineFormat, true),
-    ...(costs && q.lineFormat === 2
-      ? {
-          lineCosts: costs
-            .filter(({ quote }) => relationID(quote) === q.id)
-            .map(({ lineId, costMinor }) => ({ lineId, costMinor })),
-        }
-      : {}),
+    lines,
+    ...(lineCosts && { lineCosts }),
+    ...(canCost && { margin: quoteMargin(lines, q, lineCosts ?? []) }),
     review: {
       ...quoteReviewWithNotices(q, events, notices),
       isAuthor,
