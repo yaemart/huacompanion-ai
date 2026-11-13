@@ -11,6 +11,7 @@ import {
   customerBusinessRead,
 } from "../../src/server/business/service";
 import { reportingExport } from "../../src/server/reporting/service";
+import { prepareQuoteLines } from "../../src/server/business/quote-lines";
 import { down } from "../../src/migrations/20261113_100000_quote_line_foundation";
 
 const url = new URL(process.env.DATABASE_URL || "");
@@ -128,11 +129,28 @@ try {
     { ...amount, serviceSource: "manual", serviceName: "虚构手填服务方" },
   ];
   const newDraft = { ...offer, lineFormat: 2, lines };
+  const differenceReason = "虚构内部核对：签约与收款由两个主体负责";
+  const customParties = {
+    ...lines[1],
+    contractName: "虚构签约方",
+    payeeProviderId: contracted.id,
+    partyDifferenceReason: differenceReason,
+  };
+  const partyChange = (row: object) => ({ ...newDraft, lines: [row] });
   await assert.rejects(act(op, "quote", { ...newDraft, lineCosts: [0, null, null] }), {
     status: 403,
   });
   await assert.rejects(act(op, "quote", { ...offer, lineCosts: [0] }), { status: 403 });
   assert.equal((await read()).quotes.length, 0);
+  await p.updateGlobal({
+    slug: "public-company-settings",
+    user: admin,
+    data: { companyName: null },
+  });
+  assert.equal(
+    (await prepareQuoteLines(p, op, {}, partyChange(customParties), [amount]))?.lines[0].payeeName,
+    "虚构已签约服务商",
+  );
   await p.updateGlobal({
     slug: "public-company-settings",
     user: admin,
@@ -142,6 +160,54 @@ try {
   assert.equal(options.companyName, "虚构华伴公司主体");
   assert.deepEqual(options.providers.map(({ id }) => id).sort(), [vendor.id, contracted.id].sort());
   assert.equal(Object.hasOwn(options.providers[0], "email"), false);
+  const companyAlias = await provider("Hua Companion · 华伴", "verified");
+  const sameName = await provider(vendor.organisation, "verified");
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...lines[1], payeeProviderId: sameName.id })),
+    /请填写签约方与收款方不同的原因/,
+  );
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...customParties, partyDifferenceReason: "　 " })),
+    /请填写签约方与收款方不同的原因/,
+  );
+  for (const override of [
+    { contractName: "虚构外部签约方" },
+    { payeeName: "虚构外部收款方" },
+    { partyDifferenceReason: differenceReason },
+    { mode: "referral" },
+  ]) {
+    await assert.rejects(
+      act(manager, "quote", partyChange({ ...lines[0], ...override })),
+      /华伴自营的经营模式和主体不可修改/,
+    );
+  }
+  for (const row of [
+    { ...customParties, payeeName: options.companyName },
+    { ...customParties, payeeName: "虚构 华伴公司主体" },
+    { ...customParties, payeeName: "虚构\u200B华伴公司主体" },
+    { ...customParties, payeeProviderId: companyAlias.id },
+    { ...lines[1], mode: "managed" },
+    { ...lines[2], payeeName: "Ｈｕａ Ｃｏｍｐａｎｉｏｎ" },
+    { ...lines[2], serviceName: options.companyName },
+    { ...lines[2], serviceName: "Hua Companion · 华伴" },
+  ]) {
+    await assert.rejects(
+      act(manager, "quote", partyChange(row)),
+      /当前未开放代收，请改为合作对接，或联系管理员/,
+    );
+  }
+  await assert.rejects(
+    act(manager, "quote", { ...offer, lines: [{ ...amount, payeeName: options.companyName }] }),
+    /主体字段须使用新版费用项/,
+  );
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...customParties, contractName: null })),
+    /请填写有效的签约方/,
+  );
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...customParties, payeeName: "任意手填收款方" })),
+    /请选择权限内已核实或已签约的收款方/,
+  );
   for (const invalid of [paused.id, applied.id, foreign.id, 2147483647]) {
     await assert.rejects(
       act(op, "quote", {
@@ -149,6 +215,10 @@ try {
         lines: [{ ...amount, serviceSource: "provider", providerId: invalid }],
       }),
       { status: 400 },
+    );
+    await assert.rejects(
+      act(op, "quote", partyChange({ ...customParties, payeeProviderId: invalid })),
+      /请选择权限内已核实或已签约的收款方/,
     );
   }
   for (const rejected of [
@@ -174,6 +244,7 @@ try {
     key: randomUUID(),
     quote: {
       ...newDraft,
+      lines: [lines[0], customParties, lines[2]],
       lineCosts: [0, null, cost],
     },
   };
@@ -212,10 +283,12 @@ try {
     ]),
     [
       ["managed", "虚构华伴公司主体", "虚构华伴公司主体", "虚构华伴公司主体"],
-      ["referral", "虚构已核实服务商", "虚构已核实服务商", "虚构已核实服务商"],
+      ["referral", "虚构已核实服务商", "虚构签约方", "虚构已签约服务商"],
       ["referral", "虚构手填服务方", "虚构手填服务方", "虚构手填服务方"],
     ],
   );
+  assert.equal(quote.lines[1].partyDifferenceReason, differenceReason);
+  assert.equal(quote.lines[1].payeeProviderId, contracted.id);
   assert.deepEqual(
     quote.lineCosts?.sort((a, b) => a.costMinor - b.costMinor),
     [
@@ -266,6 +339,15 @@ try {
     user: admin,
     data: { companyName: "虚构新主体" },
   });
+  const formerCompany = await provider("虚构华伴公司主体", "verified");
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...customParties, payeeProviderId: formerCompany.id })),
+    /当前未开放代收/,
+  );
+  await assert.rejects(
+    act(op, "quote", partyChange({ ...lines[2], serviceName: formerCompany.organisation })),
+    /当前未开放代收/,
+  );
   await p.update({
     collection: "providers",
     id: vendor.id,
@@ -305,13 +387,17 @@ try {
     data: { status: "sent", sentAt: new Date().toISOString() },
   });
   const visible = (await customerBusinessRead(p, customer)).cases[0].quotes[0];
-  assert.equal(visible.lines[1].contractName, "虚构已核实服务商");
+  assert.equal(visible.lines[1].contractName, "虚构签约方");
+  assert.equal(visible.lines[1].payeeName, "虚构已签约服务商");
   for (const forbidden of [
     "lineCosts",
     "costMinor",
     "internalCostMinor",
     "providerId",
+    "payeeProviderId",
     "serviceSource",
+    "partyDifferenceReason",
+    differenceReason,
     String(cost),
   ])
     assert.ok(!JSON.stringify(visible).includes(forbidden), forbidden);
@@ -372,6 +458,31 @@ try {
     };
     assert.equal(Object.hasOwn(await readHTTP(operator), "lineCosts"), false);
     assert.equal((await readHTTP(supervisor)).lineCosts.length, 2);
+    const postQuote = async (input: object) =>
+      fetch(base + "/api/business", {
+        method: "POST",
+        headers: { Authorization: operator, Origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "quote",
+          id,
+          revision: (await read()).case.revision,
+          key: randomUUID(),
+          quote: input,
+        }),
+      });
+    const rejected = await postQuote(partyChange({ ...lines[1], payeeName: "虚构新主体" }));
+    assert.equal(rejected.status, 400);
+    assert.match(await rejected.text(), /当前未开放代收/);
+    const large = {
+      ...newDraft,
+      lines: Array.from({ length: 9 }, () => ({
+        ...customParties,
+        partyDifferenceReason: "虚".repeat(2000),
+      })),
+    };
+    assert.ok(Buffer.byteLength(JSON.stringify(large)) > 50000);
+    const saved = await postQuote(large);
+    assert.equal(saved.status, 200, await saved.text());
     for (const authorization of ["", operator, supervisor]) {
       const raw = await fetch(base + "/api/service-quote-line-costs", {
         headers: { Authorization: authorization },
