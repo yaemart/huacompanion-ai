@@ -1,12 +1,53 @@
+import type { Payload } from "payload";
+import { readStaffToday } from "../server/workflow/staff-today";
 import {
   canManageContent,
   canReviewContent,
+  isActiveStaff,
   isAdmin,
   isManager,
   isOperator,
   type Staff,
 } from "./access";
-export function Dashboard({ user }: { user?: Staff }) {
+const time = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+async function Today({ user, payload }: { user?: Staff; payload: Payload }) {
+  if (!isActiveStaff(user)) return null;
+  const now = Date.now();
+  const today = await readStaffToday(payload, user, now).catch(() => null);
+  if (!today) return <p>暂时无法读取今日待办，请刷新后重试。</p>;
+  return (
+    <section aria-label="今日待办">
+      <h2>今日待办</h2>
+      <p>
+        {today.date}（北京时间） · {today.items.length} 项
+      </p>
+      {!today.items.length && <p>今天暂无需要你处理的事项。</p>}
+      {today.items.map(({ id, href, action, title, dueAt }) => (
+        <a
+          key={id}
+          href={href}
+          style={{ display: "block", padding: 12, minHeight: 44, overflowWrap: "anywhere" }}
+        >
+          <strong>
+            {action} · {title}
+          </strong>
+          <br />
+          {dueAt
+            ? `${Date.parse(dueAt) < now ? "已逾期" : "截止"} · ${time.format(new Date(dueAt))}`
+            : "待处理"}
+        </a>
+      ))}
+    </section>
+  );
+}
+export function Dashboard({ user, payload }: { user?: Staff; payload: Payload }) {
   return (
     <section
       style={{
@@ -16,6 +57,7 @@ export function Dashboard({ user }: { user?: Staff }) {
         borderRadius: 6,
       }}
     >
+      <Today user={user} payload={payload} />
       <h2>华伴 · 运营后台</h2>
       {isAdmin(user) && (
         <p>

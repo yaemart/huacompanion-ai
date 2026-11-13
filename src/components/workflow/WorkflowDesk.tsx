@@ -10,17 +10,18 @@ type Item = {
   inquiry?: number;
   contentDraft?: number;
 };
-export default function WorkflowDesk() {
+export default function WorkflowDesk({ taskID }: { taskID?: number }) {
   const [data, setData] = useState<{
     notifications: Item[];
     tasks: Item[];
     userID?: number;
     canAssign?: boolean;
+    canReviewContent?: boolean;
     mailJobs?: { id: number; status: string; canRetry: boolean; attempts: number }[];
   }>({ notifications: [], tasks: [] });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [filter, setFilter] = useState("open");
+  const [filter, setFilter] = useState(taskID ? "target" : "open");
   const source = (item: Item) =>
     item.inquiry ? (
       <a href={`/admin/collections/inquiries/${item.inquiry}`}>打开咨询 #{item.inquiry}</a>
@@ -32,6 +33,7 @@ export default function WorkflowDesk() {
   const filtered = data.tasks.filter(
     (t) =>
       filter === "all" ||
+      (filter === "target" && t.id === taskID) ||
       (filter === "done" && t.status === "done") ||
       (filter === "open" && t.status !== "done") ||
       (filter === "mine" && String(t.assignee) === String(data.userID) && t.status !== "done") ||
@@ -41,6 +43,10 @@ export default function WorkflowDesk() {
         !!t.dueAt &&
         Date.parse(t.dueAt) < Date.now()),
   );
+  const targetReady = !!taskID && filtered.some((task) => task.id === taskID);
+  useEffect(() => {
+    if (targetReady) document.getElementById(`workflow-task-${taskID}`)?.focus();
+  }, [targetReady, taskID]);
   async function load() {
     const r = await fetch("/api/workflow", { cache: "no-store" });
     const b = await r.json();
@@ -92,6 +98,7 @@ export default function WorkflowDesk() {
       <label>
         筛选{" "}
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          {taskID && <option value="target">指定待办</option>}
           <option value="open">待处理</option>
           <option value="mine">我的待办</option>
           <option value="unassigned">未分配</option>
@@ -102,9 +109,19 @@ export default function WorkflowDesk() {
       </label>
       {!filtered.length && <p>暂无待办。</p>}
       {filtered.map((t) => (
-        <article key={t.id} style={{ padding: 16, borderBottom: "1px solid #ddd" }}>
+        <article
+          key={t.id}
+          id={`workflow-task-${t.id}`}
+          tabIndex={-1}
+          style={{ padding: 16, borderBottom: "1px solid #ddd" }}
+        >
           <h3>{t.title}</h3>
           {source(t)}
+          {t.contentDraft && data.canReviewContent && (
+            <p>
+              <a href={`/quality-center#quality-${t.contentDraft}`}>打开对应内容的复核表</a>
+            </p>
+          )}
           <p>
             {t.status === "done" ? "已完成" : "待处理"} · 负责人：{t.assignee || "未认领"} · 到期：
             {t.dueAt ? new Date(t.dueAt).toLocaleString("zh-CN") : "未设置"}

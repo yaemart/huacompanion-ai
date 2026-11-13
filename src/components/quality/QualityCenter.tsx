@@ -31,6 +31,10 @@ export function QualityCenter() {
   useEffect(() => {
     load().catch((e) => setError(e.message));
   }, []);
+  useEffect(() => {
+    if (desk && window.location.hash.startsWith("#quality-"))
+      document.getElementById(window.location.hash.slice(1))?.focus();
+  }, [desk]);
   async function review(e: React.FormEvent<HTMLFormElement>, item: any) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
@@ -72,6 +76,8 @@ export function QualityCenter() {
       {desk?.items.map((item: any) => (
         <article
           key={item.id}
+          id={`quality-${item.id}`}
+          tabIndex={-1}
           style={{ border: "1px solid #ccc", borderRadius: 12, padding: 24, marginTop: 20 }}
         >
           <h2>

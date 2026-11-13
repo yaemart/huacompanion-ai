@@ -5,6 +5,7 @@ import { contentAuth, checkOrigin, limitedJSON, failure } from "@/server/content
 import { ContentError } from "@/server/content/error";
 import { readGuideTranslation } from "@/server/content/guide-translation";
 import { listPublished, mutateContent } from "@/server/content/service";
+import { inquiryCaseID } from "@/lib/intake-case";
 export async function GET(req: Request) {
   try {
     const { p, user } = await contentAuth(req.headers);
@@ -42,7 +43,8 @@ export async function GET(req: Request) {
         { headers: { "Cache-Control": "no-store" } },
       );
     }
-    const [drafts, published, media, tasks] = await Promise.all([
+    const selectedID = inquiryCaseID(params.get("draft"));
+    const [drafts, published, media, tasks, selectedDraft] = await Promise.all([
       p.find({
         collection: "content-drafts",
         limit: 1000,
@@ -64,7 +66,21 @@ export async function GET(req: Request) {
         overrideAccess: false,
         user,
       }),
+      selectedID
+        ? p
+            .find({
+              collection: "content-drafts",
+              where: { id: { equals: selectedID } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: false,
+              user,
+            })
+            .then((r) => r.docs[0])
+        : undefined,
     ]);
+    if (selectedDraft && !drafts.docs.some((draft) => draft.id === selectedDraft.id))
+      drafts.docs.unshift(selectedDraft);
     const providers = isAdmin(user)
       ? (
           await p.find({

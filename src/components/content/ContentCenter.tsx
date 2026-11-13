@@ -79,11 +79,13 @@ const states: Record<string, string> = {
 };
 export function ContentCenter({
   initialKind = "",
+  initialDraftID,
   policyBannersEnabled = false,
   contentAIAvailable = false,
   visaKeys = { guide: undefined, faq: [] },
 }: {
   initialKind?: string;
+  initialDraftID?: number;
   policyBannersEnabled?: boolean;
   contentAIAvailable?: boolean;
   visaKeys?: VisaSourceKeys;
@@ -95,6 +97,13 @@ export function ContentCenter({
     tasks: [],
   });
   const [selected, setSelected] = useState<any>(null);
+  const openedTarget = useRef(false);
+  useEffect(() => {
+    if (!openedTarget.current && initialDraftID && selected?.id === initialDraftID) {
+      document.getElementById("today-content-target")?.focus();
+      openedTarget.current = true;
+    }
+  }, [initialDraftID, selected?.id]);
   const [guideReference, setGuideReference] = useState<ContentDraft | null>(null);
   const savedForm = useRef<ContentBody | null>(null);
   const listRequest = useRef(0);
@@ -191,7 +200,12 @@ export function ContentCenter({
         selected.sourceRevision < guideReference.revision));
   async function load() {
     const request = ++listRequest.current;
-    const r = await fetch("/api/content-center", { cache: "no-store" });
+    const r = await fetch(
+      initialDraftID ? `/api/content-center?draft=${initialDraftID}` : "/api/content-center",
+      {
+        cache: "no-store",
+      },
+    );
     const d = await r.json();
     if (request !== listRequest.current) return null;
     if (!r.ok) {
@@ -226,6 +240,14 @@ export function ContentCenter({
     load()
       .then((d) => {
         if (!d) return;
+        if (initialDraftID) {
+          const draft = d.drafts.find((draft: ContentDraft) => draft.id === initialDraftID);
+          if (draft) {
+            select(draft);
+            return;
+          }
+          setMessage("这篇工作稿已不可访问，请返回今日待办刷新。");
+        }
         const permitted = d.permissions?.contentKinds || [];
         const kind = permitted.includes(initialKind) ? initialKind : permitted[0];
         if (kind) {
@@ -847,7 +869,9 @@ export function ContentCenter({
             />
           )}
           <section className="panel">
-            <h2>{guideReference ? "编辑译文" : selected ? "编辑工作稿" : "新建工作稿"}</h2>
+            <h2 id="today-content-target" tabIndex={-1}>
+              {guideReference ? "编辑译文" : selected ? "编辑工作稿" : "新建工作稿"}
+            </h2>
             {!guideReference && canEdit && guideLocale && (
               <button disabled={busy} onClick={() => compareGuide("open")}>
                 {existingGuide ? "打开" : "添加"}

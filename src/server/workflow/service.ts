@@ -1,5 +1,5 @@
 import { refreshSharedNoteAssignees } from "../immigration/shared-note-tasks";
-import { canAccessContentKind } from "../../cms/access";
+import { canAccessContentKind, canReviewContent } from "../../cms/access";
 import { randomUUID } from "node:crypto";
 import type { Payload, PayloadRequest, RequiredDataFromCollectionSlug } from "payload";
 import type { WorkflowNotification, WorkflowTask, WorkflowMailJob } from "../../../payload-types";
@@ -58,7 +58,7 @@ async function unique<TSlug extends UniqueCollection>(
     throw error;
   }
 }
-async function visible(
+export async function visible(
   p: Payload,
   user: Staff,
   doc: Pick<WorkflowTask, "inquiry" | "contentDraft" | "policyGroup">,
@@ -383,7 +383,8 @@ export async function workflowRead(payload: Payload, user: NonNullable<Staff>) {
         canRetry: canRetryMail(j),
       }))
     : [];
-  return { notifications, tasks, mailJobs, userID: user.id, canAssign: isManager(user) };
+  const permissions = { canAssign: isManager(user), canReviewContent: canReviewContent(user) };
+  return { notifications, tasks, mailJobs, userID: user.id, ...permissions };
 }
 export async function workflowAction(
   payload: Payload,
