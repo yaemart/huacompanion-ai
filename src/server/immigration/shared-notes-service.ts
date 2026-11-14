@@ -142,11 +142,12 @@ export async function mutateSharedPolicyNote(
   p: Payload,
   user: ContentUser,
   input: SharedNoteInput,
+  transaction?: { transactionID: string | number },
 ): Promise<PolicyNoteDraft> {
   identity(input.groupId, input.locale);
   if (!["save", "submit", "return", "publish", "restore", "unpublish"].includes(input.action))
     throw new ContentError("未知说明操作");
-  return contentTransaction(p, async (req) => {
+  const run = async (req: { transactionID: string | number }) => {
     const actor = await policyActor(p, req, user, input.action);
     const group = await p.findByID({
       collection: "policy-groups",
@@ -317,5 +318,6 @@ export async function mutateSharedPolicyNote(
       },
     });
     return saved;
-  });
+  };
+  return transaction ? run({ ...transaction }) : contentTransaction(p, run);
 }

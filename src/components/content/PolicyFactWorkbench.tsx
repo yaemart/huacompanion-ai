@@ -10,6 +10,7 @@ import { policyStateLabels } from "@/lib/immigration-policy-list";
 import type { PolicyForm } from "@/lib/immigration-policy-editor";
 import { PolicyFields } from "./PolicyFields";
 import { PolicyList } from "./PolicyList";
+import { PolicyCsvImport } from "./PolicyCsvImport";
 export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEditorData }) {
   const [form, setForm] = useState(desk.policy);
   const [key, setKey] = useState(desk.group?.contentKey || "");
@@ -75,6 +76,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
       <a href="/admin">← 中文管理后台</a>
       <h1>政策共用事实</h1>
       <p>国家、停留、日期、口岸与来源只填一次。发布事实会让两语说明待复核。</p>
+      {perm.canEdit && <PolicyCsvImport disabled={busy || dirty} />}
       {group &&
         ["zh", "en"].map((locale) => (
           <button
