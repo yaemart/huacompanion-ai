@@ -18,7 +18,9 @@ export function readQuoteNoticeSettings(p: Payload, req?: Partial<PayloadRequest
 
 export type QuoteNoticeSettings = Pick<PublicCompanySetting, QuoteNoticeKey>;
 
-export function quoteLinesWithNotices(quote: ServiceQuote, settings: QuoteNoticeSettings) {
+type NoticeLines = Pick<ServiceQuote, "lines" | "lineFormat">;
+
+export function quoteLinesWithNotices(quote: NoticeLines, settings: QuoteNoticeSettings) {
   const text = (key: QuoteNoticeKey) => settings[key]?.trim() || quoteNoticeDefaults[key];
   return quoteLinesView(quote.lines, quote.lineFormat, true).map((line) => {
     if (line.collection)
@@ -32,7 +34,7 @@ export function quoteLinesWithNotices(quote: ServiceQuote, settings: QuoteNotice
   });
 }
 
-function quoteNoticesCurrent(quote: ServiceQuote, settings: QuoteNoticeSettings) {
+export function quoteNoticesCurrent(quote: NoticeLines, settings: QuoteNoticeSettings) {
   if (!Array.isArray(quote.lines)) return false;
   const saved = quote.lines as { customerNotice?: string | null; collectionNotice?: string }[];
   const lines = quoteLinesWithNotices(quote, settings);

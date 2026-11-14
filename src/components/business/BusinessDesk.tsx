@@ -156,6 +156,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     }
   }
   const c = view?.case;
+  useEffect(() => {
+    if (c && window.location.hash.startsWith("#quote-"))
+      document.getElementById(window.location.hash.slice(1))?.focus();
+  }, [c?.id]);
   const customerCenter = view?.features?.customerCenter === true;
   const templates: QuoteTemplate[] = view?.quoteTemplates ?? [];
   const template = templates.find(({ category }) => category === templateCategory);
@@ -304,7 +308,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
               </fieldset>
               <h3>方案与报价版本</h3>
               {view.quotes.map((q: StaffQuote) => (
-                <article key={q.id} className="support-message">
+                <article key={q.id} id={`quote-${q.id}`} tabIndex={-1} className="support-message">
                   <strong>
                     第{q.revision}版 · {q.title} ·{" "}
                     {

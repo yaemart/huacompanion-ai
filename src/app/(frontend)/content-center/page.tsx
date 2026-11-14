@@ -6,13 +6,18 @@ import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { contentAuth } from "@/server/content/auth";
 import { ContentCenter } from "@/components/content/ContentCenter";
+import { inquiryCaseID } from "@/lib/intake-case";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "内容工作台 · 华伴",
   robots: { index: false, follow: false },
 };
-export default async function Page({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
-  const kind = (await searchParams).kind;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string; id?: string }>;
+}) {
+  const { kind, id } = await searchParams;
   if (kind === "immigration-policy" && !visaCheckerEnabled()) notFound();
   let auth: Awaited<ReturnType<typeof contentAuth>>;
   try {
@@ -28,6 +33,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
     <ContentCenter
       key={kind || "all"}
       initialKind={kind}
+      initialDraftID={inquiryCaseID(id)}
       contentAIAvailable={contentAgentAvailable}
       visaKeys={visaSourceKeys(process.env)}
       policyBannersEnabled={visaCheckerEnabled()}
