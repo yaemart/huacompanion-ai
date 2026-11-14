@@ -339,6 +339,7 @@ if (action === "serve") {
             "SELECT to_regclass('public.quote_template_settings') IS NOT NULL AND " +
               "to_regclass('public.quote_template_settings_templates') IS NOT NULL AND " +
               "to_regclass('public.service_quote_line_costs') IS NOT NULL AND " +
+              "to_regclass('public.inquiry_reply_templates') IS NOT NULL AND " +
               "EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' " +
               "AND table_name='service_quotes' AND column_name='line_format') AND " +
               "(SELECT count(*)=4 FROM information_schema.columns WHERE table_schema='public' " +
@@ -347,7 +348,7 @@ if (action === "serve") {
           ]).trim() !== "t"
         )
           throw Error(
-            "报价迁移缺失；请配套备份，核对截至20261113_120000_quote_customer_copy的迁移，勿reset。",
+            "报价或回复模板迁移缺失；请配套备份，核对截至20261114_080000_inquiry_reply_templates的迁移，勿reset。",
           );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)

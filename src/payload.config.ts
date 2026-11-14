@@ -20,6 +20,7 @@ import { contentCollections } from "./cms/content/collections";
 import { sharedPolicyCollections } from "./cms/immigration/shared-collections";
 import { ImmigrationPolicies } from "./cms/immigration/collections";
 import { collections } from "./cms/collections";
+import { inquiryReplyTemplates } from "./cms/inquiry-reply-templates";
 const secret = process.env.PAYLOAD_SECRET;
 if (!secret || secret.length < 32)
   throw new Error(
@@ -54,6 +55,7 @@ export default buildConfig({
   ],
   collections: [
     ...collections,
+    inquiryReplyTemplates,
     ...contentCollections,
     ImmigrationPolicies,
     ...sharedPolicyCollections,

@@ -119,6 +119,7 @@ jobs:
           npm run test:business
           node --import tsx tests/integration/quote-lines.ts
           node --import tsx tests/integration/staff-today.ts
+          node --import tsx tests/integration/inquiry-reply-templates.ts
           node --import tsx tests/integration/quote-review.ts
           npm run test:business:ai
           npm run test:workflow
