@@ -43,6 +43,13 @@ export function intakeEditorFields(fields: Field[], kind: "inquiry" | "provider"
                 type: "ui" as const,
                 admin: { components: { Field: "/cms/InquiryCase#InquiryCase" } },
               },
+              {
+                name: "replyTemplateAction",
+                type: "ui" as const,
+                admin: {
+                  components: { Field: "/cms/InquiryReplyTemplates#InquiryReplyTemplates" },
+                },
+              },
             ]
           : [
               {

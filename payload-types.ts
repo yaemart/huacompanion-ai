@@ -70,6 +70,7 @@ export interface Config {
     teams: Team;
     staff: Staff;
     inquiries: Inquiry;
+    'inquiry-reply-templates': InquiryReplyTemplate;
     providers: Provider;
     notifications: Notification;
     'audit-events': AuditEvent;
@@ -122,6 +123,7 @@ export interface Config {
     teams: TeamsSelect<false> | TeamsSelect<true>;
     staff: StaffSelect<false> | StaffSelect<true>;
     inquiries: InquiriesSelect<false> | InquiriesSelect<true>;
+    'inquiry-reply-templates': InquiryReplyTemplatesSelect<false> | InquiryReplyTemplatesSelect<true>;
     providers: ProvidersSelect<false> | ProvidersSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'audit-events': AuditEventsSelect<false> | AuditEventsSelect<true>;
@@ -2930,4 +2932,25 @@ export interface QuoteTemplateSettingsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+
+export interface InquiryReplyTemplate {
+  id: number;
+  title: string;
+  category: 'inquiry' | 'quote' | 'confirmation';
+  enabled?: boolean | null;
+  bodyZh: string;
+  bodyEn: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface InquiryReplyTemplatesSelect<T extends boolean = true> {
+  title?: T;
+  category?: T;
+  enabled?: T;
+  bodyZh?: T;
+  bodyEn?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
