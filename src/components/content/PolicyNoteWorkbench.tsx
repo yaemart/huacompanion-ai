@@ -63,6 +63,7 @@ export function PolicyNoteWorkbench({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
+          ...(automatic && { autosave: true }),
           groupId: group.id,
           locale: desk.locale,
           factVersion: relationID(group.activeFactVersion) ?? null,

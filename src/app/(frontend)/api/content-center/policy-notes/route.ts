@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const input = await limitedJSON(req);
     const saved = await mutateSharedPolicyNote(p, user, input);
     return Response.json(
-      { ok: true, ...(input.action === "save" && { draft: saved }) },
+      { ok: true, ...(input.action === "save" && input.autosave === true && { draft: saved }) },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {

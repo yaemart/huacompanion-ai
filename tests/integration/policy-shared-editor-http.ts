@@ -76,6 +76,7 @@ try {
       {
         action: "save",
         contentKey: key,
+        autosave: true,
         facts: {
           countryCode: "DE",
           countryNameZh: "虚构HTTP",
@@ -94,6 +95,7 @@ try {
       {
         action: "save",
         groupId: result.groupId,
+        autosave: true,
         revision: result.draft.revision,
         facts: { internalNotes: "PRIVATE HTTP FIXTURE · autosave" },
       },
@@ -110,12 +112,19 @@ try {
       ).status,
       409,
     );
+    const manual = await post(
+      { action: "save", groupId: result.groupId, revision: 2, facts: {} },
+      edit,
+    );
+    assert.equal(manual.status, 200);
+    assert.deepEqual(await manual.json(), { groupId: result.groupId });
     const postNote = (revision: number | undefined, jwt: string | undefined) =>
       fetch(base + "/api/content-center/policy-notes", {
         method: "POST",
         headers: { ...headers(jwt), Origin: base, "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "save",
+          autosave: true,
           groupId: result.groupId,
           factVersion: null,
           locale: "zh",
@@ -155,7 +164,7 @@ try {
     );
     await p.update({ collection: "staff", id: editor.id, user: admin, data: { active: false } });
     assert.equal(
-      (await post({ action: "save", groupId: result.groupId, revision: 2, facts: {} }, edit))
+      (await post({ action: "save", groupId: result.groupId, revision: 3, facts: {} }, edit))
         .status,
       403,
     );

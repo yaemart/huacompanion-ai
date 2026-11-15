@@ -80,6 +80,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
+          ...(automatic && { autosave: true }),
           versionId,
           groupId,
           revision: draft?.revision,
