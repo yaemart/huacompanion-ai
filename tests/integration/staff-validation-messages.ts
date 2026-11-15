@@ -5,7 +5,7 @@ import config from "../../src/payload.config";
 import { POST as business } from "../../src/app/(frontend)/api/business/route";
 import { POST as content } from "../../src/app/(frontend)/api/content-center/route";
 import { POST as policy } from "../../src/app/(frontend)/api/content-center/policy-facts/route";
-import { failure, limitedJSON } from "../../src/server/content/auth";
+import { checkOrigin, failure, limitedJSON } from "../../src/server/content/auth";
 
 const url = new URL(process.env.DATABASE_URL || "");
 assert.equal(url.hostname, "127.0.0.1");
@@ -60,6 +60,10 @@ try {
   );
   const broken = new Request(origin + "/api", { method: "POST", body: "{broken" });
   await assert.rejects(limitedJSON(broken), /无法读取填写内容.*重新打开表单/);
+  assert.throws(() => checkOrigin(broken), {
+    status: 403,
+    message: /从华伴网站重新打开刚才的页面/,
+  });
 
   const guide = {
     kind: "guide",

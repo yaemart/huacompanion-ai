@@ -12,7 +12,7 @@ export async function contentAuth(headers: Headers) {
 }
 export function checkOrigin(req: Request) {
   if (req.headers.get("origin") !== process.env.APP_URL)
-    throw new ContentError("请从本站后台打开页面，再重新操作。", 403);
+    throw new ContentError("请从华伴网站重新打开刚才的页面，再试一次。", 403);
 }
 export async function limitedJSON(req: Request, limit = 150000) {
   const reader = req.body?.getReader();
