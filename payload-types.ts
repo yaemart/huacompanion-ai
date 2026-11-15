@@ -237,6 +237,7 @@ export interface Staff {
   id: number;
   name: string;
   active?: boolean | null;
+  dailyDigestEnabled?: boolean | null;
   team?: (number | null) | Team;
   /**
    * 新员工默认不授权内容；编辑与审核均只允许操作所选内容类型。
@@ -1315,6 +1316,7 @@ export interface WorkflowNotification {
   recipient?: (number | null) | Staff;
   title: string;
   readAt?: string | null;
+  digestAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1743,6 +1745,7 @@ export interface TeamsSelect<T extends boolean = true> {
 export interface StaffSelect<T extends boolean = true> {
   name?: T;
   active?: T;
+  dailyDigestEnabled?: T;
   team?: T;
   contentKinds?: T;
   additionalRoles?: T;
@@ -2424,6 +2427,7 @@ export interface WorkflowNotificationsSelect<T extends boolean = true> {
   recipient?: T;
   title?: T;
   readAt?: T;
+  digestAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

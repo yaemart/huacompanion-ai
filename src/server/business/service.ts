@@ -321,6 +321,10 @@ async function emit(
       inquiry: q.id,
       recipient: relationID(q.owner),
       title: `服务单 #${c.id} · ${event.action}`,
+      routine:
+        event.action === "summary" ||
+        event.action === "create" ||
+        (event.action === "stage" && ["completed", "aftercare"].includes(c.stage)),
       dueAt:
         event.action === "send"
           ? (event.detail as BusinessEventDetail | null)?.expiresAt

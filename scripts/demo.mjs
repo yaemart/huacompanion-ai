@@ -350,6 +350,21 @@ if (action === "serve") {
           throw Error(
             "报价或回复模板迁移缺失；请配套备份，核对截至20261114_080000_inquiry_reply_templates的迁移，勿reset。",
           );
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT count(*)=2 FROM information_schema.columns WHERE table_schema='public' " +
+              "AND ((table_name='staff' AND column_name='daily_digest_enabled') OR " +
+              "(table_name='workflow_notifications' AND column_name='digest_at'))",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "每日摘要尚未迁移；请配套备份并执行20261115_080000_staff_daily_digest，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)

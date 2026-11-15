@@ -13,12 +13,14 @@ type Item = {
 export default function WorkflowDesk({ taskID }: { taskID?: number }) {
   const [data, setData] = useState<{
     notifications: Item[];
+    digests: { date: string; items: Item[] }[];
+    dailyDigestEnabled?: boolean;
     tasks: Item[];
     userID?: number;
     canAssign?: boolean;
     canReviewContent?: boolean;
     mailJobs?: { id: number; status: string; canRetry: boolean; attempts: number }[];
-  }>({ notifications: [], tasks: [] });
+  }>({ notifications: [], digests: [], tasks: [] });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState(taskID ? "target" : "open");
@@ -74,6 +76,18 @@ export default function WorkflowDesk({ taskID }: { taskID?: number }) {
       setBusy(false);
     }
   }
+  const notice = (n: Item) => (
+    <article key={n.id} style={{ padding: 16, borderBottom: "1px solid #ddd" }}>
+      <strong>{n.title}</strong> {source(n)}{" "}
+      {n.readAt ? (
+        "已读"
+      ) : (
+        <button disabled={busy} onClick={() => action({ id: n.id, action: "read" })}>
+          标为已读
+        </button>
+      )}
+    </article>
+  );
   return (
     <main style={{ maxWidth: 1000, margin: "40px auto", padding: 24 }}>
       <a href="/admin">返回管理后台</a>
@@ -81,19 +95,37 @@ export default function WorkflowDesk({ taskID }: { taskID?: number }) {
       <p>仅显示当前权限范围内的记录。咨询归属变更后，访问权限随之更新。</p>
       {error && <p role="alert">{error}</p>}
       <h2>站内通知</h2>
-      {!data.notifications.length && <p>暂无通知。</p>}
-      {data.notifications.map((n) => (
-        <article key={n.id} style={{ padding: 16, borderBottom: "1px solid #ddd" }}>
-          <strong>{n.title}</strong> {source(n)}{" "}
-          {n.readAt ? (
-            "已读"
-          ) : (
-            <button disabled={busy} onClick={() => action({ id: n.id, action: "read" })}>
-              标为已读
-            </button>
-          )}
-        </article>
-      ))}
+      {data.dailyDigestEnabled !== undefined && (
+        <p>
+          <label>
+            <input
+              type="checkbox"
+              checked={data.dailyDigestEnabled}
+              disabled={busy}
+              onChange={(e) => action({ action: "set-daily-digest", enabled: e.target.checked })}
+            />{" "}
+            每日摘要
+          </label>
+          <br />
+          普通服务单进展在北京时间上午 9 点合并显示，紧急通知即时显示。设置仅应用于新通知。
+        </p>
+      )}
+      {!data.notifications.length && !data.digests.length && <p>暂无通知。</p>}
+      {!!data.digests.length && <a href="#daily-digests">查看每日摘要</a>}
+      {data.notifications.map(notice)}
+      {!!data.digests.length && (
+        <section id="daily-digests" aria-label="每日摘要">
+          {data.digests.map(({ date, items }) => (
+            <details key={date}>
+              <summary>
+                {date} 每日摘要 · {items.length} 条 · {items.filter((item) => !item.readAt).length}{" "}
+                条未读
+              </summary>
+              {items.map(notice)}
+            </details>
+          ))}
+        </section>
+      )}
       <h2>待办事项</h2>
       <label>
         筛选{" "}

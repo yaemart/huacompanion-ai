@@ -268,6 +268,13 @@ export const Staff: CollectionConfig = {
     { name: "name", label: "姓名", type: "text", required: true },
     { name: "active", label: "账号启用", type: "checkbox", defaultValue: true, access: fieldAdmin },
     {
+      name: "dailyDigestEnabled",
+      type: "checkbox",
+      defaultValue: false,
+      access: { ...protectedField, read: () => false },
+      admin: { hidden: true },
+    },
+    {
       name: "team",
       label: "所属团队",
       type: "relationship",

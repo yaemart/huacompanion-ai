@@ -1,3 +1,4 @@
+import * as migration_20261115_080000_staff_daily_digest from "./20261115_080000_staff_daily_digest";
 import * as migration_20261109_120000_intake_followups from "./20261109_120000_intake_followups";
 import * as migration_20261111_100000_quote_templates from "./20261111_100000_quote_templates";
 import * as migration_20261113_100000_quote_line_foundation from "./20261113_100000_quote_line_foundation";
@@ -221,5 +222,10 @@ export const migrations = [
     up: migration_20261114_080000_inquiry_reply_templates.up,
     down: migration_20261114_080000_inquiry_reply_templates.down,
     name: "20261114_080000_inquiry_reply_templates",
+  },
+  {
+    up: migration_20261115_080000_staff_daily_digest.up,
+    down: migration_20261115_080000_staff_daily_digest.down,
+    name: "20261115_080000_staff_daily_digest",
   },
 ];
