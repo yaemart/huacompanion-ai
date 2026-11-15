@@ -123,6 +123,7 @@ jobs:
           node --import tsx tests/integration/quote-review.ts
           npm run test:business:ai
           npm run test:workflow
+          node --import tsx tests/integration/staff-daily-digest.ts
           npm run test:quality
           npm run test:customer
           npm run test:support

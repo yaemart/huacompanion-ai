@@ -1,15 +1,23 @@
 import { refreshSharedNoteAssignees } from "../immigration/shared-note-tasks";
 import { canAccessContentKind, canReviewContent } from "../../cms/access";
 import { randomUUID } from "node:crypto";
-import type { Payload, PayloadRequest, RequiredDataFromCollectionSlug } from "payload";
-import type { WorkflowNotification, WorkflowTask, WorkflowMailJob } from "../../../payload-types";
+import type { Payload, PayloadRequest, RequiredDataFromCollectionSlug, Where } from "payload";
+import type {
+  Staff as PayloadStaff,
+  WorkflowNotification,
+  WorkflowTask,
+  WorkflowMailJob,
+} from "../../../payload-types";
 import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
 import type { MailResult } from "./mail";
 import { transactionSession } from "../db-types";
+import { staffDigestAt, type DigestCandidate } from "../../lib/staff-daily-digest";
+import { chinaDay } from "../../lib/staff-today";
 interface WorkflowActionInput {
   action: string;
-  id: number | string;
+  id?: number | string;
+  enabled?: unknown;
   assignee?: number | string;
   dueAt?: unknown;
   reason?: unknown;
@@ -22,18 +30,16 @@ type UniqueCollection =
   | "workflow-mail-jobs";
 
 import { isActiveStaff, isManager, isAdmin, relationID } from "../../cms/access";
-import { postponeDate, reminderKey, workflowEventTypes } from "../../lib/workflow";
+import { postponeDate, reminderKey } from "../../lib/workflow";
 import { sendConfiguredMail } from "./mail";
 import { customerOwnsInquiry } from "../customer/service";
 import { customerNotificationText } from "../../lib/workflow";
-export type WorkflowEvent = {
+export type WorkflowEvent = DigestCandidate & {
   key: string;
-  type: (typeof workflowEventTypes)[number];
   inquiry?: string | number;
   contentDraft?: string | number;
   recipient?: string | number;
   title: string;
-  dueAt?: string;
 };
 async function unique<TSlug extends UniqueCollection>(
   p: Payload,
@@ -109,12 +115,16 @@ export async function enqueueWorkflowEvent(
   payload: Payload,
   event: WorkflowEvent,
   req?: Partial<PayloadRequest>,
+  now = Date.now(),
 ) {
   const p = payload;
   const settings = await p.findGlobal({ slug: "workflow-settings", req });
   const enabled = !settings.enabledEvents || settings.enabledEvents.includes(event.type);
   const eventData = {
-    ...event,
+    key: event.key,
+    type: event.type,
+    title: event.title,
+    dueAt: event.dueAt,
     inquiry: event.inquiry as number | undefined,
     contentDraft: event.contentDraft as number | undefined,
     recipient: event.recipient as number | undefined,
@@ -243,6 +253,17 @@ export async function enqueueWorkflowEvent(
     }
   }
   if (!recipient) return e;
+  let digestAt = staffDigestAt(true, event, now);
+  if (digestAt) {
+    const staff = await p.findByID({
+      collection: "staff",
+      id: recipient,
+      depth: 0,
+      disableErrors: true,
+      req: req && { ...req },
+    });
+    if (staff?.dailyDigestEnabled !== true) digestAt = undefined;
+  }
   const n = await unique(
     p,
     "workflow-notifications",
@@ -253,10 +274,11 @@ export async function enqueueWorkflowEvent(
       contentDraft: event.contentDraft as number | undefined,
       recipient: recipient as number,
       title: event.title,
+      digestAt,
     },
     req,
   );
-  if (settings.emailEnabled)
+  if (settings.emailEnabled && !n.digestAt)
     await unique(
       p,
       "workflow-mail-jobs",
@@ -340,26 +362,48 @@ function workflowView(d: WorkflowNotification | WorkflowTask) {
   };
 }
 type WorkflowView = ReturnType<typeof workflowView>;
-export async function workflowRead(payload: Payload, user: NonNullable<Staff>) {
+type WorkflowStaff = NonNullable<Staff> & Pick<PayloadStaff, "dailyDigestEnabled">;
+export async function workflowRead(payload: Payload, user: WorkflowStaff, now = Date.now()) {
   if (!isActiveStaff(user)) throw Error("Unauthorized");
   const p = payload;
   await refreshSharedNoteAssignees(p);
   const notifications: WorkflowView[] = [],
     tasks: WorkflowView[] = [];
+  const digests = new Map<string, WorkflowView[]>();
+  const inbox: Where = {
+    and: [
+      { recipient: { equals: user.id } },
+      {
+        or: [
+          { digestAt: { exists: false } },
+          { digestAt: { less_than_equal: new Date(now).toISOString() } },
+        ],
+      },
+    ],
+  };
   for (const [collection, target] of [
     ["workflow-notifications", notifications],
     ["workflow-tasks", tasks],
   ] as const) {
     let page = 1;
     for (;;) {
-      const result = await p.find({ collection, limit: 100, page, depth: 0, sort: "-createdAt" });
+      const result = await p.find({
+        collection,
+        where: collection === "workflow-notifications" ? inbox : undefined,
+        limit: 100,
+        page,
+        depth: 0,
+        sort: "-createdAt",
+      });
       for (const d of result.docs) {
-        if (
-          collection === "workflow-notifications" &&
-          String(relationID((d as WorkflowNotification).recipient)) !== String(user.id)
-        )
-          continue;
-        if (await visible(p, user, d)) target.push(workflowView(d));
+        if (!(await visible(p, user, d))) continue;
+        const item = workflowView(d);
+        if ("digestAt" in d && d.digestAt) {
+          const { date } = chinaDay(Date.parse(d.digestAt));
+          const entries = digests.get(date) ?? [];
+          entries.push(item);
+          digests.set(date, entries);
+        } else target.push(item);
       }
       if (!result.hasNextPage) break;
       page++;
@@ -384,15 +428,26 @@ export async function workflowRead(payload: Payload, user: NonNullable<Staff>) {
       }))
     : [];
   const permissions = { canAssign: isManager(user), canReviewContent: canReviewContent(user) };
-  return { notifications, tasks, mailJobs, userID: user.id, ...permissions };
+  return {
+    notifications,
+    digests: [...digests]
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([date, items]) => ({ date, items })),
+    dailyDigestEnabled: user.dailyDigestEnabled === true,
+    tasks,
+    mailJobs,
+    userID: user.id,
+    ...permissions,
+  };
 }
 export async function workflowAction(
   payload: Payload,
-  user: NonNullable<Staff>,
+  user: WorkflowStaff,
   input: WorkflowActionInput,
 ) {
   if (!isActiveStaff(user)) throw Error("Unauthorized");
   if (input.action === "retry-mail") {
+    if (!input.id) throw Error("请先选择通知");
     const fresh = await payload.findByID({ collection: "staff", id: user.id, depth: 0 });
     if (!isAdmin(fresh)) throw Error("Forbidden");
     await updateMailJob(payload, input.id, (current) => {
@@ -429,17 +484,31 @@ export async function workflowAction(
 }
 async function actionWithinTransaction(
   p: Payload,
-  user: NonNullable<Staff>,
+  user: WorkflowStaff,
   input: WorkflowActionInput,
   req: Partial<PayloadRequest>,
 ) {
   if (!isActiveStaff(user)) throw Error("Unauthorized");
+  if (input.action === "set-daily-digest") {
+    if (typeof input.enabled !== "boolean") throw Error("请选择是否接收每日摘要");
+    if ((user.dailyDigestEnabled === true) !== input.enabled)
+      await p.update({
+        collection: "staff",
+        id: user.id,
+        user,
+        data: { dailyDigestEnabled: input.enabled },
+        req: { ...req },
+      });
+    return { ok: true };
+  }
+  if (!input.id) throw Error("请选择通知或待办");
   const collection = input.action === "read" ? "workflow-notifications" : "workflow-tasks";
   const d = await p.findByID({ collection, id: input.id, depth: 0, req: { ...req } });
   if (!(await visible(p, user, d, { ...req }))) throw Error("Forbidden");
   if (input.action === "read") {
-    if (String(relationID((d as WorkflowNotification).recipient)) !== String(user.id))
-      throw Error("Forbidden");
+    const notice = d as WorkflowNotification;
+    if (String(relationID(notice.recipient)) !== String(user.id)) throw Error("Forbidden");
+    if (notice.digestAt && Date.parse(notice.digestAt) > Date.now()) throw Error("该摘要尚未送达");
     await p.update({
       collection,
       id: d.id,

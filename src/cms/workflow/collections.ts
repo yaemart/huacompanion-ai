@@ -36,6 +36,7 @@ export const workflowCollections: CollectionConfig[] = [
   {
     ...base,
     slug: "workflow-notifications",
+    access: { ...access, read: ({ req }) => isAdmin(req.user) && { digestAt: { exists: false } } },
     fields: [
       text("key", { required: true, unique: true }),
       rel("event", "workflow-events"),
@@ -44,6 +45,7 @@ export const workflowCollections: CollectionConfig[] = [
       rel("recipient", "staff"),
       text("title", { required: true }),
       { name: "readAt", type: "date" },
+      { name: "digestAt", type: "date", admin: { hidden: true } },
     ],
   },
   {
