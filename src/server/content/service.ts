@@ -348,7 +348,7 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     if (input.action === "submit") {
       checkSourceDates(current.body as unknown as ContentBody);
       await checkPolicyDraft(p, req, current);
-      return p.update({
+      const submitted = await p.update({
         collection: "content-drafts",
         id: current.id,
         data: {
@@ -369,6 +369,17 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         },
         req,
       });
+      await p.create({
+        collection: "content-events",
+        data: {
+          draftId: submitted.id,
+          action: "submit",
+          actor: Number(user!.id),
+          revision: submitted.revision,
+        },
+        req,
+      });
+      return submitted;
     }
     if (input.action === "return") {
       if (current.reviewState !== "review") throw new ContentError("仅待审核内容可以退回");

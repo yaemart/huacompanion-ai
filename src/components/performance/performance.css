@@ -29,3 +29,42 @@
 .performance-evidence {
   white-space: pre-wrap;
 }
+
+.performance-monthly form,
+.performance-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.performance-monthly label {
+  margin-block: 0 0.4rem;
+}
+
+.performance-monthly button,
+.performance-monthly input,
+.performance-monthly select {
+  min-height: 44px;
+}
+
+.performance-metrics {
+  align-items: stretch;
+}
+
+.performance-metrics > div {
+  border: 1px solid #c8d0ce;
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+}
+
+.performance-metrics dd {
+  margin: 0.4rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.performance-metrics .performance-metrics-help {
+  font-size: 0.875rem;
+  font-weight: normal;
+}

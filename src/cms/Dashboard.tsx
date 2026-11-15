@@ -61,6 +61,7 @@ export function Dashboard({ user, payload }: { user?: Staff; payload: Payload })
       <h2>华伴 · 运营后台</h2>
       {isActiveStaff(user) && (
         <p>
+          <a href="/performance-center/monthly">个人业绩与月报</a> ·{" "}
           <a href="/performance-center">投诉、纠错与申诉</a>
         </p>
       )}
