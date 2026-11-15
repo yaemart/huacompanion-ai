@@ -46,6 +46,7 @@ export const workflowCollections: CollectionConfig[] = [
       text("title", { required: true }),
       { name: "readAt", type: "date" },
       { name: "digestAt", type: "date", admin: { hidden: true } },
+      { name: "performanceIncident", type: "number", min: 1, admin: { hidden: true } },
     ],
   },
   {

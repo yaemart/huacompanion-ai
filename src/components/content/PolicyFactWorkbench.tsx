@@ -191,6 +191,11 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               另存第 {v.revision} 版为草稿
             </button>
           ))}
+          {!!desk.versions.length && group && (
+            <p>
+              <a href={`/performance-center?source=fact&record=${group.id}`}>登记共用事实纠错</a>
+            </p>
+          )}
         </section>
       </div>
     </main>

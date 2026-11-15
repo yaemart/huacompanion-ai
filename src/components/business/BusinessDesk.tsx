@@ -303,6 +303,9 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 </a>{" "}
                 · {stageLabels[c.stage]} · 版本 {c.revision}
               </p>
+              <p>
+                <a href={`/performance-center?source=case&record=${c.id}`}>登记服务投诉</a>
+              </p>
               {customerCenter && <CustomerLink inquiryID={view.inquiry.id} />}
               <BusinessAI
                 key={id}

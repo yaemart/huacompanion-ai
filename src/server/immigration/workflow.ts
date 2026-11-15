@@ -163,7 +163,7 @@ export async function publishPolicy(
     data: { status: "published" },
     req,
   });
-  return publicPolicy(fields);
+  return { body: publicPolicy(fields), verifier: fields.verifiedBy };
 }
 
 export async function unpublishPolicy(p: Payload, req: Req, current: ContentDraft) {

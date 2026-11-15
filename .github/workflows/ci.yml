@@ -209,3 +209,7 @@ jobs:
           TRIAL_MAINTENANCE=true node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3002 > /tmp/hua-trial-access.log 2>&1 &
           trial_server_pid=$!
           npm run test:trial:access:http -- --maintenance
+      - name: Verify performance incident registration and independent appeals
+        env:
+          APP_ENV: local
+        run: node --import tsx tests/integration/performance-incidents.ts

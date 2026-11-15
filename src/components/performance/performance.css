@@ -1,0 +1,31 @@
+.performance-desk {
+  max-width: 940px;
+  margin: 2rem auto;
+  padding: 0 1rem 2rem;
+}
+.performance-desk article {
+  border: 1px solid #c8d0ce;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-wrap: anywhere;
+}
+.performance-desk fieldset {
+  min-inline-size: 0;
+  margin: 0.75rem 0;
+}
+.performance-desk label {
+  display: block;
+  margin: 0.75rem 0;
+}
+.performance-desk input:not([type="checkbox"], [type="radio"]),
+.performance-desk select,
+.performance-desk textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.5rem;
+}
+.performance-evidence {
+  white-space: pre-wrap;
+}

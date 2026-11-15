@@ -107,6 +107,8 @@ export interface Config {
     'workflow-tasks': WorkflowTask;
     'workflow-customer-notifications': WorkflowCustomerNotification;
     'workflow-mail-jobs': WorkflowMailJob;
+    'performance-incidents': PerformanceIncident;
+    'performance-findings': PerformanceFinding;
     'content-quality': ContentQuality;
     'content-quality-events': ContentQualityEvent;
     'customer-accounts': CustomerAccount;
@@ -160,6 +162,8 @@ export interface Config {
     'workflow-tasks': WorkflowTasksSelect<false> | WorkflowTasksSelect<true>;
     'workflow-customer-notifications': WorkflowCustomerNotificationsSelect<false> | WorkflowCustomerNotificationsSelect<true>;
     'workflow-mail-jobs': WorkflowMailJobsSelect<false> | WorkflowMailJobsSelect<true>;
+    'performance-incidents': PerformanceIncidentsSelect<false> | PerformanceIncidentsSelect<true>;
+    'performance-findings': PerformanceFindingsSelect<false> | PerformanceFindingsSelect<true>;
     'content-quality': ContentQualitySelect<false> | ContentQualitySelect<true>;
     'content-quality-events': ContentQualityEventsSelect<false> | ContentQualityEventsSelect<true>;
     'customer-accounts': CustomerAccountsSelect<false> | CustomerAccountsSelect<true>;
@@ -583,6 +587,15 @@ export interface ContentPublished {
  * via the `definition` "content-events".
  */
 export interface ContentEvent {
+  publicationParticipants?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   id: number;
   draftId: number;
   action: string;
@@ -1308,6 +1321,7 @@ export interface WorkflowEvent {
  * via the `definition` "workflow-notifications".
  */
 export interface WorkflowNotification {
+  performanceIncident?: number | null;
   id: number;
   key: string;
   event?: (number | null) | WorkflowEvent;
@@ -1376,6 +1390,65 @@ export interface WorkflowMailJob {
   nextAt?: string | null;
   attempts?: number | null;
   providerId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "performance-incidents".
+ */
+export interface PerformanceIncident {
+  id: number;
+  key: string;
+  source: 'case' | 'content' | 'fact' | 'note';
+  sourceRecord: number;
+  sourceVersion: number;
+  sourceRevision?: number | null;
+  sourceLocale?: string | null;
+  issueField?: string | null;
+  title: string;
+  evidence: string;
+  occurredAt: string;
+  reportedBy: number;
+  participants:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sourceTeam?: number | null;
+  completeHistory: boolean;
+  relatedIncident?: number | null;
+  duplicateOf?: number | null;
+  state: 'pending' | 'confirmed' | 'dismissed';
+  responsibility?: ('company' | 'supplier' | 'unassigned') | null;
+  decidedBy?: number | null;
+  firstConfirmedAt?: string | null;
+  decisionReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "performance-findings".
+ */
+export interface PerformanceFinding {
+  id: number;
+  incident: number | PerformanceIncident;
+  staff: number | Staff;
+  duty: 'service' | 'editing' | 'verification' | 'review';
+  summary: string;
+  active: boolean;
+  notifiedAt: string;
+  appealAt?: string | null;
+  appealReason?: string | null;
+  result?: ('upheld' | 'changed' | 'dismissed') | null;
+  resolvedAt?: string | null;
+  resolvedBy?: number | null;
+  resolution?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1957,6 +2030,7 @@ export interface ContentPublishedSelect<T extends boolean = true> {
  * via the `definition` "content-events_select".
  */
 export interface ContentEventsSelect<T extends boolean = true> {
+  publicationParticipants?: T;
   draftId?: T;
   action?: T;
   actor?: T;
@@ -2420,6 +2494,7 @@ export interface WorkflowEventsSelect<T extends boolean = true> {
  * via the `definition` "workflow-notifications_select".
  */
 export interface WorkflowNotificationsSelect<T extends boolean = true> {
+  performanceIncident?: T;
   key?: T;
   event?: T;
   inquiry?: T;
@@ -2476,6 +2551,55 @@ export interface WorkflowMailJobsSelect<T extends boolean = true> {
   nextAt?: T;
   attempts?: T;
   providerId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "performance-incidents_select".
+ */
+export interface PerformanceIncidentsSelect<T extends boolean = true> {
+  key?: T;
+  source?: T;
+  sourceRecord?: T;
+  sourceVersion?: T;
+  sourceRevision?: T;
+  sourceLocale?: T;
+  issueField?: T;
+  title?: T;
+  evidence?: T;
+  occurredAt?: T;
+  reportedBy?: T;
+  participants?: T;
+  sourceTeam?: T;
+  completeHistory?: T;
+  relatedIncident?: T;
+  duplicateOf?: T;
+  state?: T;
+  responsibility?: T;
+  decidedBy?: T;
+  firstConfirmedAt?: T;
+  decisionReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "performance-findings_select".
+ */
+export interface PerformanceFindingsSelect<T extends boolean = true> {
+  incident?: T;
+  staff?: T;
+  duty?: T;
+  summary?: T;
+  active?: T;
+  notifiedAt?: T;
+  appealAt?: T;
+  appealReason?: T;
+  result?: T;
+  resolvedAt?: T;
+  resolvedBy?: T;
+  resolution?: T;
   updatedAt?: T;
   createdAt?: T;
 }

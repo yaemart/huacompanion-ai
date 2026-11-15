@@ -9,6 +9,7 @@ type Item = {
   readAt?: string;
   inquiry?: number;
   contentDraft?: number;
+  performanceIncident?: number;
 };
 export default function WorkflowDesk({ taskID }: { taskID?: number }) {
   const [data, setData] = useState<{
@@ -25,7 +26,9 @@ export default function WorkflowDesk({ taskID }: { taskID?: number }) {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState(taskID ? "target" : "open");
   const source = (item: Item) =>
-    item.inquiry ? (
+    item.performanceIncident ? (
+      <a href={`/performance-center?id=${item.performanceIncident}`}>查看本人判定</a>
+    ) : item.inquiry ? (
       <a href={`/admin/collections/inquiries/${item.inquiry}`}>打开咨询 #{item.inquiry}</a>
     ) : item.contentDraft ? (
       <a href={`/admin/collections/content-drafts/${item.contentDraft}`}>
