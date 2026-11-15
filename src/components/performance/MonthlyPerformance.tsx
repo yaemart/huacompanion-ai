@@ -1,4 +1,5 @@
 import type { readMonthlyPerformance } from "@/server/performance/monthly";
+import { ScorecardObservation } from "./ScorecardObservation";
 
 type Report = Awaited<ReturnType<typeof readMonthlyPerformance>>;
 
@@ -58,6 +59,12 @@ export function MonthlyPerformance({ report }: { report: Report }) {
     <main className="performance-desk performance-monthly">
       <nav>
         <a href="/admin">管理后台</a> · <a href="/performance-center">投诉、纠错与申诉</a>
+        {people && (
+          <>
+            {" "}
+            · <a href="/performance-center/monthly/rules">评分规则</a>
+          </>
+        )}
       </nav>
       <h1>个人业绩与月报</h1>
       <form method="get" action="/performance-center/monthly">
@@ -102,6 +109,7 @@ export function MonthlyPerformance({ report }: { report: Report }) {
           </div>
         ))}
       </dl>
+      <ScorecardObservation observation={report.scorecard} individual={staff !== null} />
       <section aria-labelledby="pending-performance">
         <h2 id="pending-performance">待定记录（{pending.length}）</h2>
         <p>待确认登记按登记月份展示。进入申诉期后按首次确认月份展示，待定期间暂缓计数。</p>

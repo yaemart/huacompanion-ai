@@ -217,3 +217,7 @@ jobs:
         env:
           APP_ENV: local
         run: node --import tsx tests/integration/staff-monthly-performance.ts
+      - name: Verify scorecard trial settings and cross-month observations
+        env:
+          APP_ENV: local
+        run: node --import tsx tests/integration/staff-scorecard.ts

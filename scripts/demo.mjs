@@ -382,6 +382,19 @@ if (action === "serve") {
           throw Error(
             "投诉与纠错尚未迁移；请配套备份并执行20261115_130000_performance_incidents，勿reset。",
           );
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT to_regclass('public.scorecard_plans') IS NOT NULL",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "月度评分卡尚未迁移；请配套备份并执行20261115_210000_staff_scorecard，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)

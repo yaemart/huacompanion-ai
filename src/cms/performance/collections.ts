@@ -34,6 +34,17 @@ const select = (name: string, options: readonly string[], required = false): Fie
 export const performanceCollections: CollectionConfig[] = [
   {
     ...base,
+    slug: "scorecard-plans",
+    typescript: { interface: "ScorecardPlan" },
+    fields: [
+      { name: "key", type: "text", required: true, unique: true },
+      { name: "effectiveMonth", type: "text", index: true },
+      { name: "revision", type: "number", required: true, min: 1 },
+      { name: "configuration", type: "json", required: true },
+    ],
+  },
+  {
+    ...base,
     slug: "performance-incidents",
     typescript: { interface: "PerformanceIncident" },
     fields: [

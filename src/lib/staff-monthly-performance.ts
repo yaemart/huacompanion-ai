@@ -47,6 +47,7 @@ function historyItem(value: unknown): value is TaskHistoryItem {
 export function taskAtCutoff(task: TaskInput, cutoff: string) {
   let { assignee, due } = task;
   let doneAt: string | null = null;
+  let canceled = false;
   for (const entry of Array.isArray(task.history) ? task.history.filter(historyItem) : []) {
     const at = new Date(entry.at).toISOString();
     if (at >= cutoff) break;
@@ -57,11 +58,13 @@ export function taskAtCutoff(task: TaskInput, cutoff: string) {
       due = new Date(entry.dueAt).toISOString();
     else if (["done", "note-approved", "system-close"].includes(entry.action)) {
       doneAt = at;
+      canceled = entry.action === "system-close";
     } else if (entry.action === "note-unpublished") {
       doneAt = null;
+      canceled = false;
     }
   }
-  return { assignee, due, doneAt };
+  return { assignee, due, doneAt, canceled };
 }
 
 type FollowupEvent = {

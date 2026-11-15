@@ -68,3 +68,60 @@
   font-size: 0.875rem;
   font-weight: normal;
 }
+
+.scorecard {
+  margin-block: 1.5rem;
+}
+
+.scorecard details {
+  margin-block: 0.75rem;
+  border: 1px solid #c8d0ce;
+  border-radius: 0.5rem;
+  padding: 0.7rem;
+}
+
+.scorecard summary {
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.scorecard-table-scroll {
+  overflow-x: auto;
+  border: 1px solid #c8d0ce;
+  border-radius: 0.5rem;
+}
+
+.scorecard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scorecard-table :is(th, td) {
+  padding: 0.65rem;
+  border-bottom: 1px solid #c8d0ce;
+  text-align: left;
+}
+
+.scorecard-table :is(th, td) {
+  min-width: 7rem;
+}
+
+.scorecard-table th:first-child {
+  min-width: 11rem;
+}
+
+.scorecard-assignments,
+.scorecard-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  align-items: end;
+  gap: 0.65rem;
+}
+
+.scorecard-actions {
+  margin-block: 0.6rem;
+}
+
+.scorecard-actions button {
+  min-height: 44px;
+}
