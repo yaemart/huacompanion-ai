@@ -57,7 +57,10 @@ const english = {
   "transit-240h": "240-hour transit",
   other: "Other policy",
 };
-function identity(policy: PolicyForm, locale: ContentBody["locale"]) {
+function identity(
+  policy: Pick<PolicyForm, "countryCode" | "policyType" | "countryNameZh" | "countryNameEn">,
+  locale: ContentBody["locale"],
+) {
   if (!policy.countryCode || !policy.policyType) return null;
   const key = `${policy.countryCode.toLowerCase()}-${suffix[policy.policyType]}`;
   return {

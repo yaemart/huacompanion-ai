@@ -60,12 +60,13 @@ export async function mutateSharedPolicyFacts(
   p: Payload,
   user: ContentUser,
   input: SharedFactInput,
+  transaction?: { transactionID: string | number },
 ): Promise<PolicyFactDraft> {
   if (!["save", "restore", "submit", "return", "publish", "unpublish"].includes(input.action))
     throw new ContentError("未知政策操作");
   if (input.groupId !== undefined && (!Number.isSafeInteger(input.groupId) || input.groupId < 1))
     throw new ContentError("政策编号无效");
-  return contentTransaction(p, async (req) => {
+  const run = async (req: { transactionID: string | number }) => {
     const actor = await policyActor(p, req, user, input.action);
     let group = input.groupId
       ? await p.findByID({ collection: "policy-groups", id: input.groupId, req, depth: 0 })
@@ -235,5 +236,6 @@ export async function mutateSharedPolicyFacts(
       },
     });
     return saved;
-  });
+  };
+  return transaction ? run({ ...transaction }) : contentTransaction(p, run);
 }
