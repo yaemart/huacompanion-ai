@@ -1,4 +1,5 @@
 import { followupText } from "../../lib/intake-followups";
+import { auditCsvExport } from "./csv-audit";
 import type { CollectionSlug, Payload, Where } from "payload";
 import type { Staff } from "../../cms/access";
 import { isAdmin, isOperator, relationID } from "../../cms/access";
@@ -199,16 +200,10 @@ export async function reportingExport(p: Payload, user: Staff, input: unknown) {
   });
   const csv = csvDocument(headers, rows);
   // Persist the audit before returning any CSV. Failure prevents disclosure.
-  const audit = await p.create({
-    collection: "audit-events",
-    data: {
-      entity: request.entity,
-      recordId: "export",
-      action: "csv-export",
-      actor: actor.id,
-      fields: headers.join(","),
-      after: { filters, count: records.length, includeSensitive: sensitive },
-    },
+  const audit = await auditCsvExport(p, request.entity, actor.id, headers, {
+    filters,
+    count: records.length,
+    includeSensitive: sensitive,
   });
   return { csv, count: records.length, auditId: audit.id };
 }

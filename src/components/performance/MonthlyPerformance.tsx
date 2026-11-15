@@ -1,5 +1,10 @@
 import type { readMonthlyPerformance } from "@/server/performance/monthly";
+import {
+  performanceIncidentLabels,
+  performancePendingLabels,
+} from "@/lib/staff-monthly-performance";
 import { ScorecardObservation } from "./ScorecardObservation";
+import { MonthlyCsvDownload } from "./MonthlyCsvDownload";
 
 type Report = Awaited<ReturnType<typeof readMonthlyPerformance>>;
 
@@ -17,14 +22,6 @@ function minutes(value: number | null) {
 function ratio(value: number, total: number) {
   return total ? rate.format(value / total) + `（${value}/${total}）` : "暂无样本";
 }
-
-const sources = {
-  case: "服务投诉",
-  content: "内容纠错",
-  fact: "政策事实纠错",
-  note: "政策说明纠错",
-};
-const reasons = { confirmation: "待确认", window: "申诉期内", review: "申诉待复核" };
 
 export function MonthlyPerformance({ report }: { report: Report }) {
   const { period, people, staff, response, followup, incidents, review, overdueReviews, pending } =
@@ -100,6 +97,7 @@ export function MonthlyPerformance({ report }: { report: Report }) {
         {period.month} · {report.name ?? "全员汇总"}
       </h2>
       <p>统计更新于 {time.format(new Date(report.asOf))}（北京时间）。跨月复核可更新首次确认月。</p>
+      <MonthlyCsvDownload key={`${period.month}:${staff}`} month={period.month} staff={staff} />
       <dl className="performance-metrics">
         {metrics.map(([label, value, help]) => (
           <div key={label}>
@@ -119,9 +117,9 @@ export function MonthlyPerformance({ report }: { report: Report }) {
             {pending.map(({ id, source, reason }) => (
               <li key={id}>
                 <a href={`/performance-center?id=${id}`}>
-                  {sources[source]} #{id}
+                  {performanceIncidentLabels[source]} #{id}
                 </a>{" "}
-                · 待定（{reasons[reason]}）
+                · 待定（{performancePendingLabels[reason]}）
               </li>
             ))}
           </ul>
