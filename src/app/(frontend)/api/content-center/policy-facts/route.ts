@@ -8,9 +8,10 @@ export async function POST(req: Request) {
   try {
     checkOrigin(req);
     const { p, user } = await contentAuth(req.headers);
-    const saved = await mutateSharedPolicyFacts(p, user, await limitedJSON(req));
+    const input = await limitedJSON(req);
+    const saved = await mutateSharedPolicyFacts(p, user, input);
     return Response.json(
-      { groupId: relationID(saved.group) },
+      { groupId: relationID(saved.group), ...(input.action === "save" && { draft: saved }) },
       {
         headers: { "Cache-Control": "private, no-store" },
       },

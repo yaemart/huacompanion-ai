@@ -1,5 +1,6 @@
 "use client";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useUnsavedDraft } from "@/components/admin/useDraftProtection";
 import { businessStages, stageLabels } from "../../lib/business";
 import QuoteReview from "./QuoteReview";
 import { QuoteMarginAmounts } from "./QuoteMargin";
@@ -65,13 +66,21 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
   const retry = useRef<{ signature: string; key: string; revision?: number } | null>(null);
   const quoteEditor = useRef<HTMLDetailsElement>(null);
   const quoteTitle = useRef<HTMLTextAreaElement>(null);
+  const quoteBaseline = useRef(quote);
+  const [quoteFieldsChanged, setQuoteFieldsChanged] = useState(false);
+  const quoteDirty = quote !== quoteBaseline.current || quoteFieldsChanged || !!source;
+  const caseDirty = !id && !!(inquiry || title);
+  const { confirmDiscard } = useUnsavedDraft(quoteDirty || caseDirty);
+  function resetQuote() {
+    const clean = initialQuote(randomClientID());
+    quoteBaseline.current = clean;
+    setQuote(clean);
+    setSource(undefined);
+    setQuoteFieldsChanged(false);
+  }
   function copyQuote(original: DraftSource, origin: Omit<DraftOrigin, "editorKey">) {
     if (busy) return;
-    if (
-      (source || quote.title || quote.scope || quote.included || quote.excluded || quote.terms) &&
-      !window.confirm("替换当前未保存的报价内容？")
-    )
-      return;
+    if (quoteDirty && !window.confirm("替换当前未保存的报价内容？")) return;
     setError("");
     const { title, scope, included, excluded, terms, currency, expiresAt, lines } = original;
     setQuote({
@@ -179,7 +188,11 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
       if (!r.ok && r.status < 500) retry.current = null;
       const j = await readStaffFormResponse<{ case: number }>(r, actionFallback);
       if (!Number.isSafeInteger(j.case) || j.case < 1) throw Error(actionFallback);
-      if (action === "create") setId(j.case);
+      if (action === "create") {
+        setId(j.case);
+        setInquiry("");
+        setTitle("");
+      }
       await refresh(j.case);
       retry.current = null;
       return true;
@@ -221,10 +234,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
           <button
             disabled={busy}
             onClick={() => {
+              if (!id || !confirmDiscard()) return;
               setId(undefined);
               setView(undefined);
-              setQuote(initialQuote());
-              setSource(undefined);
+              resetQuote();
               setTemplateCategory("");
               setError("");
             }}
@@ -237,11 +250,12 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <button
                   disabled={busy}
                   onClick={() => {
-                    if (x.id === id) return;
+                    if (x.id === id || !confirmDiscard()) return;
                     setView(undefined);
                     setId(x.id);
-                    setQuote(initialQuote());
-                    setSource(undefined);
+                    setInquiry("");
+                    setTitle("");
+                    resetQuote();
                     setTemplateCategory("");
                     setError("");
                   }}
@@ -471,9 +485,17 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
               ))}
               <details ref={quoteEditor}>
                 <summary>新建报价版本</summary>
+                {quoteDirty && <p role="status">本次填写尚未保存。请保存报价草稿后再离开。</p>}
                 <form
                   key={source?.editorKey ?? "new"}
                   onInvalid={(event) => invalid(event, "draft")}
+                  onChangeCapture={(event) => {
+                    if (
+                      event.target instanceof HTMLElement &&
+                      event.target.dataset.templateSelector !== "true"
+                    )
+                      setQuoteFieldsChanged(true);
+                  }}
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const form = new FormData(e.currentTarget);
@@ -491,8 +513,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         },
                       })
                     ) {
-                      setQuote(initialQuote(randomClientID()));
-                      setSource(undefined);
+                      resetQuote();
                     }
                   }}
                 >
@@ -503,8 +524,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         <button
                           type="button"
                           onClick={() => {
-                            setQuote(initialQuote(randomClientID()));
-                            setSource(undefined);
+                            if (confirmDiscard()) resetQuote();
                           }}
                         >
                           退出另存
@@ -516,6 +536,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         <label>
                           按服务类型选模板
                           <select
+                            data-template-selector="true"
                             value={template ? templateCategory : ""}
                             onChange={(e) => setTemplateCategory(e.target.value)}
                           >

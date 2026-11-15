@@ -7,8 +7,12 @@ export async function POST(req: Request) {
   try {
     checkOrigin(req);
     const { p, user } = await contentAuth(req.headers);
-    await mutateSharedPolicyNote(p, user, await limitedJSON(req));
-    return Response.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
+    const input = await limitedJSON(req);
+    const saved = await mutateSharedPolicyNote(p, user, input);
+    return Response.json(
+      { ok: true, ...(input.action === "save" && { draft: saved }) },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     return failure(error);
   }

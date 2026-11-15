@@ -1,11 +1,22 @@
 import { createHash } from "node:crypto";
-import type { CollectionAfterChangeHook } from "payload";
+import type { CollectionAfterChangeHook, Payload, PayloadRequest } from "payload";
+import type { ContentDraft } from "../../../payload-types";
 import { contentVersion } from "../../lib/quality";
 export const versionOf = (body: unknown) =>
   createHash("sha256").update(contentVersion(body)).digest("hex");
+export const contentQualityHook: CollectionAfterChangeHook<ContentDraft> = async ({
+  doc,
+  previousDoc,
+  req,
+}) => updateContentDraftQuality(req.payload, doc, previousDoc, req);
+
 /** Runs in the caller's content transaction; never writes published snapshots or other drafts. */
-export const contentQualityHook: CollectionAfterChangeHook = async ({ doc, previousDoc, req }) => {
-  const p = req.payload as any;
+export async function updateContentDraftQuality(
+  p: Payload,
+  doc: ContentDraft,
+  previousDoc: ContentDraft | undefined,
+  req: Partial<PayloadRequest>,
+) {
   const version = versionOf(doc.body);
   if (previousDoc?.body !== undefined && version === versionOf(previousDoc.body)) return doc;
   const existing = (
@@ -25,7 +36,7 @@ export const contentQualityHook: CollectionAfterChangeHook = async ({ doc, previ
     contentKey: doc.contentKey,
     locale: doc.locale,
     contentVersion: version,
-    state: "review-needed",
+    state: "review-needed" as const,
     sourceDraft: doc.sourceDraft || null,
   };
   if (existing)
@@ -62,4 +73,4 @@ export const contentQualityHook: CollectionAfterChangeHook = async ({ doc, previ
     });
   }
   return doc;
-};
+}

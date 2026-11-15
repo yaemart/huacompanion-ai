@@ -1,5 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
+import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
 import type {
   readSharedPolicyNote,
   SharedNoteInput,
@@ -14,9 +16,13 @@ export function PolicyNoteWorkbench({
 }: {
   initial: Awaited<ReturnType<typeof readSharedPolicyNote>>;
 }) {
-  const { group, draft, facts, permissions: perm } = desk;
+  const { group, facts, permissions: perm } = desk;
+  const [draft, setDraft] = useState(desk.draft);
   const [body, setBody] = useState(draft || desk.defaultBody);
-  const [dirty, setDirty] = useState(false);
+  const [savedBody, setSavedBody] = useState(body);
+  const dirty = body !== savedBody;
+  const writing = useRef(false);
+  const { navigateAfterSave } = useUnsavedDraft(dirty);
   const [checked, setChecked] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,18 +38,25 @@ export function PolicyNoteWorkbench({
     relationID(draft?.basedOnFactVersion) === relationID(group.activeFactVersion);
   const ready = !dirty && !!facts && currentBasis;
   const reviewable = perm.canReview && (!own || (perm.isAdmin && !!reason.trim()));
-  const open = (locale?: string) =>
-    window.location.assign(
-      `/content-center/policy-facts?id=${group.id}${locale ? `&locale=${locale}` : ""}`,
-    );
+  const noteUrl = (locale?: string) =>
+    `/content-center/policy-facts?id=${group.id}${locale ? `&locale=${locale}` : ""}`;
+  const open = (locale?: string) => {
+    if (!writing.current) window.location.assign(noteUrl(locale));
+  };
   function change(name: "title" | "slug" | "publicNotes", value: string) {
     setBody({ ...body, [name]: value });
-    setDirty(true);
     setChecked(false);
   }
-  async function action(action: SharedNoteInput["action"], versionId?: number) {
-    setBusy(true);
+  async function action(
+    action: SharedNoteInput["action"],
+    versionId?: number,
+    automatic = false,
+  ): Promise<DraftSaveResult> {
+    if (writing.current || (action !== "save" && dirty)) return "blocked";
+    writing.current = true;
+    if (!automatic) setBusy(true);
     setMessage("");
+    let retryable = !!draft;
     try {
       const response = await fetch("/api/content-center/policy-notes", {
         method: "POST",
@@ -61,26 +74,50 @@ export function PolicyNoteWorkbench({
           overrideReason: reason,
         }),
       });
-      const data = await readStaffFormResponse<{ ok: boolean }>(response, fallback);
+      retryable = !!draft && (response.status >= 500 || response.ok);
+      const data = await readStaffFormResponse<{ ok: boolean; draft?: NonNullable<typeof draft> }>(
+        response,
+        fallback,
+      );
       if (data.ok !== true) throw Error(fallback);
-      open(desk.locale);
+      if (automatic) {
+        const next = data.draft;
+        if (!next || !Number.isSafeInteger(next.revision)) throw Error(fallback);
+        setSavedBody(next);
+        setBody((current) => mergeSavedDraft(body, next, current));
+        setDraft(next);
+      } else {
+        navigateAfterSave(noteUrl(desk.locale));
+      }
+      return "saved";
     } catch (error) {
       setMessage(staffFormMessage(error, fallback));
       setChecked(false);
-      setBusy(false);
+      return retryable ? "retry" : "blocked";
+    } finally {
+      writing.current = false;
+      if (!automatic) setBusy(false);
     }
   }
+  const autosave = useDraftAutosave({
+    editable,
+    dirty,
+    busy,
+    fingerprint: body,
+    save: () => action("save", undefined, true),
+  });
+  const saving = busy || autosave.syncing;
   return (
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
       <h1>{desk.locale === "zh" ? "中文" : "英文"}公开说明</h1>
-      <button disabled={busy || dirty} onClick={() => open()}>
+      <button disabled={saving} onClick={() => open()}>
         共用事实
       </button>
-      <button disabled={busy || dirty} onClick={() => open(desk.locale === "zh" ? "en" : "zh")}>
+      <button disabled={saving} onClick={() => open(desk.locale === "zh" ? "en" : "zh")}>
         切换另一语说明
       </button>
-      <button disabled={busy} onClick={() => open(desk.locale)}>
+      <button disabled={saving} onClick={() => open(desk.locale)}>
         {dirty ? "放弃修改并重新读取" : "重新读取"}
       </button>
       <div className="workspace policy-workspace">
@@ -142,7 +179,7 @@ export function PolicyNoteWorkbench({
           {explanationFactWarning(body.publicNotes || "") && (
             <p className="notice">{explanationFactWarning(body.publicNotes || "")}</p>
           )}
-          {dirty && <p>有未保存修改，请先保存；切换暂不可用。</p>}
+          {autosave.status && <p role="status">{autosave.status}</p>}
           {waiting && <p>待审核说明已锁定，退回后方可编辑。</p>}
           {!currentBasis && facts && <p>事实已变化，请重新核对并保存草稿，再提交审核。</p>}
           {perm.canReview && (
@@ -183,7 +220,7 @@ export function PolicyNoteWorkbench({
               ["unpublish", "下架本语说明", reviewable && !!draft?.publishedNoteVersion && !dirty],
             ] as const
           ).map(([name, label, allowed]) => (
-            <button key={name} disabled={busy || !allowed} onClick={() => action(name)}>
+            <button key={name} disabled={saving || !allowed} onClick={() => action(name)}>
               {label}
             </button>
           ))}
@@ -191,7 +228,7 @@ export function PolicyNoteWorkbench({
           {desk.versions.map((v) => (
             <button
               key={v.id}
-              disabled={busy || dirty || !editable}
+              disabled={saving || dirty || !editable}
               onClick={() => action("restore", v.id)}
             >
               另存第 {v.revision} 版为草稿

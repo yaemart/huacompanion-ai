@@ -40,7 +40,9 @@ import { lifeText } from "@/lib/lifestyle-copy";
 import { emptyInstitution } from "@/lib/institutions";
 import { emptyExhibition, effectiveExhibitionStatus, shanghaiToday } from "@/lib/exhibitions";
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
+import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
 import type { ContentBody, Block } from "@/lib/content-model";
 const empty = (): ContentBody => ({
   kind: "guide",
@@ -78,6 +80,13 @@ const states: Record<string, string> = {
   failed: "失败",
   cancelled: "已取消",
 };
+function showDraftInURL(id?: number) {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("id", String(id));
+  else url.searchParams.delete("id");
+  window.history.replaceState(null, "", url);
+}
+
 export function ContentCenter({
   initialKind = "",
   initialDraftID,
@@ -97,6 +106,7 @@ export function ContentCenter({
     media: [],
     tasks: [],
   });
+  const [editSession, setEditSession] = useState(0);
   const [selected, setSelected] = useState<any>(null);
   const openedTarget = useRef(false);
   useEffect(() => {
@@ -106,7 +116,6 @@ export function ContentCenter({
     }
   }, [initialDraftID, selected?.id]);
   const [guideReference, setGuideReference] = useState<ContentDraft | null>(null);
-  const savedForm = useRef<ContentBody | null>(null);
   const listRequest = useRef(0);
   const comparisonRequest = useRef(0);
   const [body, setBody] = useState<ContentBody>(() => ({
@@ -122,6 +131,10 @@ export function ContentCenter({
       ? { kind: initialKind as ContentBody["kind"], catalog: emptyCatalog() }
       : {}),
   }));
+  const savedForm = useRef(body);
+  const savedProvider = useRef("");
+  const writing = useRef(false);
+  const createUnconfirmed = useRef(false);
   const [kindFilter, setKindFilter] = useState(initialKind);
   const [cityFilter, setCityFilter] = useState("");
   const [industryFilter, setIndustryFilter] = useState("");
@@ -165,6 +178,11 @@ export function ContentCenter({
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
+  const dirty = body !== savedForm.current || providerRef !== savedProvider.current;
+  const draftInput = useMemo(() => ({ body, providerRef }), [body, providerRef]);
+  const activeEdits = useRef(false);
+  activeEdits.current = dirty;
+  const { confirmDiscard } = useUnsavedDraft(dirty);
   const [tab, setTab] = useState("content");
   const [section, setSection] = useState(0);
   const [language, setLanguage] = useState("");
@@ -213,6 +231,9 @@ export function ContentCenter({
     if (!r.ok) {
       if ([401, 403].includes(r.status)) {
         setData({ drafts: [], published: [], media: [], tasks: [] });
+        if (activeEdits.current) {
+          throw Error("当前无法保存。请保留填写内容，并重新登录或确认编辑权限。");
+        }
         setSelected(null);
         comparisonRequest.current++;
         setGuideReference(null);
@@ -227,10 +248,15 @@ export function ContentCenter({
       comparisonRequest.current++;
       setGuideReference(null);
     }
+    if (activeEdits.current || writing.current) return d;
     setSelected((previous: any) => {
       if (previous && !d.drafts.some((draft: any) => draft.id === previous.id)) {
         if (previous.kind === "guide" && guideAccess && d.draftsTruncated) return previous;
-        setBody(empty());
+        const clean = empty();
+        savedForm.current = clean;
+        savedProvider.current = "";
+        setProviderRef("");
+        setBody(clean);
         return null;
       }
       return previous;
@@ -253,14 +279,16 @@ export function ContentCenter({
         const permitted = d.permissions?.contentKinds || [];
         const kind = permitted.includes(initialKind) ? initialKind : permitted[0];
         if (kind) {
-          setBody({
+          const clean = {
             ...empty(),
             kind,
             ...(isLife(kind) ? { lifestyle: emptyLifestyle(kind) } : {}),
             ...(kind === "institution" ? { institution: emptyInstitution() } : {}),
             ...(kind === "exhibition" ? { exhibition: emptyExhibition() } : {}),
             ...(isCatalog(kind) ? { catalog: emptyCatalog() } : {}),
-          });
+          };
+          savedForm.current = clean;
+          setBody(clean);
           if (initialKind && !permitted.includes(initialKind)) setKindFilter("");
         }
       })
@@ -276,10 +304,14 @@ export function ContentCenter({
   }, []);
   function select(d: any, reference: ContentDraft | null = null) {
     listRequest.current++;
+    setEditSession((session) => session + 1);
+    showDraftInURL(d?.id);
     setSelected(d);
     setGuideReference(reference);
     setOverrideReason("");
-    setProviderRef(d?.providerRef ? String(d.providerRef) : "");
+    savedProvider.current = d?.providerRef ? String(d.providerRef) : "";
+    setProviderRef(savedProvider.current);
+    createUnconfirmed.current = false;
     setCatalogReviewed(false);
     setExhibitionReviewed(false);
     setInstitutionReviewed(false);
@@ -298,9 +330,8 @@ export function ContentCenter({
   }
   async function compareGuide(mode: "open" | "refresh" | "existing" | "back") {
     const id = mode === "open" ? selected?.id : guideReference?.id;
-    if (!id || busy) return;
-    if (mode === "open" && body !== savedForm.current)
-      return setMessage("请先保存本稿修改，再打开双语对照。");
+    if (!id || busy || writing.current) return;
+    if (mode === "open" && dirty) return setMessage("请先保存本稿修改，再打开双语对照。");
     const request = ++comparisonRequest.current;
     setBusy(true);
     try {
@@ -314,12 +345,7 @@ export function ContentCenter({
         return setMessage("已读取最新原文，右侧译文保留。");
       }
       if (mode === "existing" && !target) return setMessage("该语言还没有已保存的工作稿。");
-      if (
-        mode !== "open" &&
-        body !== savedForm.current &&
-        !window.confirm("离开将丢弃未保存的译文。请先复制需要保留的文字。")
-      )
-        return;
+      if (mode !== "open" && !confirmDiscard()) return;
       if (mode === "back") select(source);
       else select(target, source);
     } catch (e) {
@@ -328,12 +354,24 @@ export function ContentCenter({
       setBusy(false);
     }
   }
-  async function action(action: string, extra: any = {}) {
+  async function action(
+    action: string,
+    extra: any = {},
+    automatic = false,
+  ): Promise<DraftSaveResult> {
+    if (writing.current || busy || (action === "submit" && dirty)) return "blocked";
+    if (["restore", "unpublish"].includes(action) && !confirmDiscard()) return "blocked";
+    if (action === "save" && !selected && createUnconfirmed.current) {
+      setFormError("首次保存结果未确认。请复制当前填写并从列表核对是否已建稿，再继续。");
+      return "blocked";
+    }
     if (
       action === "save" &&
       body.blocks.some(({ type, text }) => type === "policy-banner" && !text)
-    )
-      return setFormError("请先选择已发布政策，或移除空横幅后保存。");
+    ) {
+      setFormError("请先选择已发布政策，或移除空横幅后保存。");
+      return "blocked";
+    }
     if (
       action === "save" &&
       (body.blocks.length > 200 ||
@@ -341,18 +379,26 @@ export function ContentCenter({
           ({ type, text }) =>
             type !== "image" && type !== "policy-banner" && (text?.length ?? 0) > 10000,
         ))
-    )
-      return setFormError("正文最多 200 段，每段最多 10,000 字。请缩短或拆分后保存。");
-    setBusy(true);
+    ) {
+      setFormError("正文最多 200 段，每段最多 10,000 字。请缩短或拆分后保存。");
+      return "blocked";
+    }
+    writing.current = true;
+    listRequest.current++;
+    if (!automatic) setBusy(true);
     setMessage("");
     setFormError("");
     const fallback = "草稿操作未得到确认，请保留当前填写，稍后重试。";
+    const firstSave = action === "save" && !selected;
+    if (firstSave) createUnconfirmed.current = true;
+    let retryable = !!selected;
     try {
       const r = await fetch("/api/content-center", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
+          ...(automatic && { autosave: true }),
           id: selected?.id,
           revision: selected?.revision,
           ...(action === "save"
@@ -379,11 +425,32 @@ export function ContentCenter({
           ...extra,
         }),
       });
-      if (!r.ok) {
-        if ([401, 403].includes(r.status)) await load().catch(() => {});
-      }
+      retryable = !!selected && (r.status >= 500 || r.ok);
+      if (firstSave && r.status >= 400 && r.status < 500) createUnconfirmed.current = false;
+      if (!automatic && [401, 403].includes(r.status)) await load().catch(() => {});
       const d = await readStaffFormResponse<ContentDraft>(r, fallback);
-      if (!Number.isSafeInteger(d.id) || d.id < 1) throw Error(fallback);
+      if (!Number.isSafeInteger(d.id) || d.id < 1 || !Number.isSafeInteger(d.revision))
+        throw Error(fallback);
+      createUnconfirmed.current = false;
+      if (automatic) {
+        listRequest.current++;
+        const draftBody = d.body as unknown as ContentBody;
+        // The server validates and projects these blocks. Reuse the submitted nodes so the
+        // article editor keeps the cursor, undo stack and any in-progress link edits.
+        const next = { ...draftBody, blocks: body.blocks, category: sectionFor(draftBody) };
+        const nextProvider = d.providerRef ? String(d.providerRef) : "";
+        savedForm.current = next;
+        savedProvider.current = nextProvider;
+        setBody((current) => mergeSavedDraft(body, next, current));
+        setProviderRef((current) => (current === providerRef ? nextProvider : current));
+        setSelected(d);
+        if (firstSave) showDraftInURL(d.id);
+        setData((current: typeof data) => ({
+          ...current,
+          drafts: [d, ...current.drafts.filter((draft: ContentDraft) => draft.id !== d.id)],
+        }));
+        return "saved";
+      }
       select(d, guideReference);
       const refreshed = await load().then(
         () => true,
@@ -396,11 +463,31 @@ export function ContentCenter({
             ? "已下架"
             : "已保存；修改不会改变当前正式版") + (refreshed ? "" : "；列表暂未刷新"),
       );
+      return "saved";
     } catch (e) {
-      setFormError(staffFormMessage(e, fallback));
+      setFormError(
+        firstSave && createUnconfirmed.current
+          ? "首次保存结果未确认。请复制当前填写并从列表核对是否已建稿，再继续。"
+          : staffFormMessage(e, fallback),
+      );
+      return retryable ? "retry" : "blocked";
     } finally {
-      setBusy(false);
+      writing.current = false;
+      if (!automatic) setBusy(false);
     }
+  }
+  const autosave = useDraftAutosave({
+    editable: editable && tab === "content" && allowedKinds.includes(body.kind),
+    dirty,
+    busy,
+    fingerprint: draftInput,
+    session: editSession,
+    save: () => action("save", {}, true),
+  });
+  const saving = busy || autosave.syncing;
+  const creating = !selected && autosave.syncing;
+  function chooseDraft(draft: ContentDraft) {
+    if (!writing.current && draft.id !== selected?.id && confirmDiscard()) select(draft);
   }
   function field(key: keyof ContentBody, value: any) {
     setBody({
@@ -529,11 +616,15 @@ export function ContentCenter({
         <div className={guideReference ? "workspace guide-comparison" : "workspace"}>
           <aside className="panel" hidden={!!guideReference}>
             <button
-              disabled={!canEdit || busy}
+              disabled={!canEdit || saving}
               onClick={() => {
+                if (writing.current || !confirmDiscard()) return;
+                listRequest.current++;
+                setEditSession((session) => session + 1);
+                showDraftInURL();
                 setSelected(null);
                 setGuideReference(null);
-                setBody({
+                const clean = {
                   ...empty(),
                   kind: (kindFilter || allowedKinds[0] || "guide") as ContentBody["kind"],
                   ...(isLife(kindFilter) ? { lifestyle: emptyLifestyle(kindFilter) } : {}),
@@ -555,13 +646,19 @@ export function ContentCenter({
                         catalog: emptyCatalog(),
                       }
                     : {}),
-                });
+                };
+                savedForm.current = clean;
+                savedProvider.current = "";
+                createUnconfirmed.current = false;
+                setBody(clean);
                 setProviderRef("");
                 setCatalogReviewed(false);
                 setExhibitionReviewed(false);
                 setInstitutionReviewed(false);
                 setLifeReviewed(false);
                 setVersions([]);
+                setMessage("");
+                setFormError("");
               }}
             >
               {kindFilter === "institution"
@@ -844,7 +941,7 @@ export function ContentCenter({
                 query: search,
               },
             ).map((d: any) => (
-              <button className="item" key={d.id} disabled={busy} onClick={() => select(d)}>
+              <button className="item" key={d.id} disabled={saving} onClick={() => chooseDraft(d)}>
                 {d.title}
                 <small>
                   {contentSections.find((s) => s.id === sectionFor(d.body))?.zh} · {d.locale} ·{" "}
@@ -867,7 +964,7 @@ export function ContentCenter({
               key={guideReference.id}
               source={guideReference}
               changed={guideChanged}
-              busy={busy}
+              busy={saving}
               onBack={() => compareGuide("back")}
               onRefresh={() => compareGuide("refresh")}
               onExisting={selected ? undefined : () => compareGuide("existing")}
@@ -878,7 +975,7 @@ export function ContentCenter({
               {guideReference ? "编辑译文" : selected ? "编辑工作稿" : "新建工作稿"}
             </h2>
             {!guideReference && canEdit && guideLocale && (
-              <button disabled={busy} onClick={() => compareGuide("open")}>
+              <button disabled={saving} onClick={() => compareGuide("open")}>
                 {existingGuide ? "打开" : "添加"}
                 {guideLocale === "en" ? "英文版" : "中文版"}
               </button>
@@ -901,7 +998,7 @@ export function ContentCenter({
                   内容类型
                   <select
                     value={body.kind}
-                    disabled={!!selected || !!guideReference}
+                    disabled={!!selected || !!guideReference || creating}
                     onChange={(e) => field("kind", e.target.value)}
                   >
                     {Object.entries(kinds)
@@ -917,7 +1014,7 @@ export function ContentCenter({
                   语言
                   <select
                     value={body.locale}
-                    disabled={!!selected || !!guideReference}
+                    disabled={!!selected || !!guideReference || creating}
                     onChange={(e) => field("locale", e.target.value)}
                   >
                     {catalogLanguages.map((l) => (
@@ -933,7 +1030,7 @@ export function ContentCenter({
                   网站页面
                   <select
                     value={body.slug}
-                    disabled={selected?.everPublished || fixedPageLocked}
+                    disabled={selected?.everPublished || fixedPageLocked || creating}
                     onChange={(e) => field("slug", e.target.value)}
                   >
                     <option value="">请选择要编辑的页面</option>
@@ -1038,7 +1135,7 @@ export function ContentCenter({
                   内容编号（同一内容的各语言版本共用）
                   <input
                     value={body.contentKey}
-                    disabled={!!selected || !!guideReference}
+                    disabled={!!selected || !!guideReference || creating}
                     maxLength={100}
                     placeholder="首次保存时生成"
                     onChange={(e) => field("contentKey", e.target.value)}
@@ -1049,6 +1146,7 @@ export function ContentCenter({
                   <input
                     value={body.slug}
                     disabled={
+                      creating ||
                       body.kind === "page" ||
                       selected?.everPublished ||
                       (!!guideReference && !selected)
@@ -1202,7 +1300,7 @@ export function ContentCenter({
               <h2>正文</h2>
               <p>可直接粘贴整篇文章。选中文字可添加格式，点击已有链接可修改网址。</p>
               {articleParts.map(({ b, i, first }) => (
-                <div key={`${selected?.id ?? "new"}-${selected?.revision ?? 0}-${first}`}>
+                <div key={`${editSession}-${first}`}>
                   <ArticleEditor
                     blocks={body.blocks.slice(first, i)}
                     disabled={busy || !editable}
@@ -1356,9 +1454,10 @@ export function ContentCenter({
                 {formError}
               </p>
             )}
-            {selected && editable && <p>送审以已保存的草稿为准。修改后请先点「保存草稿」。</p>}
+            {autosave.status && <p role="status">{autosave.status}</p>}
+            {selected && editable && <p>送审使用已保存的草稿，请等保存完成后再提交。</p>}
             <button
-              disabled={busy || !editable || !allowedKinds.includes(body.kind)}
+              disabled={saving || !editable || !allowedKinds.includes(body.kind)}
               onClick={() => action("save")}
             >
               保存草稿
@@ -1375,7 +1474,7 @@ export function ContentCenter({
                     </a>
                   </p>
                 )}
-                <button disabled={busy || !editable} onClick={() => action("submit")}>
+                <button disabled={saving || !editable || dirty} onClick={() => action("submit")}>
                   提交已保存稿审核
                 </button>
                 {canReview && (
@@ -1489,7 +1588,7 @@ export function ContentCenter({
                   )
                   .map((d: any) => (
                     <p key={d.id}>
-                      <button disabled={busy} onClick={() => select(d)}>
+                      <button disabled={saving} onClick={() => chooseDraft(d)}>
                         打开 {d.locale} 对应内容
                       </button>
                       {d.sourceRevision && d.sourceRevision !== selected.revision

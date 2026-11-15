@@ -10,7 +10,8 @@ import {
   publishPolicy,
   unpublishPolicy,
 } from "../immigration/workflow";
-import { versionOf } from "../../cms/quality/hooks";
+import { versionOf, updateContentDraftQuality } from "../../cms/quality/hooks";
+import { contentSections, sectionFor } from "../../lib/content-sections";
 import { publicQualityMetadata } from "../../lib/quality";
 import { houseProviderCovers } from "../../lib/housekeeping";
 import {
@@ -44,6 +45,7 @@ interface ContentActionInput {
   revision?: unknown;
   versionId?: unknown;
   body?: unknown;
+  autosave?: unknown;
   guideSource?: unknown;
   providerRef?: unknown;
   overrideReason?: unknown;
@@ -333,6 +335,25 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         reviewState: "draft" as const,
         reviewNote: "",
       };
+      // A background save updates the editable row. A manual save or review operation
+      // still creates the usual history entry; timer writes cannot evict that history.
+      if (current && input.action === "save" && input.autosave === true) {
+        const updated = await p.db.updateOne({
+          collection: "content-drafts",
+          id: current.id,
+          req,
+          data: {
+            ...data,
+            sectionLabel: contentSections.find((section) => section.id === sectionFor(body))!.zh,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        if (!updated) throw new ContentError("内容已经更新，请刷新后重试", 409);
+        const saved = updated as ContentDraft;
+        await updateContentDraftQuality(p, saved, current, req);
+        if (!isAdmin(user)) delete saved.providerRef;
+        return saved;
+      }
       const saved = current
         ? await p.update({
             collection: "content-drafts",
