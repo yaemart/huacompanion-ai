@@ -126,7 +126,9 @@ export async function mutateSharedPolicyFacts(
           typeof input.contentKey !== "string" ||
           !/^[a-z0-9][a-z0-9-]{0,99}$/.test(input.contentKey)
         )
-          throw new ContentError("政策标识格式无效");
+          throw new ContentError(
+            "请在「高级」填写政策编号。以小写字母或数字开头，只用小写英文字母、数字和短横线，最多 100 字。",
+          );
         if (
           (
             await p.count({
@@ -136,7 +138,10 @@ export async function mutateSharedPolicyFacts(
             })
           ).totalDocs
         )
-          throw new ContentError("政策标识已存在，原记录未覆盖", 409);
+          throw new ContentError(
+            "这个政策编号已存在，请在「高级」更换编号，或打开原记录编辑。",
+            409,
+          );
         group = await p.create({
           collection: "policy-groups",
           data: { contentKey: input.contentKey!, revision: 1 },

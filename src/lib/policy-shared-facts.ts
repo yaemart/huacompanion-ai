@@ -7,6 +7,7 @@ import {
 } from "./immigration-policy.ts";
 import { policyDraft } from "./immigration-policy-draft.ts";
 import { assertPolicyCountry } from "./immigration-policy-entry.ts";
+import { StaffFormError } from "./staff-form-feedback.ts";
 export type SharedPolicyFacts = Omit<
   PolicyPublicationData,
   "publicNotes" | "maxStayDays" | "maxStayHours"
@@ -47,7 +48,7 @@ export function validateSharedFacts(
   if (Object.keys(data).some((key) => !fields.includes(key)))
     throw Error("共用事实不能包含语言说明或未知字段");
   if (data.stayUnit !== (data.policyType === "transit-240h" ? "hours" : "days"))
-    throw Error("过境停留请填写小时，其他类型请填写天");
+    throw new StaffFormError("请检查「最长停留」。过境填写小时，其他类型填写天数。");
   assertPolicyCountry(data.countryCode, allowFictional);
   validatePolicyPublication(legacy(data as SharedPolicyFacts), today);
 }
@@ -62,9 +63,9 @@ export function sharedFactDraft(value: unknown): Record<string, unknown> {
     throw Error("事实草稿不能包含语言说明或未知字段");
   const { maximumStay, stayUnit, ...draft } = value as Record<string, unknown>;
   if (stayUnit != null && stayUnit !== "days" && stayUnit !== "hours")
-    throw Error("停留单位只接受天或小时");
+    throw new StaffFormError("请重新选择「政策类型」，再按显示的天数或小时填写最长停留。");
   if (draft.policyType != null && !policyTypes.some((type) => type === draft.policyType))
-    throw Error("政策类型无效");
+    throw new StaffFormError("请重新选择「政策类型」后再保存。");
   policyDraft({ ...draft, maxStayDays: maximumStay ?? null });
   return structuredClone(value as Record<string, unknown>);
 }

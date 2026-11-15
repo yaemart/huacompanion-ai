@@ -101,6 +101,7 @@ export function QuoteLineParties({
         实际服务方
         <select
           name={`party-${index}`}
+          data-field-label={`第 ${index + 1} 项费用的实际服务方`}
           required
           value={party}
           onChange={(event) => {
@@ -130,6 +131,7 @@ export function QuoteLineParties({
           手填服务方名称
           <input
             name={`name-${index}`}
+            data-field-label={`第 ${index + 1} 项费用的手填服务方名称`}
             required
             maxLength={200}
             disabled={party !== "manual"}
@@ -183,7 +185,12 @@ export function QuoteLineParties({
             <>
               <label>
                 代收原因
-                <select name={`collection-reason-${index}`} defaultValue="" required>
+                <select
+                  name={`collection-reason-${index}`}
+                  data-field-label={`第 ${index + 1} 项费用的代收原因`}
+                  defaultValue=""
+                  required
+                >
                   <option value="">请选择</option>
                   {Object.entries(collectionReasons).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -194,7 +201,12 @@ export function QuoteLineParties({
               </label>
               <label>
                 代收说明
-                <textarea name={`collection-note-${index}`} maxLength={2000} required />
+                <textarea
+                  name={`collection-note-${index}`}
+                  data-field-label={`第 ${index + 1} 项费用的代收说明`}
+                  maxLength={2000}
+                  required
+                />
               </label>
             </>
           )}
@@ -203,6 +215,7 @@ export function QuoteLineParties({
               签约方与收款方不同的原因（必填）
               <textarea
                 name={`party-reason-${index}`}
+                data-field-label={`第 ${index + 1} 项费用的签约方与收款方不同的原因`}
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 maxLength={2000}
@@ -215,7 +228,14 @@ export function QuoteLineParties({
       {canCost && (
         <label>
           本项成本合计（可留空）
-          <input name={`cost-${index}`} type="number" min={0} max={10000000} step="0.01" />
+          <input
+            name={`cost-${index}`}
+            data-field-label={`第 ${index + 1} 项费用的成本合计`}
+            type="number"
+            min={0}
+            max={10000000}
+            step="0.01"
+          />
         </label>
       )}
     </fieldset>

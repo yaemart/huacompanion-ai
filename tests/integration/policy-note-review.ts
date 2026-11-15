@@ -150,7 +150,7 @@ try {
     const beforeFacts = await factSnapshot();
     await assert.rejects(
       () => call("zh", "save", { factVersion: null, body: { publicNotes: "stale" } }),
-      /事实/,
+      /政策资料已更新.*复制当前说明.*重新读取/,
     );
     await assert.rejects(() => call("zh", "save", { body: { needsReview: false } }));
     await assert.rejects(() => call("zh", "save", { body: { publicNotes: "x" } }, reviewer));

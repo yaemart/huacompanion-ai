@@ -1,6 +1,7 @@
 import type { ContentBody } from "./content-model.ts";
 import type { PolicyForm } from "./immigration-policy-editor.ts";
 import { policyTypeLabels } from "./immigration-policy-list.ts";
+import { StaffFormError } from "./staff-form-feedback.ts";
 // Public-domain ISO alpha-2 list: https://data.iana.org/time-zones/tzdb/iso3166.tab (2025-07-01).
 const codes =
   `AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS
@@ -22,7 +23,9 @@ export function assertPolicyCountry(code: unknown, allowFictional: boolean) {
     typeof code !== "string" ||
     (!codes.includes(code) && !(allowFictional && fictional.includes(code)))
   )
-    throw Error("国家代码不在可选名单中，请重新选择国家；虚构国家仅供本地测试");
+    throw new StaffFormError(
+      "国家代码不在可选名单中，请在「适用国家」重新选择；虚构国家仅供本地测试。",
+    );
 }
 /** Called on the server; fixed Node24 ICU names are serialized, never generated in the browser. */
 export function policyCountryOptions(allowFictional: boolean): PolicyCountry[] {

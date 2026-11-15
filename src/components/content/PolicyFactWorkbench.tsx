@@ -11,6 +11,8 @@ import type { PolicyForm } from "@/lib/immigration-policy-editor";
 import { PolicyFields } from "./PolicyFields";
 import { PolicyList } from "./PolicyList";
 import { PolicyCsvImport } from "./PolicyCsvImport";
+import { readStaffFormResponse, staffFormMessage } from "@/lib/staff-form-feedback";
+const fallback = "政策操作未得到确认，请保留当前填写，稍后重试。";
 export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEditorData }) {
   const [form, setForm] = useState(desk.policy);
   const [key, setKey] = useState(desk.group?.contentKey || "");
@@ -62,11 +64,11 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
           overrideReason: reason,
         }),
       });
-      const data: { groupId: number; error?: string } = await response.json();
-      if (!response.ok) throw Error(data.error || "操作未完成");
+      const data = await readStaffFormResponse<{ groupId: number }>(response, fallback);
+      if (!Number.isSafeInteger(data.groupId) || data.groupId < 1) throw Error(fallback);
       open(data.groupId);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "操作未完成");
+      setMessage(staffFormMessage(error, fallback));
       setChecked(false);
       setBusy(false);
     }
@@ -89,7 +91,6 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
             {locale === "zh" ? "中文" : "英文"}公开说明
           </button>
         ))}
-      <p role="status">{busy ? "处理中…" : message}</p>
       <div className="workspace policy-workspace">
         <aside className="panel">
           <button disabled={busy || dirty || !perm.canEdit} onClick={() => open()}>
@@ -122,9 +123,9 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               verifiers={desk.verifiers}
             />
             <details>
-              <summary>高级：政策内容标识</summary>
+              <summary>高级</summary>
               <label>
-                内容标识
+                政策编号（中英文共用）
                 <input
                   value={key}
                   readOnly={!!group}
@@ -160,6 +161,12 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
                 已核实国家、来源、日期和适用条件
               </label>
             </section>
+          )}
+          {busy && <p role="status">处理中…</p>}
+          {message && (
+            <p role="alert" className="notice">
+              {message}
+            </p>
           )}
           {(
             [

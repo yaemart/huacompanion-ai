@@ -35,11 +35,11 @@ export function PolicyFields({
   return (
     <section aria-label="政策资料">
       <h2>政策资料</h2>
-      <p>仅填写人工核实的信息；日期采用中国日历日。截止日留空不代表永久有效。</p>
+      <p>请按官方来源填写日期（北京时间）。如果官方没有公布截止日，可以留空。</p>
       <PolicyCountryField value={value} countries={countries} onChange={onChange} />
       {transit && <p>过境政策须填写口岸及前往第三国等适用条件。小时值按已核实原文填写。</p>}
       {transit && value.maxStayHours == null && value.maxStayDays != null && (
-        <p>旧稿未单独记录小时，按原规则显示240小时；未编辑小时字段不会写回或换算旧天数。</p>
+        <p>旧稿暂按 240 小时显示。请按官方原文核对，并在需要时填写实际小时数。</p>
       )}
       {visible.map(([name, label]) => {
         const key = name as keyof typeof policyLabels;

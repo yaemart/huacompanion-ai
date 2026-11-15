@@ -63,8 +63,8 @@ export function sourceDateIssue(
   if (!body.sources.length) return "请在「资料来源」添加至少一条来源，并填写人工核实日期。";
   for (const [index, source] of body.sources.entries()) {
     const label = `第 ${index + 1} 条来源的人工核实日期`;
-    if (!source.checkedAt) return `请填写${label}。`;
+    if (!source.checkedAt) return `请在「资料来源」填写${label}。`;
     if (!isPolicyCalendarDate(source.checkedAt)) return `${label}须为有效日期（年-月-日）。`;
-    if (source.checkedAt > today) return `${label}不能晚于今天（北京时间）。`;
+    if (source.checkedAt > today) return `${label}不能晚于今天（北京时间），请改填实际核实的日期。`;
   }
 }

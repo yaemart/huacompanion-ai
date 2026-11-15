@@ -139,6 +139,7 @@ jobs:
           npm run test:policies:facts:review
           npm run test:policies:notes:review
           npm run test:policies:shared:editor
+          node --import tsx tests/integration/staff-validation-messages.ts
           npm run test:policies:notes:editor
           node --import tsx tests/integration/policy-csv-import.ts
           node --import tsx tests/integration/policy-demo-seed.ts
