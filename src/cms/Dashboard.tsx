@@ -59,6 +59,11 @@ export function Dashboard({ user, payload }: { user?: Staff; payload: Payload })
     >
       <Today user={user} payload={payload} />
       <h2>华伴 · 运营后台</h2>
+      {isActiveStaff(user) && (
+        <p>
+          <a href="/performance-center">投诉、纠错与申诉</a>
+        </p>
+      )}
       {isAdmin(user) && (
         <p>
           <a href="/admin/collections/staff">员工与授权</a> ·{" "}

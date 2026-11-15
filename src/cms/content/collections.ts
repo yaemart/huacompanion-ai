@@ -133,6 +133,7 @@ export const ContentEvents: CollectionConfig = {
     { name: "actor", type: "number", required: true },
     { name: "revision", type: "number" },
     { name: "snapshot", type: "json" },
+    { name: "publicationParticipants", type: "json" },
     { name: "overrideReason", type: "textarea" },
   ],
 };

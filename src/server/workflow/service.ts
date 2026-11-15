@@ -67,10 +67,12 @@ async function unique<TSlug extends UniqueCollection>(
 export async function visible(
   p: Payload,
   user: Staff,
-  doc: Pick<WorkflowTask, "inquiry" | "contentDraft" | "policyGroup">,
+  doc: Pick<WorkflowTask, "inquiry" | "contentDraft" | "policyGroup"> &
+    Partial<Pick<WorkflowNotification, "performanceIncident" | "recipient">>,
   req?: Partial<PayloadRequest>,
 ) {
   if (!isActiveStaff(user)) return false;
+  if (doc.performanceIncident) return String(relationID(doc.recipient)) === String(user!.id);
   const inquiry = relationID(doc.inquiry),
     draft = relationID(doc.contentDraft);
   try {
@@ -352,6 +354,7 @@ function workflowView(d: WorkflowNotification | WorkflowTask) {
     title: d.title,
     inquiry: relationID(d.inquiry),
     contentDraft: relationID(d.contentDraft),
+    performanceIncident: notification.performanceIncident,
     policyGroup: relationID(task.policyGroup),
     assignee: relationID(task.assignee),
     status: task.status,

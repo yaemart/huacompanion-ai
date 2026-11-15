@@ -1368,6 +1368,13 @@ export function ContentCenter({
                 <a href={`/content-preview/${selected.id}`} target="_blank" rel="noreferrer">
                   预览已保存工作稿 ↗
                 </a>
+                {selected.everPublished && (
+                  <p>
+                    <a href={`/performance-center?source=content&record=${selected.id}`}>
+                      登记发布后纠错
+                    </a>
+                  </p>
+                )}
                 <button disabled={busy || !editable} onClick={() => action("submit")}>
                   提交已保存稿审核
                 </button>

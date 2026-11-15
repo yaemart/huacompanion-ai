@@ -405,13 +405,17 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
     ).docs[0];
     const clean = publicBody(current.body as unknown as ContentBody);
     validateContent(clean);
+    let publicationVerifier: number | undefined;
     if (input.action === "publish") {
       if (current.reviewState !== "review") throw new ContentError("请先提交审核");
       checkSourceDates(clean);
       if (!clean.blocks.length && clean.kind !== "immigration-policy")
         throw new ContentError("正文不能为空");
-      if (clean.kind === "immigration-policy")
-        clean.policy = await publishPolicy(p, req, current, input.policyReviewed);
+      if (clean.kind === "immigration-policy") {
+        const policy = await publishPolicy(p, req, current, input.policyReviewed);
+        clean.policy = policy.body;
+        publicationVerifier = policy.verifier;
+      }
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
       if (clean.kind === "exhibition")
@@ -469,6 +473,8 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
               nextReviewAt: quality.nextReviewAt,
             }
           : null;
+      if (!publicationVerifier && qualityReview && quality?.checkedBy)
+        publicationVerifier = quality.checkedBy;
       const data = {
         qualityReview,
         providerRef: ["provider-profile", "institution", "venue", "activity"].includes(clean.kind)
@@ -510,6 +516,21 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
         actor: Number(user!.id),
         revision: current.revision,
         snapshot: clean as unknown as ContentPublished["body"],
+        ...(input.action === "publish" && {
+          publicationParticipants: {
+            editing: [
+              ...new Set(
+                [
+                  ...(Array.isArray(current.contributors) ? current.contributors : []),
+                  current.lastEditedBy,
+                  current.submittedBy,
+                ].filter((id): id is number => typeof id === "number"),
+              ),
+            ],
+            review: [Number(user!.id)],
+            verification: publicationVerifier ? [publicationVerifier] : [],
+          },
+        }),
         overrideReason: selfReview ? overrideReason : "",
       },
       req,

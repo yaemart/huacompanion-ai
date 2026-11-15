@@ -365,6 +365,23 @@ if (action === "serve") {
           throw Error(
             "每日摘要尚未迁移；请配套备份并执行20261115_080000_staff_daily_digest，勿reset。",
           );
+        if (
+          state.seeded &&
+          pg("psql", [
+            ...args,
+            "-d",
+            "hua_companion_demo",
+            "-Atc",
+            "SELECT to_regclass('public.performance_incidents') IS NOT NULL AND " +
+              "to_regclass('public.performance_findings') IS NOT NULL AND " +
+              "(SELECT count(*)=2 FROM information_schema.columns WHERE table_schema='public' AND " +
+              "((table_name='content_events' AND column_name='publication_participants') OR " +
+              "(table_name='workflow_notifications' AND column_name='performance_incident')))",
+          ]).trim() !== "t"
+        )
+          throw Error(
+            "投诉与纠错尚未迁移；请配套备份并执行20261115_130000_performance_incidents，勿reset。",
+          );
         prepareApp(root);
         const accounts = Object.entries(state.accounts)
           .map(([role, value]) => `${role}：${value.email}\n密码：${value.password}`)

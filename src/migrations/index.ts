@@ -1,3 +1,4 @@
+import * as migration_20261115_130000_performance_incidents from "./20261115_130000_performance_incidents";
 import * as migration_20261115_080000_staff_daily_digest from "./20261115_080000_staff_daily_digest";
 import * as migration_20261109_120000_intake_followups from "./20261109_120000_intake_followups";
 import * as migration_20261111_100000_quote_templates from "./20261111_100000_quote_templates";
@@ -227,5 +228,10 @@ export const migrations = [
     up: migration_20261115_080000_staff_daily_digest.up,
     down: migration_20261115_080000_staff_daily_digest.down,
     name: "20261115_080000_staff_daily_digest",
+  },
+  {
+    up: migration_20261115_130000_performance_incidents.up,
+    down: migration_20261115_130000_performance_incidents.down,
+    name: "20261115_130000_performance_incidents",
   },
 ];

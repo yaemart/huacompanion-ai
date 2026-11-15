@@ -197,6 +197,11 @@ export function PolicyNoteWorkbench({
               另存第 {v.revision} 版为草稿
             </button>
           ))}
+          {!!desk.versions.length && (
+            <p>
+              <a href={`/performance-center?source=note&record=${group.id}`}>登记公开说明纠错</a>
+            </p>
+          )}
         </section>
       </div>
     </main>
