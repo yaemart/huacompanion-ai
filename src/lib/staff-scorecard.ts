@@ -4,6 +4,19 @@ export const scorecardTemplates = {
   reviewer: "审核人",
   combined: "兼岗",
 } as const;
+export const scorecardObservationLabels = {
+  missing: "缺少计划数据",
+  monitor: "只记录",
+  pending: "待定",
+  eligible: "样本满足",
+  insufficient: "样本不足",
+  unassigned: "无已分配且到期的复核任务",
+};
+export const scorecardReviewLabels = {
+  upheld: "维持判定",
+  changed: "调整归属",
+  dismissed: "撤销判定",
+};
 export type ScorecardTemplate = keyof typeof scorecardTemplates;
 
 const definitions = {

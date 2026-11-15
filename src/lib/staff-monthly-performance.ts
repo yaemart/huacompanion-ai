@@ -1,6 +1,18 @@
 import { canAppeal } from "./performance-incidents.ts";
 import { chinaDay } from "./staff-today.ts";
 
+export const performanceIncidentLabels = {
+  case: "服务投诉",
+  content: "内容纠错",
+  fact: "政策事实纠错",
+  note: "政策说明纠错",
+};
+export const performancePendingLabels = {
+  confirmation: "待确认",
+  window: "申诉期内",
+  review: "申诉待复核",
+};
+
 export function performanceMonth(value: unknown, now: number) {
   const current = chinaDay(now).date.slice(0, 7);
   const month = value ?? current;

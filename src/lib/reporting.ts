@@ -36,7 +36,7 @@ export function parseFilters(input: unknown): ReportFilters {
 export function csvDocument(headers: string[], rows: unknown[][]): string {
   const cell = (value: unknown) => {
     let text = value === null || value === undefined ? "" : String(value);
-    if (/^[\s]*[=+\-@]/.test(text) || /^[\t\r]/.test(text)) text = "'" + text;
+    if (/^\s*[=+\-@＝＋－＠]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
     return '"' + text.replaceAll('"', '""') + '"';
   };
   return "\uFEFF" + [headers, ...rows].map((row) => row.map(cell).join(",")).join("\r\n") + "\r\n";

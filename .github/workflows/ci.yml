@@ -221,3 +221,7 @@ jobs:
         env:
           APP_ENV: local
         run: node --import tsx tests/integration/staff-scorecard.ts
+      - name: Verify scoped monthly staff CSV downloads and audit
+        env:
+          APP_ENV: local
+        run: node --import tsx tests/integration/staff-monthly-csv.ts

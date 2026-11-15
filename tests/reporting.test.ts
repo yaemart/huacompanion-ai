@@ -6,6 +6,12 @@ test("CSV has BOM, RFC quoting and protects spreadsheet formulas including white
   const csv = csvDocument(["值"], [["  =1+1"], ["\t@SUM(A1)"], ["-2"], ['a,"b"\nc']]);
   assert.equal(csv, '\uFEFF"值"\r\n"\'  =1+1"\r\n"\'\t@SUM(A1)"\r\n"\'-2"\r\n"a,""b""\nc"\r\n');
 });
+test("CSV also protects leading line feeds and fullwidth spreadsheet operators", () => {
+  for (const cell of ["\nname", "＝formula", " ＋formula", "－formula", "＠formula"]) {
+    const csv = csvDocument(["值"], [[cell]]);
+    assert.equal(csv, `\uFEFF"值"\r\n"'${cell}"\r\n`);
+  }
+});
 test("report filters reject owner/where injection and invalid dates/status/category", () => {
   assert.throws(() => parseFilters({ owner: 1 }));
   assert.throws(() => parseFilters({ where: {} }));

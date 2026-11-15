@@ -1,4 +1,9 @@
-import { scorecardMetrics, scorecardTemplates } from "@/lib/staff-scorecard";
+import {
+  scorecardMetrics,
+  scorecardTemplates,
+  scorecardObservationLabels,
+  scorecardReviewLabels,
+} from "@/lib/staff-scorecard";
 import type { readScorecardObservation } from "@/server/performance/scorecard-observation";
 
 type Observation = Awaited<ReturnType<typeof readScorecardObservation>>;
@@ -8,15 +13,6 @@ const dateTime = new Intl.DateTimeFormat("zh-CN", {
   dateStyle: "medium",
   timeStyle: "short",
 });
-const states = {
-  missing: "缺少计划数据",
-  monitor: "只记录",
-  pending: "待定",
-  eligible: "样本满足",
-  insufficient: "样本不足",
-  unassigned: "无已分配且到期的复核任务",
-};
-const results = { upheld: "维持判定", changed: "调整归属", dismissed: "撤销判定" };
 
 export function ScorecardObservation({
   observation,
@@ -89,7 +85,7 @@ export function ScorecardObservation({
                           </td>
                           <td>{rule.weight}%</td>
                           <td>
-                            {states[status]}
+                            {scorecardObservationLabels[status]}
                             {status === "pending" ? `（${pending}）` : ""}
                           </td>
                         </tr>
@@ -106,8 +102,8 @@ export function ScorecardObservation({
               <ul>
                 {observation.corrections.map(({ id, result, at }, index) => (
                   <li key={`${id}:${at}:${index}`}>
-                    <a href={`/performance-center?id=${id}`}>记录 #{id}</a> · {results[result]} ·{" "}
-                    {dateTime.format(new Date(at))}（北京时间）
+                    <a href={`/performance-center?id=${id}`}>记录 #{id}</a> ·{" "}
+                    {scorecardReviewLabels[result]} · {dateTime.format(new Date(at))}（北京时间）
                   </li>
                 ))}
               </ul>
