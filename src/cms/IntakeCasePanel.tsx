@@ -7,6 +7,7 @@ export function IntakeCasePanel({
   dirty,
   phase,
   message,
+  failed = false,
   onTitle,
   onCreate,
   onRetry,
@@ -17,6 +18,7 @@ export function IntakeCasePanel({
   dirty: boolean;
   phase: IntakeCasePhase;
   message: string;
+  failed?: boolean;
   onTitle: (value: string) => void;
   onCreate: () => void;
   onRetry: () => void;
@@ -41,7 +43,7 @@ export function IntakeCasePanel({
         </button>
       ) : (
         <>
-          <label htmlFor="intake-case-title">服务单名称（仅用于创建）</label>
+          <label htmlFor="intake-case-title">服务单名称</label>
           <input
             id="intake-case-title"
             value={title}
@@ -54,10 +56,11 @@ export function IntakeCasePanel({
             {busy ? "正在创建…" : "转为服务单"}
           </button>
           {dirty && <p>请先保存咨询资料修改，再创建服务单。</p>}
+          {!dirty && !title.trim() && <p>请填写服务单名称，例如「上海展会陪同」。</p>}
         </>
       )}
       <p>同一咨询只创建一张服务单；重复操作不会新建。服务单在新标签页打开，当前页面输入保留。</p>
-      <p role="status">{message}</p>
+      <p role={failed ? "alert" : "status"}>{message}</p>
     </section>
   );
 }

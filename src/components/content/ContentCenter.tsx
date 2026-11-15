@@ -1,6 +1,7 @@
 "use client";
 import "./content-center.css";
 import { requestContentReturn } from "@/lib/content-return";
+import { readStaffFormResponse, staffFormMessage } from "@/lib/staff-form-feedback";
 import { fixedContentPages, fixedSlugForKey } from "@/lib/content-identifiers";
 import { PolicyBannerFields, usePolicyBannerChoices } from "./PolicyBannerFields";
 import { isPolicyBannerLocale } from "@/lib/policy-banner-picker";
@@ -162,6 +163,7 @@ export function ContentCenter({
       selected.submittedBy,
     ].some((id) => id != null && String(id) === String(permissions.userId));
   const [message, setMessage] = useState("");
+  const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("content");
   const [section, setSection] = useState(0);
@@ -292,6 +294,7 @@ export function ContentCenter({
     setBody(next);
     setVersions([]);
     setMessage("");
+    setFormError("");
   }
   async function compareGuide(mode: "open" | "refresh" | "existing" | "back") {
     const id = mode === "open" ? selected?.id : guideReference?.id;
@@ -330,7 +333,7 @@ export function ContentCenter({
       action === "save" &&
       body.blocks.some(({ type, text }) => type === "policy-banner" && !text)
     )
-      return setMessage("请先选择已发布政策，或移除空横幅后保存。");
+      return setFormError("请先选择已发布政策，或移除空横幅后保存。");
     if (
       action === "save" &&
       (body.blocks.length > 200 ||
@@ -339,9 +342,11 @@ export function ContentCenter({
             type !== "image" && type !== "policy-banner" && (text?.length ?? 0) > 10000,
         ))
     )
-      return setMessage("正文最多 200 段，每段最多 10,000 字符。请修改超限内容后保存。");
+      return setFormError("正文最多 200 段，每段最多 10,000 字。请缩短或拆分后保存。");
     setBusy(true);
     setMessage("");
+    setFormError("");
+    const fallback = "草稿操作未得到确认，请保留当前填写，稍后重试。";
     try {
       const r = await fetch("/api/content-center", {
         method: "POST",
@@ -374,11 +379,11 @@ export function ContentCenter({
           ...extra,
         }),
       });
-      const d = await r.json();
       if (!r.ok) {
-        if ([401, 403].includes(r.status)) await load();
-        throw Error(d.error);
+        if ([401, 403].includes(r.status)) await load().catch(() => {});
       }
+      const d = await readStaffFormResponse<ContentDraft>(r, fallback);
+      if (!Number.isSafeInteger(d.id) || d.id < 1) throw Error(fallback);
       select(d, guideReference);
       const refreshed = await load().then(
         () => true,
@@ -392,7 +397,7 @@ export function ContentCenter({
             : "已保存；修改不会改变当前正式版") + (refreshed ? "" : "；列表暂未刷新"),
       );
     } catch (e) {
-      setMessage((e as Error).message);
+      setFormError(staffFormMessage(e, fallback));
     } finally {
       setBusy(false);
     }
@@ -1016,9 +1021,7 @@ export function ContentCenter({
                 </>
               )}
               {body.kind === "exhibition" && (
-                <p>
-                  每届展会使用独立内容标识；同一届的各语言版本共用标识。下一届请新建，保留往届归档。
-                </p>
+                <p>同一届展会的各语言版本共用内容编号。下一届请新建，保留往届记录。</p>
               )}
               <label>
                 标题
@@ -1028,11 +1031,11 @@ export function ContentCenter({
                 <summary>高级</summary>
                 <p>
                   {selected
-                    ? "内容标识保持不变，曾发布的网址不能修改。"
-                    : "留空时在首次保存后显示自动生成的标识。"}
+                    ? "内容编号保持不变，曾发布的网址不能修改。"
+                    : "这两项可留空，第一次保存时由系统生成。"}
                 </p>
                 <label>
-                  内容标识（同一内容的各语言版本共用）
+                  内容编号（同一内容的各语言版本共用）
                   <input
                     value={body.contentKey}
                     disabled={!!selected || !!guideReference}
@@ -1042,7 +1045,7 @@ export function ContentCenter({
                   />
                 </label>
                 <label>
-                  网址标识（小写英文、数字和连字符）
+                  网址末尾（小写英文字母、数字和短横线）
                   <input
                     value={body.slug}
                     disabled={
@@ -1348,6 +1351,12 @@ export function ContentCenter({
             {selected?.reviewState === "review" && (
               <p>待审核内容已锁定编辑，请先由审核员退回再修改。</p>
             )}
+            {formError && (
+              <p role="alert" className="notice">
+                {formError}
+              </p>
+            )}
+            {selected && editable && <p>送审以已保存的草稿为准。修改后请先点「保存草稿」。</p>}
             <button
               disabled={busy || !editable || !allowedKinds.includes(body.kind)}
               onClick={() => action("save")}

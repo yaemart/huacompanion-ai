@@ -87,6 +87,7 @@ interface QuoteConfirmationInput {
 import { isOperator, isManager, isAdmin, relationID } from "../../cms/access";
 import { validID } from "../../lib/support";
 import { validateQuote, allowedTransition, canConfirmQuote, publicQuote } from "../../lib/business";
+import { StaffFormError } from "../../lib/staff-form-feedback";
 import { ContentError } from "../content/service";
 import { keyOf } from "../support/service";
 import { customerOwnsInquiry, customerLinkedInquiries } from "../customer/service";
@@ -125,12 +126,12 @@ export async function businessInquiry(
 }
 export async function businessCaseForInquiry(p: Payload, user: NonNullable<Staff>, value: unknown) {
   const id = inquiryCaseID(value);
-  if (!id) throw new ContentError("咨询编号无效");
+  if (!id) throw new ContentError("请先打开一条已保存的客户咨询，再转为服务单。");
   return businessTransaction(p, async (req) => {
     const actor = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
     await businessInquiry(p, actor, id, req).catch((e: unknown) => {
       if ([403, 404].includes((e as { status: number }).status))
-        throw new ContentError("无权处理这条咨询，或咨询不存在", 403);
+        throw new ContentError("无法打开这条咨询，请从「客户咨询」列表选择有权处理的记录。", 403);
       throw e;
     });
     const result = await p.find({
@@ -153,20 +154,22 @@ async function all<TSlug extends CollectionSlug>(
 }
 const fingerprint = (input: unknown) =>
   createHash("sha256").update(JSON.stringify(input)).digest("hex");
-function short(v: unknown, max = 4000) {
-  if (typeof v !== "string" || v.trim().length > max) throw new ContentError("文字格式无效");
+function short(v: unknown, label: string, max = 4000) {
+  if (typeof v !== "string") throw new ContentError(`请填写「${label}」。`);
+  if (v.trim().length > max) throw new ContentError(`「${label}」最多 ${max} 字，请缩短后再提交。`);
   return v.trim();
 }
 function reason(input: Pick<BusinessActionInput, "reason">) {
-  const v = short(input.reason, 2000);
+  const v = short(input.reason, "操作原因或完成说明", 2000);
   if (!v) throw new ContentError("请填写操作原因或完成说明");
   return v;
 }
 function checkedQuote(input: unknown) {
   try {
     return validateQuote(input);
-  } catch (e) {
-    throw new ContentError((e as Error).message);
+  } catch (error) {
+    if (error instanceof StaffFormError) throw new ContentError(error.message);
+    throw error;
   }
 }
 async function caseRecord(p: Payload, id: unknown, req?: Partial<PayloadRequest>) {
@@ -363,15 +366,15 @@ export async function businessAction(
     if (action === "create") {
       const existing = (await all(db, "service-cases", { inquiry: { equals: q.id } }, req))[0];
       if (existing) return { case: existing.id, duplicate: true };
-      const title = short(input.title, 200);
-      if (!title) throw new ContentError("请填写服务单名称");
+      const title = short(input.title, "服务单名称", 200);
+      if (!title) throw new ContentError("请填写「服务单名称」，例如「上海展会陪同」。");
       c = await db.create({
         collection: "service-cases",
         data: { inquiry: q.id, title, stage: "received", revision: 1, customerSummary: "" },
         req,
       });
     } else if (input.revision !== c!.revision)
-      throw new ContentError("记录已经变更，请刷新后操作", 409);
+      throw new ContentError("服务单已更新。请保留当前填写，核对最新的服务单后再提交。", 409);
     let detail: BusinessEventDetail = { fingerprint: hash };
     let change: Partial<ServiceCase> = {};
     if (action === "quote") {
@@ -380,7 +383,10 @@ export async function businessAction(
           c!.stage,
         )
       )
-        throw new ContentError("当前阶段不可创建报价", 409);
+        throw new ContentError(
+          "当前阶段不能新建报价，请到「处理阶段」确认服务单仍在受理、沟通或报价中。",
+          409,
+        );
       const checked = checkedQuote(input.quote);
       const split = await prepareQuoteLines(db, actor, req, input.quote, checked.lines);
       const source =
@@ -562,7 +568,10 @@ export async function businessAction(
         )
           throw new ContentError("当前阶段不可发出报价", 409);
         if (state !== "approved")
-          throw new ContentError("此报价版本须由有权限的第二人审核通过后才能发出", 409);
+          throw new ContentError(
+            "请先提交这版报价审核，由另一位有权限的员工审核通过后再发出。",
+            409,
+          );
         checkedQuote(quote);
         const required = await quoteLineReviewRequirements(p, actor, req, quote);
         if (required && !confirmsQuoteLines(quoteApproval(quote, reviews)?.confirmations, required))
@@ -619,8 +628,8 @@ export async function businessAction(
       if (!["accepted", "scheduled"].includes(c!.stage) || !c!.acceptedQuote)
         throw new ContentError("客户确认方案后才能安排", 409);
       const at = Date.parse(input.scheduledAt!);
-      const pub = short(input.publicArrangement),
-        internal = short(input.internalArrangement || "");
+      const pub = short(input.publicArrangement, "对客安排"),
+        internal = short(input.internalArrangement || "", "内部安排");
       if (!Number.isFinite(at) || !pub || input.resourceConfirmed !== true)
         throw new ContentError("请确认实际资源，并填写时间及对客安排");
       let provider: null | number = null;
@@ -690,7 +699,7 @@ export async function businessAction(
         }
       }
     } else if (action === "summary") {
-      change = { customerSummary: short(input.customerSummary) };
+      change = { customerSummary: short(input.customerSummary, "客户进度说明") };
     } else if (action !== "create") throw new ContentError("未知业务操作");
     if (action !== "create")
       c = await db.update({

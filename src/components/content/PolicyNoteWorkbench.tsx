@@ -7,6 +7,8 @@ import type {
 import { relationID } from "@/cms/access";
 import { explanationFactWarning } from "@/lib/policy-shared-notes";
 import { policyTypeLabels, policyStateLabels } from "@/lib/immigration-policy-list";
+import { readStaffFormResponse, staffFormMessage } from "@/lib/staff-form-feedback";
+const fallback = "说明操作未得到确认，请保留当前填写，稍后重试。";
 export function PolicyNoteWorkbench({
   initial: desk,
 }: {
@@ -59,11 +61,11 @@ export function PolicyNoteWorkbench({
           overrideReason: reason,
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw Error(data.error || "操作未完成");
+      const data = await readStaffFormResponse<{ ok: boolean }>(response, fallback);
+      if (data.ok !== true) throw Error(fallback);
       open(desk.locale);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "操作未完成");
+      setMessage(staffFormMessage(error, fallback));
       setChecked(false);
       setBusy(false);
     }
@@ -72,7 +74,6 @@ export function PolicyNoteWorkbench({
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
       <h1>{desk.locale === "zh" ? "中文" : "英文"}公开说明</h1>
-      <p role="status">{busy ? "处理中…" : message}</p>
       <button disabled={busy || dirty} onClick={() => open()}>
         共用事实
       </button>
@@ -117,10 +118,10 @@ export function PolicyNoteWorkbench({
           {draft?.reviewNote && <p className="notice">退回／复核说明：{draft.reviewNote}</p>}
           <fieldset disabled={busy || !editable}>
             <details>
-              <summary>高级：本语标题和网址标识</summary>
+              <summary>高级：标题和网址</summary>
               {(["title", "slug"] as const).map((name) => (
                 <label key={name}>
-                  {name === "title" ? "标题" : "网址标识"}
+                  {name === "title" ? "标题" : "网址末尾"}
                   <input
                     value={body[name]}
                     readOnly={name === "slug" && desk.versions.length > 0}
@@ -166,6 +167,12 @@ export function PolicyNoteWorkbench({
                 已按当前事实逐项核对本语说明
               </label>
             </section>
+          )}
+          {busy && <p role="status">处理中…</p>}
+          {message && (
+            <p role="alert" className="notice">
+              {message}
+            </p>
           )}
           {(
             [

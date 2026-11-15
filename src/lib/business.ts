@@ -1,5 +1,6 @@
 import { quoteTime } from "./quote-time.ts";
 import { quoteLinesView, type QuoteLineView } from "./quote-lines.ts";
+import { StaffFormError } from "./staff-form-feedback.ts";
 
 export const businessStages = [
   "received",
@@ -28,44 +29,62 @@ export const stageLabels: Record<string, string> = {
   aftercare: "售后处理中",
 };
 function bounded(v: unknown, label: string, max = 4000) {
-  if (typeof v !== "string" || !v.trim() || v.length > max) throw Error(label + "不能为空或过长");
+  if (typeof v !== "string" || !v.trim()) throw new StaffFormError(`请填写「${label}」。`);
+  if (v.length > max) throw new StaffFormError(`「${label}」最多 ${max} 字，请缩短后再保存。`);
   return v.trim();
 }
-export function validateQuote(input: any, now = Date.now()) {
-  const title = bounded(input.title, "方案名称", 200),
-    scope = bounded(input.scope, "服务范围"),
-    included = bounded(input.included, "包含项目"),
-    excluded = bounded(input.excluded, "不包含项目"),
-    terms = bounded(input.terms, "变更规则");
-  if (!["CNY", "USD", "EUR", "GBP", "AED"].includes(input.currency))
-    throw Error("请选择支持的币种");
+export function validateQuote(value: unknown, now = Date.now()) {
+  if (!value || typeof value !== "object")
+    throw new StaffFormError("请打开报价草稿，填写报价内容后再保存。");
+  const input = value as Record<string, unknown>;
+  const title = bounded(input.title, "方案名称", 200);
+  const scope = bounded(input.scope, "服务范围");
+  const included = bounded(input.included, "包含项目");
+  const excluded = bounded(input.excluded, "不包含项目");
+  const terms = bounded(input.terms, "变更与取消规则");
+  const currency = (["CNY", "USD", "EUR", "GBP", "AED"] as const).find(
+    (code) => code === input.currency,
+  );
+  if (!currency) throw new StaffFormError("请从「币种」中选择报价使用的货币。");
   const end = quoteTime(input.expiresAt);
   if (!Number.isFinite(end) || end <= now || end > now + 366 * 86400000)
-    throw Error("有效期须在未来一年内");
+    throw new StaffFormError("请将「有效期（北京时间）」选在当前时间以后、一年以内。");
   if (!Array.isArray(input.lines) || !input.lines.length || input.lines.length > 30)
-    throw Error("费用明细须为1至30项");
-  const lines = input.lines.map((l: any) => {
-    const label = bounded(l.label, "费用名称", 200);
+    throw new StaffFormError("请保留 1 至 30 项费用，再保存报价。");
+  const lines = input.lines.map((line: unknown, index) => {
+    const item = `第 ${index + 1} 项费用`;
+    if (!line || typeof line !== "object")
+      throw new StaffFormError(`请重新填写${item}的名称、数量和单价。`);
+    const { label: name, quantity, unitMinor } = line as Record<string, unknown>;
+    const label = bounded(name, `${item}的名称`, 200);
     if (
-      !Number.isInteger(l.quantity) ||
-      l.quantity < 1 ||
-      l.quantity > 10000 ||
-      !Number.isSafeInteger(l.unitMinor) ||
-      l.unitMinor < 0 ||
-      l.unitMinor > 100000000
+      typeof quantity !== "number" ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 10000
     )
-      throw Error("数量和最小货币单位金额必须为有效整数");
-    return { label, quantity: l.quantity, unitMinor: l.unitMinor };
+      throw new StaffFormError(`请把${item}的「数量」填为 1 至 10,000 之间的整数。`);
+    if (
+      typeof unitMinor !== "number" ||
+      !Number.isSafeInteger(unitMinor) ||
+      unitMinor < 0 ||
+      unitMinor > 100000000
+    )
+      throw new StaffFormError(
+        `请把${item}的「单价」填为 0 至 1,000,000 之间的金额，最多两位小数。`,
+      );
+    return { label, quantity, unitMinor };
   });
-  const totalMinor = lines.reduce((n: number, l: any) => n + l.quantity * l.unitMinor, 0);
-  if (!Number.isSafeInteger(totalMinor) || totalMinor > 1000000000) throw Error("报价总额过大");
+  const totalMinor = lines.reduce((n, l) => n + l.quantity * l.unitMinor, 0);
+  if (!Number.isSafeInteger(totalMinor) || totalMinor > 1000000000)
+    throw new StaffFormError("报价总额最多为 10,000,000，请检查费用项的数量和单价。");
   return {
     title,
     scope,
     included,
     excluded,
     terms,
-    currency: input.currency,
+    currency,
     expiresAt: new Date(end).toISOString(),
     lines,
     totalMinor,

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { businessStages, stageLabels } from "../../lib/business";
 import QuoteReview from "./QuoteReview";
 import { QuoteMarginAmounts } from "./QuoteMargin";
@@ -11,6 +11,13 @@ import { quoteLocalTime, quoteTimeLabel } from "../../lib/quote-time";
 import { randomClientID } from "../../lib/client-id";
 import { QuoteLineParties, quotePartyInput, quotePartySummary } from "./QuoteLineParties";
 import type { StaffQuote } from "../../server/business/service";
+import {
+  readStaffFormResponse,
+  staffFieldIssue,
+  staffFormMessage,
+} from "../../lib/staff-form-feedback";
+const actionFallback = "操作未得到确认，请保留当前填写并稍后重试。";
+const loadFallback = "暂时无法打开服务单，请检查网络后重新打开。";
 const draftLine = (label: string, clientKey: string) => ({
   clientKey,
   label,
@@ -40,6 +47,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     [id, setId] = useState<number | undefined>(initialCaseID),
     [view, setView] = useState<any>(),
     [error, setError] = useState(""),
+    [errorAt, setErrorAt] = useState<"case" | "draft" | number>(),
     [busy, setBusy] = useState(false),
     [inquiry, setInquiry] = useState(""),
     [title, setTitle] = useState(""),
@@ -64,6 +72,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
       !window.confirm("替换当前未保存的报价内容？")
     )
       return;
+    setError("");
     const { title, scope, included, excluded, terms, currency, expiresAt, lines } = original;
     setQuote({
       ...{ title, scope, included, excluded, terms, currency },
@@ -83,9 +92,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
   }, [source]);
   async function read(target?: number) {
     const r = await fetch("/api/business" + (target ? "?id=" + target : ""), { cache: "no-store" });
-    const j = await r.json();
-    if (!r.ok) throw Error(j.error);
-    return j;
+    return readStaffFormResponse<typeof data>(r, loadFallback);
   }
   async function refresh(target = id) {
     setData(await read());
@@ -114,16 +121,47 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
           }
         }
       } catch (e) {
-        if (live) setError((e as Error).message);
+        if (live) {
+          setErrorAt(undefined);
+          setError(staffFormMessage(e, loadFallback));
+        }
       }
     })();
     return () => {
       live = false;
     };
   }, [id]);
+  function invalid(event: FormEvent<HTMLFormElement>, target: "case" | "draft") {
+    event.preventDefault();
+    const field = event.currentTarget.querySelector<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("input:invalid, select:invalid, textarea:invalid");
+    if (!field || field !== event.target) return;
+    setErrorAt(target);
+    const number = field instanceof HTMLInputElement ? field : { min: "", max: "", step: "" };
+    setError(
+      staffFieldIssue(
+        field.dataset.fieldLabel || "标为必填的项目",
+        field.validity,
+        number.min,
+        number.max,
+        number.step,
+      ),
+    );
+    field.focus();
+  }
   async function act(action: string, extra: any = {}) {
     setBusy(true);
     setError("");
+    setErrorAt(
+      action === "create"
+        ? "case"
+        : action === "quote"
+          ? "draft"
+          : typeof extra.quote === "number"
+            ? extra.quote
+            : undefined,
+    );
     const input = { action, ...(id ? { id, revision: view?.case.revision } : {}), ...extra };
     const signature = JSON.stringify({ ...input, revision: undefined });
     if (retry.current?.signature !== signature)
@@ -138,17 +176,15 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
           key: retry.current.key,
         }),
       });
-      const j = await r.json();
-      if (!r.ok) {
-        if (r.status < 500) retry.current = null;
-        throw Error(j.error);
-      }
+      if (!r.ok && r.status < 500) retry.current = null;
+      const j = await readStaffFormResponse<{ case: number }>(r, actionFallback);
+      if (!Number.isSafeInteger(j.case) || j.case < 1) throw Error(actionFallback);
       if (action === "create") setId(j.case);
       await refresh(j.case);
       retry.current = null;
       return true;
     } catch (e) {
-      setError((e as Error).message);
+      setError(staffFormMessage(e, actionFallback));
       await refresh().catch(() => {});
       return false;
     } finally {
@@ -156,6 +192,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
     }
   }
   const c = view?.case;
+  const errorIsInline =
+    (errorAt === "case" && !id) ||
+    (errorAt === "draft" && c?.id === id) ||
+    (typeof errorAt === "number" && view?.quotes.some((quote: StaffQuote) => quote.id === errorAt));
   useEffect(() => {
     if (c && window.location.hash.startsWith("#quote-"))
       document.getElementById(window.location.hash.slice(1))?.focus();
@@ -174,7 +214,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
         {customerCenter && "客户可在客户中心查看已发出的报价。"}
         发送记录不代表邮件已送达。客户确认不代表预约、付款或资源已落实。
       </p>
-      {error && <p role="alert">{error}</p>}
+      {error && !errorIsInline && <p role="alert">{error}</p>}
       <div className="support-grid">
         <aside className="support-panel">
           <h2>权限内服务单</h2>
@@ -186,6 +226,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
               setQuote(initialQuote());
               setSource(undefined);
               setTemplateCategory("");
+              setError("");
             }}
           >
             新建服务单
@@ -202,6 +243,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     setQuote(initialQuote());
                     setSource(undefined);
                     setTemplateCategory("");
+                    setError("");
                   }}
                 >
                   #{x.id} {x.title} · {stageLabels[x.stage]}
@@ -214,6 +256,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
         <section className="support-panel">
           {!id ? (
             <form
+              onInvalid={(event) => invalid(event, "case")}
               onSubmit={(e) => {
                 e.preventDefault();
                 void act("create", { inquiry: Number(inquiry), title });
@@ -222,7 +265,12 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
               <h2>从咨询创建服务单</h2>
               <label>
                 咨询
-                <select required value={inquiry} onChange={(e) => setInquiry(e.target.value)}>
+                <select
+                  data-field-label="咨询"
+                  required
+                  value={inquiry}
+                  onChange={(e) => setInquiry(e.target.value)}
+                >
                   <option value="">请选择</option>
                   {data.inquiries.map((q: any) => (
                     <option key={q.id} value={q.id}>
@@ -235,12 +283,14 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 服务单名称
                 <input
                   required
+                  data-field-label="服务单名称"
                   maxLength={200}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </label>
-              <button disabled={busy}>创建</button>
+              {error && errorAt === "case" && <p role="alert">{error}</p>}
+              <button disabled={busy}>创建服务单</button>
             </form>
           ) : c && c.id === id ? (
             <>
@@ -304,7 +354,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <button disabled={!reason.trim()} onClick={() => act("stage", { stage, reason })}>
                   更新阶段
                 </button>
-                <p>服务器会检查阶段顺序；客户确认与报价发出由对应操作生成。</p>
+                <p>发出报价后进入待客户确认。客户确认后，才能落实服务安排。</p>
               </fieldset>
               <h3>方案与报价版本</h3>
               {view.quotes.map((q: StaffQuote) => (
@@ -381,6 +431,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     </section>
                   )}
                   <QuoteReview key={q.updatedAt} quote={q} busy={busy} act={act} />
+                  {error && errorAt === q.id && <p role="alert">{error}</p>}
                   {(q.status === "draft" || q.aiTask || q.sentAt) && (
                     <button
                       type="button"
@@ -419,6 +470,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <summary>新建报价版本</summary>
                 <form
                   key={source?.editorKey ?? "new"}
+                  onInvalid={(event) => invalid(event, "draft")}
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const form = new FormData(e.currentTarget);
@@ -499,6 +551,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         <textarea
                           required
                           ref={k === "title" ? quoteTitle : undefined}
+                          data-field-label={l}
                           maxLength={k === "title" ? 200 : 4000}
                           value={(quote as any)[k]}
                           onChange={(e) => setQuote({ ...quote, [k]: e.target.value })}
@@ -521,6 +574,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                       <input
                         type="datetime-local"
                         name="expiresAt"
+                        data-field-label="有效期（北京时间）"
                         required
                         value={quote.expiresAt}
                         onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}
@@ -530,9 +584,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                       <fieldset key={l.clientKey}>
                         <legend>费用 {i + 1}</legend>
                         <label>
-                          名称
+                          费用名称
                           <input
                             required
+                            data-field-label={`第 ${i + 1} 项费用的名称`}
                             value={l.label}
                             onChange={(e) =>
                               setQuote({
@@ -550,6 +605,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                             type="number"
                             min={1}
                             max={10000}
+                            data-field-label={`第 ${i + 1} 项费用的数量`}
                             required
                             value={l.quantity}
                             onChange={(e) =>
@@ -568,6 +624,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                             type="number"
                             min={0}
                             step="0.01"
+                            data-field-label={`第 ${i + 1} 项费用的单价`}
                             required
                             value={l.unitMinor / 100}
                             onChange={(e) =>
@@ -614,10 +671,16 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     </button>
                     {source?.ai && (
                       <label>
-                        <input type="checkbox" name="checked-ai-source" required />
+                        <input
+                          type="checkbox"
+                          name="checked-ai-source"
+                          data-field-label="AI 草稿核对确认"
+                          required
+                        />
                         已逐项核对 AI 草稿的事实、费用、规则和待核实事项
                       </label>
                     )}
+                    {error && errorAt === "draft" && <p role="alert">{error}</p>}
                     <button>保存新版本草稿</button>
                   </fieldset>
                 </form>

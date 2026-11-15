@@ -137,6 +137,8 @@ export default function QuoteReview({
                 onChange={(event) => setReason(event.target.value)}
               />
             </label>
+            {approveDisabled && <p>请填写审核意见后再操作。管理员自审时还须勾选例外并说明原因。</p>}
+            {missing && <p>请核对有签约方、收款方差异或华伴代收的费用项，并逐项勾选确认。</p>}
             <button
               type="button"
               disabled={approveDisabled || missing}

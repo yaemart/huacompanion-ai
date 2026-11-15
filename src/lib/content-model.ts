@@ -15,6 +15,7 @@ import { type Catalog, isCatalog, validateCatalog, publicCatalog } from "./catal
 import { hasRole, isAdmin, type Staff } from "../cms/access.ts";
 import { fixedContentPages, isContentIdentifier } from "./content-identifiers.ts";
 import { isSourceTopic, type SourceTopic } from "./content-source-verification.ts";
+import { StaffFormError } from "./staff-form-feedback.ts";
 export type ContentUser = Staff;
 export const canEditContent = (user: ContentUser) => isAdmin(user) || hasRole(user, "editor");
 export type Block = {
@@ -79,16 +80,24 @@ export function safeURL(value: unknown) {
   }
 }
 function checkBlocks(blocks: unknown) {
-  if (!Array.isArray(blocks) || blocks.length > 200) throw Error("正文格式无效");
-  for (const b of blocks) {
+  if (!Array.isArray(blocks) || blocks.length > 200)
+    throw new StaffFormError("请在「正文」中填写内容。正文最多 200 段，超出时请拆成多篇。");
+  for (const [index, b] of blocks.entries()) {
+    const where = `正文第 ${index + 1} 段`;
     if (!b || !["heading", "paragraph", "list", "image", "link", "policy-banner"].includes(b.type))
-      throw Error("不支持的正文类型");
+      throw new StaffFormError(`${where}无法识别，请移除这一段并重新添加。`);
     if (b.type === "policy-banner") {
-      if (!parsePolicyBannerBlock(b)) throw Error("政策横幅需有效内容标识及待确认选项");
+      if (!parsePolicyBannerBlock(b))
+        throw new StaffFormError(
+          `${where}的政策横幅未填完整，请选择已发布政策并检查待确认时的显示选项。`,
+        );
     } else if (b.type === "image") {
-      if (!Number.isSafeInteger(b.mediaId) || b.mediaId < 1) throw Error("请选择图片");
-    } else if (typeof b.text !== "string" || b.text.length > 10000) throw Error("正文过长或无效");
-    if (b.type === "link" && !safeURL(b.url)) throw Error("链接必须为 http/https");
+      if (!Number.isSafeInteger(b.mediaId) || b.mediaId < 1)
+        throw new StaffFormError(`请为${where}选择一张图片，或移除该图片段。`);
+    } else if (typeof b.text !== "string" || b.text.length > 10000)
+      throw new StaffFormError(`${where}最多 10,000 字，请缩短或分段后保存。`);
+    if (b.type === "link" && !safeURL(b.url))
+      throw new StaffFormError(`请为${where}填写以 https:// 或 http:// 开头的完整网址。`);
   }
 }
 export function validateContent(value: unknown): asserts value is ContentBody {
@@ -111,33 +120,43 @@ export function validateContent(value: unknown): asserts value is ContentBody {
     ].includes(d.kind) ||
     !isLocale(d.locale)
   )
-    throw Error("内容类型或语言无效");
+    throw new StaffFormError("请重新选择内容类型和语言，再保存草稿。");
+  if (typeof d.title !== "string" || !d.title.trim())
+    throw new StaffFormError("请填写「标题」后再保存草稿。");
+  if (d.title.length > 200) throw new StaffFormError("「标题」最多 200 字，请缩短后再保存。");
+  if ((d.summary?.length || 0) > 2000)
+    throw new StaffFormError("「摘要」最多 2,000 字，请缩短后再保存。");
   if (!isContentIdentifier(d.slug) || !isContentIdentifier(d.contentKey))
-    throw Error("网址标识只允许小写英文、数字和连字符");
-  if (!d.title?.trim() || d.title.length > 200 || (d.summary?.length || 0) > 2000)
-    throw Error("请填写有效标题与摘要");
+    throw new StaffFormError(
+      "请在「高级」检查内容编号和网址末尾。以小写字母或数字开头，只用小写英文字母、数字和短横线，最多 100 字。",
+    );
   if (d.seoImage !== undefined && (!Number.isSafeInteger(d.seoImage) || d.seoImage < 1))
-    throw Error("请选择有效分享图片");
+    throw new StaffFormError("请选择可用的「分享图片」，或清空后保存。");
   if (d.kind === "page" && !fixedContentPages.some((page) => page.slug === d.slug))
-    throw Error("网站页面仅支持 home/about/contact/partners/privacy/terms");
+    throw new StaffFormError("请在「网站页面」选择已有页面，再保存草稿。");
   if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
   if (d.kind === "exhibition") validateExhibition(d.exhibition);
   if (isLife(d.kind)) validateLifestyle(d.lifestyle, d.kind);
   if (d.kind === "institution") validateInstitution(d.institution);
   checkBlocks(d.blocks);
-  if (d.sourceTopic !== undefined && !isSourceTopic(d.sourceTopic)) throw Error("资料主题无效");
-  if (!Array.isArray(d.sources) || d.sources.length > 30) throw Error("来源格式无效");
+  if (d.sourceTopic !== undefined && !isSourceTopic(d.sourceTopic))
+    throw new StaffFormError("请在「资料来源」重新选择资料主题。");
+  if (!Array.isArray(d.sources) || d.sources.length > 30)
+    throw new StaffFormError("「资料来源」最多填写 30 条，请移除多余来源后再保存。");
   const ids = new Set();
-  for (const s of d.sources) {
-    if (!s.id || ids.has(s.id) || !s.title || !safeURL(s.url))
-      throw Error("来源需要唯一编号、标题和有效网址");
+  for (const [index, s] of d.sources.entries()) {
+    const where = `「资料来源」第 ${index + 1} 条`;
+    if (!s?.id || ids.has(s.id)) throw new StaffFormError(`${where}无法保存，请移除后重新添加。`);
+    if (!s.title) throw new StaffFormError(`请填写${where}的「来源标题」。`);
+    if (!safeURL(s.url))
+      throw new StaffFormError(`${where}的「来源网址」请填以 https:// 或 http:// 开头的完整网址。`);
     ids.add(s.id);
   }
   if (
     d.category !== undefined &&
     (!Number.isInteger(d.category) || d.category < 0 || d.category > 8)
   )
-    throw Error("分类无效");
+    throw new StaffFormError("请重新选择内容分类，再保存草稿。");
 }
 export type Candidate = {
   title: string;

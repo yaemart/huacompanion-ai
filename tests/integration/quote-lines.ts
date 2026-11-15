@@ -174,11 +174,11 @@ try {
   const sameName = await provider(vendor.organisation, "verified");
   await assert.rejects(
     act(op, "quote", partyChange({ ...lines[1], payeeProviderId: sameName.id })),
-    /请填写签约方与收款方不同的原因/,
+    /第 1 项费用.*签约方与收款方不同的原因.*填写说明/,
   );
   await assert.rejects(
     act(op, "quote", partyChange({ ...customParties, partyDifferenceReason: "　 " })),
-    /请填写签约方与收款方不同的原因/,
+    /第 1 项费用.*签约方与收款方不同的原因.*填写说明/,
   );
   for (const override of [
     { contractName: "虚构外部签约方" },
@@ -188,7 +188,7 @@ try {
   ]) {
     await assert.rejects(
       act(manager, "quote", partyChange({ ...lines[0], ...override })),
-      /华伴自营的经营模式和主体不可修改/,
+      /华伴自营.*签约方和收款方都是华伴.*选择实际服务方/,
     );
   }
   for (const row of [
@@ -216,7 +216,7 @@ try {
   );
   await assert.rejects(
     act(op, "quote", partyChange({ ...customParties, payeeName: "任意手填收款方" })),
-    /请选择权限内已核实或已签约的收款方/,
+    /第 1 项费用.*重新选择可用的收款方.*已核实或已签约/,
   );
   for (const invalid of [paused.id, applied.id, foreign.id, 2147483647]) {
     await assert.rejects(
@@ -228,7 +228,7 @@ try {
     );
     await assert.rejects(
       act(op, "quote", partyChange({ ...customParties, payeeProviderId: invalid })),
-      /请选择权限内已核实或已签约的收款方/,
+      /第 1 项费用.*重新选择可用的收款方.*已核实或已签约/,
     );
   }
   for (const rejected of [

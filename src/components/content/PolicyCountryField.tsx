@@ -26,7 +26,7 @@ export function PolicyCountryField({
         />
       </label>
       <label>
-        国家
+        适用国家
         <select
           value={value.countryCode || ""}
           onChange={(e) => {

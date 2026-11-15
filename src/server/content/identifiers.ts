@@ -40,7 +40,9 @@ export function initialContentIdentifiers(value: unknown) {
     : record.contentKey;
   const slug = autoSlug ? contentSlug(title, `${kind}-${seed.slice(0, 8)}`) : record.slug;
   if (!isContentIdentifier(contentKey) || !isContentIdentifier(slug))
-    throw new ContentError("高级区的标识只允许小写英文、数字和连字符，最多 100 个字符");
+    throw new ContentError(
+      "请在「高级」检查内容编号和网址末尾。以小写字母或数字开头，只用小写英文字母、数字和短横线，最多 100 字。",
+    );
   return {
     body: { ...record, contentKey, slug },
     autoSlug,
@@ -63,7 +65,8 @@ export async function allocateContentIdentifiers(
   // /services/projects is the separate service project directory.
   const routes = candidates.filter((candidate) => kind !== "service" || candidate !== "projects");
   const key = (candidate: string) => `${kind}:${locale}:${candidate}`;
-  if (!routes.length) throw new ContentError("网址标识已被目录使用，请在高级区更换", 409);
+  if (!routes.length)
+    throw new ContentError("这个网址已被目录使用，请在「高级」更换网址末尾。", 409);
   const where = { routeKey: { in: routes.map(key) } };
   const base = { req, depth: 0, limit: routes.length, select: { routeKey: true } } as const;
   const drafts = await p.find({
@@ -80,7 +83,9 @@ export async function allocateContentIdentifiers(
   const available = routes.find((candidate) => !used.has(key(candidate)));
   if (!available)
     throw new ContentError(
-      kind === "page" ? "该语言的网站页面已存在，请打开原稿编辑" : "网址标识已占用，请在高级区更换",
+      kind === "page"
+        ? "该语言的网站页面已存在，请打开原稿编辑。"
+        : "这个网址已有人使用，请在「高级」更换网址末尾。",
       409,
     );
   if (kind === "page") {
@@ -130,7 +135,8 @@ export async function allocateContentIdentifiers(
       limit: 1,
       select: { identity: true },
     });
-    if (existing.docs.length) throw new ContentError("内容标识已占用，请在高级区更换", 409);
+    if (existing.docs.length)
+      throw new ContentError("此内容编号已被使用，请在「高级」更换内容编号，或打开原稿编辑。", 409);
   }
   return { slug: available, contentKey };
 }

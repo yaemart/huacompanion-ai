@@ -157,7 +157,10 @@ export async function mutateSharedPolicyNote(
     });
     const active = relationID(group.activeFactVersion) ?? null;
     if (input.factVersion !== active)
-      throw new ContentError("事实版本已经变化，请按当前事实重新复核", 409);
+      throw new ContentError(
+        "政策资料已更新。请先复制当前说明，再点击「重新读取」，核对最新资料后重新保存。",
+        409,
+      );
     const { draft: old, versions } = await noteRecords(p, req, group.id, input.locale);
     if (old && input.revision !== old.revision)
       throw new ContentError("说明已经更新，请刷新后重试", 409);
@@ -216,7 +219,8 @@ export async function mutateSharedPolicyNote(
           ],
         },
       });
-      if (duplicate.totalDocs) throw new ContentError("同语言的网址标识已存在，原记录未覆盖", 409);
+      if (duplicate.totalDocs)
+        throw new ContentError("该语言的网址已存在，请在「高级」更换网址末尾，或打开原说明。", 409);
       data = {
         ...data,
         ...fields,

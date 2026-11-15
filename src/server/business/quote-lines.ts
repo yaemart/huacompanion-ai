@@ -110,6 +110,7 @@ function quoteParties(
   serviceName: string,
   { providers, allowCollection, companyName }: QuoteLineOptions,
   companyNames: Set<string>,
+  issue: (message: string) => ContentError,
 ): Pick<
   QuoteLineView,
   | "mode"
@@ -122,7 +123,7 @@ function quoteParties(
 > {
   if (line.serviceSource === "company") {
     if (partyOverrides.some((field) => Object.hasOwn(line, field)))
-      throw new ContentError("华伴自营的经营模式和主体不可修改");
+      throw issue("华伴自营时，签约方和收款方都是华伴。若由第三方服务，请重新选择实际服务方。");
     return { mode: "managed", contractName: serviceName, payeeName: serviceName };
   }
   const payee = providers.find(({ id }) => id === line.payeeProviderId);
@@ -133,14 +134,14 @@ function quoteParties(
     (!collects && companyNames.has(companyNameKey(payeeName))) ||
     (typeof line.payeeName === "string" && companyNames.has(companyNameKey(line.payeeName)))
   )
-    throw new ContentError(collectionClosed);
-  if (collects && !allowCollection) throw new ContentError(collectionClosed);
+    throw issue(collectionClosed);
+  if (collects && !allowCollection) throw issue(collectionClosed);
   if (line.mode !== undefined && line.mode !== (collects ? "managed" : "referral"))
-    throw new ContentError("经营模式须与收款方一致");
+    throw issue("请重新选择收款方，确认经营模式与收款方式一致。");
   if (line.payeeName !== undefined || (line.payeeProviderId !== undefined && !payee?.name.trim()))
-    throw new ContentError("请选择权限内已核实或已签约的收款方");
+    throw issue("请重新选择可用的收款方，此处仅列出已核实或已签约的服务商。");
   if (collects && (!companyNameKey(companyName) || line.payeeProviderId !== undefined))
-    throw new ContentError("代收须使用已配置的华伴公司主体");
+    throw issue("华伴代收需要公司名称，请联系管理员配置华伴公司主体，或选择其他收款方。");
   const collection = line.collection as { reason?: unknown; note?: unknown } | undefined;
   if (
     (collects &&
@@ -151,7 +152,7 @@ function quoteParties(
         collection.note.length > 2000)) ||
     (!collects && collection !== undefined)
   )
-    throw new ContentError("请选择代收原因并填写说明（最多 2000 字）");
+    throw issue("请选择「代收原因」，并填写「代收说明」，最多 2,000 字。");
   const contractName = partyOverride(line.contractName, serviceName, "签约方");
   const parties = {
     mode: collects ? "managed" : "referral",
@@ -177,7 +178,7 @@ function quoteParties(
   if (!differs) return parties;
   const reason = line.partyDifferenceReason;
   if (typeof reason !== "string" || !partyNameKey(reason) || reason.trim().length > 2000)
-    throw new ContentError("请填写签约方与收款方不同的原因（最多 2000 字）");
+    throw issue("请在「签约方与收款方不同的原因」填写说明，最多 2,000 字。");
   return { ...parties, partyDifferenceReason: reason.trim() };
 }
 
@@ -206,9 +207,10 @@ export async function prepareQuoteLines(
   const companyNames = await companyNameKeys(p, req, options.companyName);
   const lineCosts: LineCost[] = [];
   const lines = amounts.map((amount, i) => {
+    const issue = (message: string) => new ContentError(`第 ${i + 1} 项费用：${message}`);
     const inputLine = input.lines[i];
     if (Object.keys(inputLine).some((field) => !lineFields.includes(field)))
-      throw new ContentError("费用项包含不支持的字段");
+      throw issue("该项无法保存，请移除后重新填写。");
     const { serviceSource, serviceName, providerId } = inputLine;
     const manual = typeof serviceName === "string" ? serviceName.trim() : "";
     let name: string;
@@ -216,7 +218,7 @@ export async function prepareQuoteLines(
       name = options.companyName;
     else if (serviceSource === "provider" && serviceName == null) {
       name = options.providers.find(({ id }) => id === providerId)?.name.trim() || "";
-      if (!name) throw new ContentError("请选择权限内已核实或已签约的服务商");
+      if (!name) throw issue("请在「实际服务方」重新选择已核实或已签约的服务商。");
     } else if (
       serviceSource === "manual" &&
       providerId == null &&
@@ -224,13 +226,13 @@ export async function prepareQuoteLines(
       manual.length <= 200
     )
       name = manual;
-    else throw new ContentError("请选择或填写实际服务方");
-    const parties = quoteParties(inputLine, name, options, companyNames);
+    else throw issue("请在「实际服务方」选择服务商，或选择手填并填写名称。");
+    const parties = quoteParties(inputLine, name, options, companyNames, issue);
     const lineId = randomUUID();
     const cost: unknown = costs[i];
     if (cost != null) {
       if (typeof cost !== "number" || !Number.isSafeInteger(cost) || cost < 0 || cost > 1000000000)
-        throw new ContentError("本项成本合计须为有效金额");
+        throw issue("请把「本项成本合计」填成 0 至 10,000,000 之间的金额，最多两位小数。");
       lineCosts.push({ lineId, costMinor: cost });
     }
     return {
@@ -254,7 +256,8 @@ export async function quoteLineReviewRequirements(
   if (quote.lineFormat !== 2) return;
   const lines = quoteLinesView(quote.lines, 2, true);
   const { companyName } = await quoteLineOptions(p, actor, req, []);
-  if (!companyNameKey(companyName)) throw new ContentError("请先配置华伴公司主体");
+  if (!companyNameKey(companyName))
+    throw new ContentError("请联系管理员在「公开公司信息」配置华伴公司主体名称，再提交报价审核。");
   const ids = lines.map(({ lineId }) => lineId);
   if (
     !Array.isArray(quote.lines) ||
@@ -272,7 +275,16 @@ export async function quoteLineReviewRequirements(
     if (parties.contractName === serviceName) delete parties.contractName;
     return line.serviceSource === "manual" ? { ...parties, serviceName } : parties;
   });
-  const expected = await prepareQuoteLines(p, actor, req, { lineFormat: 2, lines: input }, lines);
+  const expected = await prepareQuoteLines(
+    p,
+    actor,
+    req,
+    { lineFormat: 2, lines: input },
+    lines,
+  ).catch((error: unknown) => {
+    if (!(error instanceof ContentError)) throw error;
+    throw new ContentError(`请点「以新格式另存一版」后修改。 ${error.message}`, error.status);
+  });
   const difference: string[] = [];
   const collection: string[] = [];
   for (const [index, line] of lines.entries()) {
