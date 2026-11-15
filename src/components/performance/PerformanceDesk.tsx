@@ -105,7 +105,8 @@ export function PerformanceDesk({ target, id }: { target?: Target; id?: number }
     <main className="performance-desk">
       <nav>
         <a href="/admin">管理后台</a> · <a href="/workflow-center">站内通知</a> ·{" "}
-        <a href="/performance-center">全部记录</a>
+        <a href="/performance-center">全部记录</a> ·{" "}
+        <a href="/performance-center/monthly">个人业绩与月报</a>
       </nav>
       <h1>投诉、纠错与申诉</h1>
       {error && <p role="alert">{error}</p>}

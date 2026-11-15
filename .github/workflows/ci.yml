@@ -213,3 +213,7 @@ jobs:
         env:
           APP_ENV: local
         run: node --import tsx tests/integration/performance-incidents.ts
+      - name: Verify private monthly staff performance reports
+        env:
+          APP_ENV: local
+        run: node --import tsx tests/integration/staff-monthly-performance.ts
