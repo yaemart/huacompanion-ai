@@ -80,6 +80,7 @@ test("overdue review snapshot ignores completion or assignment after cutoff", ()
     assignee: 8,
     due: task.due,
     doneAt: null,
+    canceled: false,
   });
   assert.equal(taskAtCutoff(task, "2026-11-11T00:00:00.000Z").doneAt, "2026-11-10T00:00:00.000Z");
 });

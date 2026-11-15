@@ -10,6 +10,7 @@ import {
 } from "../../lib/staff-monthly-performance";
 import type { IncidentSource } from "../../lib/performance-incidents";
 import { ContentError } from "../content/error";
+import { readScorecardObservation } from "./scorecard-observation";
 import {
   monthlyIncidents,
   monthlyFollowups,
@@ -92,6 +93,16 @@ export async function readMonthlyPerformance(
       samples: number;
       minutes: number | null;
     }>(monthlyReviews, args);
+    const records = summarizeIncidents(incidents, now);
+    const followup = followupTotals(followups, scope, period.start, period.through);
+    const reviewTasks = summarizeReviewTasks(tasks, scope, period.start, period.through);
+    const scorecard = await readScorecardObservation(client, scope, period, now, {
+      response,
+      review,
+      followup,
+      reviewTasks,
+      ...records,
+    });
     await client.query("COMMIT");
 
     return {
@@ -102,9 +113,10 @@ export async function readMonthlyPerformance(
       people,
       response,
       review,
-      ...summarizeIncidents(incidents, now),
-      followup: followupTotals(followups, scope, period.start, period.through),
-      overdueReviews: overdueReviewCount(tasks, scope, period.through),
+      ...records,
+      followup,
+      overdueReviews: reviewTasks.overdue,
+      scorecard,
     };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -148,15 +160,21 @@ function summarizeIncidents(rows: Incident[], now: number) {
   return { incidents, pending: [...pending.values()] };
 }
 
-function overdueReviewCount(rows: Task[], scope: number | null, cutoff: string) {
-  return rows.filter((row) => {
+function summarizeReviewTasks(rows: Task[], scope: number | null, start: string, cutoff: string) {
+  let overdue = 0;
+  let due = 0;
+  for (const row of rows) {
     const task = taskAtCutoff({ ...row, due: row.due?.toISOString() ?? null }, cutoff);
-    return (
-      task.assignee !== null &&
-      (scope === null || scope === task.assignee) &&
-      !task.doneAt &&
-      task.due &&
-      task.due < cutoff
-    );
-  }).length;
+    if (
+      task.assignee === null ||
+      (scope !== null && scope !== task.assignee) ||
+      !task.due ||
+      task.due >= cutoff
+    )
+      continue;
+    if (!task.doneAt) overdue++;
+    if (task.canceled && task.doneAt && task.doneAt <= task.due) continue;
+    if (task.due >= start || !task.doneAt || task.doneAt >= start) due++;
+  }
+  return { overdue, due };
 }

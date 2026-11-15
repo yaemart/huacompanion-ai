@@ -107,6 +107,7 @@ export interface Config {
     'workflow-tasks': WorkflowTask;
     'workflow-customer-notifications': WorkflowCustomerNotification;
     'workflow-mail-jobs': WorkflowMailJob;
+    'scorecard-plans': ScorecardPlan;
     'performance-incidents': PerformanceIncident;
     'performance-findings': PerformanceFinding;
     'content-quality': ContentQuality;
@@ -162,6 +163,7 @@ export interface Config {
     'workflow-tasks': WorkflowTasksSelect<false> | WorkflowTasksSelect<true>;
     'workflow-customer-notifications': WorkflowCustomerNotificationsSelect<false> | WorkflowCustomerNotificationsSelect<true>;
     'workflow-mail-jobs': WorkflowMailJobsSelect<false> | WorkflowMailJobsSelect<true>;
+    'scorecard-plans': ScorecardPlansSelect<false> | ScorecardPlansSelect<true>;
     'performance-incidents': PerformanceIncidentsSelect<false> | PerformanceIncidentsSelect<true>;
     'performance-findings': PerformanceFindingsSelect<false> | PerformanceFindingsSelect<true>;
     'content-quality': ContentQualitySelect<false> | ContentQualitySelect<true>;
@@ -1395,6 +1397,27 @@ export interface WorkflowMailJob {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scorecard-plans".
+ */
+export interface ScorecardPlan {
+  id: number;
+  key: string;
+  effectiveMonth?: string | null;
+  revision: number;
+  configuration:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "performance-incidents".
  */
 export interface PerformanceIncident {
@@ -2551,6 +2574,18 @@ export interface WorkflowMailJobsSelect<T extends boolean = true> {
   nextAt?: T;
   attempts?: T;
   providerId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scorecard-plans_select".
+ */
+export interface ScorecardPlansSelect<T extends boolean = true> {
+  key?: T;
+  effectiveMonth?: T;
+  revision?: T;
+  configuration?: T;
   updatedAt?: T;
   createdAt?: T;
 }

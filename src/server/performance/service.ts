@@ -428,6 +428,7 @@ async function resolve(
     finding: current.id,
     result,
     replacement,
+    affected: updated.map(({ id }) => id),
     reason,
     at,
   });

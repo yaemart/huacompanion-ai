@@ -15,9 +15,8 @@ export const monthlyIncidents = `
   ORDER BY i.id DESC
 `;
 
-export const monthlyResponses = `
-  WITH responses AS (
-    SELECT q.id AS inquiry, q.created_at AS opened, m.created_at AS responded, m.staff_id AS staff, 1 AS kind, m.id
+export const identifiableStaffReplies = `
+    SELECT q.id AS inquiry, q.created_at AS opened, m.created_at AS responded, m.staff_id AS staff, m.id
     FROM support_messages m
     JOIN support_conversations c ON c.id = m.conversation_id
     JOIN LATERAL (
@@ -29,7 +28,13 @@ export const monthlyResponses = `
       HAVING count(DISTINCT i.id) = 1
     ) q ON true
     WHERE m.author = 'staff' AND m.visibility = 'public' AND m.staff_id IS NOT NULL
-      AND m.created_at >= q.created_at AND m.created_at < $3::timestamptz
+      AND m.created_at >= q.created_at
+`;
+
+export const monthlyResponses = `
+  WITH responses AS (
+    SELECT inquiry, opened, responded, staff, 1 AS kind, id FROM (${identifiableStaffReplies}) replies
+    WHERE responded < $3::timestamptz
     UNION ALL
     SELECT q.id, q.created_at, v.sent_at, e.actor_id, 2, v.id
     FROM service_quotes v
