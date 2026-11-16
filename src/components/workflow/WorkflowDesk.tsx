@@ -1,4 +1,5 @@
 "use client";
+import { staffDateTime } from "@/lib/staff-display";
 import { useEffect, useState } from "react";
 type Item = {
   id: number;
@@ -159,7 +160,7 @@ export default function WorkflowDesk({ taskID }: { taskID?: number }) {
           )}
           <p>
             {t.status === "done" ? "已完成" : "待处理"} · 负责人：{t.assignee || "未认领"} · 到期：
-            {t.dueAt ? new Date(t.dueAt).toLocaleString("zh-CN") : "未设置"}
+            {t.dueAt ? `${staffDateTime(t.dueAt, true)}（北京时间）` : "未设置"}
           </p>
           {t.status !== "done" && (
             <>

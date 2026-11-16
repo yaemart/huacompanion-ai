@@ -50,7 +50,7 @@ export async function referencedPolicy(
 ) {
   const ref = (current.body as unknown as ContentBody).policyRef;
   if (!ref || !Number.isSafeInteger(ref.id) || !Number.isSafeInteger(ref.revision))
-    throw new ContentError("政策引用缺失，请刷新工作稿", 409);
+    throw new ContentError("政策引用缺失，请刷新草稿", 409);
   const record = await p.findByID({
     collection: "immigration-policies",
     id: ref.id,
@@ -58,7 +58,7 @@ export async function referencedPolicy(
     req,
   });
   if (record.policyKey !== current.identity || record.revision !== ref.revision)
-    throw new ContentError("政策已经更新或引用不属于此工作稿", 409);
+    throw new ContentError("政策已经更新或引用不属于此草稿", 409);
   return record;
 }
 

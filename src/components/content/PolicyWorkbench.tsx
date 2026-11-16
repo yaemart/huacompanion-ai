@@ -1,4 +1,5 @@
 "use client";
+import { staffDate, staffVersion } from "@/lib/staff-display";
 import "./content-center.css";
 import { useEffect, useState } from "react";
 import type { ContentBody } from "@/lib/content-model";
@@ -116,10 +117,10 @@ export function PolicyWorkbench() {
       apply(await read(saved.id));
       setMessage(
         action === "publish"
-          ? "已保存审核快照；公开工具尚未开放"
+          ? "已保存已发布版本；公开工具尚未开放"
           : action === "unpublish"
-            ? "已下架正式快照"
-            : "已保存工作稿；修改不影响现有正式快照",
+            ? "已下架已发布版本"
+            : "已保存草稿；修改不影响现有已发布版本",
       );
     });
   }
@@ -135,7 +136,7 @@ export function PolicyWorkbench() {
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
       <h1>入境政策工作台</h1>
-      <p>人工核实后提交审核。此处管理工作稿与审核快照，公开查询工具尚未开放。</p>
+      <p>人工核实后提交审核。此处管理草稿与已发布版本，公开查询工具尚未开放。</p>
       <p role="status">{message || (busy ? "正在读取…" : "")}</p>
       <div className="workspace policy-workspace">
         <aside className="panel">
@@ -187,10 +188,10 @@ export function PolicyWorkbench() {
           {waiting && <p>待审核内容已锁定，须先退回才能修改。</p>}
           {dirty && <p role="status">有未保存修改，请先保存，再提交或审核。</p>}
           <button disabled={busy || !editable} onClick={() => action("save")}>
-            保存政策工作稿
+            保存政策草稿
           </button>
           <button disabled={busy || !editable || !draft || dirty} onClick={() => action("submit")}>
-            提交已保存稿审核
+            提交草稿审核
           </button>
           {draft && permissions?.canReview && (
             <section aria-label="审核与发布">
@@ -216,9 +217,9 @@ export function PolicyWorkbench() {
                 ))}
               {(
                 [
-                  ["publish", "审核并保存正式快照", waiting && reviewed],
+                  ["publish", "审核并保存已发布版本", waiting && reviewed],
                   ["return", "退回修改", waiting],
-                  ["unpublish", "下架正式快照", draft.everPublished],
+                  ["unpublish", "下架已发布版本", draft.everPublished],
                 ] as const
               ).map(([actionName, label, allowed]) => (
                 <button
@@ -234,19 +235,19 @@ export function PolicyWorkbench() {
           {draft && (
             <section>
               <a href={`/content-preview/${draft.id}`} target="_blank" rel="noreferrer">
-                预览已保存工作稿（尚未公开）
+                预览已保存草稿（尚未公开）
               </a>
               <button disabled={busy} onClick={history}>
                 查看历史版本
               </button>
               {versions.map((version) => (
                 <p key={version.id}>
-                  工作稿修订{version.revision} · {version.updatedAt}
+                  {staffVersion(version.revision)} · {staffDate(version.updatedAt)}
                   <button
                     disabled={busy || dirty || !editable}
                     onClick={() => action("restore", { versionId: version.id })}
                   >
-                    恢复为新工作稿
+                    恢复为新草稿
                   </button>
                 </p>
               ))}

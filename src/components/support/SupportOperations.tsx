@@ -1,4 +1,5 @@
 "use client";
+import { staffDateTime } from "@/lib/staff-display";
 import { useEffect, useState } from "react";
 import type { Locale } from "../../lib/locales";
 export default function SupportOperations({ conversationID }: { conversationID?: number }) {
@@ -253,7 +254,8 @@ export default function SupportOperations({ conversationID }: { conversationID?:
             <div>
               <p>
                 符合条件：{preview.count} {preview.unit === "conversations" ? "个会话" : "条记录"}
-                ；预览有效至 {preview.expiresAt}。执行会永久移除内容。
+                ；预览有效至 {staffDateTime(preview.expiresAt, true)}
+                （北京时间）。执行会永久移除内容。
               </p>
               <label>
                 输入 DELETE SUPPORT CONTENT 确认
@@ -279,7 +281,8 @@ export default function SupportOperations({ conversationID }: { conversationID?:
             <ul>
               {report.retentionAudits.map((a: any) => (
                 <li key={a.id}>
-                  {a.createdAt} · {a.kind} · {a.status} {a.result?.processed ?? ""}
+                  {staffDateTime(a.createdAt, true)}（北京时间） · {a.kind} · {a.status}{" "}
+                  {a.result?.processed ?? ""}
                 </li>
               ))}
             </ul>

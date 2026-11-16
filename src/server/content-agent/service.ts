@@ -52,7 +52,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
       const contentKind = draft?.kind || "guide";
       if (!canAccessContentKind(user, contentKind)) throw new ContentError("无此板块权限", 403);
       if (["translate", "check"].includes(input.kind) && !draft)
-        throw new ContentError("此任务需要先选定并保存工作稿");
+        throw new ContentError("此任务需要先选定并保存草稿");
       const locale =
         input.kind === "translate" ? input.targetLocale : draft?.locale || input.locale || "zh";
       if (!isLocale(locale)) throw new ContentError("请选择有效的目标语言");
@@ -132,7 +132,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
     });
     if (!canAccessContentKind(user, task.contentKind)) throw new ContentError("无此板块权限", 403);
     if (input.action === "cancel") {
-      if (task.adoptedDraft) throw new ContentError("该结果已采纳，请在工作稿中处理");
+      if (task.adoptedDraft) throw new ContentError("该结果已采纳，请在草稿中处理");
       return p.update({
         collection: "content-agent-tasks",
         id: task.id,
@@ -146,7 +146,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
     if (input.action !== "adopt") throw new ContentError("未知任务操作");
     if (task.adoptedDraft) return task;
     if (task.status !== "succeeded") throw new ContentError("仅成功结果可以采纳");
-    if (task.kind === "check") throw new ContentError("检查任务仅供审核参考，不覆盖工作稿");
+    if (task.kind === "check") throw new ContentError("检查任务仅供审核参考，不覆盖草稿");
     const source = task.input as any;
     validateCandidate(
       task.result,
@@ -175,7 +175,7 @@ export async function agentAction(p: Payload, user: ContentUser, input: any) {
     if (target?.reviewState === "review")
       throw new ContentError("待审核内容须先退回后才能修改", 409);
     if (target && target.revision !== source.targetRevision)
-      throw new ContentError("工作稿已变化，请人工比较，不覆盖新稿", 409);
+      throw new ContentError("草稿已变化，请人工比较，不覆盖新稿", 409);
     let sourceContributors: number[] = [];
     if (source.sourceDraft) {
       const original = await p.findByID({

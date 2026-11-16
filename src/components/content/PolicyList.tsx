@@ -1,4 +1,5 @@
 "use client";
+import { staffDate } from "@/lib/staff-display";
 import React, { useState } from "react";
 import {
   filterPolicyRows,
@@ -58,7 +59,7 @@ export function PolicyList({
         tabIndex={0}
       >
         <table className="policy-list">
-          <caption>政策工作稿；点击国家打开，点击列标题排序。</caption>
+          <caption>政策草稿；点击国家打开，点击列标题排序。</caption>
           <thead>
             <tr>
               {columns.map((column) => (
@@ -99,8 +100,8 @@ export function PolicyList({
                 </td>
                 <td>{row.policyType ? policyTypeLabels[row.policyType] : "待填写"}</td>
                 <td>{policyStateLabels[row.reviewState]}</td>
-                <td>{row.validUntil || "未填写"}</td>
-                <td>{row.lastVerifiedOn || "未填写"}</td>
+                <td>{row.validUntil ? staffDate(row.validUntil) : "未填写"}</td>
+                <td>{row.lastVerifiedOn ? staffDate(row.lastVerifiedOn) : "未填写"}</td>
               </tr>
             ))}
           </tbody>

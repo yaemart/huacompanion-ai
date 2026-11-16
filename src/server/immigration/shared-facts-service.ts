@@ -32,7 +32,7 @@ async function draftFor(p: Payload, req: Req, groupId: number) {
       limit: 1,
     })
   ).docs[0];
-  if (!draft) throw new ContentError("政策事实工作稿不存在", 404);
+  if (!draft) throw new ContentError("政策事实草稿不存在", 404);
   return draft;
 }
 export async function versionsFor(p: Payload, req: Req, group: number, limit = 50) {

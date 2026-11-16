@@ -228,7 +228,7 @@ export function CatalogFields({
                     </option>
                   ))}
               </select>
-              <small>选择不代表已获准发布；发布时重新检查服务商许可与正式版本。</small>
+              <small>选择不代表已获准发布；发布时重新检查服务商许可与已发布版本。</small>
             </label>
           )}
         </>

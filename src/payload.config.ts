@@ -1,3 +1,4 @@
+import { applyStaffDateColumns } from "./cms/staff-date-columns";
 import { PublicCompanySettings } from "./cms/company";
 import { businessCollections } from "./cms/business/collections";
 import { quoteTemplateSettings } from "./cms/business/quote-templates";
@@ -33,6 +34,7 @@ export default buildConfig({
   serverURL: process.env.APP_URL || "http://127.0.0.1:3000",
   admin: {
     user: "staff",
+    dateFormat: "yyyy-MM-dd HH:mm:ss",
     meta: { titleSuffix: " · 华伴管理后台" },
     importMap: { baseDir: path.resolve("src") },
     components: {
@@ -81,4 +83,7 @@ export default buildConfig({
       throw new Error("邮件服务尚未配置，无法发送。请联系管理员。");
     },
   }),
+}).then((config) => {
+  for (const collection of config.collections) applyStaffDateColumns(collection.fields);
+  return config;
 });

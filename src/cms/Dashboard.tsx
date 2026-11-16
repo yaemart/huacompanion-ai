@@ -1,3 +1,4 @@
+import { staffDateTime } from "../lib/staff-display";
 import type { Payload } from "payload";
 import { readStaffToday } from "../server/workflow/staff-today";
 import {
@@ -9,13 +10,6 @@ import {
   isOperator,
   type Staff,
 } from "./access";
-const time = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Asia/Shanghai",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 async function Today({ user, payload }: { user?: Staff; payload: Payload }) {
   if (!isActiveStaff(user)) return null;
@@ -40,7 +34,7 @@ async function Today({ user, payload }: { user?: Staff; payload: Payload }) {
           </strong>
           <br />
           {dueAt
-            ? `${Date.parse(dueAt) < now ? "已逾期" : "截止"} · ${time.format(new Date(dueAt))}`
+            ? `${Date.parse(dueAt) < now ? "已逾期" : "截止"} · ${staffDateTime(dueAt)}（北京时间）`
             : "待处理"}
         </a>
       ))}

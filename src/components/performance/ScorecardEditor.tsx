@@ -1,5 +1,6 @@
 "use client";
 
+import { staffVersion } from "@/lib/staff-display";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -205,7 +206,7 @@ export function ScorecardEditor({ initial, earliest }: { initial: Settings; earl
         <ul>
           {initial.plans.map((plan) => (
             <li key={plan.effectiveMonth}>
-              {plan.effectiveMonth} · 版本 {plan.revision}
+              {plan.effectiveMonth} · {staffVersion(plan.revision)}
             </li>
           ))}
         </ul>

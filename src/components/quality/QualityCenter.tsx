@@ -1,4 +1,5 @@
 "use client";
+import { staffDate, staffVersion } from "@/lib/staff-display";
 import { useEffect, useState } from "react";
 import { localeNames, type Locale } from "@/lib/locales";
 const status: Record<string, string> = {
@@ -57,7 +58,7 @@ export function QualityCenter() {
       const result = await r.json();
       if (!r.ok) throw Error(result.error);
       await load();
-      setNotice("复核已记录。正式内容需在内容工作台独立审核发布。");
+      setNotice("复核已记录。已发布版本需在内容工作台独立审核发布。");
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存失败");
     } finally {
@@ -68,7 +69,7 @@ export function QualityCenter() {
     <main style={{ maxWidth: 1100, margin: "40px auto", padding: 24 }}>
       <a href="/content-center">← 内容工作台</a>
       <h1>内容质量</h1>
-      <p>核对资料完整度、来源与七语言覆盖。复核记录不代表资质认证，也不会自动修改正式内容。</p>
+      <p>核对资料完整度、来源与七语言覆盖。复核记录不代表资质认证，也不会自动修改已发布版本。</p>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {!desk && !error && <p>正在加载…</p>}
@@ -84,8 +85,9 @@ export function QualityCenter() {
             {item.title} · {localeNames[item.locale as Locale]}
           </h2>
           <p>
-            {item.quality?.state === "checked" ? "已登记复核" : "待复核"} · 版本 {item.revision}
-            {item.quality?.nextReviewAt && ` · 下次复核 ${item.quality.nextReviewAt.slice(0, 10)}`}
+            {item.quality?.state === "checked" ? "已登记复核" : "待复核"} ·{" "}
+            {staffVersion(item.revision)}
+            {item.quality?.nextReviewAt && ` · 下次复核 ${staffDate(item.quality.nextReviewAt)}`}
           </p>
           <p>
             {item.completeness.complete

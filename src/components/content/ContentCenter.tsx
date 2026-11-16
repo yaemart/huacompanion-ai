@@ -1,4 +1,5 @@
 "use client";
+import { staffDate, staffVersion } from "@/lib/staff-display";
 import "./content-center.css";
 import { requestContentReturn } from "@/lib/content-return";
 import { readStaffFormResponse, staffFormMessage } from "@/lib/staff-form-feedback";
@@ -287,7 +288,7 @@ export function ContentCenter({
             select(draft);
             return;
           }
-          setMessage("这篇工作稿已不可访问，请返回今日待办刷新。");
+          setMessage("这篇草稿已不可访问，请返回今日待办刷新。");
         }
         const permitted = d.permissions?.contentKinds || [];
         const kind = permitted.includes(initialKind) ? initialKind : permitted[0];
@@ -357,7 +358,7 @@ export function ContentCenter({
         setGuideReference(source);
         return setMessage("已读取最新原文，右侧译文保留。");
       }
-      if (mode === "existing" && !target) return setMessage("该语言还没有已保存的工作稿。");
+      if (mode === "existing" && !target) return setMessage("该语言还没有已保存的草稿。");
       if (mode !== "open" && !confirmDiscard()) return;
       if (mode === "back") select(source);
       else select(target, source);
@@ -474,7 +475,7 @@ export function ContentCenter({
           ? "已发布到本地网站"
           : action === "unpublish"
             ? "已下架"
-            : "已保存；修改不会改变当前正式版") + (refreshed ? "" : "；列表暂未刷新"),
+            : "已保存；修改不会改变当前已发布版本") + (refreshed ? "" : "；列表暂未刷新"),
       );
       return "saved";
     } catch (e) {
@@ -500,6 +501,12 @@ export function ContentCenter({
   const saving = busy || autosave.syncing;
   const savingReason = saving ? actionInProgress : undefined;
   const waiting = selected?.reviewState === "review";
+  const publishedVersion =
+    selected &&
+    data.published.find(
+      (record: { draftId: number; visible: boolean; revision: number }) =>
+        record.draftId === selected.id && record.visible,
+    );
   const editReason =
     savingReason ||
     (data.permissions
@@ -622,7 +629,7 @@ export function ContentCenter({
       )}
       <p>
         {contentAIAvailable ? "编辑与 AI 生成的内容" : "编辑内容"}
-        先进入草稿，只有授权审核员核验后才能发布。网站与未来 App 共用正式内容。
+        先进入草稿，只有授权审核员核验后才能发布。网站与未来 App 共用已发布版本。
       </p>
       <nav>
         {[
@@ -981,7 +988,7 @@ export function ContentCenter({
                     ? data.published.find((p: any) => p.draftId === d.id)?.acceptingInquiries ===
                         false && d.kind !== "exhibition"
                       ? " · 已展示，暂停咨询"
-                      : " · 网站已发布"
+                      : " · 已发布版本"
                     : ""}
                 </small>
               </button>
@@ -1000,8 +1007,10 @@ export function ContentCenter({
           )}
           <section className="panel">
             <h2 id="today-content-target" tabIndex={-1}>
-              {guideReference ? "编辑译文" : selected ? "编辑工作稿" : "新建工作稿"}
+              {guideReference ? "编辑译文" : selected ? "编辑草稿" : "新建草稿"}
             </h2>
+            {selected && <p>草稿 · {staffVersion(selected.revision)}</p>}
+            {publishedVersion && <p>已发布版本 · {staffVersion(publishedVersion.revision)}</p>}
             {!guideReference && canEdit && guideLocale && (
               <button disabled={saving} onClick={() => compareGuide("open")}>
                 {existingGuide ? "打开" : "添加"}
@@ -1068,9 +1077,7 @@ export function ContentCenter({
                       </option>
                     ))}
                   </select>
-                  {fixedPageLocked && (
-                    <small>该工作稿已关联此固定页面，其他页面请另建工作稿。</small>
-                  )}
+                  {fixedPageLocked && <small>该草稿已关联此固定页面，其他页面请另建草稿。</small>}
                 </label>
               )}
               {isLife(body.kind) && (
@@ -1495,7 +1502,7 @@ export function ContentCenter({
             {selected && (
               <>
                 <a href={`/content-preview/${selected.id}`} target="_blank" rel="noreferrer">
-                  预览已保存工作稿 ↗
+                  预览已保存草稿 ↗
                 </a>
                 {selected.everPublished && (
                   <p>
@@ -1508,7 +1515,7 @@ export function ContentCenter({
                   reason={editReason || (dirty ? saveChangesFirst : undefined)}
                   onClick={() => action("submit")}
                 >
-                  提交已保存稿审核
+                  提交草稿审核
                 </StaffActionButton>
                 {canReview && (
                   <>
@@ -1580,7 +1587,7 @@ export function ContentCenter({
                       })}
                       onClick={() => action("publish")}
                     >
-                      审核并发布已保存稿
+                      审核并发布草稿
                     </StaffActionButton>
                     <StaffActionButton
                       reason={
@@ -1611,7 +1618,7 @@ export function ContentCenter({
                 >
                   历史版本
                 </button>
-                <p>发布及预览只使用已保存版本；请先保存正在编辑的内容。</p>
+                <p>发布及预览只使用已保存的草稿；请先保存正在编辑的内容。</p>
                 {data.drafts
                   .filter(
                     (d: any) =>
@@ -1637,7 +1644,7 @@ export function ContentCenter({
             )}
             {versions.map((v) => (
               <p key={v.id}>
-                修订 {v.revision} · {v.updatedAt}
+                {staffVersion(v.revision)} · {staffDate(v.updatedAt)}
                 <button
                   disabled={busy || !editable}
                   onClick={() => action("restore", { versionId: v.id })}
@@ -1710,7 +1717,7 @@ export function ContentCenter({
             模型账户尚未配置，当前不会发送材料或调用付费模型。可以保存任务，配置完成后再执行。AI不能发布内容。
           </p>
           <p>
-            当前选定工作稿：{selected?.title || "未选择（采纳时创建新稿）"}
+            当前选定草稿：{selected?.title || "未选择（采纳时创建新稿）"}
             。粘贴材料和所选来源将作为任务输入，不读取客户咨询。
           </p>
           <label>
