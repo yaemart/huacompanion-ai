@@ -1,10 +1,13 @@
 "use client";
 import "./content-center.css";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
+import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
+import { sharedPolicyForm, sharedPolicyInput } from "@/lib/policy-shared-form";
 import type { SharedFactEditorData } from "@/server/immigration/shared-editor";
 import type { SharedFactInput } from "@/server/immigration/shared-facts-service";
 import { validateSharedFacts } from "@/lib/policy-shared-facts";
-import { sharedPolicyInput } from "@/lib/policy-shared-form";
+
 import { policyIdentity as identity } from "@/lib/immigration-policy-entry";
 import { policyStateLabels } from "@/lib/immigration-policy-list";
 import type { PolicyForm } from "@/lib/immigration-policy-editor";
@@ -16,12 +19,20 @@ const fallback = "政策操作未得到确认，请保留当前填写，稍后�
 export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEditorData }) {
   const [form, setForm] = useState(desk.policy);
   const [key, setKey] = useState(desk.group?.contentKey || "");
-  const [dirty, setDirty] = useState(false);
+  const [savedForm, setSavedForm] = useState(desk.policy);
+  const [savedKey, setSavedKey] = useState(key);
+  const [groupId, setGroupId] = useState(desk.group?.id);
+  const [draft, setDraft] = useState(desk.draft);
+  const writing = useRef(false);
+  const createUnconfirmed = useRef(false);
+  const dirty = form !== savedForm || key !== savedKey;
+  const input = useMemo(() => ({ form, key }), [form, key]);
+  const { navigateAfterSave } = useUnsavedDraft(dirty);
   const [checked, setChecked] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const { draft, group, permissions: perm } = desk;
+  const { group, permissions: perm } = desk;
   const waiting = draft?.reviewState === "review";
   const editable = perm.canEdit && !waiting;
   const own = [
@@ -30,18 +41,33 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
     ...(Array.isArray(draft?.contributors) ? draft.contributors : []),
   ].includes(perm.userId);
   const reviewable = perm.canReview && (!own || (perm.isAdmin && !!reason.trim()));
-  const open = (id?: number) =>
-    window.location.assign("/content-center/policy-facts" + (id ? `?id=${id}` : ""));
+  const factUrl = (id?: number) => "/content-center/policy-facts" + (id ? `?id=${id}` : "");
+  const open = (id?: number) => {
+    if (!writing.current) window.location.assign(factUrl(id));
+  };
   function change(value: PolicyForm) {
-    if (!group && (!key || key === identity(form, "zh")?.contentKey))
+    if (!groupId && (!key || key === identity(form, "zh")?.contentKey))
       setKey(identity(value, "zh")?.contentKey || "");
     setForm(value);
-    setDirty(true);
     setChecked(false);
   }
-  async function action(action: SharedFactInput["action"], versionId?: number) {
-    setBusy(true);
+  async function action(
+    action: SharedFactInput["action"],
+    versionId?: number,
+    automatic = false,
+  ): Promise<DraftSaveResult> {
+    if (writing.current || (action !== "save" && dirty)) return "blocked";
+    const unconfirmed = "首次保存结果未确认。请保留填写内容，并从列表核对是否已建稿后再继续。";
+    if (action === "save" && !groupId && createUnconfirmed.current) {
+      setMessage(unconfirmed);
+      return "blocked";
+    }
+    const firstSave = action === "save" && !groupId;
+    if (firstSave) createUnconfirmed.current = true;
+    writing.current = true;
+    if (!automatic) setBusy(true);
     setMessage("");
+    let retryable = !!groupId;
     try {
       if (action === "submit")
         validateSharedFacts(
@@ -54,8 +80,9 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
+          ...(automatic && { autosave: true }),
           versionId,
-          groupId: group?.id,
+          groupId,
           revision: draft?.revision,
           contentKey: key,
           facts: action === "save" ? sharedPolicyInput(form) : undefined,
@@ -64,28 +91,79 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
           overrideReason: reason,
         }),
       });
-      const data = await readStaffFormResponse<{ groupId: number }>(response, fallback);
+      retryable = !!groupId && (response.status >= 500 || response.ok);
+      if (firstSave && response.status >= 400 && response.status < 500)
+        createUnconfirmed.current = false;
+      const data = await readStaffFormResponse<{
+        groupId: number;
+        draft?: NonNullable<typeof draft>;
+      }>(response, fallback);
       if (!Number.isSafeInteger(data.groupId) || data.groupId < 1) throw Error(fallback);
-      open(data.groupId);
+      if (automatic) {
+        if (!data.draft || !Number.isSafeInteger(data.draft.revision)) throw Error(fallback);
+        const next = sharedPolicyForm(data.draft.facts);
+        setSavedForm(next);
+        setForm((current) => mergeSavedDraft(form, next, current));
+        setSavedKey(key);
+        setKey(key);
+        setDraft(data.draft);
+        if (!groupId) {
+          setGroupId(data.groupId);
+          window.history.replaceState(null, "", factUrl(data.groupId));
+        }
+      } else {
+        navigateAfterSave(factUrl(data.groupId));
+      }
+      createUnconfirmed.current = false;
+      return "saved";
     } catch (error) {
-      setMessage(staffFormMessage(error, fallback));
+      setMessage(
+        firstSave && createUnconfirmed.current ? unconfirmed : staffFormMessage(error, fallback),
+      );
       setChecked(false);
-      setBusy(false);
+      return retryable ? "retry" : "blocked";
+    } finally {
+      writing.current = false;
+      if (!automatic) setBusy(false);
     }
   }
+  const autosave = useDraftAutosave({
+    editable,
+    dirty,
+    busy,
+    fingerprint: input,
+    save: () => action("save", undefined, true),
+  });
+  const saving = busy || autosave.syncing;
+  const rows =
+    groupId && draft
+      ? [
+          ...desk.rows.filter((row) => row.id !== groupId),
+          {
+            id: groupId,
+            title: "中英共用事实",
+            locale: "zh" as const,
+            reviewState: draft.reviewState,
+            country: savedForm.countryNameZh || savedForm.countryCode || null,
+            policyType: savedForm.policyType,
+            validUntil: savedForm.validUntil ?? null,
+            lastVerifiedOn: savedForm.lastVerifiedOn ?? null,
+          },
+        ]
+      : desk.rows;
   return (
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
       <h1>政策共用事实</h1>
       <p>国家、停留、日期、口岸与来源只填一次。发布事实会让两语说明待复核。</p>
-      {perm.canEdit && <PolicyCsvImport disabled={busy || dirty} />}
-      {group &&
+      {perm.canEdit && <PolicyCsvImport disabled={saving || dirty} />}
+      {groupId &&
         ["zh", "en"].map((locale) => (
           <button
             key={locale}
-            disabled={busy || dirty}
+            disabled={saving}
             onClick={() =>
-              window.location.assign(`/content-center/policy-facts?id=${group.id}&locale=${locale}`)
+              window.location.assign(`/content-center/policy-facts?id=${groupId}&locale=${locale}`)
             }
           >
             {locale === "zh" ? "中文" : "英文"}公开说明
@@ -93,17 +171,17 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
         ))}
       <div className="workspace policy-workspace">
         <aside className="panel">
-          <button disabled={busy || dirty || !perm.canEdit} onClick={() => open()}>
+          <button disabled={saving || !perm.canEdit} onClick={() => open()}>
             新建政策
           </button>
-          <button disabled={busy} onClick={() => open(group?.id)}>
+          <button disabled={saving} onClick={() => open(groupId)}>
             {dirty ? "放弃修改并重新读取" : "重新读取"}
           </button>
           <PolicyList
-            rows={desk.rows}
+            rows={rows}
             today={desk.today}
-            selectedId={group?.id}
-            disabled={busy || dirty}
+            selectedId={groupId}
+            disabled={saving}
             onSelect={open}
           />
         </aside>
@@ -114,7 +192,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
             {group?.activeFactVersion ? "有已发布版本" : "未发布"}
           </p>
           {draft?.reviewNote && <p className="notice">退回／复核说明：{draft.reviewNote}</p>}
-          <fieldset disabled={busy || !editable}>
+          <fieldset disabled={busy || !editable || (!groupId && saving)}>
             <PolicyFields
               shared
               value={form}
@@ -128,16 +206,13 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
                 政策编号（中英文共用）
                 <input
                   value={key}
-                  readOnly={!!group}
-                  onChange={(e) => {
-                    setKey(e.target.value);
-                    setDirty(true);
-                  }}
+                  readOnly={!!groupId || saving}
+                  onChange={(e) => setKey(e.target.value)}
                 />
               </label>
             </details>
           </fieldset>
-          {dirty && <p>有未保存修改，请先保存；切换记录暂不可用。</p>}
+          {autosave.status && <p role="status">{autosave.status}</p>}
           {waiting && <p>待审核事实已锁定，退回后方可编辑。</p>}
           {perm.canReview && (
             <section aria-label="事实审核">
@@ -154,7 +229,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
                 <input
                   type="checkbox"
                   style={{ width: "auto" }}
-                  disabled={busy || dirty}
+                  disabled={saving || dirty}
                   checked={checked}
                   onChange={(e) => setChecked(e.target.checked)}
                 />
@@ -177,7 +252,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               ["unpublish", "下架共用事实", reviewable && !!group?.activeFactVersion && !dirty],
             ] as const
           ).map(([name, label, allowed]) => (
-            <button key={name} disabled={busy || !allowed} onClick={() => action(name)}>
+            <button key={name} disabled={saving || !allowed} onClick={() => action(name)}>
               {label}
             </button>
           ))}
@@ -185,7 +260,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
           {desk.versions.map((v) => (
             <button
               key={v.id}
-              disabled={busy || dirty || !editable}
+              disabled={saving || dirty || !editable}
               onClick={() => action("restore", v.id)}
             >
               另存第 {v.revision} 版为草稿

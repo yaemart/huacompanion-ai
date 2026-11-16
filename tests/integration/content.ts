@@ -2,6 +2,7 @@ import "dotenv/config";
 import assert from "node:assert/strict";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
+import { versionOf } from "../../src/cms/quality/hooks";
 import { mutateContent, readPublished, listPublished } from "../../src/server/content/service";
 if (process.env.APP_ENV !== "local") throw Error("Local tests only");
 const seenPages: number[] = [];
@@ -108,11 +109,54 @@ try {
       body: { ...body, slug: "changed" },
     }),
   );
+  const history = () =>
+    p.findVersions({
+      collection: "content-drafts",
+      where: { parent: { equals: d.id } },
+      limit: 30,
+    });
+  const historyBefore = (await history()).docs.map(({ id }) => id);
+  const autosaved = await mutateContent(p, editor, {
+    action: "save",
+    autosave: true,
+    id: d.id,
+    revision: changed.revision,
+    body: { ...body, title: "Version two", summary: "Background edit" },
+  });
+  assert.equal(autosaved.revision, changed.revision + 1);
+  assert.equal(autosaved.reviewState, "draft");
+  assert.equal(autosaved.lastEditedBy, editor.id);
+  assert.equal(
+    (await p.findByID({ collection: "content-drafts", id: d.id })).revision,
+    autosaved.revision,
+  );
+  assert.deepEqual(
+    (await history()).docs.map(({ id }) => id),
+    historyBefore,
+  );
+  const quality = await p.find({
+    collection: "content-quality",
+    where: { draftId: { equals: d.id } },
+  });
+  assert.equal(quality.docs[0].contentVersion, versionOf(autosaved.body));
+  assert.equal(quality.docs[0].state, "review-needed");
+  assert.equal((await readPublished(p, "guide", "en", key))?.summary, "");
   const reviewed = await mutateContent(p, editor, {
     action: "submit",
     id: d.id,
-    revision: changed.revision,
+    revision: autosaved.revision,
   });
+  await assert.rejects(
+    () =>
+      mutateContent(p, editor, {
+        action: "save",
+        autosave: true,
+        id: d.id,
+        revision: reviewed.revision,
+        body: { ...body, title: "Rejected while in review" },
+      }),
+    /待审核/,
+  );
   await mutateContent(p, admin, {
     action: "publish",
     overrideReason: "Local regression fixture review and cleanup",
@@ -149,6 +193,7 @@ try {
       action: "save",
       id: d.id,
       revision: restored.revision,
+      autosave: true,
       body: { ...body, title: "Concurrent A" },
     }),
     mutateContent(p, editor, {
@@ -164,7 +209,7 @@ try {
     p.find({ collection: "content-drafts", overrideAccess: false, user: null }),
   );
   console.log(
-    "PASS content publish isolation, role restrictions, stale revisions, stable URLs, language isolation and unpublish",
+    "PASS content autosave, revision conflicts, audit history, pending lock, roles, publication and language isolation",
   );
 } catch (e) {
   console.error(e);

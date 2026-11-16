@@ -76,6 +76,7 @@ try {
       {
         action: "save",
         contentKey: key,
+        autosave: true,
         facts: {
           countryCode: "DE",
           countryNameZh: "虚构HTTP",
@@ -87,7 +88,59 @@ try {
     assert.equal(saved.status, 200);
     assert.match(saved.headers.get("cache-control") || "", /private.*no-store/);
     const result = await saved.json();
-    assert.deepEqual(Object.keys(result), ["groupId"]);
+    assert.equal(result.draft.revision, 1);
+    assert.equal(result.draft.reviewState, "draft");
+    assert.equal(result.draft.facts.internalNotes, "PRIVATE HTTP FIXTURE");
+    const next = await post(
+      {
+        action: "save",
+        groupId: result.groupId,
+        autosave: true,
+        revision: result.draft.revision,
+        facts: { internalNotes: "PRIVATE HTTP FIXTURE · autosave" },
+      },
+      edit,
+    );
+    assert.equal(next.status, 200);
+    assert.equal((await next.json()).draft.revision, 2);
+    assert.equal(
+      (
+        await post(
+          { action: "save", groupId: result.groupId, revision: result.draft.revision, facts: {} },
+          edit,
+        )
+      ).status,
+      409,
+    );
+    const manual = await post(
+      { action: "save", groupId: result.groupId, revision: 2, facts: {} },
+      edit,
+    );
+    assert.equal(manual.status, 200);
+    assert.deepEqual(await manual.json(), { groupId: result.groupId });
+    const postNote = (revision: number | undefined, jwt: string | undefined) =>
+      fetch(base + "/api/content-center/policy-notes", {
+        method: "POST",
+        headers: { ...headers(jwt), Origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save",
+          autosave: true,
+          groupId: result.groupId,
+          factVersion: null,
+          locale: "zh",
+          revision,
+          body: { title: "虚构说明", slug: key, publicNotes: "Fictional autosave note" },
+        }),
+      });
+    assert.equal((await postNote(undefined, review)).status, 403);
+    const note = await postNote(undefined, edit);
+    assert.equal(note.status, 200);
+    assert.match(note.headers.get("cache-control") || "", /private.*no-store/);
+    const savedNote = (await note.json()).draft;
+    assert.equal(savedNote.revision, 1);
+    assert.equal(savedNote.reviewState, "draft");
+    assert.equal((await postNote(savedNote.revision, edit)).status, 200);
+    assert.equal((await postNote(savedNote.revision, edit)).status, 409);
     const html = await read(edit, `?id=${result.groupId}`);
     assert.equal(html.status, 200);
     assert.match(await html.text(), /PRIVATE HTTP FIXTURE/);
@@ -111,7 +164,7 @@ try {
     );
     await p.update({ collection: "staff", id: editor.id, user: admin, data: { active: false } });
     assert.equal(
-      (await post({ action: "save", groupId: result.groupId, revision: 1, facts: {} }, edit))
+      (await post({ action: "save", groupId: result.groupId, revision: 3, facts: {} }, edit))
         .status,
       403,
     );
