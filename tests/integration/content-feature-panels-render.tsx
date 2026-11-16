@@ -16,6 +16,7 @@ try {
   assert.doesNotMatch(standard, /AI 内容任务|AI 生成的内容/);
   assert.match(standard, /编辑与发布/);
   assert.match(standard, /图片素材/);
+  assert.match(standard, /正在读取编辑权限，请稍候。/);
 
   const available = renderToStaticMarkup(<ContentCenter initialKind="guide" contentAIAvailable />);
   assert.match(available, /<button[^>]*>AI 内容任务<\/button>/);
