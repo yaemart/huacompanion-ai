@@ -31,12 +31,16 @@ const initial = {
     basedOnFactVersion: 11,
     contributors: [1],
   },
-  versions: [{ id: 15, revision: 1 }],
+  versions: [{ id: 15, revision: 1, createdAt: "2026-11-16T16:00:00Z" }],
   defaultBody: { title: "default", slug: "demo", publicNotes: "" },
   permissions: { canEdit: true, canReview: false, isAdmin: false, userId: 1 },
 } as unknown as Desk;
 const render = (patch: Partial<Desk> = {}) =>
   renderToStaticMarkup(<PolicyNoteWorkbench initial={{ ...initial, ...patch }} />);
+const published = render({
+  draft: { ...initial.draft!, publishedNoteVersion: 15 },
+});
+assert.match(published, /本语说明 · 已发布版本 · 第 1 版 · 2026-11-17（待复核，公开页暂不展示）/);
 const button = (html: string, label: string) => {
   const value = html.match(new RegExp(`<button[^>]*>${label}</button>`))?.[0];
   assert.ok(value, `missing button: ${label}`);
@@ -44,7 +48,7 @@ const button = (html: string, label: string) => {
 };
 let html = render();
 assert.match(html, /英文公开说明/);
-assert.match(html, /事实第 2 版/);
+assert.match(html, /共用事实 · 已发布版本 · 第 2 版/);
 assert.match(html, /待复核/);
 assert.match(html, /重新核对/);
 assert.match(html, /240 小时/);
@@ -55,11 +59,11 @@ assert.match(html, / {2}240 hours\n原文 {2}/);
 assert.ok(!html.includes('type="number"'));
 assert.ok(!button(html, "另存第 1 版为草稿").includes("disabled"));
 assert.match(button(html, "审核发布本语说明"), /disabled/);
-assert.match(button(html, "提交已保存稿审核"), /disabled/);
+assert.match(button(html, "提交草稿审核"), /disabled/);
 assert.ok(
   !button(
     render({ draft: { ...initial.draft!, basedOnFactVersion: 12 } }),
-    "提交已保存稿审核",
+    "提交草稿审核",
   ).includes("disabled"),
 );
 html = render({
@@ -67,8 +71,8 @@ html = render({
   factRevision: null,
   group: { ...initial.group, activeFactVersion: null },
 });
-assert.match(html, /尚无已发布事实/);
-assert.match(button(html, "提交已保存稿审核"), /disabled/);
+assert.match(html, /共用事实尚无已发布版本/);
+assert.match(button(html, "提交草稿审核"), /disabled/);
 html = render({
   permissions: { ...initial.permissions, canEdit: false, canReview: true, userId: 2 },
 });

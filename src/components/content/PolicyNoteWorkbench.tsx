@@ -1,4 +1,5 @@
 "use client";
+import { staffDate, staffVersion } from "@/lib/staff-display";
 import React, { useRef, useState } from "react";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
 import { policyActionReasons } from "@/lib/staff-action-reasons";
@@ -36,6 +37,8 @@ export function PolicyNoteWorkbench({
     draft?.submittedBy,
     ...(Array.isArray(draft?.contributors) ? draft.contributors : []),
   ].includes(perm.userId);
+  const publishedNoteID = relationID(draft?.publishedNoteVersion);
+  const publishedNote = desk.versions.find((version) => version.id === publishedNoteID);
   const currentBasis =
     relationID(draft?.basedOnFactVersion) === relationID(group.activeFactVersion);
   const noteUrl = (locale?: string) =>
@@ -136,8 +139,12 @@ export function PolicyNoteWorkbench({
         {dirty ? "放弃修改并重新读取" : "重新读取"}
       </button>
       <div className="workspace policy-workspace">
-        <section className="panel" aria-label="当前已发布事实">
-          <h2>{facts ? `事实第 ${desk.factRevision} 版（中英文共用，只读）` : "尚无已发布事实"}</h2>
+        <section className="panel" aria-label="共用事实的已发布版本">
+          <h2>
+            {facts
+              ? `共用事实 · 已发布版本 · ${staffVersion(desk.factRevision)}（只读）`
+              : "共用事实尚无已发布版本"}
+          </h2>
           {facts ? (
             <>
               <p>
@@ -148,8 +155,9 @@ export function PolicyNoteWorkbench({
                   : `${facts.maxStayDays} 天`}
               </p>
               <p>
-                有效期：{facts.validFrom} 至 {facts.validUntil || "截止日尚未确认"}；核实日：
-                {facts.lastVerifiedOn}
+                有效期：{staffDate(facts.validFrom)} 至{" "}
+                {facts.validUntil ? staffDate(facts.validUntil) : "截止日尚未确认"}；核实日：
+                {staffDate(facts.lastVerifiedOn)}
               </p>
               <p>{facts.portsAndRegions.join("；")}</p>
               <a href={facts.officialSourceUrl} target="_blank" rel="noreferrer">
@@ -162,7 +170,19 @@ export function PolicyNoteWorkbench({
         </section>
         <section className="panel">
           <p>
-            {draft ? policyStateLabels[draft.reviewState] : "新草稿"}；
+            {draft
+              ? `草稿 · ${staffVersion(draft.revision)}${draft.reviewState === "draft" ? "" : ` · ${policyStateLabels[draft.reviewState]}`}`
+              : "新草稿"}
+          </p>
+          {publishedNoteID != null && (
+            <p>
+              本语说明 · 已发布版本
+              {publishedNote &&
+                ` · ${staffVersion(publishedNote.revision)} · ${staffDate(publishedNote.createdAt)}`}
+              {draft?.needsReview !== false && "（待复核，公开页暂不展示）"}
+            </p>
+          )}
+          <p>
             {draft?.needsReview !== false
               ? "待复核：请按当前事实重新核对，复核通过前公开页隐藏说明。"
               : "已核实本语说明"}
@@ -229,7 +249,7 @@ export function PolicyNoteWorkbench({
           {(
             [
               ["save", "保存草稿"],
-              ["submit", "提交已保存稿审核"],
+              ["submit", "提交草稿审核"],
               ["return", "退回修改"],
               ["publish", "审核发布本语说明"],
               ["unpublish", "下架本语说明"],
@@ -246,7 +266,7 @@ export function PolicyNoteWorkbench({
               disabled={saving || dirty || !editable}
               onClick={() => action("restore", v.id)}
             >
-              另存第 {v.revision} 版为草稿
+              另存{staffVersion(v.revision)}为草稿
             </button>
           ))}
           {!!desk.versions.length && (

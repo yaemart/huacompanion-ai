@@ -19,7 +19,7 @@ const access: NonNullable<CollectionConfig["access"]> = {
 const group = "内容中心";
 export const ContentDrafts: CollectionConfig = {
   slug: "content-drafts",
-  labels: { singular: "内容工作稿", plural: "内容工作稿" },
+  labels: { singular: "内容草稿", plural: "内容草稿" },
   admin: {
     group,
     useAsTitle: "title",
@@ -36,7 +36,7 @@ export const ContentDrafts: CollectionConfig = {
           (data.kind || originalDoc?.kind) === "immigration-policy" &&
           !req.context.policyWorkflow
         )
-          throw Error("政策工作稿必须通过审核发布服务修改");
+          throw Error("政策草稿必须通过审核发布服务修改");
         const body = data.body || originalDoc?.body || {};
         data.sectionLabel = contentSections.find((s) => s.id === sectionFor(body))!.zh;
         return data;
@@ -82,7 +82,7 @@ export const ContentDrafts: CollectionConfig = {
       admin: { hidden: true },
     },
     { name: "body", label: "内容", type: "json", required: true },
-    { name: "revision", label: "修订号", type: "number", required: true },
+    { name: "revision", label: "版本号", type: "number", required: true },
     {
       name: "reviewState",
       label: "审核状态",
@@ -106,7 +106,7 @@ export const ContentDrafts: CollectionConfig = {
 };
 export const ContentPublished: CollectionConfig = {
   slug: "content-published",
-  labels: { singular: "正式内容", plural: "正式内容" },
+  labels: { singular: "已发布版本", plural: "已发布版本" },
   admin: { group, useAsTitle: "routeKey" },
   access: { ...access, read: ({ req }) => isAdmin(req.user) },
   fields: [

@@ -59,6 +59,7 @@ try {
       await Promise.all([runPolicyReminders(p, "2026-11-01"), runPolicyReminders(p, "2026-11-01")]);
       assert.equal((await tasks()).length, 1);
       assert.equal((await tasks())[0].assignee, null);
+      assert.match((await tasks())[0].title, /已发布版本 · 第 \d+ 版/);
       assert.equal(
         (await workflowRead(p, outsider)).tasks.some((t) => t.contentDraft === draft.id),
         false,

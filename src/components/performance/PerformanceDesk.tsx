@@ -1,4 +1,5 @@
 "use client";
+import { staffDateTime, staffVersion } from "@/lib/staff-display";
 import "./performance.css";
 import { useEffect, useState } from "react";
 import type { performanceRead } from "../../server/performance/service";
@@ -15,12 +16,7 @@ const fallback = "操作未得到确认，当前填写可保留。请稍后重�
 const states = { pending: "待确认或复核", confirmed: "已确认", dismissed: "不成立或已撤销" };
 export const sourceLabel = (source: IncidentSource) =>
   source === "case" ? "服务投诉" : "发布后纠错";
-const time = new Intl.DateTimeFormat("zh-CN", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
-export const displayTime = (value: string) => time.format(new Date(value));
+export const displayTime = (value: string) => staffDateTime(value, true);
 
 function sourceHref(row: Pick<ReviewRow, "source" | "sourceRecord" | "sourceLocale">) {
   if (row.source === "case") return `/business-center?id=${row.sourceRecord}`;
@@ -136,7 +132,7 @@ export function PerformanceDesk({ target, id }: { target?: Target; id?: number }
             >
               <fieldset disabled={busy}>
                 <label>
-                  {target.source === "case" ? "关联服务单" : "发生错误的正式版本"}
+                  {target.source === "case" ? "关联服务单" : "发生错误的已发布版本"}
                   <select
                     name="version"
                     defaultValue={sources.length === 1 ? sources[0].id : ""}
@@ -186,11 +182,11 @@ export function PerformanceDesk({ target, id }: { target?: Target; id?: number }
               </fieldset>
             </form>
           ) : (
-            <p>没有可选的正式版本。</p>
+            <p>没有可选的已发布版本。</p>
           )}
         </article>
       )}
-      {!target && !focused && <p>请从服务单或正式内容的原页面进入登记。</p>}
+      {!target && !focused && <p>请从服务单或内容的已发布版本页面进入登记。</p>}
       {data && (
         <>
           <section aria-label="我的判定">
@@ -273,7 +269,7 @@ export function PerformanceDesk({ target, id }: { target?: Target; id?: number }
               <h2>我审核过的版本纠错</h2>
               {data.reviewed.map((row) => (
                 <p key={row.id}>
-                  纠错 #{row.id} · 已确认 · 正式第 {row.sourceRevision} 版 ·{" "}
+                  纠错 #{row.id} · 已确认 · 正式{staffVersion(row.sourceRevision)} ·{" "}
                   <a href={sourceHref(row)}>查看关联内容</a>
                 </p>
               ))}
@@ -292,7 +288,9 @@ export function PerformanceDesk({ target, id }: { target?: Target; id?: number }
                     <a href={sourceHref(row)}>打开原记录</a>
                   </p>
                   <p className="performance-evidence">{row.evidence}</p>
-                  {row.sourceRevision && <p>发生错误的正式版本：第 {row.sourceRevision} 版</p>}
+                  {row.sourceRevision && (
+                    <p>发生错误的已发布版本：{staffVersion(row.sourceRevision)}</p>
+                  )}
                   {row.relatedIncident && (
                     <p>
                       <a href={`/performance-center?id=${row.relatedIncident}`}>

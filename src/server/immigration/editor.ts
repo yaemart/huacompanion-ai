@@ -12,7 +12,7 @@ import { policyActor, referencedPolicy } from "./workflow";
 export async function readPolicyEditor(p: Payload, user: ContentUser, id?: number) {
   if (!user) throw new ContentError("需要政策板块权限", 403);
   if (id !== undefined && (!Number.isSafeInteger(id) || id < 1))
-    throw new ContentError("工作稿编号无效");
+    throw new ContentError("草稿编号无效");
   return contentTransaction(p, async (req) => {
     const actor = await policyActor(p, req, user, "read");
     const drafts = await p.find({
@@ -37,7 +37,7 @@ export async function readPolicyEditor(p: Payload, user: ContentUser, id?: numbe
       },
     });
     const draft = id === undefined ? null : drafts.docs.find((row) => row.id === id);
-    if (draft === undefined) throw new ContentError("工作稿不存在或无权限", 404);
+    if (draft === undefined) throw new ContentError("草稿不存在或无权限", 404);
     const record = draft ? await referencedPolicy(p, req, draft) : undefined;
     const records = drafts.docs.length
       ? (

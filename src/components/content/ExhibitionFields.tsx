@@ -175,7 +175,7 @@ export function ExhibitionFields({
         </select>
       </label>
       <small>
-        可关联工作稿；公众页面仅展示符合公开条件的正式项目。使用 Ctrl／Command 多选或取消选择。
+        可关联草稿；公众页面仅展示符合公开条件的正式项目。使用 Ctrl／Command 多选或取消选择。
       </small>
     </section>
   );

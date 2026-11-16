@@ -87,7 +87,7 @@ export const ImmigrationPolicies: CollectionConfig = {
     },
     {
       name: "revision",
-      label: "政策修订号",
+      label: "政策版本号",
       type: "number",
       required: true,
       min: 1,

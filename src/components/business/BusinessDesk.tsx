@@ -1,4 +1,5 @@
 "use client";
+import { staffDateTime, staffVersion } from "@/lib/staff-display";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
 import { actionInProgress, quoteSendReason } from "@/lib/staff-action-reasons";
@@ -10,7 +11,7 @@ import BusinessAI from "./BusinessAI";
 import CustomerLink from "../customer/CustomerLink";
 import { fillQuoteTerms, type QuoteTemplate } from "../../lib/quote-templates";
 import { serviceCategoryOptions } from "../../lib/routes";
-import { quoteLocalTime, quoteTimeLabel } from "../../lib/quote-time";
+import { quoteLocalTime, quoteTime } from "../../lib/quote-time";
 import { randomClientID } from "../../lib/client-id";
 import { QuoteLineParties, quotePartyInput, quotePartySummary } from "./QuoteLineParties";
 import type { StaffQuote } from "../../server/business/service";
@@ -317,7 +318,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <a href={`/admin/collections/inquiries/${view.inquiry.id}`}>
                   {view.inquiry.reference}
                 </a>{" "}
-                · {stageLabels[c.stage]} · 版本 {c.revision}
+                · {stageLabels[c.stage]} · {staffVersion(c.revision)}
               </p>
               <p>
                 <a href={`/performance-center?source=case&record=${c.id}`}>登记服务投诉</a>
@@ -379,7 +380,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
               {view.quotes.map((q: StaffQuote) => (
                 <article key={q.id} id={`quote-${q.id}`} tabIndex={-1} className="support-message">
                   <strong>
-                    第{q.revision}版 · {q.title} ·{" "}
+                    {staffVersion(q.revision)} · {q.title} ·{" "}
                     {
                       (
                         {
@@ -432,7 +433,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   {q.lineFormat !== 2 && <p>此版本未记录费用项主体。</p>}
                   <p>
                     合计 {(q.totalMinor / 100).toFixed(2)} {q.currency} · 有效至{" "}
-                    {quoteTimeLabel(q.expiresAt)}
+                    {staffDateTime(new Date(quoteTime(q.expiresAt)))}（北京时间）
                   </p>
                   {q.margin && (
                     <section aria-label="整单毛利（内部）">
@@ -785,7 +786,7 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                 <ul>
                   {view.events.map((v: any) => (
                     <li key={v.id}>
-                      {new Date(v.createdAt).toLocaleString()} · {v.action} {v.reason || ""}
+                      {staffDateTime(v.createdAt, true)}（北京时间） · {v.action} {v.reason || ""}
                     </li>
                   ))}
                 </ul>

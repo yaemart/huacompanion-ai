@@ -10,6 +10,6 @@ export async function readContentPreview(p: Payload, user: ContentUser, id: numb
     return { draft, policy: null };
   if (!visaCheckerEnabled()) throw new ContentError("页面不存在", 404);
   const view = await readPolicyEditor(p, user, draft.id);
-  if (!view.draft) throw new ContentError("工作稿不存在或无权限", 404);
+  if (!view.draft) throw new ContentError("草稿不存在或无权限", 404);
   return { draft: view.draft, policy: view.policy };
 }

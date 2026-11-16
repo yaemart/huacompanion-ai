@@ -1,3 +1,4 @@
+import { staffDateTime } from "@/lib/staff-display";
 import type { readMonthlyPerformance } from "@/server/performance/monthly";
 import {
   performanceIncidentLabels,
@@ -8,11 +9,6 @@ import { MonthlyCsvDownload } from "./MonthlyCsvDownload";
 
 type Report = Awaited<ReturnType<typeof readMonthlyPerformance>>;
 
-const time = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Asia/Shanghai",
-  dateStyle: "medium",
-  timeStyle: "medium",
-});
 const count = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 1 });
 const rate = new Intl.NumberFormat("zh-CN", { style: "percent", maximumFractionDigits: 1 });
 
@@ -96,7 +92,7 @@ export function MonthlyPerformance({ report }: { report: Report }) {
       <h2>
         {period.month} · {report.name ?? "全员汇总"}
       </h2>
-      <p>统计更新于 {time.format(new Date(report.asOf))}（北京时间）。跨月复核可更新首次确认月。</p>
+      <p>统计更新于 {staffDateTime(report.asOf, true)}（北京时间）。跨月复核可更新首次确认月。</p>
       <MonthlyCsvDownload key={`${period.month}:${staff}`} month={period.month} staff={staff} />
       <dl className="performance-metrics">
         {metrics.map(([label, value, help]) => (

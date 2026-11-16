@@ -1,3 +1,4 @@
+import { staffVersion } from "../../lib/staff-display";
 import type { Payload } from "payload";
 import { canAccessContentKind, relationID } from "../../cms/access";
 import { visaCheckerEnabled } from "../../lib/immigration-policy-flags";
@@ -109,7 +110,7 @@ export async function runPolicyReminders(
           continue;
         }
         if (!createEnabled) continue;
-        const title = `政策到期复核（${days}天）：${draft.title}；正式版本 ${snapshot.revision}；截止 ${policy.validUntil}`;
+        const title = `政策到期复核（${days}天）：${draft.title}；已发布版本 · ${staffVersion(snapshot.revision)}；截止 ${policy.validUntil}`;
         const dueAt = `${policy.validUntil}T23:59:59+08:00`;
         const event = await p.create({
           collection: "workflow-events",

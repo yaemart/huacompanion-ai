@@ -1,4 +1,6 @@
 "use client";
+import { staffDate, staffVersion } from "@/lib/staff-display";
+import { relationID } from "@/cms/access";
 import "./content-center.css";
 import { useMemo, useRef, useState } from "react";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
@@ -149,6 +151,8 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
     checked,
     published: !!group?.activeFactVersion,
   });
+  const publishedId = relationID(group?.activeFactVersion);
+  const published = desk.versions.find((version) => version.id === publishedId);
   const rows =
     groupId && draft
       ? [
@@ -202,9 +206,17 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
         <section className="panel">
           <h2>{identity(form, "zh")?.title || "选择国家和类型后自动生成"}</h2>
           <p>
-            {draft ? policyStateLabels[draft.reviewState] : "新草稿"}；
-            {group?.activeFactVersion ? "有已发布版本" : "未发布"}
+            {draft
+              ? `草稿 · ${staffVersion(draft.revision)}${draft.reviewState === "draft" ? "" : ` · ${policyStateLabels[draft.reviewState]}`}`
+              : "新草稿"}
           </p>
+          {group?.activeFactVersion && (
+            <p>
+              已发布版本
+              {published &&
+                ` · ${staffVersion(published.revision)} · ${staffDate(published.createdAt)}`}
+            </p>
+          )}
           {draft?.reviewNote && <p className="notice">退回／复核说明：{draft.reviewNote}</p>}
           <fieldset disabled={busy || !editable || (!groupId && saving)}>
             <PolicyFields
@@ -260,7 +272,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
           {(
             [
               ["save", "保存草稿"],
-              ["submit", "提交已保存稿审核"],
+              ["submit", "提交草稿审核"],
               ["return", "退回修改"],
               ["publish", "审核发布共用事实"],
               ["unpublish", "下架共用事实"],
@@ -277,7 +289,7 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               disabled={saving || dirty || !editable}
               onClick={() => action("restore", v.id)}
             >
-              另存第 {v.revision} 版为草稿
+              另存{staffVersion(v.revision)}为草稿
             </button>
           ))}
           {!!desk.versions.length && group && (

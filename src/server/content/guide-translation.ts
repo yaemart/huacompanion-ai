@@ -51,7 +51,7 @@ export async function prepareGuideTranslation(
   )
     throw new ContentError("原稿资料无效");
   const { source, target, locale } = await readGuideTranslation(p, user, reference.id, req);
-  if (target) throw new ContentError("此语言已存在工作稿，请打开已有译文。", 409);
+  if (target) throw new ContentError("此语言已存在草稿，请打开已有译文。", 409);
   const occupied = await p.count({
     collection: "content-drafts",
     where: { identity: { equals: `${source.contentKey}:${locale}` } },

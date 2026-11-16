@@ -1,3 +1,4 @@
+import { StaffDateCell as StaffDateCell_da8e93dec078005d8c655ba800623219 } from '../../../cms/StaffDateCell'
 import { InquiryStatus as InquiryStatus_d4692890c10fdc883552ccb1a20a2c52 } from '../../../cms/InquiryStatus'
 import { InquiryCase as InquiryCase_4a2ebd6bd81b941362d020a9502adc85 } from '../../../cms/InquiryCase'
 import { InquiryReplyTemplates as InquiryReplyTemplates_390af2295f76de1cbd935381c324de6c } from '../../../cms/InquiryReplyTemplates'
@@ -11,6 +12,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
+  "/cms/StaffDateCell#StaffDateCell": StaffDateCell_da8e93dec078005d8c655ba800623219,
   "/cms/InquiryStatus#InquiryStatus": InquiryStatus_d4692890c10fdc883552ccb1a20a2c52,
   "/cms/InquiryCase#InquiryCase": InquiryCase_4a2ebd6bd81b941362d020a9502adc85,
   "/cms/InquiryReplyTemplates#InquiryReplyTemplates": InquiryReplyTemplates_390af2295f76de1cbd935381c324de6c,

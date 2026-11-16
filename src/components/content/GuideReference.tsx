@@ -1,3 +1,4 @@
+import { staffDate, staffVersion } from "@/lib/staff-display";
 import { useState } from "react";
 import type { ContentDraft } from "../../../payload-types";
 import { safeURL, type ContentBody } from "@/lib/content-model";
@@ -24,7 +25,7 @@ export function GuideReference({
   return (
     <aside className="panel guide-reference" aria-label="原文对照">
       <h2>原文对照 · {source.locale === "zh" ? "中文" : "English"}</h2>
-      <p>已保存原稿 · 修订 {source.revision}</p>
+      <p>已保存的原文草稿 · {staffVersion(source.revision)}</p>
       {changed && (
         <p role="status" className="notice">
           原稿已有更新，请核对译文。
@@ -71,7 +72,7 @@ export function GuideReference({
                 ) : (
                   title
                 )}
-                {checkedAt && <small>核实日期 {checkedAt}</small>}
+                {checkedAt && <small>核实日期 {staffDate(checkedAt)}</small>}
               </li>
             ))}
           </ul>

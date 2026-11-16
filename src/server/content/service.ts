@@ -161,7 +161,7 @@ export async function listPublished(p: Payload, locale: string, req?: Partial<Pa
 export async function mutateContent(p: Payload, user: ContentUser, input: ContentActionInput) {
   if (!canManageContent(user)) throw new ContentError("无内容管理权限", 403);
   if (["save", "restore", "submit"].includes(input.action) && !canEditContent(user))
-    throw new ContentError("只有内容编辑可修改或提交工作稿", 403);
+    throw new ContentError("只有内容编辑可修改或提交草稿", 403);
   if (["publish", "unpublish", "return"].includes(input.action) && !canReviewContent(user))
     throw new ContentError("只有内容审核员可审核发布", 403);
   if (input.guideSource !== undefined && (input.action !== "save" || input.id !== undefined))

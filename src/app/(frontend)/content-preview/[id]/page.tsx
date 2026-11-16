@@ -1,3 +1,4 @@
+import { staffVersion } from "@/lib/staff-display";
 import { policyLabels } from "@/lib/immigration-policy-editor";
 import { readContentPreview } from "@/server/content/preview";
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
@@ -10,7 +11,7 @@ import { ContentBlocks } from "@/components/content/ContentBlocks";
 import type { ContentBody } from "@/lib/content-model";
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "工作稿预览 · 华伴",
+  title: "草稿预览 · 华伴",
   robots: { index: false, follow: false },
 };
 export default async function Preview({ params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +29,7 @@ export default async function Preview({ params }: { params: Promise<{ id: string
   return (
     <main className="section article" lang={body.locale} dir={body.locale === "ar" ? "rtl" : "ltr"}>
       <p>
-        工作稿预览 · {body.locale} · 修订 {d.revision} · 尚不代表网站已发布
+        草稿预览 · {body.locale} · {staffVersion(d.revision)} · 尚不代表网站已发布
       </p>
       <a href="/content-center">返回内容工作台</a>
       <h1>{body.title}</h1>

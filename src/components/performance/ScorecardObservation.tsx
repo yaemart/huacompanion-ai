@@ -1,3 +1,4 @@
+import { staffDateTime, staffVersion } from "@/lib/staff-display";
 import {
   scorecardMetrics,
   scorecardTemplates,
@@ -8,11 +9,6 @@ import type { readScorecardObservation } from "@/server/performance/scorecard-ob
 
 type Observation = Awaited<ReturnType<typeof readScorecardObservation>>;
 const numbers = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 1 });
-const dateTime = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Asia/Shanghai",
-  dateStyle: "medium",
-  timeStyle: "short",
-});
 
 export function ScorecardObservation({
   observation,
@@ -29,7 +25,7 @@ export function ScorecardObservation({
         <>
           <p>
             {observation.mode === "trial" ? "试行期" : "记录模式"} · {observation.effectiveMonth}{" "}
-            起采用版本 {observation.version}
+            起采用{staffVersion(observation.version)}
           </p>
           <p>本阶段只记录指标、样本和复核结果。正式评分待另行确认。</p>
           {!individual ? (
@@ -103,7 +99,7 @@ export function ScorecardObservation({
                 {observation.corrections.map(({ id, result, at }, index) => (
                   <li key={`${id}:${at}:${index}`}>
                     <a href={`/performance-center?id=${id}`}>记录 #{id}</a> ·{" "}
-                    {scorecardReviewLabels[result]} · {dateTime.format(new Date(at))}（北京时间）
+                    {scorecardReviewLabels[result]} · {staffDateTime(at)}（北京时间）
                   </li>
                 ))}
               </ul>

@@ -1,4 +1,5 @@
 "use client";
+import { staffDateTime, staffVersion } from "@/lib/staff-display";
 import { useEffect, useRef, useState } from "react";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { VoiceMessage, VoiceSpeechAction } from "./VoiceMessage";
@@ -168,7 +169,7 @@ export function SupportDesk() {
               <h2>会话 #{id}</h2>
               <SupportOperations conversationID={id} />
               <p>
-                模式：{c.mode} · 状态：{c.status} · 版本：{c.revision}
+                模式：{c.mode} · 状态：{c.status} · {staffVersion(c.revision)}
               </p>
               <div className="support-tools">
                 <button disabled={busy} onClick={() => act("takeover")}>
@@ -278,7 +279,7 @@ export function SupportDesk() {
                         生成中文译文（内部）
                       </button>
                     )}
-                    <small>{new Date(m.createdAt).toLocaleString()}</small>
+                    <small>{staffDateTime(m.createdAt, true)}（北京时间）</small>
                   </article>
                 ))}
               </div>
