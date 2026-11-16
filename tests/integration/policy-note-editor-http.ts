@@ -92,7 +92,7 @@ try {
         assert.equal(html.status, 200);
         const text = (await html.text()).replace(/<!--.*?-->/g, "");
         assert.match(text, locale === "zh" ? /中文公开说明/ : /英文公开说明/);
-        assert.match(text, /尚无已发布事实/);
+        assert.match(text, /共用事实尚无已发布版本/);
         assert.ok(!text.includes("PRIVATE HTTP NOTE"));
       }
       const input = {
