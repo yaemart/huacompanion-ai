@@ -1,5 +1,7 @@
 "use client";
 import React, { useRef, useState } from "react";
+import { StaffActionButton } from "@/components/admin/StaffActionButton";
+import { policyActionReasons } from "@/lib/staff-action-reasons";
 import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
 import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
 import type {
@@ -36,8 +38,6 @@ export function PolicyNoteWorkbench({
   ].includes(perm.userId);
   const currentBasis =
     relationID(draft?.basedOnFactVersion) === relationID(group.activeFactVersion);
-  const ready = !dirty && !!facts && currentBasis;
-  const reviewable = perm.canReview && (!own || (perm.isAdmin && !!reason.trim()));
   const noteUrl = (locale?: string) =>
     `/content-center/policy-facts?id=${group.id}${locale ? `&locale=${locale}` : ""}`;
   const open = (locale?: string) => {
@@ -108,6 +108,20 @@ export function PolicyNoteWorkbench({
     save: () => action("save", undefined, true),
   });
   const saving = busy || autosave.syncing;
+  const reasons = policyActionReasons({
+    saving,
+    canEdit: perm.canEdit,
+    canReview: perm.canReview,
+    waiting,
+    dirty,
+    saved: !!draft,
+    own,
+    isAdmin: perm.isAdmin,
+    reason,
+    checked,
+    published: !!draft?.publishedNoteVersion,
+    note: { hasFacts: !!facts, currentBasis },
+  });
   return (
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
@@ -214,16 +228,16 @@ export function PolicyNoteWorkbench({
           )}
           {(
             [
-              ["save", "保存草稿", editable],
-              ["submit", "提交已保存稿审核", editable && !!draft && ready],
-              ["return", "退回修改", reviewable && waiting && !!reason.trim() && !dirty],
-              ["publish", "审核发布本语说明", reviewable && waiting && checked && ready],
-              ["unpublish", "下架本语说明", reviewable && !!draft?.publishedNoteVersion && !dirty],
+              ["save", "保存草稿"],
+              ["submit", "提交已保存稿审核"],
+              ["return", "退回修改"],
+              ["publish", "审核发布本语说明"],
+              ["unpublish", "下架本语说明"],
             ] as const
-          ).map(([name, label, allowed]) => (
-            <button key={name} disabled={saving || !allowed} onClick={() => action(name)}>
+          ).map(([name, label]) => (
+            <StaffActionButton key={name} reason={reasons[name]} onClick={() => action(name)}>
               {label}
-            </button>
+            </StaffActionButton>
           ))}
           <p>历史另存只生成新草稿，仍需重新审核。</p>
           {desk.versions.map((v) => (

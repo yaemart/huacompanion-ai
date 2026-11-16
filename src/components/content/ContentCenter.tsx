@@ -42,6 +42,13 @@ import { emptyExhibition, effectiveExhibitionStatus, shanghaiToday } from "@/lib
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
+import { StaffActionButton } from "@/components/admin/StaffActionButton";
+import {
+  actionInProgress,
+  contentPublishReason,
+  draftEditReason,
+  saveChangesFirst,
+} from "@/lib/staff-action-reasons";
 import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
 import type { ContentBody, Block } from "@/lib/content-model";
 const empty = (): ContentBody => ({
@@ -67,6 +74,12 @@ const kinds = {
   partner: "公开伙伴",
   "provider-profile": "服务商展示",
   "service-project": "华伴服务项目",
+};
+const reviewLabels = {
+  catalog: "已核验公开资料、图片权利及服务范围，不含内部联系方式。",
+  exhibition: "已核验官方来源、展期、地址和报名条件。",
+  life: "已人工核实来源、营业或活动时间、收费、语言和参加要求。",
+  institution: "已核验官方来源、资质说明、接待条件及服务语言。",
 };
 const states: Record<string, string> = {
   draft: "草稿",
@@ -485,6 +498,21 @@ export function ContentCenter({
     save: () => action("save", {}, true),
   });
   const saving = busy || autosave.syncing;
+  const savingReason = saving ? actionInProgress : undefined;
+  const waiting = selected?.reviewState === "review";
+  const editReason =
+    savingReason ||
+    (data.permissions
+      ? draftEditReason(canEdit, waiting)
+      : message
+        ? "暂时无法读取编辑权限，请刷新页面。"
+        : "正在读取编辑权限，请稍候。");
+  const reviewVerification = [
+    isCatalog(body.kind) && !catalogReviewed && reviewLabels.catalog,
+    body.kind === "exhibition" && !exhibitionReviewed && reviewLabels.exhibition,
+    isLife(body.kind) && !lifeReviewed && reviewLabels.life,
+    body.kind === "institution" && !institutionReviewed && reviewLabels.institution,
+  ].find((label) => typeof label === "string");
   const creating = !selected && autosave.syncing;
   function chooseDraft(draft: ContentDraft) {
     if (!writing.current && draft.id !== selected?.id && confirmDiscard()) select(draft);
@@ -1455,13 +1483,15 @@ export function ContentCenter({
               </p>
             )}
             {autosave.status && <p role="status">{autosave.status}</p>}
-            {selected && editable && <p>送审使用已保存的草稿，请等保存完成后再提交。</p>}
-            <button
-              disabled={saving || !editable || !allowedKinds.includes(body.kind)}
+            <StaffActionButton
+              reason={
+                editReason ||
+                (!allowedKinds.includes(body.kind) ? "请选择你有权限编辑的内容类型。" : undefined)
+              }
               onClick={() => action("save")}
             >
               保存草稿
-            </button>
+            </StaffActionButton>
             {selected && (
               <>
                 <a href={`/content-preview/${selected.id}`} target="_blank" rel="noreferrer">
@@ -1474,9 +1504,12 @@ export function ContentCenter({
                     </a>
                   </p>
                 )}
-                <button disabled={saving || !editable || dirty} onClick={() => action("submit")}>
+                <StaffActionButton
+                  reason={editReason || (dirty ? saveChangesFirst : undefined)}
+                  onClick={() => action("submit")}
+                >
                   提交已保存稿审核
-                </button>
+                </StaffActionButton>
                 {canReview && (
                   <>
                     <h3>审核与发布</h3>
@@ -1488,7 +1521,7 @@ export function ContentCenter({
                           checked={catalogReviewed}
                           onChange={(e) => setCatalogReviewed(e.target.checked)}
                         />{" "}
-                        已核验公开资料、图片权利及服务范围，不含内部联系方式。
+                        {reviewLabels.catalog}
                       </label>
                     )}
                     {body.kind === "exhibition" && (
@@ -1499,7 +1532,7 @@ export function ContentCenter({
                           checked={exhibitionReviewed}
                           onChange={(e) => setExhibitionReviewed(e.target.checked)}
                         />{" "}
-                        已核验官方来源、展期、地址和报名条件。
+                        {reviewLabels.exhibition}
                       </label>
                     )}
                     {isLife(body.kind) && (
@@ -1510,7 +1543,7 @@ export function ContentCenter({
                           checked={lifeReviewed}
                           onChange={(e) => setLifeReviewed(e.target.checked)}
                         />{" "}
-                        已人工核实来源、营业或活动时间、收费、语言和参加要求。
+                        {reviewLabels.life}
                       </label>
                     )}
                     {body.kind === "institution" && (
@@ -1521,7 +1554,7 @@ export function ContentCenter({
                           checked={institutionReviewed}
                           onChange={(e) => setInstitutionReviewed(e.target.checked)}
                         />{" "}
-                        已核验官方来源、资质说明、接待条件及服务语言。
+                        {reviewLabels.institution}
                       </label>
                     )}
                     {selfReview &&
@@ -1536,31 +1569,35 @@ export function ContentCenter({
                       ) : (
                         <p>本人编辑或提交的内容，请交由另一位审核员审核。</p>
                       ))}
-                    <button
-                      disabled={
-                        busy ||
-                        selected.reviewState !== "review" ||
-                        (selfReview && (!isAdmin || !overrideReason.trim())) ||
-                        (isCatalog(body.kind) && !catalogReviewed) ||
-                        (body.kind === "exhibition" && !exhibitionReviewed) ||
-                        (isLife(body.kind) && !lifeReviewed) ||
-                        (body.kind === "institution" && !institutionReviewed)
-                      }
+                    <StaffActionButton
+                      reason={contentPublishReason({
+                        busy,
+                        waiting,
+                        own: selfReview,
+                        isAdmin,
+                        reason: overrideReason,
+                        unchecked: reviewVerification,
+                      })}
                       onClick={() => action("publish")}
                     >
                       审核并发布已保存稿
-                    </button>
-                    <button
-                      disabled={busy || selected.reviewState !== "review"}
+                    </StaffActionButton>
+                    <StaffActionButton
+                      reason={
+                        busy ? actionInProgress : !waiting ? "请先将草稿提交审核。" : undefined
+                      }
                       onClick={() =>
                         requestContentReturn(prompt, (note) => action("return", { note }))
                       }
                     >
                       退回修改
-                    </button>
-                    <button disabled={busy} onClick={() => action("unpublish")}>
+                    </StaffActionButton>
+                    <StaffActionButton
+                      reason={busy ? actionInProgress : undefined}
+                      onClick={() => action("unpublish")}
+                    >
                       下架
-                    </button>
+                    </StaffActionButton>
                   </>
                 )}
                 <button

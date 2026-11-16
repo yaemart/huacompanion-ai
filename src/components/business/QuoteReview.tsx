@@ -1,5 +1,7 @@
 "use client";
 
+import { StaffActionButton } from "@/components/admin/StaffActionButton";
+import { actionInProgress, quoteDecisionReasons } from "@/lib/staff-action-reasons";
 import { useState } from "react";
 import type { StaffQuote } from "../../server/business/service";
 import { relationID } from "../../cms/access";
@@ -27,15 +29,22 @@ export default function QuoteReview({
   const draft = quote.status === "draft";
   const legacyDraft = draft && quote.lineFormat !== 2;
   if (!draft && !quote.reviewStatus && !quote.aiTask) return null;
-  const approveDisabled = !reason.trim() || (isAuthor && !exception);
   const required = quote.lines.filter(
     (line) => line.lineId && (line.partyDifferenceReason || line.collection),
   );
-  const missing = required.some(
-    ({ lineId, partyDifferenceReason, collection }) =>
-      (partyDifferenceReason && !confirmed.difference.includes(lineId!)) ||
-      (collection && !confirmed.collection.includes(lineId!)),
-  );
+  const decision = quoteDecisionReasons({
+    busy,
+    author: isAuthor,
+    exception,
+    reason,
+    missingDifference: required.some(
+      ({ lineId, partyDifferenceReason }) =>
+        partyDifferenceReason && !confirmed.difference.includes(lineId!),
+    ),
+    missingCollection: required.some(
+      ({ lineId, collection }) => collection && !confirmed.collection.includes(lineId!),
+    ),
+  });
   function confirm(kind: keyof QuoteConfirmations, id: string, checked: boolean) {
     setConfirmed((state) => ({
       ...state,
@@ -74,13 +83,12 @@ export default function QuoteReview({
                 ? "当前版本需要重新审核。"
                 : "送审并通过后可发出此版本。"}
           </p>
-          <button
-            type="button"
-            disabled={busy}
+          <StaffActionButton
+            reason={busy ? actionInProgress : undefined}
             onClick={() => void act("submit-review", { quote: quote.id })}
           >
             {needsResubmission || quote.reviewStatus === "approved" ? "重新提交审核" : "提交审核"}
-          </button>
+          </StaffActionButton>
         </>
       )}
       {draft && !legacyDraft && state === "rejected" && (
@@ -137,22 +145,12 @@ export default function QuoteReview({
                 onChange={(event) => setReason(event.target.value)}
               />
             </label>
-            {approveDisabled && <p>请填写审核意见后再操作。管理员自审时还须勾选例外并说明原因。</p>}
-            {missing && <p>请核对有签约方、收款方差异或华伴代收的费用项，并逐项勾选确认。</p>}
-            <button
-              type="button"
-              disabled={approveDisabled || missing}
-              onClick={() => void decide("approved")}
-            >
+            <StaffActionButton reason={decision.approve} onClick={() => void decide("approved")}>
               审核通过
-            </button>
-            <button
-              type="button"
-              disabled={approveDisabled}
-              onClick={() => void decide("rejected")}
-            >
+            </StaffActionButton>
+            <StaffActionButton reason={decision.reject} onClick={() => void decide("rejected")}>
               退回此版本
-            </button>
+            </StaffActionButton>
           </fieldset>
         ) : (
           <p>请由另一位有报价审核权限的员工审核。</p>

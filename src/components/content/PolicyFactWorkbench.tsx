@@ -1,6 +1,8 @@
 "use client";
 import "./content-center.css";
 import { useMemo, useRef, useState } from "react";
+import { StaffActionButton } from "@/components/admin/StaffActionButton";
+import { policyActionReasons } from "@/lib/staff-action-reasons";
 import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
 import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
 import { sharedPolicyForm, sharedPolicyInput } from "@/lib/policy-shared-form";
@@ -40,7 +42,6 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
     draft?.submittedBy,
     ...(Array.isArray(draft?.contributors) ? draft.contributors : []),
   ].includes(perm.userId);
-  const reviewable = perm.canReview && (!own || (perm.isAdmin && !!reason.trim()));
   const factUrl = (id?: number) => "/content-center/policy-facts" + (id ? `?id=${id}` : "");
   const open = (id?: number) => {
     if (!writing.current) window.location.assign(factUrl(id));
@@ -135,6 +136,19 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
     save: () => action("save", undefined, true),
   });
   const saving = busy || autosave.syncing;
+  const reasons = policyActionReasons({
+    saving,
+    canEdit: perm.canEdit,
+    canReview: perm.canReview,
+    waiting,
+    dirty,
+    saved: !!draft,
+    own,
+    isAdmin: perm.isAdmin,
+    reason,
+    checked,
+    published: !!group?.activeFactVersion,
+  });
   const rows =
     groupId && draft
       ? [
@@ -245,16 +259,16 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
           )}
           {(
             [
-              ["save", "保存草稿", editable],
-              ["submit", "提交已保存稿审核", editable && !!draft && !dirty],
-              ["return", "退回修改", reviewable && waiting && !!reason.trim() && !dirty],
-              ["publish", "审核发布共用事实", reviewable && waiting && checked && !dirty],
-              ["unpublish", "下架共用事实", reviewable && !!group?.activeFactVersion && !dirty],
+              ["save", "保存草稿"],
+              ["submit", "提交已保存稿审核"],
+              ["return", "退回修改"],
+              ["publish", "审核发布共用事实"],
+              ["unpublish", "下架共用事实"],
             ] as const
-          ).map(([name, label, allowed]) => (
-            <button key={name} disabled={saving || !allowed} onClick={() => action(name)}>
+          ).map(([name, label]) => (
+            <StaffActionButton key={name} reason={reasons[name]} onClick={() => action(name)}>
               {label}
-            </button>
+            </StaffActionButton>
           ))}
           <p>历史另存只生成新草稿，仍需重新审核。</p>
           {desk.versions.map((v) => (

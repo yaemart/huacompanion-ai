@@ -1,5 +1,7 @@
 "use client";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { StaffActionButton } from "@/components/admin/StaffActionButton";
+import { actionInProgress, quoteSendReason } from "@/lib/staff-action-reasons";
 import { useUnsavedDraft } from "@/components/admin/useDraftProtection";
 import { businessStages, stageLabels } from "../../lib/business";
 import QuoteReview from "./QuoteReview";
@@ -466,20 +468,26 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                     </button>
                   )}
                   {q.status === "draft" && q.lineFormat === 2 && (
-                    <button
-                      disabled={busy || q.review.state !== "approved"}
+                    <StaffActionButton
+                      reason={quoteSendReason(busy, q.review.state, q.review.needsResubmission)}
                       onClick={() => act("send", { quote: q.id })}
                     >
                       发出此版本
-                    </button>
+                    </StaffActionButton>
                   )}
                   {["draft", "sent"].includes(q.status) && (
-                    <button
-                      disabled={busy || !reason.trim()}
+                    <StaffActionButton
+                      reason={
+                        busy
+                          ? actionInProgress
+                          : !reason.trim()
+                            ? "请在上方「处理阶段」填写原因／完成说明。"
+                            : undefined
+                      }
                       onClick={() => act("withdraw", { quote: q.id, reason })}
                     >
                       按上述原因撤回
-                    </button>
+                    </StaffActionButton>
                   )}
                 </article>
               ))}
