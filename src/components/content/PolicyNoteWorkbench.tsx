@@ -1,6 +1,7 @@
 "use client";
 import { staffDate, staffVersion } from "@/lib/staff-display";
 import React, { useRef, useState } from "react";
+import { MobileSaveBar, StaffEditorGroup } from "@/components/admin/StaffMobileEditor";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
 import { policyActionReasons } from "@/lib/staff-action-reasons";
 import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
@@ -189,32 +190,33 @@ export function PolicyNoteWorkbench({
           </p>
           {draft?.reviewNote && <p className="notice">退回／复核说明：{draft.reviewNote}</p>}
           <fieldset disabled={busy || !editable}>
-            <details>
-              <summary>高级：标题和网址</summary>
-              {(["title", "slug"] as const).map((name) => (
-                <label key={name}>
-                  {name === "title" ? "标题" : "网址末尾"}
-                  <input
-                    value={body[name]}
-                    readOnly={name === "slug" && desk.versions.length > 0}
-                    onChange={(e) => change(name, e.target.value)}
-                  />
-                </label>
-              ))}
-            </details>
-            <label>
-              公开说明
-              <textarea
-                rows={8}
-                value={body.publicNotes || ""}
-                onChange={(e) => change("publicNotes", e.target.value)}
-              />
-            </label>
+            <StaffEditorGroup title="说明内容" mobileHeading>
+              <details>
+                <summary>高级：标题和网址</summary>
+                {(["title", "slug"] as const).map((name) => (
+                  <label key={name}>
+                    {name === "title" ? "标题" : "网址末尾"}
+                    <input
+                      value={body[name]}
+                      readOnly={name === "slug" && desk.versions.length > 0}
+                      onChange={(e) => change(name, e.target.value)}
+                    />
+                  </label>
+                ))}
+              </details>
+              <label>
+                公开说明
+                <textarea
+                  rows={8}
+                  value={body.publicNotes || ""}
+                  onChange={(e) => change("publicNotes", e.target.value)}
+                />
+              </label>
+            </StaffEditorGroup>
           </fieldset>
           {explanationFactWarning(body.publicNotes || "") && (
             <p className="notice">{explanationFactWarning(body.publicNotes || "")}</p>
           )}
-          {autosave.status && <p role="status">{autosave.status}</p>}
           {waiting && <p>待审核说明已锁定，退回后方可编辑。</p>}
           {!currentBasis && facts && <p>事实已变化，请重新核对并保存草稿，再提交审核。</p>}
           {perm.canReview && (
@@ -240,15 +242,20 @@ export function PolicyNoteWorkbench({
               </label>
             </section>
           )}
-          {busy && <p role="status">处理中…</p>}
-          {message && (
-            <p role="alert" className="notice">
-              {message}
-            </p>
-          )}
+          <MobileSaveBar>
+            {autosave.status && <p role="status">{autosave.status}</p>}
+            {busy && <p role="status">处理中…</p>}
+            {message && (
+              <p role="alert" className="notice">
+                {message}
+              </p>
+            )}
+            <StaffActionButton reason={reasons.save} onClick={() => action("save")}>
+              保存草稿
+            </StaffActionButton>
+          </MobileSaveBar>
           {(
             [
-              ["save", "保存草稿"],
               ["submit", "提交草稿审核"],
               ["return", "退回修改"],
               ["publish", "审核发布本语说明"],

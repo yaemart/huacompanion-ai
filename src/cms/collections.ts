@@ -354,6 +354,7 @@ export const Inquiries: CollectionConfig = {
   slug: "inquiries",
   labels: { singular: "客户咨询", plural: "客户咨询" },
   admin: {
+    components: { edit: { SaveButton: "/cms/IntakeMobileSave#IntakeMobileSave" } },
     useAsTitle: "reference",
     group: "业务运营",
     defaultColumns: ["reference", "name", "city", "status", "owner", "nextFollowUp", "createdAt"],
@@ -441,6 +442,7 @@ export const Providers: CollectionConfig = {
   slug: "providers",
   labels: { singular: "服务商申请", plural: "服务商入驻与合作" },
   admin: {
+    components: { edit: { SaveButton: "/cms/IntakeMobileSave#IntakeMobileSave" } },
     useAsTitle: "organisation",
     group: "业务运营",
     defaultColumns: ["organisation", "reference", "city", "status", "publicApproved"],

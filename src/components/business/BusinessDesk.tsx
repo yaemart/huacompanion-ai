@@ -1,6 +1,7 @@
 "use client";
 import { staffDateTime, staffVersion } from "@/lib/staff-display";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { MobileSaveBar, StaffEditorGroup } from "@/components/admin/StaffMobileEditor";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
 import { actionInProgress, quoteSendReason } from "@/lib/staff-action-reasons";
 import { useUnsavedDraft } from "@/components/admin/useDraftProtection";
@@ -527,181 +528,190 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                   }}
                 >
                   <fieldset disabled={busy}>
-                    {source && (
-                      <p>
-                        已带入来源的费用与条款。请逐项选择实际服务方并核对有效期。
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirmDiscard()) resetQuote();
-                          }}
-                        >
-                          退出另存
-                        </button>
-                      </p>
-                    )}
-                    {templates.length > 0 && (
-                      <div>
-                        <label>
-                          按服务类型选模板
-                          <select
-                            data-template-selector="true"
-                            value={template ? templateCategory : ""}
-                            onChange={(e) => setTemplateCategory(e.target.value)}
-                          >
-                            <option value="">请选择</option>
-                            {templates.map(({ category }) => (
-                              <option key={category} value={category}>
-                                {
-                                  serviceCategoryOptions.find((item) => item.value === category)
-                                    ?.label
-                                }
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <button
-                          type="button"
-                          disabled={!template}
-                          onClick={() =>
-                            template && setQuote((draft) => fillQuoteTerms(draft, template))
-                          }
-                        >
-                          填入模板
-                        </button>
-                        <p>只填空白的包含、不包含和变更与取消规则，已有文字保留。</p>
-                      </div>
-                    )}
-                    {[
-                      ["title", "方案名称"],
-                      ["scope", "服务范围"],
-                      ["included", "包含项目"],
-                      ["excluded", "不包含项目"],
-                      ["terms", "变更与取消规则"],
-                    ].map(([k, l]) => (
-                      <label key={k}>
-                        {l}
-                        <textarea
-                          required
-                          ref={k === "title" ? quoteTitle : undefined}
-                          data-field-label={l}
-                          maxLength={k === "title" ? 200 : 4000}
-                          value={(quote as any)[k]}
-                          onChange={(e) => setQuote({ ...quote, [k]: e.target.value })}
-                        />
-                      </label>
-                    ))}
-                    <label>
-                      币种
-                      <select
-                        value={quote.currency}
-                        onChange={(e) => setQuote({ ...quote, currency: e.target.value })}
-                      >
-                        {["CNY", "USD", "EUR", "GBP", "AED"].map((v) => (
-                          <option key={v}>{v}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      有效期（北京时间）
-                      <input
-                        type="datetime-local"
-                        name="expiresAt"
-                        data-field-label="有效期（北京时间）"
-                        required
-                        value={quote.expiresAt}
-                        onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}
-                      />
-                    </label>
-                    {quote.lines.map((l, i) => (
-                      <fieldset key={l.clientKey}>
-                        <legend>费用 {i + 1}</legend>
-                        <label>
-                          费用名称
-                          <input
-                            required
-                            data-field-label={`第 ${i + 1} 项费用的名称`}
-                            value={l.label}
-                            onChange={(e) =>
-                              setQuote({
-                                ...quote,
-                                lines: quote.lines.map((x, j) =>
-                                  j === i ? { ...x, label: e.target.value } : x,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        <label>
-                          数量
-                          <input
-                            type="number"
-                            min={1}
-                            max={10000}
-                            data-field-label={`第 ${i + 1} 项费用的数量`}
-                            required
-                            value={l.quantity}
-                            onChange={(e) =>
-                              setQuote({
-                                ...quote,
-                                lines: quote.lines.map((x, j) =>
-                                  j === i ? { ...x, quantity: Number(e.target.value) } : x,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        <label>
-                          单价
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            data-field-label={`第 ${i + 1} 项费用的单价`}
-                            required
-                            value={l.unitMinor / 100}
-                            onChange={(e) =>
-                              setQuote({
-                                ...quote,
-                                lines: quote.lines.map((x, j) =>
-                                  j === i
-                                    ? { ...x, unitMinor: Math.round(Number(e.target.value) * 100) }
-                                    : x,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        <QuoteLineParties
-                          index={i}
-                          options={view.quoteLineOptions}
-                          canCost={view.canCost}
-                          requireParty={!!source}
-                        />
-                        {quote.lines.length > 1 && (
+                    <StaffEditorGroup title="方案与条款" mobileHeading>
+                      {source && (
+                        <p>
+                          已带入来源的费用与条款。请逐项选择实际服务方并核对有效期。
                           <button
                             type="button"
+                            onClick={() => {
+                              if (confirmDiscard()) resetQuote();
+                            }}
+                          >
+                            退出另存
+                          </button>
+                        </p>
+                      )}
+                      {templates.length > 0 && (
+                        <div>
+                          <label>
+                            按服务类型选模板
+                            <select
+                              data-template-selector="true"
+                              value={template ? templateCategory : ""}
+                              onChange={(e) => setTemplateCategory(e.target.value)}
+                            >
+                              <option value="">请选择</option>
+                              {templates.map(({ category }) => (
+                                <option key={category} value={category}>
+                                  {
+                                    serviceCategoryOptions.find((item) => item.value === category)
+                                      ?.label
+                                  }
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            type="button"
+                            disabled={!template}
                             onClick={() =>
-                              setQuote({ ...quote, lines: quote.lines.filter((_, j) => j !== i) })
+                              template && setQuote((draft) => fillQuoteTerms(draft, template))
                             }
                           >
-                            移除该费用
+                            填入模板
                           </button>
-                        )}
-                      </fieldset>
-                    ))}
-                    <button
-                      type="button"
-                      disabled={quote.lines.length >= 30}
-                      onClick={() =>
-                        setQuote({
-                          ...quote,
-                          lines: [...quote.lines, draftLine("", randomClientID())],
-                        })
-                      }
-                    >
-                      增加费用项
-                    </button>
+                          <p>只填空白的包含、不包含和变更与取消规则，已有文字保留。</p>
+                        </div>
+                      )}
+                      {[
+                        ["title", "方案名称"],
+                        ["scope", "服务范围"],
+                        ["included", "包含项目"],
+                        ["excluded", "不包含项目"],
+                        ["terms", "变更与取消规则"],
+                      ].map(([k, l]) => (
+                        <label key={k}>
+                          {l}
+                          <textarea
+                            required
+                            ref={k === "title" ? quoteTitle : undefined}
+                            data-field-label={l}
+                            maxLength={k === "title" ? 200 : 4000}
+                            value={(quote as any)[k]}
+                            onChange={(e) => setQuote({ ...quote, [k]: e.target.value })}
+                          />
+                        </label>
+                      ))}
+                    </StaffEditorGroup>
+                    <StaffEditorGroup title="币种与有效期" mobileHeading>
+                      <label>
+                        币种
+                        <select
+                          value={quote.currency}
+                          onChange={(e) => setQuote({ ...quote, currency: e.target.value })}
+                        >
+                          {["CNY", "USD", "EUR", "GBP", "AED"].map((v) => (
+                            <option key={v}>{v}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        有效期（北京时间）
+                        <input
+                          type="datetime-local"
+                          name="expiresAt"
+                          data-field-label="有效期（北京时间）"
+                          required
+                          value={quote.expiresAt}
+                          onChange={(e) => setQuote({ ...quote, expiresAt: e.target.value })}
+                        />
+                      </label>
+                    </StaffEditorGroup>
+                    <StaffEditorGroup title="费用与主体" mobileHeading>
+                      {quote.lines.map((l, i) => (
+                        <fieldset key={l.clientKey}>
+                          <legend>费用 {i + 1}</legend>
+                          <label>
+                            费用名称
+                            <input
+                              required
+                              data-field-label={`第 ${i + 1} 项费用的名称`}
+                              value={l.label}
+                              onChange={(e) =>
+                                setQuote({
+                                  ...quote,
+                                  lines: quote.lines.map((x, j) =>
+                                    j === i ? { ...x, label: e.target.value } : x,
+                                  ),
+                                })
+                              }
+                            />
+                          </label>
+                          <label>
+                            数量
+                            <input
+                              type="number"
+                              min={1}
+                              max={10000}
+                              data-field-label={`第 ${i + 1} 项费用的数量`}
+                              required
+                              value={l.quantity}
+                              onChange={(e) =>
+                                setQuote({
+                                  ...quote,
+                                  lines: quote.lines.map((x, j) =>
+                                    j === i ? { ...x, quantity: Number(e.target.value) } : x,
+                                  ),
+                                })
+                              }
+                            />
+                          </label>
+                          <label>
+                            单价
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              data-field-label={`第 ${i + 1} 项费用的单价`}
+                              required
+                              value={l.unitMinor / 100}
+                              onChange={(e) =>
+                                setQuote({
+                                  ...quote,
+                                  lines: quote.lines.map((x, j) =>
+                                    j === i
+                                      ? {
+                                          ...x,
+                                          unitMinor: Math.round(Number(e.target.value) * 100),
+                                        }
+                                      : x,
+                                  ),
+                                })
+                              }
+                            />
+                          </label>
+                          <QuoteLineParties
+                            index={i}
+                            options={view.quoteLineOptions}
+                            canCost={view.canCost}
+                            requireParty={!!source}
+                          />
+                          {quote.lines.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setQuote({ ...quote, lines: quote.lines.filter((_, j) => j !== i) })
+                              }
+                            >
+                              移除该费用
+                            </button>
+                          )}
+                        </fieldset>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={quote.lines.length >= 30}
+                        onClick={() =>
+                          setQuote({
+                            ...quote,
+                            lines: [...quote.lines, draftLine("", randomClientID())],
+                          })
+                        }
+                      >
+                        增加费用项
+                      </button>
+                    </StaffEditorGroup>
                     {source?.ai && (
                       <label>
                         <input
@@ -713,8 +723,10 @@ export default function BusinessDesk({ initialCaseID }: { initialCaseID?: number
                         已逐项核对 AI 草稿的事实、费用、规则和待核实事项
                       </label>
                     )}
-                    {error && errorAt === "draft" && <p role="alert">{error}</p>}
-                    <button>保存新版本草稿</button>
+                    <MobileSaveBar>
+                      {error && errorAt === "draft" && <p role="alert">{error}</p>}
+                      <button type="submit">保存新版本草稿</button>
+                    </MobileSaveBar>
                   </fieldset>
                 </form>
               </details>

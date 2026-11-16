@@ -5,6 +5,7 @@ import { getPayload } from "payload";
 import config from "@/payload.config";
 import { isLocale, localeDirection } from "@/lib/locales";
 import "./globals.css";
+import "@/components/admin/staff-mobile-editor.css";
 import { SiteProvider } from "@/components/SiteContext";
 import { getSiteLocales, getPublicFeatures } from "@/server/site-config";
 import { headers } from "next/headers";
