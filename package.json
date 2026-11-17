@@ -17,6 +17,7 @@
     "export:local": "tsx scripts/export-local.ts",
     "test:http": "node scripts/check-backend-http.mjs",
     "test:migrations": "node scripts/test-migrations.mjs",
+    "test:subscriptions": "node scripts/test-subscriptions.mjs",
     "start:host": "next start --hostname 0.0.0.0",
     "test:content": "tsx tests/integration/content.ts",
     "seed:content": "tsx scripts/seed-content.ts",

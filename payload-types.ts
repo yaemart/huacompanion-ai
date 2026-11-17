@@ -116,6 +116,8 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    subscriptions: Subscription;
+    'subscription-credentials': SubscriptionCredential;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -172,6 +174,8 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
+    'subscription-credentials': SubscriptionCredentialsSelect<false> | SubscriptionCredentialsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1585,6 +1589,41 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions".
+ */
+export interface Subscription {
+  id: number;
+  email: string;
+  topic: string;
+  locale: 'zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar';
+  status: 'pending' | 'confirmed' | 'unsubscribed';
+  consentVersion: number;
+  consentedAt: string;
+  privacyVersion: string;
+  sourcePath: string;
+  partnerCode?: string | null;
+  confirmedAt?: string | null;
+  unsubscribedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-credentials".
+ */
+export interface SubscriptionCredential {
+  id: number;
+  subscription: number | Subscription;
+  purpose: 'confirm' | 'unsubscribe';
+  tokenHash: string;
+  version: number;
+  expiresAt: string;
+  consumedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -2731,6 +2770,39 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions_select".
+ */
+export interface SubscriptionsSelect<T extends boolean = true> {
+  email?: T;
+  topic?: T;
+  locale?: T;
+  status?: T;
+  consentVersion?: T;
+  consentedAt?: T;
+  privacyVersion?: T;
+  sourcePath?: T;
+  partnerCode?: T;
+  confirmedAt?: T;
+  unsubscribedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-credentials_select".
+ */
+export interface SubscriptionCredentialsSelect<T extends boolean = true> {
+  subscription?: T;
+  purpose?: T;
+  tokenHash?: T;
+  version?: T;
+  expiresAt?: T;
+  consumedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

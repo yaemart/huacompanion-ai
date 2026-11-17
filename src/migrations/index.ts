@@ -1,3 +1,4 @@
+import * as migration_20261117_120000_subscription_data from "./20261117_120000_subscription_data";
 import * as migration_20261115_210000_staff_scorecard from "./20261115_210000_staff_scorecard";
 import * as migration_20261115_130000_performance_incidents from "./20261115_130000_performance_incidents";
 import * as migration_20261115_080000_staff_daily_digest from "./20261115_080000_staff_daily_digest";
@@ -239,5 +240,10 @@ export const migrations = [
     up: migration_20261115_210000_staff_scorecard.up,
     down: migration_20261115_210000_staff_scorecard.down,
     name: "20261115_210000_staff_scorecard",
+  },
+  {
+    up: migration_20261117_120000_subscription_data.up,
+    down: migration_20261117_120000_subscription_data.down,
+    name: "20261117_120000_subscription_data",
   },
 ];
