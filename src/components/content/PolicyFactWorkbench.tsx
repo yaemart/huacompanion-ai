@@ -3,6 +3,7 @@ import { staffDate, staffVersion } from "@/lib/staff-display";
 import { relationID } from "@/cms/access";
 import "./content-center.css";
 import { useMemo, useRef, useState } from "react";
+import { MobileSaveBar } from "@/components/admin/StaffMobileEditor";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
 import { policyActionReasons } from "@/lib/staff-action-reasons";
 import { useDraftAutosave, useUnsavedDraft } from "@/components/admin/useDraftProtection";
@@ -238,7 +239,6 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               </label>
             </details>
           </fieldset>
-          {autosave.status && <p role="status">{autosave.status}</p>}
           {waiting && <p>待审核事实已锁定，退回后方可编辑。</p>}
           {perm.canReview && (
             <section aria-label="事实审核">
@@ -263,15 +263,20 @@ export function PolicyFactWorkbench({ initial: desk }: { initial: SharedFactEdit
               </label>
             </section>
           )}
-          {busy && <p role="status">处理中…</p>}
-          {message && (
-            <p role="alert" className="notice">
-              {message}
-            </p>
-          )}
+          <MobileSaveBar>
+            {autosave.status && <p role="status">{autosave.status}</p>}
+            {busy && <p role="status">处理中…</p>}
+            {message && (
+              <p role="alert" className="notice">
+                {message}
+              </p>
+            )}
+            <StaffActionButton reason={reasons.save} onClick={() => action("save")}>
+              保存草稿
+            </StaffActionButton>
+          </MobileSaveBar>
           {(
             [
-              ["save", "保存草稿"],
               ["submit", "提交草稿审核"],
               ["return", "退回修改"],
               ["publish", "审核发布共用事实"],

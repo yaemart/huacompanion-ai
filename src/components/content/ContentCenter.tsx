@@ -43,6 +43,7 @@ import { emptyExhibition, effectiveExhibitionStatus, shanghaiToday } from "@/lib
 import { isCatalog, emptyCatalog } from "@/lib/catalog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { mergeSavedDraft, type DraftSaveResult } from "@/lib/editor-draft-autosave";
+import { MobileSaveBar, StaffEditorGroup } from "@/components/admin/StaffMobileEditor";
 import { StaffActionButton } from "@/components/admin/StaffActionButton";
 import {
   actionInProgress,
@@ -1030,56 +1031,58 @@ export function ContentCenter({
                 </p>
               )}
             <fieldset disabled={busy || !editable} style={{ border: 0, padding: 0 }}>
-              <div className="row">
-                <label>
-                  内容类型
-                  <select
-                    value={body.kind}
-                    disabled={!!selected || !!guideReference || creating}
-                    onChange={(e) => field("kind", e.target.value)}
-                  >
-                    {Object.entries(kinds)
-                      .filter(([v]) => allowedKinds.includes(v))
-                      .map(([v, l]) => (
-                        <option key={v} value={v}>
-                          {l}
+              <StaffEditorGroup title="内容类型与语言" mobileHeading>
+                <div className="row">
+                  <label>
+                    内容类型
+                    <select
+                      value={body.kind}
+                      disabled={!!selected || !!guideReference || creating}
+                      onChange={(e) => field("kind", e.target.value)}
+                    >
+                      {Object.entries(kinds)
+                        .filter(([v]) => allowedKinds.includes(v))
+                        .map(([v, l]) => (
+                          <option key={v} value={v}>
+                            {l}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label>
+                    语言
+                    <select
+                      value={body.locale}
+                      disabled={!!selected || !!guideReference || creating}
+                      onChange={(e) => field("locale", e.target.value)}
+                    >
+                      {catalogLanguages.map((l) => (
+                        <option key={l.code} value={l.code}>
+                          {l.zh}
                         </option>
                       ))}
-                  </select>
-                </label>
-                <label>
-                  语言
-                  <select
-                    value={body.locale}
-                    disabled={!!selected || !!guideReference || creating}
-                    onChange={(e) => field("locale", e.target.value)}
-                  >
-                    {catalogLanguages.map((l) => (
-                      <option key={l.code} value={l.code}>
-                        {l.zh}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {body.kind === "page" && (
-                <label>
-                  网站页面
-                  <select
-                    value={body.slug}
-                    disabled={selected?.everPublished || fixedPageLocked || creating}
-                    onChange={(e) => field("slug", e.target.value)}
-                  >
-                    <option value="">请选择要编辑的页面</option>
-                    {fixedContentPages.map(({ slug, label }) => (
-                      <option value={slug} key={slug}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  {fixedPageLocked && <small>该草稿已关联此固定页面，其他页面请另建草稿。</small>}
-                </label>
-              )}
+                    </select>
+                  </label>
+                </div>
+                {body.kind === "page" && (
+                  <label>
+                    网站页面
+                    <select
+                      value={body.slug}
+                      disabled={selected?.everPublished || fixedPageLocked || creating}
+                      onChange={(e) => field("slug", e.target.value)}
+                    >
+                      <option value="">请选择要编辑的页面</option>
+                      {fixedContentPages.map(({ slug, label }) => (
+                        <option value={slug} key={slug}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    {fixedPageLocked && <small>该草稿已关联此固定页面，其他页面请另建草稿。</small>}
+                  </label>
+                )}
+              </StaffEditorGroup>
               {isLife(body.kind) && (
                 <>
                   <LifestyleFields
@@ -1155,124 +1158,129 @@ export function ContentCenter({
               {body.kind === "exhibition" && (
                 <p>同一届展会的各语言版本共用内容编号。下一届请新建，保留往届记录。</p>
               )}
-              <label>
-                标题
-                <input value={body.title} onChange={(e) => field("title", e.target.value)} />
-              </label>
-              <details key={selected?.id ?? "new-content"} className="content-identifiers">
-                <summary>高级</summary>
-                <p>
-                  {selected
-                    ? "内容编号保持不变，曾发布的网址不能修改。"
-                    : "这两项可留空，第一次保存时由系统生成。"}
-                </p>
+              <StaffEditorGroup title="基本信息" mobileHeading>
                 <label>
-                  内容编号（同一内容的各语言版本共用）
-                  <input
-                    value={body.contentKey}
-                    disabled={!!selected || !!guideReference || creating}
-                    maxLength={100}
-                    placeholder="首次保存时生成"
-                    onChange={(e) => field("contentKey", e.target.value)}
-                  />
+                  标题
+                  <input value={body.title} onChange={(e) => field("title", e.target.value)} />
                 </label>
+                <details key={selected?.id ?? "new-content"} className="content-identifiers">
+                  <summary>高级</summary>
+                  <p>
+                    {selected
+                      ? "内容编号保持不变，曾发布的网址不能修改。"
+                      : "这两项可留空，第一次保存时由系统生成。"}
+                  </p>
+                  <label>
+                    内容编号（同一内容的各语言版本共用）
+                    <input
+                      value={body.contentKey}
+                      disabled={!!selected || !!guideReference || creating}
+                      maxLength={100}
+                      placeholder="首次保存时生成"
+                      onChange={(e) => field("contentKey", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    网址末尾（小写英文字母、数字和短横线）
+                    <input
+                      value={body.slug}
+                      disabled={
+                        creating ||
+                        body.kind === "page" ||
+                        selected?.everPublished ||
+                        (!!guideReference && !selected)
+                      }
+                      maxLength={100}
+                      placeholder={body.kind === "page" ? "由网站页面决定" : "首次保存时生成"}
+                      onChange={(e) => field("slug", e.target.value)}
+                    />
+                  </label>
+                </details>
                 <label>
-                  网址末尾（小写英文字母、数字和短横线）
-                  <input
-                    value={body.slug}
-                    disabled={
-                      creating ||
-                      body.kind === "page" ||
-                      selected?.everPublished ||
-                      (!!guideReference && !selected)
-                    }
-                    maxLength={100}
-                    placeholder={body.kind === "page" ? "由网站页面决定" : "首次保存时生成"}
-                    onChange={(e) => field("slug", e.target.value)}
-                  />
-                </label>
-              </details>
-              <label>
-                摘要
-                <textarea
-                  value={body.summary || ""}
-                  onChange={(e) => field("summary", e.target.value)}
-                />
-              </label>
-              <div className="row">
-                <label>
-                  作者／编写团队
-                  <input
-                    value={body.author || ""}
-                    onChange={(e) => field("author", e.target.value)}
-                  />
-                </label>
-                <label>
-                  显示顺序
-                  <input
-                    type="number"
-                    value={body.order || 0}
-                    onChange={(e) => field("order", Number(e.target.value))}
-                  />
-                </label>
-                <label>
-                  主板块
-                  <select
-                    value={isLife(body.kind) ? 6 : body.category || 1}
-                    disabled={isLife(body.kind)}
-                    onChange={(e) => field("category", Number(e.target.value))}
-                  >
-                    {contentSections.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.zh}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <details>
-                <summary>搜索展示与适用日期</summary>
-                <label>
-                  搜索标题（可选）
-                  <input
-                    value={body.seoTitle || ""}
-                    maxLength={200}
-                    onChange={(e) => field("seoTitle", e.target.value)}
-                  />
-                </label>
-                <label>
-                  搜索摘要（可选）
+                  摘要
                   <textarea
-                    value={body.seoDescription || ""}
-                    maxLength={500}
-                    onChange={(e) => field("seoDescription", e.target.value)}
+                    value={body.summary || ""}
+                    onChange={(e) => field("summary", e.target.value)}
                   />
                 </label>
-                <label>
-                  分享图片（可选，保存草稿后仍须审核发布）
-                  <select
-                    value={body.seoImage || ""}
-                    onChange={(event) =>
-                      field("seoImage", event.target.value ? Number(event.target.value) : undefined)
-                    }
-                  >
-                    <option value="">不指定分享图</option>
-                    {data.media.map((media: ContentMedia) => (
-                      <option key={media.id} value={media.id}>
-                        {media.alt || media.filename}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  信息适用截止日（可选，不会自动下架）
-                  <input
-                    type="date"
-                    value={body.expiresAt || ""}
-                    onChange={(e) => field("expiresAt", e.target.value)}
-                  />
-                </label>
-              </details>
+                <div className="row">
+                  <label>
+                    作者／编写团队
+                    <input
+                      value={body.author || ""}
+                      onChange={(e) => field("author", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    显示顺序
+                    <input
+                      type="number"
+                      value={body.order || 0}
+                      onChange={(e) => field("order", Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    主板块
+                    <select
+                      value={isLife(body.kind) ? 6 : body.category || 1}
+                      disabled={isLife(body.kind)}
+                      onChange={(e) => field("category", Number(e.target.value))}
+                    >
+                      {contentSections.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.zh}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <details>
+                  <summary>搜索展示与适用日期</summary>
+                  <label>
+                    搜索标题（可选）
+                    <input
+                      value={body.seoTitle || ""}
+                      maxLength={200}
+                      onChange={(e) => field("seoTitle", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    搜索摘要（可选）
+                    <textarea
+                      value={body.seoDescription || ""}
+                      maxLength={500}
+                      onChange={(e) => field("seoDescription", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    分享图片（可选，保存草稿后仍须审核发布）
+                    <select
+                      value={body.seoImage || ""}
+                      onChange={(event) =>
+                        field(
+                          "seoImage",
+                          event.target.value ? Number(event.target.value) : undefined,
+                        )
+                      }
+                    >
+                      <option value="">不指定分享图</option>
+                      {data.media.map((media: ContentMedia) => (
+                        <option key={media.id} value={media.id}>
+                          {media.alt || media.filename}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    信息适用截止日（可选，不会自动下架）
+                    <input
+                      type="date"
+                      value={body.expiresAt || ""}
+                      onChange={(e) => field("expiresAt", e.target.value)}
+                    />
+                  </label>
+                </details>
+              </StaffEditorGroup>
               {isCatalog(body.kind) && (
                 <>
                   <CatalogFields
@@ -1332,173 +1340,179 @@ export function ContentCenter({
                   </p>
                 </>
               )}
-              <h2>正文</h2>
-              <p>可直接粘贴整篇文章。选中文字可添加格式，点击已有链接可修改网址。</p>
-              {articleParts.map(({ b, i, first }) => (
-                <div key={`${editSession}-${first}`}>
-                  <ArticleEditor
-                    blocks={body.blocks.slice(first, i)}
-                    disabled={busy || !editable}
-                    onChange={(next) =>
-                      field("blocks", body.blocks.toSpliced(first, i - first, ...next))
-                    }
-                  />
-                  {b?.type === "image" && (
-                    <select
-                      aria-label="选择图片"
-                      value={b.mediaId || ""}
-                      onChange={(e) => block(i, { mediaId: Number(e.target.value) })}
-                    >
-                      <option value="">请选择已上传图片</option>
-                      {data.media.map((m: ContentMedia) => (
-                        <option key={m.id} value={m.id}>
-                          {m.alt}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {b?.type === "policy-banner" ? (
-                    <PolicyBannerFields
-                      value={b}
-                      locale={bannerLocale ?? "zh"}
-                      lookup={canChooseBanner ? bannerLookup : undefined}
-                      onChange={(patch) => block(i, patch)}
-                    />
-                  ) : b?.type === "image" ? (
-                    <textarea
-                      aria-label="图片说明"
-                      value={b.text || ""}
-                      onChange={(e) => block(i, { text: e.target.value })}
-                    />
-                  ) : null}
-                  {b && (
-                    <button
-                      onClick={() =>
-                        field(
-                          "blocks",
-                          body.blocks.filter((_, j) => j !== i),
-                        )
+              <StaffEditorGroup title="正文">
+                <p>可直接粘贴整篇文章。选中文字可添加格式，点击已有链接可修改网址。</p>
+                {articleParts.map(({ b, i, first }) => (
+                  <div key={`${editSession}-${first}`}>
+                    <ArticleEditor
+                      blocks={body.blocks.slice(first, i)}
+                      disabled={busy || !editable}
+                      onChange={(next) =>
+                        field("blocks", body.blocks.toSpliced(first, i - first, ...next))
                       }
-                    >
-                      {b.type === "image" ? "移除图片" : "移除政策横幅"}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button onClick={() => field("blocks", [...body.blocks, { type: "image" }])}>
-                ＋ 在文末添加图片
-              </button>
-              {policyBannersEnabled && bannerLocale && (
-                <button
-                  onClick={() => field("blocks", [...body.blocks, { type: "policy-banner" }])}
-                >
-                  ＋ 在文末添加政策横幅
+                    />
+                    {b?.type === "image" && (
+                      <select
+                        aria-label="选择图片"
+                        value={b.mediaId || ""}
+                        onChange={(e) => block(i, { mediaId: Number(e.target.value) })}
+                      >
+                        <option value="">请选择已上传图片</option>
+                        {data.media.map((m: ContentMedia) => (
+                          <option key={m.id} value={m.id}>
+                            {m.alt}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {b?.type === "policy-banner" ? (
+                      <PolicyBannerFields
+                        value={b}
+                        locale={bannerLocale ?? "zh"}
+                        lookup={canChooseBanner ? bannerLookup : undefined}
+                        onChange={(patch) => block(i, patch)}
+                      />
+                    ) : b?.type === "image" ? (
+                      <textarea
+                        aria-label="图片说明"
+                        value={b.text || ""}
+                        onChange={(e) => block(i, { text: e.target.value })}
+                      />
+                    ) : null}
+                    {b && (
+                      <button
+                        onClick={() =>
+                          field(
+                            "blocks",
+                            body.blocks.filter((_, j) => j !== i),
+                          )
+                        }
+                      >
+                        {b.type === "image" ? "移除图片" : "移除政策横幅"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={() => field("blocks", [...body.blocks, { type: "image" }])}>
+                  ＋ 在文末添加图片
                 </button>
-              )}
-              <h2>资料来源</h2>
-              <label>
-                资料主题
-                <select
-                  value={body.sourceTopic ?? ""}
-                  onChange={(e) => field("sourceTopic", e.target.value || undefined)}
-                >
-                  <option value="">未标记</option>
-                  {Object.entries(sourceTopics).map(([topic, name]) => (
-                    <option key={topic} value={topic}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p>
-                {datesRequired
-                  ? "送审和发布前，至少添加一条来源，并填写每条来源的人工核实日期。"
-                  : "涉及政策、就医或签证的稿件请选择相应主题。"}
-              </p>
-              <p>请人工核实，提供网址不代表系统已经读取或核实该来源。</p>
-              {body.sources.map((s, i) => (
-                <div className="block" key={i}>
-                  <input
-                    aria-label="来源标题"
-                    placeholder="来源标题"
-                    value={s.title}
-                    onChange={(e) =>
-                      field(
-                        "sources",
-                        body.sources.map((x, j) => (i === j ? { ...x, title: e.target.value } : x)),
-                      )
-                    }
-                  />
-                  <input
-                    aria-label="来源网址"
-                    placeholder="https://…"
-                    value={s.url}
-                    onChange={(e) =>
-                      field(
-                        "sources",
-                        body.sources.map((x, j) => (i === j ? { ...x, url: e.target.value } : x)),
-                      )
-                    }
-                  />
-                  <label>
-                    人工核实日期{datesRequired ? "（送审必填）" : "（可选）"}
+                {policyBannersEnabled && bannerLocale && (
+                  <button
+                    onClick={() => field("blocks", [...body.blocks, { type: "policy-banner" }])}
+                  >
+                    ＋ 在文末添加政策横幅
+                  </button>
+                )}
+              </StaffEditorGroup>
+              <StaffEditorGroup title="资料来源">
+                <label>
+                  资料主题
+                  <select
+                    value={body.sourceTopic ?? ""}
+                    onChange={(e) => field("sourceTopic", e.target.value || undefined)}
+                  >
+                    <option value="">未标记</option>
+                    {Object.entries(sourceTopics).map(([topic, name]) => (
+                      <option key={topic} value={topic}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p>
+                  {datesRequired
+                    ? "送审和发布前，至少添加一条来源，并填写每条来源的人工核实日期。"
+                    : "涉及政策、就医或签证的稿件请选择相应主题。"}
+                </p>
+                <p>请人工核实，提供网址不代表系统已经读取或核实该来源。</p>
+                {body.sources.map((s, i) => (
+                  <div className="block" key={i}>
                     <input
-                      type="date"
-                      required={datesRequired}
-                      max={datesRequired ? shanghaiToday() : undefined}
-                      value={s.checkedAt || ""}
+                      aria-label="来源标题"
+                      placeholder="来源标题"
+                      value={s.title}
                       onChange={(e) =>
                         field(
                           "sources",
                           body.sources.map((x, j) =>
-                            i === j ? { ...x, checkedAt: e.target.value } : x,
+                            i === j ? { ...x, title: e.target.value } : x,
                           ),
                         )
                       }
                     />
-                  </label>
-                  <button
-                    onClick={() =>
-                      field(
-                        "sources",
-                        body.sources.filter((_, j) => i !== j),
-                      )
-                    }
-                  >
-                    移除此来源
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() =>
-                  field("sources", [
-                    ...body.sources,
-                    { id: crypto.randomUUID(), title: "", url: "" },
-                  ])
-                }
-              >
-                ＋ 添加来源
-              </button>
+                    <input
+                      aria-label="来源网址"
+                      placeholder="https://…"
+                      value={s.url}
+                      onChange={(e) =>
+                        field(
+                          "sources",
+                          body.sources.map((x, j) => (i === j ? { ...x, url: e.target.value } : x)),
+                        )
+                      }
+                    />
+                    <label>
+                      人工核实日期{datesRequired ? "（送审必填）" : "（可选）"}
+                      <input
+                        type="date"
+                        required={datesRequired}
+                        max={datesRequired ? shanghaiToday() : undefined}
+                        value={s.checkedAt || ""}
+                        onChange={(e) =>
+                          field(
+                            "sources",
+                            body.sources.map((x, j) =>
+                              i === j ? { ...x, checkedAt: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      />
+                    </label>
+                    <button
+                      onClick={() =>
+                        field(
+                          "sources",
+                          body.sources.filter((_, j) => i !== j),
+                        )
+                      }
+                    >
+                      移除此来源
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() =>
+                    field("sources", [
+                      ...body.sources,
+                      { id: crypto.randomUUID(), title: "", url: "" },
+                    ])
+                  }
+                >
+                  ＋ 添加来源
+                </button>
+              </StaffEditorGroup>
               <p>{selected?.reviewNote}</p>
             </fieldset>
             {selected?.reviewState === "review" && (
               <p>待审核内容已锁定编辑，请先由审核员退回再修改。</p>
             )}
-            {formError && (
-              <p role="alert" className="notice">
-                {formError}
-              </p>
-            )}
-            {autosave.status && <p role="status">{autosave.status}</p>}
-            <StaffActionButton
-              reason={
-                editReason ||
-                (!allowedKinds.includes(body.kind) ? "请选择你有权限编辑的内容类型。" : undefined)
-              }
-              onClick={() => action("save")}
-            >
-              保存草稿
-            </StaffActionButton>
+            <MobileSaveBar>
+              {formError && (
+                <p role="alert" className="notice">
+                  {formError}
+                </p>
+              )}
+              {autosave.status && <p role="status">{autosave.status}</p>}
+              <StaffActionButton
+                reason={
+                  editReason ||
+                  (!allowedKinds.includes(body.kind) ? "请选择你有权限编辑的内容类型。" : undefined)
+                }
+                onClick={() => action("save")}
+              >
+                保存草稿
+              </StaffActionButton>
+            </MobileSaveBar>
             {selected && (
               <>
                 <a href={`/content-preview/${selected.id}`} target="_blank" rel="noreferrer">

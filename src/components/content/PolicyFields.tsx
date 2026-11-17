@@ -1,11 +1,18 @@
 "use client";
 import type { PolicyCountry } from "@/lib/immigration-policy-entry";
+import { StaffEditorGroup } from "@/components/admin/StaffMobileEditor";
 import { PolicyCountryField } from "./PolicyCountryField";
 import { changePolicyType, changePolicyHours } from "@/lib/immigration-policy-stay";
 import { policyTypes } from "@/lib/immigration-policy";
 import { shanghaiToday } from "@/lib/exhibitions";
 import { policyLabels, type PolicyForm } from "@/lib/immigration-policy-editor";
-const fields = Object.entries(policyLabels).filter(([name]) => !name.startsWith("country"));
+type PolicyField = keyof typeof policyLabels;
+const fieldGroups: { title: string; fields: PolicyField[] }[] = [
+  { title: "适用条件", fields: ["policyType", "maxStayDays", "maxStayHours", "portsAndRegions"] },
+  { title: "生效与截止", fields: ["validFrom", "validUntil"] },
+  { title: "来源与核实", fields: ["officialSourceUrl", "lastVerifiedOn", "verifiedBy"] },
+  { title: "说明与备注", fields: ["publicNotes", "internalNotes"] },
+];
 const typeLabels = ["单方面免签", "互免", "240小时过境", "其他"];
 export function PolicyFields({
   value,
@@ -21,10 +28,6 @@ export function PolicyFields({
   shared?: boolean;
 }) {
   const transit = value.policyType === "transit-240h";
-  const visible = fields.filter(
-    ([key]) =>
-      key !== (transit ? "maxStayDays" : "maxStayHours") && !(shared && key === "publicNotes"),
-  );
   function set<K extends keyof PolicyForm>(key: K, next: PolicyForm[K]) {
     onChange(
       key === "maxStayHours"
@@ -35,94 +38,111 @@ export function PolicyFields({
   return (
     <section aria-label="政策资料">
       <h2>政策资料</h2>
-      <p>请按官方来源填写日期（北京时间）。如果官方没有公布截止日，可以留空。</p>
-      <PolicyCountryField value={value} countries={countries} onChange={onChange} />
+      <StaffEditorGroup title="国家" mobileHeading>
+        <PolicyCountryField value={value} countries={countries} onChange={onChange} />
+      </StaffEditorGroup>
       {transit && <p>过境政策须填写口岸及前往第三国等适用条件。小时值按已核实原文填写。</p>}
       {transit && value.maxStayHours == null && value.maxStayDays != null && (
         <p>旧稿暂按 240 小时显示。请按官方原文核对，并在需要时填写实际小时数。</p>
       )}
-      {visible.map(([name, label]) => {
-        const key = name as keyof typeof policyLabels;
-        return (
-          <label key={key}>
-            {label}
-            {key === "lastVerifiedOn" && "（送审必填）"}
-            {key === "policyType" ? (
-              <select
-                value={value.policyType ?? ""}
-                onChange={(e) =>
-                  onChange(
-                    changePolicyType(value, (e.target.value as PolicyForm["policyType"]) || null),
-                  )
-                }
-              >
-                <option value="">待填写</option>
-                {policyTypes.map((type, i) => (
-                  <option key={type} value={type}>
-                    {typeLabels[i]}
-                  </option>
-                ))}
-              </select>
-            ) : key === "verifiedBy" ? (
-              <select
-                value={value.verifiedBy ?? ""}
-                onChange={(e) => set("verifiedBy", Number(e.target.value) || null)}
-              >
-                <option value="">请选择核实人</option>
-                {value.verifiedBy && !verifiers.some((v) => v.id === value.verifiedBy) && (
-                  <option value={value.verifiedBy}>原核实人不可用，请重新选择</option>
-                )}
-                {verifiers.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name}
-                  </option>
-                ))}
-              </select>
-            ) : key === "portsAndRegions" ? (
-              <textarea
-                required={transit}
-                value={value.portsAndRegions.join("\n")}
-                onChange={(e) => set(key, e.target.value.split("\n"))}
-              />
-            ) : key === "publicNotes" || key === "internalNotes" ? (
-              <textarea
-                maxLength={4000}
-                value={value[key] ?? ""}
-                onChange={(e) => set(key, e.target.value)}
-              />
-            ) : (
-              <input
-                required={key === "lastVerifiedOn"}
-                max={key === "lastVerifiedOn" ? shanghaiToday() : undefined}
-                type={
-                  ["maxStayDays", "maxStayHours"].includes(key)
-                    ? "number"
-                    : key === "officialSourceUrl"
-                      ? "url"
-                      : ["validFrom", "validUntil", "lastVerifiedOn"].includes(key)
-                        ? "date"
-                        : "text"
-                }
-                min={["maxStayDays", "maxStayHours"].includes(key) ? 1 : undefined}
-                step={["maxStayDays", "maxStayHours"].includes(key) ? 1 : undefined}
-                value={
-                  value[key] ?? (key === "maxStayHours" && value.maxStayDays != null ? 240 : "")
-                }
-                onChange={(e) =>
-                  set(
-                    key,
-                    ["maxStayDays", "maxStayHours"].includes(key)
-                      ? e.target.value === ""
-                        ? null
-                        : Number(e.target.value)
-                      : e.target.value || null,
-                  )
-                }
-              />
-            )}
-          </label>
-        );
-      })}
+      {fieldGroups.map(({ title, fields }) => (
+        <StaffEditorGroup key={title} title={title} mobileHeading>
+          {title === "生效与截止" && (
+            <p>请按官方来源填写日期（北京时间）。如果官方没有公布截止日，可以留空。</p>
+          )}
+          {fields
+            .filter(
+              (key) =>
+                key !== (transit ? "maxStayDays" : "maxStayHours") &&
+                !(shared && key === "publicNotes"),
+            )
+            .map((key) => {
+              return (
+                <label key={key}>
+                  {policyLabels[key]}
+                  {key === "lastVerifiedOn" && "（送审必填）"}
+                  {key === "policyType" ? (
+                    <select
+                      value={value.policyType ?? ""}
+                      onChange={(e) =>
+                        onChange(
+                          changePolicyType(
+                            value,
+                            (e.target.value as PolicyForm["policyType"]) || null,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="">待填写</option>
+                      {policyTypes.map((type, i) => (
+                        <option key={type} value={type}>
+                          {typeLabels[i]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : key === "verifiedBy" ? (
+                    <select
+                      value={value.verifiedBy ?? ""}
+                      onChange={(e) => set("verifiedBy", Number(e.target.value) || null)}
+                    >
+                      <option value="">请选择核实人</option>
+                      {value.verifiedBy && !verifiers.some((v) => v.id === value.verifiedBy) && (
+                        <option value={value.verifiedBy}>原核实人不可用，请重新选择</option>
+                      )}
+                      {verifiers.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : key === "portsAndRegions" ? (
+                    <textarea
+                      required={transit}
+                      value={value.portsAndRegions.join("\n")}
+                      onChange={(e) => set(key, e.target.value.split("\n"))}
+                    />
+                  ) : key === "publicNotes" || key === "internalNotes" ? (
+                    <textarea
+                      maxLength={4000}
+                      value={value[key] ?? ""}
+                      onChange={(e) => set(key, e.target.value)}
+                    />
+                  ) : (
+                    <input
+                      required={key === "lastVerifiedOn"}
+                      max={key === "lastVerifiedOn" ? shanghaiToday() : undefined}
+                      type={
+                        ["maxStayDays", "maxStayHours"].includes(key)
+                          ? "number"
+                          : key === "officialSourceUrl"
+                            ? "url"
+                            : ["validFrom", "validUntil", "lastVerifiedOn"].includes(key)
+                              ? "date"
+                              : "text"
+                      }
+                      min={["maxStayDays", "maxStayHours"].includes(key) ? 1 : undefined}
+                      step={["maxStayDays", "maxStayHours"].includes(key) ? 1 : undefined}
+                      value={
+                        value[key] ??
+                        (key === "maxStayHours" && value.maxStayDays != null ? 240 : "")
+                      }
+                      onChange={(e) =>
+                        set(
+                          key,
+                          ["maxStayDays", "maxStayHours"].includes(key)
+                            ? e.target.value === ""
+                              ? null
+                              : Number(e.target.value)
+                            : e.target.value || null,
+                        )
+                      }
+                    />
+                  )}
+                </label>
+              );
+            })}
+        </StaffEditorGroup>
+      ))}
     </section>
   );
 }

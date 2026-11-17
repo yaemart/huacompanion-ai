@@ -60,7 +60,16 @@ export function intakeEditorFields(fields: Field[], kind: "inquiry" | "provider"
             ]),
       ],
     },
-    ...fields.filter((f) => !("name" in f) || ![...operations, ...metadata].includes(f.name)),
+    {
+      type: "collapsible",
+      label: kind === "inquiry" ? "客户联系与需求" : "服务商联系与资料",
+      admin: { initCollapsed: false },
+      fields: fields.filter(
+        (field) =>
+          !("name" in field) || ![...operations, ...metadata, "followUps"].includes(field.name),
+      ),
+    },
+    ...selected(["followUps"]),
     {
       type: "collapsible",
       label: "提交来源与管理信息",
