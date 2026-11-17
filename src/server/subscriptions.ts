@@ -6,12 +6,12 @@ import { isContentIdentifier } from "../lib/content-identifiers";
 import { customerEmail } from "../lib/customer";
 import { isLocale } from "../lib/locales";
 import { isSubscriptionToken, type SubscriptionAction } from "../lib/subscription-action";
+import { subscriptionTopics } from "../lib/subscription-topics";
 import { executeSQL } from "./db-types";
 import { effectiveExhibitionStatus, type Exhibition } from "../lib/exhibitions";
 
 const day = 24 * 60 * 60 * 1000;
 export const credentialLifetimes = { confirm: day, unsubscribe: 365 * day };
-const topics = new Set(["policy-updates", "exhibition-alerts", "sourcing-guides"]);
 const sourcePathPattern = /^\/(?:[a-z0-9_-]+(?:\/[a-z0-9_-]+)*\/?)?$/i;
 
 export type SubscriptionConsent = {
@@ -35,7 +35,7 @@ function validateConsent(input: SubscriptionConsent) {
   const { topic, locale, sourcePath, partnerCode } = input;
   const privacyVersion = input.privacyVersion.trim();
   if (
-    !topics.has(topic) &&
+    !Object.hasOwn(subscriptionTopics, topic) &&
     !(topic.startsWith("exhibition:") && isContentIdentifier(topic.slice(11)))
   )
     throw new SubscriptionInputError("Invalid subscription topic");

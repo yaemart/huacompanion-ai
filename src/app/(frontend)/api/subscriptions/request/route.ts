@@ -1,12 +1,12 @@
 import { getPayload, ValidationError } from "payload";
 import config from "@/payload.config";
 import { limitedJSON } from "@/server/content/auth";
-import { ContentError } from "@/server/content/service";
+import { ContentError, readPublished } from "@/server/content/service";
 import { intakeClient, hasIntakeHoneypot } from "@/server/intake-client";
 import { intakeAllowed } from "@/server/rate-limit";
 import { isSiteLocale } from "@/server/site-config";
 import { queueSubscription, SubscriptionInputError } from "@/server/subscriptions";
-import { configuredMailEnabled } from "@/server/workflow/mail";
+import { subscriptionRequestConfig } from "@/server/subscription-readiness";
 
 export const runtime = "nodejs";
 
@@ -18,25 +18,11 @@ export async function POST(request: Request) {
   };
   const reply = (status: number) => Response.json({ ok: status === 202 }, { status, headers });
   const env = process.env;
-  const site = URL.parse(env.APP_URL ?? "");
-  const privacyVersion = env.PRIVACY_VERSION?.trim();
-  if (
-    env.SUBSCRIPTIONS_ENABLED !== "true" ||
-    env.SUBSCRIPTION_REQUESTS_ENABLED !== "true" ||
-    env.SUBSCRIPTION_MAIL_LINKS_VERIFIED !== "true" ||
-    !configuredMailEnabled() ||
-    (env.APP_ENV !== "local" && !env.TRUSTED_PROXY) ||
-    !privacyVersion ||
-    privacyVersion.length > 100 ||
-    !site ||
-    (site.protocol !== "https:" &&
-      !(site.protocol === "http:" && env.APP_ENV === "local" && site.hostname === "127.0.0.1")) ||
-    site.username ||
-    site.password
-  )
-    return reply(503);
+  const ready = subscriptionRequestConfig(env);
+  if (!ready) return reply(503);
+  const { origin, privacyVersion } = ready;
 
-  if (site.origin !== request.headers.get("origin")) return reply(403);
+  if (origin !== request.headers.get("origin")) return reply(403);
   if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json")
     return reply(415);
 
@@ -63,7 +49,8 @@ export async function POST(request: Request) {
     }
     const payload = await getPayload({ config });
     if (!(await payload.findGlobal({ slug: "workflow-settings" })).emailEnabled) return reply(503);
-    await queueSubscription(payload, { ...input, privacyVersion }, site.origin);
+    if (!(await readPublished(payload, "page", input.locale, "privacy"))) return reply(503);
+    await queueSubscription(payload, { ...input, privacyVersion }, origin);
     return reply(202);
   } catch (error) {
     if (error instanceof ContentError) return reply(error.status);

@@ -2,7 +2,11 @@
 
 日期：2026-11-18（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.2b 单封确认邮件与一键退订（2026-11-18）
+## 当前开发：任务 H 2.3 双语公开订阅表单（2026-11-18）
+
+从 PR76 合并提交 `1bcd60e` 建 `codex/public-subscription-form`。首页、指南、免签工具与展会放置中英文订阅表单。配置和对应语言已发布隐私说明齐备才显示。提交接口复核同意、隐私版本及发布状态。使用 `npm run test:subscriptions -- --preview` 在 3186 亲测，模拟确认链接显示在终端，关闭后清理临时库。数据库结构、依赖和环境变量沿用现有版本。工具结果资料发送待单独接入，群发保持停止点 C。 [一页亲测](subscription-form-summary.md)
+
+## 历史交接：任务 H 2.2b 单封确认邮件与一键退订（2026-11-18）
 
 从 PR75 合并提交 `348a5a8` 建 `codex/subscription-delivery`。工作流 worker 限额发单封确认邮件，用同一请求内容和唯一键重试。客户端 POST 一键退订，暂停新申请后已有退订仍可操作。迁移 `20261118_090000_subscription_delivery` 为原队列补充投递状态，保留已有任务。新开关 `SUBSCRIPTION_MAIL_LINKS_VERIFIED` 默认关闭，真实邮件及供应商日志要另行核实。合并后使用 `npm run test:subscriptions` 亲测，下一步为 2.3 公开组件，群发保持停止点 C。 [一页亲测](subscription-delivery-summary.md)
 

@@ -17,6 +17,7 @@ import {
   down as downDelivery,
 } from "../../src/migrations/20261118_090000_subscription_delivery";
 import { testSubscriptionDelivery } from "./subscription-delivery";
+import { testSubscriptionForm } from "./subscription-form";
 import { testSubscriptionSubmission } from "./subscription-submission";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 
@@ -325,6 +326,7 @@ try {
   });
   await testSubscriptionSubmission(payload, url);
   await testSubscriptionDelivery(payload, url);
+  await testSubscriptionForm(payload);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
