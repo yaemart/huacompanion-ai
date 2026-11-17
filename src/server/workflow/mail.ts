@@ -1,4 +1,10 @@
-export type MailMessage = { to: string; subject: string; text: string; idempotencyKey: string };
+export type MailMessage = {
+  to: string;
+  subject: string;
+  text: string;
+  idempotencyKey: string;
+  headers?: { "List-Unsubscribe": string; "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" };
+};
 export type MailResult = {
   status: "sent" | "disabled" | "retry" | "uncertain" | "failed";
   providerId?: string;
@@ -39,6 +45,7 @@ export async function sendConfiguredMail(
         to: [message.to],
         subject: message.subject,
         text: message.text,
+        headers: message.headers,
       }),
     });
     if (r.status === 429 || r.status >= 500) {

@@ -14,7 +14,7 @@ export function checkOrigin(req: Request) {
   if (req.headers.get("origin") !== process.env.APP_URL)
     throw new ContentError("请从华伴网站重新打开刚才的页面，再试一次。", 403);
 }
-export async function limitedJSON(req: Request, limit = 150000) {
+export async function limitedBody(req: Request, limit: number) {
   const reader = req.body?.getReader();
   if (!reader) throw new ContentError("未收到填写内容，请重新打开表单后提交。");
   const chunks: Uint8Array[] = [];
@@ -29,8 +29,12 @@ export async function limitedJSON(req: Request, limit = 150000) {
     }
     chunks.push(part.value);
   }
+  return Buffer.concat(chunks);
+}
+export async function limitedJSON(req: Request, limit = 150000) {
+  const bytes = await limitedBody(req, limit);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return JSON.parse(bytes.toString("utf8"));
   } catch {
     throw new ContentError("无法读取填写内容，请先保留当前输入，再重新打开表单。");
   }

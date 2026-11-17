@@ -5,6 +5,7 @@ import "dotenv/config";
 import { getPayload } from "payload";
 import config from "../src/payload.config";
 import { runWorkflowJobs } from "../src/server/workflow/service";
+import { runSubscriptionMail } from "../src/server/subscription-mail";
 const p = await getPayload({ config });
 let stopped = false;
 process.on("SIGINT", () => {
@@ -19,6 +20,7 @@ try {
       await runQualityReview(p);
       await runPolicyReminders(p);
       console.log(await runWorkflowJobs(p));
+      await runSubscriptionMail(p);
       await runBusinessAIJob(p, configuredBusinessAIAdapter());
     } catch (e) {
       console.error("Workflow worker failed safely", e instanceof Error ? e.name : "Error");

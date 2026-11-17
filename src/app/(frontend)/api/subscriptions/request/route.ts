@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   if (
     env.SUBSCRIPTIONS_ENABLED !== "true" ||
     env.SUBSCRIPTION_REQUESTS_ENABLED !== "true" ||
+    env.SUBSCRIPTION_MAIL_LINKS_VERIFIED !== "true" ||
     !configuredMailEnabled() ||
     (env.APP_ENV !== "local" && !env.TRUSTED_PROXY) ||
     !privacyVersion ||

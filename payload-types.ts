@@ -1634,6 +1634,19 @@ export interface SubscriptionMailJob {
   subscription: number | Subscription;
   consentVersion: number;
   siteOrigin: string;
+  status: 'queued' | 'running' | 'retry' | 'uncertain' | 'sent' | 'failed' | 'cancelled';
+  attemptedAt?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lease?: string | null;
+  messageHash?: string | null;
+  nextAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2830,6 +2843,11 @@ export interface SubscriptionMailJobsSelect<T extends boolean = true> {
   subscription?: T;
   consentVersion?: T;
   siteOrigin?: T;
+  status?: T;
+  attemptedAt?: T;
+  lease?: T;
+  messageHash?: T;
+  nextAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -12,6 +12,11 @@ import {
 import { confirmSubscription, startSubscription } from "../../src/server/subscriptions";
 import { GET, POST } from "../../src/app/(frontend)/email-subscription/route";
 import { subscriptionActionURL } from "../../src/lib/subscription-action";
+import {
+  up as upDelivery,
+  down as downDelivery,
+} from "../../src/migrations/20261118_090000_subscription_delivery";
+import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionSubmission } from "./subscription-submission";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 
@@ -76,6 +81,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downDelivery(adapter(db) as unknown as MigrateDownArgs);
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
@@ -89,6 +95,7 @@ try {
     );
     await up(adapter(db) as unknown as MigrateUpArgs);
     await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
+    await upDelivery(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -310,11 +317,14 @@ try {
   console.log("PASS 免登录确认、只读预取、退订、再订阅及旧凭证拒绝");
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downDelivery(adapter(db) as unknown as MigrateDownArgs);
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
+    await upDelivery(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   await testSubscriptionSubmission(payload, url);
+  await testSubscriptionDelivery(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
