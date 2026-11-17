@@ -228,3 +228,9 @@ jobs:
         env:
           APP_ENV: local
         run: node --import tsx tests/integration/staff-monthly-csv.ts
+      - name: Verify private subscription consent and credentials
+        env:
+          APP_ENV: local
+          NODE_ENV: production
+          HUA_DEMO_SCHEMA_PUSH: "false"
+        run: node --import tsx tests/integration/subscriptions.ts

@@ -6,6 +6,7 @@ import { workflowCollections, workflowSettings } from "./cms/workflow/collection
 import { performanceCollections } from "./cms/performance/collections";
 import { qualityCollections } from "./cms/quality/collections";
 import { customerCollections, customerSettings } from "./cms/customer/collections";
+import { subscriptionCollections } from "./cms/subscriptions/collections";
 import { voiceCollections } from "./cms/support/voice";
 import { callCollections } from "./cms/support/callCollections";
 import { operationsCollections } from "./cms/support/operations";
@@ -71,6 +72,7 @@ export default buildConfig({
     ...performanceCollections,
     ...qualityCollections,
     ...customerCollections,
+    ...subscriptionCollections,
   ],
   typescript: { outputFile: path.resolve("payload-types.ts") },
   csrf: [process.env.APP_URL || "http://127.0.0.1:3000"],
