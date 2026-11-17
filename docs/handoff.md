@@ -2,7 +2,11 @@
 
 日期：2026-11-17（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.2a 订阅数据与确认凭证（2026-11-17）
+## 当前开发：任务 H 2.2b 第一批确认与退订链接（2026-11-17）
+
+从 PR73 合并提交 `d6dd5ff` 建 `codex/subscription-confirm-optout`。中英文链接打开时只读，点击后才提交。退订可撤销待确认或已确认主题，旧版本凭证不能撤销新同意。新增默认关闭的 `SUBSCRIPTIONS_ENABLED`，数据库沿用 2.2a。使用 `npm run test:subscriptions` 在独立库亲测。下一批为公开提交、单次邮件、可靠重试及限额，群发留在停止点 C。 [一页亲测](subscription-links-summary.md)
+
+## 历史交接：任务 H 2.2a 订阅数据与确认凭证（2026-11-17）
 
 从 PR72 合并提交 `ef32e48` 建 `codex/subscription-data`。服务器内部保存待确认订阅和 24 小时、单次、按版本核销的凭证摘要。两张私有表由 `20261117_120000_subscription_data` 新增。使用 `npm run test:subscriptions` 在独立临时库验证，沿用现有演示资料。下一步为 2.2b，群发保留停止点 C。 [一页亲测](subscription-data-summary.md)
 
