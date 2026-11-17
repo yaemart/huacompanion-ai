@@ -2,6 +2,8 @@
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import type { Catalog } from "@/lib/catalog";
 import { services } from "@/lib/content";
+import { projectExamples, projectPriceExamples } from "@/lib/content-field-examples-copy";
+import { ContentTextField } from "./ContentTextField";
 const labels = {
   capabilities: "服务能力",
   audience: "适用对象",
@@ -20,13 +22,18 @@ export function CatalogFields({
   onChange,
   kind,
   choices,
+  locale,
 }: {
   value: Catalog;
   onChange: (v: Catalog) => void;
   kind: string;
-  choices: any[];
+  choices: { kind: string; contentKey: string; title: string }[];
+  locale: string;
 }) {
-  const set = (k: keyof Catalog, v: any) => onChange({ ...c, [k]: v });
+  const project = kind === "service-project";
+  function set<K extends keyof Catalog>(key: K, value: Catalog[K]) {
+    onChange({ ...c, [key]: value });
+  }
   return (
     <section>
       <h2>{kind === "provider-profile" ? "服务商公开资料" : "项目服务规格"}</h2>
@@ -125,16 +132,17 @@ export function CatalogFields({
           </label>
         ))}
       </fieldset>
-      {Object.entries(labels)
-        .filter(([k]) => kind === "service-project" || k === "capabilities")
-        .map(([k, label]) => (
-          <label key={k}>
-            {label}
-            <textarea
-              value={c[k as keyof typeof labels]}
-              onChange={(e) => set(k as keyof Catalog, e.target.value)}
-            />
-          </label>
+      {(Object.keys(labels) as (keyof typeof labels)[])
+        .filter((key) => project || key === "capabilities")
+        .map((key) => (
+          <ContentTextField
+            key={key}
+            label={labels[key]}
+            value={c[key]}
+            onChange={(value) => set(key, value)}
+            examples={project ? projectExamples[key] : undefined}
+            locale={locale}
+          />
         ))}
       {kind === "provider-profile" ? (
         <>
@@ -235,7 +243,10 @@ export function CatalogFields({
       )}
       <label>
         计价方式
-        <select value={c.price.mode} onChange={(e) => set("price", { mode: e.target.value })}>
+        <select
+          value={c.price.mode}
+          onChange={(e) => set("price", { mode: e.target.value as Catalog["price"]["mode"] })}
+        >
           <option value="quote">按需求询价</option>
           <option value="fixed">固定价（按适用条件）</option>
           <option value="from">起价</option>
@@ -272,21 +283,22 @@ export function CatalogFields({
                 }
               />
             </label>
-            <label>
-              计价单位
-              <input
-                value={c.price.unit || ""}
-                onChange={(e) => set("price", { ...c.price, unit: e.target.value })}
-              />
-            </label>
-          </div>
-          <label>
-            价格适用条件
-            <textarea
-              value={c.price.conditions || ""}
-              onChange={(e) => set("price", { ...c.price, conditions: e.target.value })}
+            <ContentTextField
+              label="计价单位"
+              value={c.price.unit || ""}
+              onChange={(unit) => set("price", { ...c.price, unit })}
+              examples={project ? projectPriceExamples.unit : undefined}
+              locale={locale}
+              singleLine
             />
-          </label>
+          </div>
+          <ContentTextField
+            label="价格适用条件"
+            value={c.price.conditions || ""}
+            onChange={(conditions) => set("price", { ...c.price, conditions })}
+            examples={project ? projectPriceExamples.conditions : undefined}
+            locale={locale}
+          />
         </>
       )}
       <label>

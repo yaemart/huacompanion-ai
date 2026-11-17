@@ -2,12 +2,16 @@
 import { homeServices, homeTexts, type Housekeeping } from "@/lib/housekeeping";
 import { homeText } from "@/lib/housekeeping-copy";
 import { locales, localeNames } from "@/lib/locales";
+import { housekeepingExamples } from "@/lib/content-field-examples-copy";
+import { ContentTextField } from "./ContentTextField";
 export function HousekeepingFields({
   value: h,
   onChange,
+  exampleLocale,
 }: {
   value: Housekeeping;
   onChange: (h: Housekeeping) => void;
+  exampleLocale?: string;
 }) {
   const set = (k: string, v: unknown) => onChange({ ...h, [k]: v });
   return (
@@ -65,10 +69,15 @@ export function HousekeepingFields({
       </label>
       <div className="form-grid">
         {homeTexts.map((k) => (
-          <label key={k}>
-            {homeText("zh", k)}
-            <textarea rows={3} value={h[k]} onChange={(e) => set(k, e.target.value)} />
-          </label>
+          <ContentTextField
+            key={k}
+            label={homeText("zh", k)}
+            value={h[k]}
+            onChange={(value) => set(k, value)}
+            examples={housekeepingExamples[k]}
+            locale={exampleLocale || ""}
+            rows={3}
+          />
         ))}
       </div>
     </section>

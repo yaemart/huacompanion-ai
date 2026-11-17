@@ -25,6 +25,8 @@ import { catalogCities } from "@/lib/catalog-options";
 import { HousekeepingFields } from "./HousekeepingFields";
 import { emptyHousekeeping } from "@/lib/housekeeping";
 import { CatalogFields } from "./CatalogFields";
+import { ContentTextField } from "./ContentTextField";
+import { overviewExamples } from "@/lib/content-field-examples-copy";
 import {
   ExhibitionFields,
   exhibitionIndustryLabels,
@@ -592,6 +594,10 @@ export function ContentCenter({
       setBusy(false);
     }
   }
+  const overview =
+    body.kind === "exhibition" || body.kind === "service-project" || body.kind === "institution"
+      ? overviewExamples[body.kind]
+      : undefined;
   return (
     <main className="content-center">
       <a href="/admin">← 中文管理后台</a>
@@ -1106,6 +1112,7 @@ export function ContentCenter({
                 <HousekeepingFields
                   value={body.catalog.housekeeping || emptyHousekeeping()}
                   onChange={(v) => field("catalog", { ...body.catalog, housekeeping: v })}
+                  exampleLocale={body.kind === "service-project" ? body.locale : undefined}
                 />
               )}
               {body.kind === "institution" && (
@@ -1113,6 +1120,7 @@ export function ContentCenter({
                   <InstitutionFields
                     value={body.institution || emptyInstitution()}
                     onChange={(v) => field("institution", v)}
+                    locale={body.locale}
                     choices={data.drafts.filter(
                       (d: any) => d.locale === body.locale && d.kind === "service-project",
                     )}
@@ -1159,10 +1167,19 @@ export function ContentCenter({
                 <p>同一届展会的各语言版本共用内容编号。下一届请新建，保留往届记录。</p>
               )}
               <StaffEditorGroup title="基本信息" mobileHeading>
-                <label>
-                  标题
-                  <input value={body.title} onChange={(e) => field("title", e.target.value)} />
-                </label>
+                {overview && (body.locale === "zh" || body.locale === "en") && (
+                  <small>
+                    示例仅供参考。空白字段可插入模板，请将〔括号〕内的文字换成已核实的资料。
+                  </small>
+                )}
+                <ContentTextField
+                  label="标题"
+                  value={body.title}
+                  onChange={(value) => field("title", value)}
+                  examples={overview?.title}
+                  locale={body.locale}
+                  singleLine
+                />
                 <details key={selected?.id ?? "new-content"} className="content-identifiers">
                   <summary>高级</summary>
                   <p>
@@ -1196,13 +1213,13 @@ export function ContentCenter({
                     />
                   </label>
                 </details>
-                <label>
-                  摘要
-                  <textarea
-                    value={body.summary || ""}
-                    onChange={(e) => field("summary", e.target.value)}
-                  />
-                </label>
+                <ContentTextField
+                  label="摘要"
+                  value={body.summary || ""}
+                  onChange={(value) => field("summary", value)}
+                  examples={overview?.summary}
+                  locale={body.locale}
+                />
                 <div className="row">
                   <label>
                     作者／编写团队
@@ -1285,6 +1302,7 @@ export function ContentCenter({
                 <>
                   <CatalogFields
                     kind={body.kind}
+                    locale={body.locale}
                     value={body.catalog || emptyCatalog()}
                     onChange={(v) => field("catalog", v)}
                     choices={data.drafts.filter((d: any) => d.locale === body.locale)}
@@ -1329,6 +1347,7 @@ export function ContentCenter({
                   <ExhibitionFields
                     value={body.exhibition || emptyExhibition()}
                     onChange={(v) => field("exhibition", v)}
+                    locale={body.locale}
                     choices={data.drafts.filter(
                       (d: any) => d.locale === body.locale && d.kind === "service-project",
                     )}

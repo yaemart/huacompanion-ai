@@ -38,6 +38,25 @@
   display: block;
   margin: 14px 0;
 }
+.content-center .content-text-field {
+  min-width: 0;
+}
+.content-center .content-text-field:has(small) {
+  margin-block: 14px;
+}
+.content-center .content-text-field:has(small) > label {
+  margin-block: 0 4px;
+}
+.content-center .content-text-field > small {
+  color: #3a564b;
+  overflow-wrap: anywhere;
+}
+.content-center .content-text-field > small[role="status"] {
+  color: #755114;
+}
+.content-center .content-text-field > button {
+  margin-inline-start: 0;
+}
 .content-center .content-identifiers {
   padding: 10px;
   border: 1px solid #cbd8ce;

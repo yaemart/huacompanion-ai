@@ -1,6 +1,8 @@
 "use client";
 import { catalogCities, catalogLanguages } from "@/lib/catalog-options";
 import type { Institution } from "@/lib/institutions";
+import { institutionExamples } from "@/lib/content-field-examples-copy";
+import { ContentTextField } from "./ContentTextField";
 
 export const institutionTypeLabels: Record<string, string> = {
   medical: "医疗机构",
@@ -29,10 +31,12 @@ export function InstitutionFields({
   value,
   onChange,
   choices,
+  locale,
 }: {
   value: Institution;
   onChange: (value: Institution) => void;
   choices: { contentKey: string; title: string }[];
+  locale: string;
 }) {
   function set<K extends keyof Institution>(key: K, next: Institution[K]) {
     onChange({ ...value, [key]: next });
@@ -106,14 +110,15 @@ export function InstitutionFields({
       <small>
         只勾选已核实的语言；留空表示尚未确认，不代表支持所有语言。华伴口译安排请写在口译支持说明中。
       </small>
-      {Object.entries(textFields).map(([key, label]) => (
-        <label key={key}>
-          {label}
-          <textarea
-            value={value[key as keyof typeof textFields]}
-            onChange={(e) => set(key as keyof typeof textFields, e.target.value)}
-          />
-        </label>
+      {(Object.keys(textFields) as (keyof typeof textFields)[]).map((key) => (
+        <ContentTextField
+          key={key}
+          label={textFields[key]}
+          value={value[key]}
+          onChange={(next) => set(key, next)}
+          examples={institutionExamples[key]}
+          locale={key === "address" ? "zh" : key === "addressEn" ? "en" : locale}
+        />
       ))}
       <small>
         以上字段均会公开。资质核验说明须依据官方资料，不可作未经核实的资质或疗效保证；内部联系人、合同与私有核验材料请仅存入内部合作档案。
