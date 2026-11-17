@@ -5,9 +5,11 @@ import { relationID } from "../cms/access";
 import { isContentIdentifier } from "../lib/content-identifiers";
 import { customerEmail } from "../lib/customer";
 import { isLocale } from "../lib/locales";
+import { isSubscriptionToken, type SubscriptionAction } from "../lib/subscription-action";
 import { executeSQL } from "./db-types";
 
-const confirmationLifetime = 24 * 60 * 60 * 1000;
+const day = 24 * 60 * 60 * 1000;
+const credentialLifetimes = { confirm: day, unsubscribe: 365 * day };
 const topics = new Set(["policy-updates", "exhibition-alerts", "sourcing-guides"]);
 const sourcePathPattern = /^\/(?:[a-z0-9_-]+(?:\/[a-z0-9_-]+)*\/?)?$/i;
 
@@ -38,8 +40,8 @@ function validateConsent(input: SubscriptionConsent) {
   return { email, topic, locale, privacyVersion, sourcePath, partnerCode: partnerCode ?? null };
 }
 
-function confirmationDigest(token: string) {
-  return createHash("sha256").update("subscription:confirm:").update(token).digest("hex");
+function credentialDigest(purpose: SubscriptionAction, token: string) {
+  return createHash("sha256").update(`subscription:${purpose}:`).update(token).digest("hex");
 }
 
 async function subscriptionTransaction<T>(
@@ -101,36 +103,48 @@ export async function startSubscription(payload: Payload, input: SubscriptionCon
       ? await payload.update({ collection: "subscriptions", id: existing.id, data: values, req })
       : await payload.create({ collection: "subscriptions", data: values, req });
 
-    const token = randomBytes(32).toString("hex");
-    await payload.create({
-      collection: "subscription-credentials",
-      data: {
-        subscription: subscription.id,
-        purpose: "confirm",
-        tokenHash: confirmationDigest(token),
-        version: subscription.consentVersion,
-        expiresAt: new Date(now + confirmationLifetime).toISOString(),
-      },
-      req,
-    });
-    return token;
+    const tokens = {
+      confirm: randomBytes(32).toString("hex"),
+      unsubscribe: randomBytes(32).toString("hex"),
+    };
+    for (const purpose of ["confirm", "unsubscribe"] as const)
+      await payload.create({
+        collection: "subscription-credentials",
+        data: {
+          subscription: subscription.id,
+          purpose,
+          tokenHash: credentialDigest(purpose, tokens[purpose]),
+          version: subscription.consentVersion,
+          expiresAt: new Date(now + credentialLifetimes[purpose]).toISOString(),
+        },
+        req,
+      });
+    return tokens;
   });
 }
 
-/** Returns only success or rejection. Confirmation and consumption commit together. */
-export async function confirmSubscription(payload: Payload, token: unknown): Promise<boolean> {
-  if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) return false;
+async function consumeSubscriptionCredential(
+  payload: Payload,
+  purpose: SubscriptionAction,
+  token: unknown,
+): Promise<boolean> {
+  if (!isSubscriptionToken(token)) return false;
+  const {
+    docs: [match],
+  } = await payload.find({
+    collection: "subscription-credentials",
+    where: { tokenHash: { equals: credentialDigest(purpose, token) } },
+    limit: 1,
+    depth: 0,
+  });
+  if (
+    !match ||
+    match.purpose !== purpose ||
+    match.consumedAt ||
+    !(Date.parse(match.expiresAt) > Date.now())
+  )
+    return false;
   return subscriptionTransaction(payload, async (req) => {
-    const {
-      docs: [match],
-    } = await payload.find({
-      collection: "subscription-credentials",
-      where: { tokenHash: { equals: confirmationDigest(token) } },
-      limit: 1,
-      depth: 0,
-      req,
-    });
-    if (!match || match.purpose !== "confirm" || match.consumedAt) return false;
     const id = relationID(match.subscription);
     const initial = await payload.findByID({ collection: "subscriptions", id, depth: 0, req });
     await lockSubscription(payload, req.transactionID, initial.email, initial.topic);
@@ -143,27 +157,39 @@ export async function confirmSubscription(payload: Payload, token: unknown): Pro
     });
     const now = Date.now();
     if (
-      record.status !== "pending" ||
+      record.status === "unsubscribed" ||
+      (purpose === "confirm" && record.status !== "pending") ||
       credential.version !== record.consentVersion ||
-      credential.purpose !== "confirm" ||
+      credential.purpose !== purpose ||
       credential.consumedAt ||
       !(Date.parse(credential.expiresAt) > now)
     )
       return false;
 
-    const confirmedAt = new Date(now).toISOString();
+    const at = new Date(now).toISOString();
     await payload.update({
       collection: "subscription-credentials",
       id: credential.id,
-      data: { consumedAt: confirmedAt },
+      data: { consumedAt: at },
       req,
     });
     await payload.update({
       collection: "subscriptions",
       id,
-      data: { status: "confirmed", confirmedAt },
+      data:
+        purpose === "confirm"
+          ? { status: "confirmed", confirmedAt: at }
+          : { status: "unsubscribed", unsubscribedAt: at },
       req,
     });
     return true;
   });
+}
+
+export function confirmSubscription(payload: Payload, token: unknown) {
+  return consumeSubscriptionCredential(payload, "confirm", token);
+}
+
+export function unsubscribeSubscription(payload: Payload, token: unknown) {
+  return consumeSubscriptionCredential(payload, "unsubscribe", token);
 }
