@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 import { relationID } from "../cms/access";
@@ -7,13 +7,14 @@ import { customerEmail } from "../lib/customer";
 import { isLocale } from "../lib/locales";
 import { isSubscriptionToken, type SubscriptionAction } from "../lib/subscription-action";
 import { executeSQL } from "./db-types";
+import { effectiveExhibitionStatus, type Exhibition } from "../lib/exhibitions";
 
 const day = 24 * 60 * 60 * 1000;
 const credentialLifetimes = { confirm: day, unsubscribe: 365 * day };
 const topics = new Set(["policy-updates", "exhibition-alerts", "sourcing-guides"]);
 const sourcePathPattern = /^\/(?:[a-z0-9_-]+(?:\/[a-z0-9_-]+)*\/?)?$/i;
 
-type SubscriptionConsent = {
+export type SubscriptionConsent = {
   email: string;
   topic: string;
   locale: string;
@@ -22,21 +23,28 @@ type SubscriptionConsent = {
   partnerCode?: string;
 };
 
+export class SubscriptionInputError extends Error {}
+
 function validateConsent(input: SubscriptionConsent) {
-  const email = customerEmail(input.email);
+  let email: string;
+  try {
+    email = customerEmail(input.email);
+  } catch {
+    throw new SubscriptionInputError("Invalid subscription email");
+  }
   const { topic, locale, sourcePath, partnerCode } = input;
   const privacyVersion = input.privacyVersion.trim();
   if (
     !topics.has(topic) &&
     !(topic.startsWith("exhibition:") && isContentIdentifier(topic.slice(11)))
   )
-    throw Error("Invalid subscription topic");
+    throw new SubscriptionInputError("Invalid subscription topic");
   if (!isLocale(locale) || !privacyVersion || privacyVersion.length > 100)
-    throw Error("Missing subscription language or privacy version");
+    throw new SubscriptionInputError("Missing subscription language or privacy version");
   if (sourcePath.length > 256 || !sourcePathPattern.test(sourcePath))
-    throw Error("Invalid subscription source path");
+    throw new SubscriptionInputError("Invalid subscription source path");
   if (partnerCode !== undefined && !isContentIdentifier(partnerCode))
-    throw Error("Invalid subscription partner code");
+    throw new SubscriptionInputError("Invalid subscription partner code");
   return { email, topic, locale, privacyVersion, sourcePath, partnerCode: partnerCode ?? null };
 }
 
@@ -75,34 +83,98 @@ async function lockSubscription(
   );
 }
 
-/** Internal only. The caller owns the transient value for later one-to-one delivery. */
+async function stageSubscription(
+  payload: Payload,
+  data: ReturnType<typeof validateConsent>,
+  req: { transactionID: string | number },
+) {
+  await lockSubscription(payload, req.transactionID, data.email, data.topic);
+  const {
+    docs: [existing],
+  } = await payload.find({
+    collection: "subscriptions",
+    where: { and: [{ email: { equals: data.email } }, { topic: { equals: data.topic } }] },
+    limit: 1,
+    depth: 0,
+    req,
+  });
+  if (existing?.status === "confirmed") return null;
+  const values = {
+    ...data,
+    status: "pending" as const,
+    consentedAt: new Date().toISOString(),
+    consentVersion: (existing?.consentVersion ?? 0) + 1,
+    confirmedAt: null,
+    unsubscribedAt: null,
+  };
+  return existing
+    ? payload.update({ collection: "subscriptions", id: existing.id, data: values, req })
+    : payload.create({ collection: "subscriptions", data: values, req });
+}
+
+export async function queueSubscription(
+  payload: Payload,
+  input: SubscriptionConsent,
+  siteOrigin: string,
+) {
+  const data = validateConsent(input);
+  const key = await subscriptionTransaction(payload, async (req) => {
+    if (data.topic.startsWith("exhibition:")) {
+      const live = await executeSQL(
+        payload,
+        req.transactionID,
+        sql`
+        SELECT body->'exhibition' AS exhibition
+        FROM content_published WHERE active = true AND body->>'kind' = 'exhibition'
+          AND body->>'locale' = ${data.locale} AND body->>'contentKey' = ${data.topic.slice(11)} LIMIT 1
+      `,
+      );
+      const exhibition = live.rows[0]?.exhibition as Exhibition | undefined;
+      if (!exhibition || ["cancelled", "ended"].includes(effectiveExhibitionStatus(exhibition)))
+        throw new SubscriptionInputError("Exhibition unavailable for subscription");
+    }
+    // The empty topic is reserved for the email-wide quota lock.
+    await lockSubscription(payload, req.transactionID, data.email, "");
+    const result = await executeSQL(
+      payload,
+      req.transactionID,
+      sql`
+      SELECT count(*) >= 5 OR COALESCE(max(j.created_at) > statement_timestamp() - interval '15 minutes', false) AS blocked
+      FROM subscription_mail_jobs j JOIN subscriptions s ON s.id = j.subscription_id
+      WHERE s.email = ${data.email} AND j.created_at > statement_timestamp() - interval '24 hours'
+    `,
+    );
+    if (result.rows[0]?.blocked) return;
+    const subscription = await stageSubscription(payload, data, req);
+    if (!subscription) return;
+    const key = randomUUID();
+    await executeSQL(
+      payload,
+      req.transactionID,
+      sql`
+      INSERT INTO subscription_mail_jobs (subscription_id, consent_version, key, site_origin, created_at, updated_at)
+      VALUES (${subscription.id}, ${subscription.consentVersion}, ${key}, ${siteOrigin}, statement_timestamp(), statement_timestamp())
+    `,
+    );
+    return key;
+  });
+  if (key) {
+    // A Payload adapter may swallow a COMMIT error. Verify the queue row outside its transaction.
+    const job = await payload.count({
+      collection: "subscription-mail-jobs",
+      where: { key: { equals: key } },
+    });
+    if (job.totalDocs !== 1) throw Error("Subscription queue was not committed");
+  }
+}
+
+/** Internal only. The caller owns the transient value for isolated verification. */
 export async function startSubscription(payload: Payload, input: SubscriptionConsent) {
   const data = validateConsent(input);
   return subscriptionTransaction(payload, async (req) => {
-    await lockSubscription(payload, req.transactionID, data.email, data.topic);
-    const {
-      docs: [existing],
-    } = await payload.find({
-      collection: "subscriptions",
-      where: { and: [{ email: { equals: data.email } }, { topic: { equals: data.topic } }] },
-      limit: 1,
-      depth: 0,
-      req,
-    });
-    if (existing?.status === "confirmed") return null;
-    const now = Date.now();
-    const values = {
-      ...data,
-      status: "pending" as const,
-      consentedAt: new Date(now).toISOString(),
-      consentVersion: (existing?.consentVersion ?? 0) + 1,
-      confirmedAt: null,
-      unsubscribedAt: null,
-    };
-    const subscription = existing
-      ? await payload.update({ collection: "subscriptions", id: existing.id, data: values, req })
-      : await payload.create({ collection: "subscriptions", data: values, req });
-
+    const subscription = await stageSubscription(payload, data, req);
+    if (!subscription) return null;
+    const now = Date.parse(subscription.consentedAt);
     const tokens = {
       confirm: randomBytes(32).toString("hex"),
       unsubscribe: randomBytes(32).toString("hex"),

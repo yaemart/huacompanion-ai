@@ -3,7 +3,10 @@ import { isIP } from "node:net";
 
 type Environment = Record<string, string | undefined>;
 export class IntakeClientError extends Error {}
-const cookieName = "hua_intake_client";
+const clients = {
+  intake: { name: "hua_intake_client", path: "/api/intake" },
+  subscriptions: { name: "hua_subscription_client", path: "/api/subscriptions/request" },
+};
 const digest = (secret: string, purpose: string, value: string) =>
   createHmac("sha256", secret).update(`${purpose}:${value}`).digest("hex");
 const equal = (left: string, right: string) => {
@@ -16,6 +19,7 @@ const equal = (left: string, right: string) => {
 export function intakeClient(
   request: Request,
   env: Environment = process.env,
+  scope: keyof typeof clients = "intake",
 ): { key: string; cookie?: string } {
   const secret = env.PAYLOAD_SECRET;
   if (!secret || secret.length < 32) throw new IntakeClientError("Client identity unavailable");
@@ -31,8 +35,9 @@ export function intakeClient(
     const version = isIP(ip);
     if (!version) throw new IntakeClientError("Gateway client address required");
     const normalized = version === 6 ? new URL(`http://[${ip}]`).hostname : ip;
-    return { key: digest(secret, "intake-ip", normalized) };
+    return { key: digest(secret, `${scope}-ip`, normalized) };
   }
+  const { name: cookieName, path } = clients[scope];
   const candidate = request.headers
     .get("cookie")
     ?.split(";")
@@ -41,15 +46,15 @@ export function intakeClient(
     ?.slice(cookieName.length + 1);
   if (candidate && /^[a-f0-9]{64}\.[a-f0-9]{64}$/.test(candidate)) {
     const [id, signature] = candidate.split(".");
-    if (equal(signature, digest(secret, "intake-cookie", id)))
-      return { key: digest(secret, "intake-client", id) };
+    if (equal(signature, digest(secret, `${scope}-cookie`, id)))
+      return { key: digest(secret, `${scope}-client`, id) };
   }
   const id = randomBytes(32).toString("hex");
-  const token = `${id}.${digest(secret, "intake-cookie", id)}`;
+  const token = `${id}.${digest(secret, `${scope}-cookie`, id)}`;
   const secure = env.APP_URL?.startsWith("https://") ? "; Secure" : "";
   return {
-    key: digest(secret, "intake-client", id),
-    cookie: `${cookieName}=${token}; Path=/api/intake; Max-Age=86400; HttpOnly; SameSite=Lax${secure}`,
+    key: digest(secret, `${scope}-client`, id),
+    cookie: `${cookieName}=${token}; Path=${path}; Max-Age=86400; HttpOnly; SameSite=Lax${secure}`,
   };
 }
 
