@@ -10,6 +10,15 @@ export function proxy(request: NextRequest) {
       headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" },
     });
   const access = trialAccess(request.headers.get("authorization"));
+  if (
+    access === "unauthorized" &&
+    process.env.SUBSCRIPTIONS_ENABLED === "true" &&
+    ((pathname === "/email-subscription" && ["GET", "HEAD", "POST"].includes(request.method)) ||
+      (pathname === "/api/subscriptions/one-click" &&
+        request.method === "POST" &&
+        process.env.SUBSCRIPTION_MAIL_LINKS_VERIFIED === "true"))
+  )
+    return NextResponse.next();
   if (!["disabled", "allowed"].includes(access)) {
     const unauthorized = access === "unauthorized";
     return new NextResponse(unauthorized ? "Restricted trial" : "Trial unavailable", {

@@ -65,6 +65,7 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
     Object.assign(process.env, {
       SUBSCRIPTIONS_ENABLED: "true",
       SUBSCRIPTION_REQUESTS_ENABLED: "false",
+      SUBSCRIPTION_MAIL_LINKS_VERIFIED: "false",
       PRIVACY_VERSION: "fictional-v1",
       WORKFLOW_MAIL_ENABLED: "true",
       WORKFLOW_MAIL_API_KEY: "fixture-only-no-network",
@@ -73,6 +74,10 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
     assert.equal((await submit()).status, 503);
     assert.equal((await jobs()).length, 0);
     process.env.SUBSCRIPTION_REQUESTS_ENABLED = "true";
+    await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
+    assert.equal((await submit()).status, 503);
+    assert.equal((await jobs()).length, 0);
+    process.env.SUBSCRIPTION_MAIL_LINKS_VERIFIED = "true";
     await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: false } });
     assert.equal((await submit()).status, 503);
     await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });

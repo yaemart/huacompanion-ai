@@ -10,7 +10,7 @@ import { executeSQL } from "./db-types";
 import { effectiveExhibitionStatus, type Exhibition } from "../lib/exhibitions";
 
 const day = 24 * 60 * 60 * 1000;
-const credentialLifetimes = { confirm: day, unsubscribe: 365 * day };
+export const credentialLifetimes = { confirm: day, unsubscribe: 365 * day };
 const topics = new Set(["policy-updates", "exhibition-alerts", "sourcing-guides"]);
 const sourcePathPattern = /^\/(?:[a-z0-9_-]+(?:\/[a-z0-9_-]+)*\/?)?$/i;
 
@@ -48,7 +48,7 @@ function validateConsent(input: SubscriptionConsent) {
   return { email, topic, locale, privacyVersion, sourcePath, partnerCode: partnerCode ?? null };
 }
 
-function credentialDigest(purpose: SubscriptionAction, token: string) {
+export function credentialDigest(purpose: SubscriptionAction, token: string) {
   return createHash("sha256").update(`subscription:${purpose}:`).update(token).digest("hex");
 }
 
@@ -75,12 +75,16 @@ async function lockSubscription(
   email: string,
   topic: string,
 ) {
-  const key = JSON.stringify(["subscription", email, topic]);
+  const key = subscriptionLockKey(email, topic);
   await executeSQL(
     payload,
     transactionID,
     sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
   );
+}
+
+export function subscriptionLockKey(email: string, topic: string) {
+  return JSON.stringify(["subscription", email, topic]);
 }
 
 async function stageSubscription(
@@ -216,7 +220,7 @@ async function consumeSubscriptionCredential(
     !(Date.parse(match.expiresAt) > Date.now())
   )
     return false;
-  return subscriptionTransaction(payload, async (req) => {
+  const consumedAt = await subscriptionTransaction(payload, async (req) => {
     const id = relationID(match.subscription);
     const initial = await payload.findByID({ collection: "subscriptions", id, depth: 0, req });
     await lockSubscription(payload, req.transactionID, initial.email, initial.topic);
@@ -236,7 +240,7 @@ async function consumeSubscriptionCredential(
       credential.consumedAt ||
       !(Date.parse(credential.expiresAt) > now)
     )
-      return false;
+      return null;
 
     const at = new Date(now).toISOString();
     await payload.update({
@@ -254,8 +258,16 @@ async function consumeSubscriptionCredential(
           : { status: "unsubscribed", unsubscribedAt: at },
       req,
     });
-    return true;
+    return at;
   });
+  if (!consumedAt) return false;
+  const committed = await payload.findByID({
+    collection: "subscription-credentials",
+    id: match.id,
+    depth: 0,
+  });
+  if (committed.consumedAt !== consumedAt) throw Error("Subscription action was not committed");
+  return true;
 }
 
 export function confirmSubscription(payload: Payload, token: unknown) {

@@ -69,6 +69,17 @@ export const subscriptionCollections: CollectionConfig[] = [
       },
       { name: "consentVersion", type: "number", min: 1, required: true },
       { name: "siteOrigin", type: "text", required: true },
+      {
+        name: "status",
+        type: "select",
+        options: ["queued", "running", "retry", "uncertain", "sent", "failed", "cancelled"],
+        defaultValue: "queued",
+        required: true,
+      },
+      { name: "attemptedAt", type: "json" },
+      { name: "lease", type: "text" },
+      { name: "messageHash", type: "text" },
+      { name: "nextAt", type: "date" },
     ],
   },
 ];

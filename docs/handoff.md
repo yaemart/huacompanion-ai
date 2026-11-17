@@ -1,8 +1,12 @@
 # 当前开发交接
 
-日期：2026-11-17（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
+日期：2026-11-18（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.2b 公开提交与单封邮件入队（2026-11-17）
+## 当前开发：任务 H 2.2b 单封确认邮件与一键退订（2026-11-18）
+
+从 PR75 合并提交 `348a5a8` 建 `codex/subscription-delivery`。工作流 worker 限额发单封确认邮件，用同一请求内容和唯一键重试。客户端 POST 一键退订，暂停新申请后已有退订仍可操作。迁移 `20261118_090000_subscription_delivery` 为原队列补充投递状态，保留已有任务。新开关 `SUBSCRIPTION_MAIL_LINKS_VERIFIED` 默认关闭，真实邮件及供应商日志要另行核实。合并后使用 `npm run test:subscriptions` 亲测，下一步为 2.3 公开组件，群发保持停止点 C。 [一页亲测](subscription-delivery-summary.md)
+
+## 历史交接：任务 H 2.2b 公开提交与单封邮件入队（2026-11-17）
 
 从 PR74 合并提交 `972d896` 建 `codex/subscription-submission`。订阅 API 以同一邮箱跨主题限额并写入单封邮件任务。迁移 `20261117_210000_subscription_mail_queue` 新增私有队列表，`SUBSCRIPTION_REQUESTS_ENABLED` 默认关闭。亲测运行 `npm run test:subscriptions`，入队后发件的 worker、重试和邮件客户端一键退订续在下一批。群发保持停止点 C。 [一页亲测](subscription-submission-summary.md)
 
