@@ -1,6 +1,8 @@
 "use client";
 import { catalogCities } from "@/lib/catalog-options";
 import type { Exhibition } from "@/lib/exhibitions";
+import { exhibitionExamples } from "@/lib/content-field-examples-copy";
+import { ContentTextField } from "./ContentTextField";
 
 export const exhibitionIndustryLabels = {
   hardware: "五金",
@@ -32,10 +34,12 @@ export function ExhibitionFields({
   value,
   onChange,
   choices,
+  locale,
 }: {
   value: Exhibition;
   onChange: (v: Exhibition) => void;
   choices: { contentKey: string; title: string }[];
+  locale: string;
 }) {
   function set<K extends keyof Exhibition>(key: K, next: Exhibition[K]) {
     onChange({ ...value, [key]: next });
@@ -110,14 +114,15 @@ export function ExhibitionFields({
           </label>
         ))}
       </fieldset>
-      {Object.entries(textFields).map(([key, label]) => (
-        <label key={key}>
-          {label}
-          <textarea
-            value={value[key as keyof typeof textFields]}
-            onChange={(e) => set(key as keyof typeof textFields, e.target.value)}
-          />
-        </label>
+      {(Object.keys(textFields) as (keyof typeof textFields)[]).map((key) => (
+        <ContentTextField
+          key={key}
+          label={textFields[key]}
+          value={value[key]}
+          onChange={(next) => set(key, next)}
+          examples={exhibitionExamples[key]}
+          locale={key === "address" ? "zh" : key === "addressEn" ? "en" : locale}
+        />
       ))}
       <label>
         官方网站
