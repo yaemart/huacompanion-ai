@@ -1,7 +1,12 @@
 import pg from "pg";
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
 
-type QuotaPolicy = { bucket: number; clientLimit: number; globalLimit: number };
+type QuotaPolicy = {
+  bucket: number;
+  clientLimit: number;
+  globalLimit: number;
+  scope?: "subscriptions";
+};
 const defaultClientLimit = 60;
 const defaultGlobalLimit = 6000;
 
@@ -13,6 +18,7 @@ export async function consumeIntakeQuota(
 ): Promise<boolean> {
   if (!clientKey || clientKey === "global") throw new Error("A client key is required");
   const connection = await database.connect();
+  const scope = policy.scope ? `${policy.scope}:` : "";
   try {
     await connection.query("BEGIN");
     const increment = async (key: string, cap: number) => {
@@ -21,7 +27,7 @@ export async function consumeIntakeQuota(
          ON CONFLICT (bucket, client_key) DO UPDATE
          SET count = intake_limits.count + 1, updated_at = now()
          WHERE intake_limits.count < $3 RETURNING count`,
-        [policy.bucket, key, cap],
+        [policy.bucket, scope + key, cap],
       );
       return result.rows.length > 0;
     };
@@ -38,12 +44,16 @@ export async function consumeIntakeQuota(
   }
 }
 
-export async function intakeAllowed(clientKey: string): Promise<boolean> {
+export async function intakeAllowed(
+  clientKey: string,
+  scope?: QuotaPolicy["scope"],
+): Promise<boolean> {
   const bucket = Math.floor(Date.now() / 600000);
   const allowed = await consumeIntakeQuota(pool, clientKey, {
     bucket,
     clientLimit: defaultClientLimit,
     globalLimit: defaultGlobalLimit,
+    scope,
   });
   await pool.query("DELETE FROM intake_limits WHERE bucket < $1", [bucket - 6]);
   return allowed;

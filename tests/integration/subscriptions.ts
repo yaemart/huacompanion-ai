@@ -5,9 +5,14 @@ import type { MigrateUpArgs, MigrateDownArgs } from "@payloadcms/db-postgres";
 import pg from "pg";
 import config from "../../src/payload.config";
 import { up, down } from "../../src/migrations/20261117_120000_subscription_data";
+import {
+  up as upMailQueue,
+  down as downMailQueue,
+} from "../../src/migrations/20261117_210000_subscription_mail_queue";
 import { confirmSubscription, startSubscription } from "../../src/server/subscriptions";
 import { GET, POST } from "../../src/app/(frontend)/email-subscription/route";
 import { subscriptionActionURL } from "../../src/lib/subscription-action";
+import { testSubscriptionSubmission } from "./subscription-submission";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 
 const url = new URL(process.env.DATABASE_URL ?? "");
@@ -71,16 +76,19 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 2);
+    assert.equal(former.length, before.length - 3);
     assert.deepEqual(
       former,
       before.filter(
-        ({ table }) => table !== "subscriptions" && table !== "subscription_credentials",
+        ({ table }) =>
+          !["subscriptions", "subscription_credentials", "subscription_mail_jobs"].includes(table),
       ),
     );
     await up(adapter(db) as unknown as MigrateUpArgs);
+    await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -300,6 +308,13 @@ try {
   assert.equal(cancelRace.status, 200);
   assert.equal((await getRecord(raceInput.topic)).status, "unsubscribed");
   console.log("PASS 免登录确认、只读预取、退订、再订阅及旧凭证拒绝");
+  await checkMigration(async (db) => {
+    const before = await databaseFingerprints(db);
+    await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
+    await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
+    assert.deepEqual(await databaseFingerprints(db), before);
+  });
+  await testSubscriptionSubmission(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

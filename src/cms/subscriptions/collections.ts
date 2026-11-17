@@ -54,4 +54,21 @@ export const subscriptionCollections: CollectionConfig[] = [
       { name: "consumedAt", type: "date" },
     ],
   },
+  {
+    ...internal,
+    slug: "subscription-mail-jobs",
+    typescript: { interface: "SubscriptionMailJob" },
+    fields: [
+      { name: "key", type: "text", unique: true, required: true },
+      {
+        name: "subscription",
+        type: "relationship",
+        relationTo: "subscriptions",
+        required: true,
+        index: true,
+      },
+      { name: "consentVersion", type: "number", min: 1, required: true },
+      { name: "siteOrigin", type: "text", required: true },
+    ],
+  },
 ];

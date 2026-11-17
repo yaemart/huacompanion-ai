@@ -118,6 +118,7 @@ export interface Config {
     'customer-inquiry-links': CustomerInquiryLink;
     subscriptions: Subscription;
     'subscription-credentials': SubscriptionCredential;
+    'subscription-mail-jobs': SubscriptionMailJob;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -176,6 +177,7 @@ export interface Config {
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
     'subscription-credentials': SubscriptionCredentialsSelect<false> | SubscriptionCredentialsSelect<true>;
+    'subscription-mail-jobs': SubscriptionMailJobsSelect<false> | SubscriptionMailJobsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1624,6 +1626,19 @@ export interface SubscriptionCredential {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-mail-jobs".
+ */
+export interface SubscriptionMailJob {
+  id: number;
+  key: string;
+  subscription: number | Subscription;
+  consentVersion: number;
+  siteOrigin: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -2803,6 +2818,18 @@ export interface SubscriptionCredentialsSelect<T extends boolean = true> {
   version?: T;
   expiresAt?: T;
   consumedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-mail-jobs_select".
+ */
+export interface SubscriptionMailJobsSelect<T extends boolean = true> {
+  key?: T;
+  subscription?: T;
+  consentVersion?: T;
+  siteOrigin?: T;
   updatedAt?: T;
   createdAt?: T;
 }

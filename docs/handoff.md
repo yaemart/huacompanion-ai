@@ -2,7 +2,11 @@
 
 日期：2026-11-17（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.2b 第一批确认与退订链接（2026-11-17）
+## 当前开发：任务 H 2.2b 公开提交与单封邮件入队（2026-11-17）
+
+从 PR74 合并提交 `972d896` 建 `codex/subscription-submission`。订阅 API 以同一邮箱跨主题限额并写入单封邮件任务。迁移 `20261117_210000_subscription_mail_queue` 新增私有队列表，`SUBSCRIPTION_REQUESTS_ENABLED` 默认关闭。亲测运行 `npm run test:subscriptions`，入队后发件的 worker、重试和邮件客户端一键退订续在下一批。群发保持停止点 C。 [一页亲测](subscription-submission-summary.md)
+
+## 历史交接：任务 H 2.2b 第一批确认与退订链接（2026-11-17）
 
 从 PR73 合并提交 `d6dd5ff` 建 `codex/subscription-confirm-optout`。中英文链接打开时只读，点击后才提交。退订可撤销待确认或已确认主题，旧版本凭证不能撤销新同意。新增默认关闭的 `SUBSCRIPTIONS_ENABLED`，数据库沿用 2.2a。使用 `npm run test:subscriptions` 在独立库亲测。下一批为公开提交、单次邮件、可靠重试及限额，群发留在停止点 C。 [一页亲测](subscription-links-summary.md)
 
