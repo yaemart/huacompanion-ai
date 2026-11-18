@@ -10,6 +10,7 @@ import { emptyExhibition } from "../../src/lib/exhibitions";
 import { intakeClient } from "../../src/server/intake-client";
 import { intakeAllowed } from "../../src/server/rate-limit";
 import { down } from "../../src/migrations/20261117_210000_subscription_mail_queue";
+import { publishFictionalSubscriptionPrivacy } from "../helpers/subscription-fixtures";
 
 export async function testSubscriptionSubmission(payload: Payload, url: URL) {
   const db = new pg.Client({ connectionString: url.toString() });
@@ -56,7 +57,7 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
       : [];
   };
   let outgoing = 0;
-  let exhibitionID: number | undefined;
+  const fixtureIDs: number[] = [];
   try {
     globalThis.fetch = async () => {
       outgoing++;
@@ -75,6 +76,8 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
     assert.equal((await jobs()).length, 0);
     process.env.SUBSCRIPTION_REQUESTS_ENABLED = "true";
     await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
+    const privacy = await publishFictionalSubscriptionPrivacy(payload, "en");
+    fixtureIDs.push(privacy.id);
     assert.equal((await submit()).status, 503);
     assert.equal((await jobs()).length, 0);
     process.env.SUBSCRIPTION_MAIL_LINKS_VERIFIED = "true";
@@ -231,7 +234,7 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
         publishedAt: new Date().toISOString(),
       },
     });
-    exhibitionID = published.id;
+    fixtureIDs.push(published.id);
     await db.query(
       "UPDATE subscription_mail_jobs SET created_at = now() - interval '16 minutes' WHERE id = $1",
       [
@@ -247,10 +250,27 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
     process.env.TRUSTED_PROXY = "nginx";
     process.env.TRUSTED_PROXY_SECRET = "fixture-subscription-gateway-not-a-real-secret";
     assert.equal((await submit({}, trialOrigin)).status, 503);
-    const accepted = await submit({ topic: "exhibition:" + keyOfExhibition }, trialOrigin, "", {
+    const gateway = {
       "X-Hua-Proxy-Secret": process.env.TRUSTED_PROXY_SECRET,
       "X-Real-IP": "192.0.2.80",
+    };
+    await payload.update({
+      collection: "content-published",
+      id: privacy.id,
+      data: { active: false },
     });
+    assert.equal((await submit({}, trialOrigin, "", gateway)).status, 503);
+    await payload.update({
+      collection: "content-published",
+      id: privacy.id,
+      data: { active: true },
+    });
+    const accepted = await submit(
+      { topic: "exhibition:" + keyOfExhibition },
+      trialOrigin,
+      "",
+      gateway,
+    );
     assert.equal(accepted.status, 202);
     assert.ok((await records()).some((row) => row.topic === "exhibition:" + keyOfExhibition));
     assert.equal(outgoing, 0);
@@ -260,8 +280,7 @@ export async function testSubscriptionSubmission(payload: Payload, url: URL) {
     for (const key of Object.keys(process.env))
       if (!(key in originalEnvironment)) delete process.env[key];
     Object.assign(process.env, originalEnvironment);
-    if (exhibitionID !== undefined)
-      await payload.delete({ collection: "content-published", id: exhibitionID });
+    for (const id of fixtureIDs) await payload.delete({ collection: "content-published", id });
     await payload.updateGlobal({
       slug: "workflow-settings",
       data: { emailEnabled: settings.emailEnabled },

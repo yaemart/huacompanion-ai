@@ -134,9 +134,17 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 export default async function Page(props: Props) {
-  const { locale } = await props.params;
+  const { locale, slug = [] } = await props.params;
   if (!isLocale(locale)) notFound();
-  return <PublicPage locale={locale}>{await ContentPage(props)}</PublicPage>;
+  const subscriptionPath =
+    !slug.length || ["guides", "exhibitions"].includes(slug[0])
+      ? "/" + [locale, ...slug].join("/")
+      : undefined;
+  return (
+    <PublicPage locale={locale} subscriptionPath={subscriptionPath}>
+      {await ContentPage(props)}
+    </PublicPage>
+  );
 }
 async function ContentPage({ params, searchParams }: Props) {
   const { locale, slug = [] } = await params;

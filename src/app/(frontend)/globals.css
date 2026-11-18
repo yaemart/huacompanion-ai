@@ -712,6 +712,61 @@ img {
 .cta .button {
   flex-shrink: 0;
 }
+.subscription-panel {
+  margin: 0 7% 24px;
+  padding: clamp(20px, 4vw, 36px);
+  background: #f0f3e9;
+  border: 1px solid #d6dccd;
+  border-radius: 8px;
+}
+.subscription-panel h2 {
+  margin: 0 0 16px;
+  font-size: 1.35rem;
+}
+.subscription-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+  gap: 14px 20px;
+}
+.subscription-field {
+  display: grid;
+  gap: 6px;
+}
+.subscription-field > :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #7c887c;
+  background: #fffefa;
+  border-radius: 4px;
+  font: inherit;
+  color: var(--ink);
+}
+.subscription-consent {
+  grid-column: 1 / -1;
+}
+.subscription-consent label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.subscription-consent input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+.subscription-consent a {
+  text-decoration: underline;
+}
+.subscription-form .button {
+  justify-self: start;
+  min-height: 44px;
+}
+.subscription-result:not(:empty) {
+  margin-top: 12px;
+}
 footer {
   padding: 35px 7% 25px;
 }

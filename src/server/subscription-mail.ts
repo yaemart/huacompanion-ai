@@ -2,6 +2,7 @@ import { createHash, createHmac, randomUUID } from "node:crypto";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 import { subscriptionActionURL } from "../lib/subscription-action";
+import { subscriptionTopics } from "../lib/subscription-topics";
 import { trialAccess } from "../lib/trial-access";
 import { credentialDigest, credentialLifetimes, subscriptionLockKey } from "./subscriptions";
 import {
@@ -34,11 +35,6 @@ type Job = {
   status: string;
 };
 const hours = 3600000;
-const topicLabels: Record<string, readonly [string, string]> = {
-  "policy-updates": ["政策更新", "Policy updates"],
-  "exhibition-alerts": ["展会提醒", "Exhibition alerts"],
-  "sourcing-guides": ["采购指南", "Sourcing guides"],
-};
 const eligible = (job: Job, origin: string) =>
   job.consent_status === "pending" &&
   job.consent_version === job.live_version &&
@@ -100,7 +96,7 @@ function messageFor(job: Job, origin: string) {
   oneClick.searchParams.set("token", tokens.unsubscribe);
   const zh = job.locale === "zh";
   const topic =
-    topicLabels[job.topic]?.[zh ? 0 : 1] ??
+    subscriptionTopics[job.topic]?.[zh ? "zh" : "en"] ??
     (zh ? "单场展会 · " : "Exhibition · ") + job.topic.slice("exhibition:".length);
   const message: MailMessage = {
     to: job.email,
@@ -175,10 +171,15 @@ async function claim(payload: Payload, id: number, origin: string) {
   });
 }
 
-function mailOrigin() {
+function mailOrigin(mockSender: boolean) {
   const env = process.env;
   const site = URL.parse(env.APP_URL ?? "");
   const access = trialAccess(null, env);
+  const localMock =
+    mockSender &&
+    env.APP_ENV === "local" &&
+    site?.protocol === "http:" &&
+    site.hostname === "127.0.0.1";
   if (
     env.SUBSCRIPTIONS_ENABLED === "true" &&
     env.SUBSCRIPTION_REQUESTS_ENABLED === "true" &&
@@ -188,7 +189,8 @@ function mailOrigin() {
     configuredMailEnabled() &&
     env.PRIVACY_VERSION?.trim() &&
     (env.PAYLOAD_SECRET?.length ?? 0) >= 32 &&
-    site?.protocol === "https:" &&
+    site &&
+    (site.protocol === "https:" || localMock) &&
     !site.username &&
     !site.password
   )
@@ -201,7 +203,7 @@ export async function runSubscriptionMail(
 ) {
   if (!send && !["trial", "production"].includes(process.env.APP_ENV ?? "")) return;
   const deliver = send ?? sendConfiguredMail;
-  const origin = mailOrigin();
+  const origin = mailOrigin(!!send);
   if (!origin || !(await payload.findGlobal({ slug: "workflow-settings" })).emailEnabled) return;
   const rows = await transaction(payload, (query) =>
     query(sql`
@@ -224,7 +226,7 @@ export async function runSubscriptionMail(
       }
       let result: MailResult = { status: "disabled" };
       const [settings] = await query(sql`SELECT email_enabled FROM workflow_settings LIMIT 1`);
-      const enabled = mailOrigin() === origin && settings?.email_enabled === true;
+      const enabled = mailOrigin(!!send) === origin && settings?.email_enabled === true;
       if (enabled) {
         try {
           result = await deliver(claimed.message);
