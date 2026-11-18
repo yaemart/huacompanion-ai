@@ -1,8 +1,12 @@
 # 当前开发交接
 
-日期：2026-11-18（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
+日期：2026-11-19（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.3 免签结果政策资料邮件（2026-11-18）
+## 当前开发：任务 H 2.4 订阅管理（2026-11-19）
+
+从 PR78 合并提交 `9e5e630` 建 `codex/subscription-management`。有效管理员可在 `/subscription-center` 查看主题统计和筛选分页名单，API 为 `GET /api/subscriptions/manage`。按数据库当前角色检查权限，接口只返回列明的订阅字段。数据库、依赖、环境变量沿用现有版本。3186 临时预览增加管理员、运营和 28 条虚构订阅，账号文件随预览退出清理。CSV 导出留在下一批，群发保持停止点 C。 [一页亲测](subscription-management-summary.md)
+
+## 历史交接：任务 H 2.3 免签结果政策资料邮件（2026-11-18）
 
 从 PR77 合并提交 `783a21e` 建 `codex/visa-policy-email`。结果卡片上传所选公开资料标识及订阅字段，确认后再用原 worker 发送一封资料邮件。迁移 `20261118_130000_policy_subscription_mail` 增加私有选择字段和凭证关联，原任务及凭证保留。环境变量和依赖沿用现有版本。使用 `npm run test:subscriptions -- --preview` 在 3186 查看两封模拟邮件。群发保持停止点 C。 [一页亲测](visa-policy-email-summary.md)
 

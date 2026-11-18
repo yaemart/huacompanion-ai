@@ -63,7 +63,8 @@ export function Dashboard({ user, payload }: { user?: Staff; payload: Payload })
         <p>
           <a href="/admin/collections/staff">员工与授权</a> ·{" "}
           <a href="/admin/collections/teams">团队管理</a> ·{" "}
-          <a href="/admin/collections/audit-events">操作记录</a>
+          <a href="/admin/collections/audit-events">操作记录</a> ·{" "}
+          <a href="/subscription-center">订阅管理</a>
         </p>
       )}
       {(canManageContent(user) || canReviewContent(user)) && (
