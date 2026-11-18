@@ -2,7 +2,11 @@
 
 日期：2026-11-18（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.3 双语公开订阅表单（2026-11-18）
+## 当前开发：任务 H 2.3 免签结果政策资料邮件（2026-11-18）
+
+从 PR77 合并提交 `783a21e` 建 `codex/visa-policy-email`。结果卡片上传所选公开资料标识及订阅字段，确认后再用原 worker 发送一封资料邮件。迁移 `20261118_130000_policy_subscription_mail` 增加私有选择字段和凭证关联，原任务及凭证保留。环境变量和依赖沿用现有版本。使用 `npm run test:subscriptions -- --preview` 在 3186 查看两封模拟邮件。群发保持停止点 C。 [一页亲测](visa-policy-email-summary.md)
+
+## 历史交接：任务 H 2.3 双语公开订阅表单（2026-11-18）
 
 从 PR76 合并提交 `1bcd60e` 建 `codex/public-subscription-form`。首页、指南、免签工具与展会放置中英文订阅表单。配置和对应语言已发布隐私说明齐备才显示。提交接口复核同意、隐私版本及发布状态。使用 `npm run test:subscriptions -- --preview` 在 3186 亲测，模拟确认链接显示在终端，关闭后清理临时库。数据库结构、依赖和环境变量沿用现有版本。工具结果资料发送待单独接入，群发保持停止点 C。 [一页亲测](subscription-form-summary.md)
 

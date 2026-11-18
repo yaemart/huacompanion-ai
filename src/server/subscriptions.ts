@@ -9,6 +9,7 @@ import { isSubscriptionToken, type SubscriptionAction } from "../lib/subscriptio
 import { subscriptionTopics } from "../lib/subscription-topics";
 import { executeSQL } from "./db-types";
 import { effectiveExhibitionStatus, type Exhibition } from "../lib/exhibitions";
+import { isPolicySelection, type PolicySelection } from "./policy-subscription";
 
 const day = 24 * 60 * 60 * 1000;
 export const credentialLifetimes = { confirm: day, unsubscribe: 365 * day };
@@ -91,6 +92,7 @@ async function stageSubscription(
   payload: Payload,
   data: ReturnType<typeof validateConsent>,
   req: { transactionID: string | number },
+  existingAllowed = false,
 ) {
   await lockSubscription(payload, req.transactionID, data.email, data.topic);
   const {
@@ -102,7 +104,13 @@ async function stageSubscription(
     depth: 0,
     req,
   });
-  if (existing?.status === "confirmed") return null;
+  if (existing?.status === "confirmed") return existingAllowed ? existing : null;
+  if (
+    existingAllowed &&
+    existing?.status === "pending" &&
+    existing.privacyVersion === data.privacyVersion
+  )
+    return existing;
   const values = {
     ...data,
     status: "pending" as const,
@@ -120,6 +128,7 @@ export async function queueSubscription(
   payload: Payload,
   input: SubscriptionConsent,
   siteOrigin: string,
+  selection?: PolicySelection,
 ) {
   const data = validateConsent(input);
   const key = await subscriptionTransaction(payload, async (req) => {
@@ -145,19 +154,20 @@ export async function queueSubscription(
       sql`
       SELECT count(*) >= 5 OR COALESCE(max(j.created_at) > statement_timestamp() - interval '15 minutes', false) AS blocked
       FROM subscription_mail_jobs j JOIN subscriptions s ON s.id = j.subscription_id
-      WHERE s.email = ${data.email} AND j.created_at > statement_timestamp() - interval '24 hours'
+      WHERE s.email = ${data.email} AND NOT j.deliver_policy AND j.created_at > statement_timestamp() - interval '24 hours'
     `,
     );
     if (result.rows[0]?.blocked) return;
-    const subscription = await stageSubscription(payload, data, req);
+    const subscription = await stageSubscription(payload, data, req, !!selection);
     if (!subscription) return;
     const key = randomUUID();
     await executeSQL(
       payload,
       req.transactionID,
       sql`
-      INSERT INTO subscription_mail_jobs (subscription_id, consent_version, key, site_origin, created_at, updated_at)
-      VALUES (${subscription.id}, ${subscription.consentVersion}, ${key}, ${siteOrigin}, statement_timestamp(), statement_timestamp())
+      INSERT INTO subscription_mail_jobs (subscription_id, consent_version, key, site_origin, policy_selection, created_at, updated_at)
+      VALUES (${subscription.id}, ${subscription.consentVersion}, ${key}, ${siteOrigin},
+        ${selection ? JSON.stringify(selection) : null}::jsonb, statement_timestamp(), statement_timestamp())
     `,
     );
     return key;
@@ -234,11 +244,33 @@ async function consumeSubscriptionCredential(
     const now = Date.now();
     if (
       record.status === "unsubscribed" ||
-      (purpose === "confirm" && record.status !== "pending") ||
+      (purpose === "confirm" && record.status !== "pending" && !credential.policyRequestKey) ||
       credential.version !== record.consentVersion ||
       credential.purpose !== purpose ||
       credential.consumedAt ||
       !(Date.parse(credential.expiresAt) > now)
+    )
+      return null;
+
+    const policyRequest = credential.policyRequestKey
+      ? (
+          await payload.find({
+            collection: "subscription-mail-jobs",
+            where: { key: { equals: credential.policyRequestKey } },
+            limit: 1,
+            depth: 0,
+            req,
+          })
+        ).docs[0]
+      : undefined;
+    if (
+      credential.policyRequestKey &&
+      (!policyRequest ||
+        policyRequest.deliverPolicy ||
+        relationID(policyRequest.subscription) !== record.id ||
+        policyRequest.consentVersion !== credential.version ||
+        !isPolicySelection(policyRequest.policySelection) ||
+        policyRequest.policySelection.privacyVersion !== process.env.PRIVACY_VERSION?.trim())
     )
       return null;
 
@@ -249,15 +281,27 @@ async function consumeSubscriptionCredential(
       data: { consumedAt: at },
       req,
     });
-    await payload.update({
-      collection: "subscriptions",
-      id,
-      data:
-        purpose === "confirm"
-          ? { status: "confirmed", confirmedAt: at }
-          : { status: "unsubscribed", unsubscribedAt: at },
-      req,
-    });
+    if (policyRequest)
+      await executeSQL(
+        payload,
+        req.transactionID,
+        sql`
+        INSERT INTO subscription_mail_jobs
+          (subscription_id, consent_version, key, site_origin, policy_selection, deliver_policy, created_at, updated_at)
+        VALUES (${record.id}, ${credential.version}, ${"policy-material:" + policyRequest.key}, ${policyRequest.siteOrigin},
+          ${JSON.stringify(policyRequest.policySelection)}::jsonb, true, statement_timestamp(), statement_timestamp())
+      `,
+      );
+    if (purpose === "unsubscribe" || record.status === "pending")
+      await payload.update({
+        collection: "subscriptions",
+        id,
+        data:
+          purpose === "confirm"
+            ? { status: "confirmed", confirmedAt: at }
+            : { status: "unsubscribed", unsubscribedAt: at },
+        req,
+      });
     return at;
   });
   if (!consumedAt) return false;

@@ -7,6 +7,12 @@ import { intakeAllowed } from "@/server/rate-limit";
 import { isSiteLocale } from "@/server/site-config";
 import { queueSubscription, SubscriptionInputError } from "@/server/subscriptions";
 import { subscriptionRequestConfig } from "@/server/subscription-readiness";
+import {
+  isPolicyReference,
+  publishedPolicySelection,
+  type PolicySelection,
+} from "@/server/policy-subscription";
+import { visaToolPath } from "@/lib/visa-search";
 
 export const runtime = "nodejs";
 
@@ -50,7 +56,33 @@ export async function POST(request: Request) {
     const payload = await getPayload({ config });
     if (!(await payload.findGlobal({ slug: "workflow-settings" })).emailEnabled) return reply(503);
     if (!(await readPublished(payload, "page", input.locale, "privacy"))) return reply(503);
-    await queueSubscription(payload, { ...input, privacyVersion }, origin);
+    let selection: PolicySelection | undefined;
+    if (input.policyReference !== undefined) {
+      const { locale, topic, sourcePath, policyReference } = input;
+      if (
+        (locale !== "zh" && locale !== "en") ||
+        topic !== "policy-updates" ||
+        sourcePath !== `/${locale}/${visaToolPath}` ||
+        !isPolicyReference(policyReference) ||
+        Object.keys(input).some(
+          (key) =>
+            ![
+              "email",
+              "locale",
+              "topic",
+              "sourcePath",
+              "privacyVersion",
+              "consent",
+              "contactFax",
+              "policyReference",
+            ].includes(key),
+        )
+      )
+        return reply(400);
+      selection = { reference: policyReference, locale, privacyVersion };
+      if (!(await publishedPolicySelection(payload, selection))) return reply(400);
+    }
+    await queueSubscription(payload, { ...input, privacyVersion }, origin, selection);
     return reply(202);
   } catch (error) {
     if (error instanceof ContentError) return reply(error.status);

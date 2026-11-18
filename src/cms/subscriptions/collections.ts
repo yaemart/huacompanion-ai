@@ -52,6 +52,7 @@ export const subscriptionCollections: CollectionConfig[] = [
       { name: "version", type: "number", min: 1, required: true },
       { name: "expiresAt", type: "date", required: true },
       { name: "consumedAt", type: "date" },
+      { name: "policyRequestKey", type: "text" },
     ],
   },
   {
@@ -80,6 +81,8 @@ export const subscriptionCollections: CollectionConfig[] = [
       { name: "lease", type: "text" },
       { name: "messageHash", type: "text" },
       { name: "nextAt", type: "date" },
+      { name: "policySelection", type: "json" },
+      { name: "deliverPolicy", type: "checkbox", required: true, defaultValue: false },
     ],
   },
 ];

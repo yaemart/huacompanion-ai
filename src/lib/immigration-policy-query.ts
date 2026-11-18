@@ -15,6 +15,7 @@ type VisaGuide = { href: string; title: string };
 export type PolicyQueryMatch = Omit<PublicPolicyData, "maxStayDays" | "maxStayHours"> & {
   stay: { unit: "days" | "hours"; maximum: number };
   warnings: QueryWarning[];
+  emailReference?: string;
 };
 
 export type PolicyQueryResult = {
@@ -92,7 +93,7 @@ function match(policy: PublicPolicyData): PolicyQueryMatch {
 export function queryImmigrationPolicies(
   input: { nationalityISO: unknown; arrivalDate: unknown },
   policies: readonly unknown[],
-  context: { verifiedOnOrBefore: string; visaGuide: unknown },
+  context: { verifiedOnOrBefore: string; visaGuide: unknown; emailReferences?: readonly string[] },
 ): PolicyQueryResult {
   if (!isPolicyCalendarDate(context.verifiedOnOrBefore)) throw Error("核实日期基准无效");
   if (!Array.isArray(policies)) throw Error("公开政策列表格式无效");
@@ -110,8 +111,8 @@ export function queryImmigrationPolicies(
   if (!isPolicyCalendarDate(arrivalDate)) errors.push("arrivalDate");
   const matches: PolicyQueryMatch[] = [];
   if (!errors.length && typeof arrivalDate === "string" && nationality !== null) {
-    const applicable: PublicPolicyData[] = [];
-    for (const candidate of policies) {
+    const applicable: { policy: PublicPolicyData; emailReference?: string }[] = [];
+    for (const [index, candidate] of policies.entries()) {
       const policy = cleanPublicPolicy(candidate, context.verifiedOnOrBefore);
       if (
         policy &&
@@ -119,9 +120,14 @@ export function queryImmigrationPolicies(
         policy.validFrom <= arrivalDate &&
         (policy.validUntil == null || arrivalDate <= policy.validUntil)
       )
-        applicable.push(policy);
+        applicable.push({ policy, emailReference: context.emailReferences?.[index] });
     }
-    matches.push(...applicable.sort(comparePublicPolicies).map(match));
+    applicable.sort((a, b) => comparePublicPolicies(a.policy, b.policy));
+    matches.push(
+      ...applicable.map(({ policy, emailReference }) =>
+        emailReference ? { ...match(policy), emailReference } : match(policy),
+      ),
+    );
   }
   const status: QueryStatus = errors.length
     ? "invalid-input"
