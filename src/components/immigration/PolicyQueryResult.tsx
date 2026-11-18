@@ -3,13 +3,17 @@ import type { PolicyQueryResult as QueryResult } from "../../lib/immigration-pol
 import { policyPageCopy } from "../../lib/immigration-policy-page-copy";
 import { policyFormCopy } from "../../lib/immigration-policy-form-copy";
 import { policyQueryCopy } from "../../lib/immigration-policy-query-copy";
+import { visaToolPath } from "../../lib/visa-search";
+import { SubscriptionForm } from "../content/SubscriptionForm";
 
 export function PolicyQueryResult({
   result,
   locale,
+  privacyVersion,
 }: {
   result: QueryResult | null;
   locale: "en" | "zh";
+  privacyVersion?: string;
 }) {
   const c = policyPageCopy[locale];
   return (
@@ -54,6 +58,20 @@ export function PolicyQueryResult({
             <p>
               {c.verified}: <time dateTime={policy.lastVerifiedOn}>{policy.lastVerifiedOn}</time>
             </p>
+            {policy.emailReference && privacyVersion && (
+              <details className="policy-email">
+                <summary>{locale === "zh" ? "发到我的邮箱" : "Send to my email"}</summary>
+                <SubscriptionForm
+                  key={policy.emailReference}
+                  locale={locale}
+                  sourcePath={`/${locale}/${visaToolPath}`}
+                  privacyVersion={privacyVersion}
+                  topics={[]}
+                  preset="policy-updates"
+                  policyReference={policy.emailReference}
+                />
+              </details>
+            )}
           </article>
         ))}
       </div>

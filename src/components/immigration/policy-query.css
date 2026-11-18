@@ -49,3 +49,14 @@
 .policy-faq-answer {
   white-space: pre-wrap;
 }
+.policy-email {
+  margin-top: 12px;
+}
+.policy-email > summary {
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+.policy-email .subscription-panel {
+  margin: 0;
+}

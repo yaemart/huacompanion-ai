@@ -9,8 +9,13 @@ import {
 } from "../../lib/immigration-policy";
 
 /** Trusted SSR reader; never return raw collection records or read working policy masters. */
-export async function listPublicPolicies(p: Payload, locale: string): Promise<PublicPolicyData[]> {
+export async function listPublicPolicies(
+  p: Payload,
+  locale: string,
+  contentLock?: Pick<PayloadRequest, "transactionID">,
+): Promise<PublicPolicyData[]> {
   if (!visaCheckerEnabled() || (locale !== "en" && locale !== "zh")) return [];
+  if (contentLock?.transactionID) return readPolicies(p, locale, contentLock);
   return contentTransaction(p, (req) => readPolicies(p, locale, req));
 }
 async function readPolicies(p: Payload, locale: "zh" | "en", req: Partial<PayloadRequest>) {

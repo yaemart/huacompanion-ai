@@ -37,6 +37,19 @@ const copy = {
 };
 type Status = "idle" | "sending" | "received" | "invalid" | "limited" | "unavailable";
 const subscribe = () => () => {};
+const policyCopy = {
+  zh: {
+    title: "发送这份政策资料",
+    agree: "我同意接收这份政策资料，并订阅政策更新。",
+    received: "已收到申请。请在确认邮件里点确认。仍公开的资料会另发一封，可能需要等候。",
+  },
+  en: {
+    title: "Send this policy reference",
+    agree: "I agree to receive this policy reference and subscribe to policy updates.",
+    received:
+      "Request received. Follow the confirmation email first. If the reference remains published, it will follow in a separate email.",
+  },
+};
 
 export function SubscriptionForm({
   locale,
@@ -44,14 +57,16 @@ export function SubscriptionForm({
   privacyVersion,
   topics,
   preset,
+  policyReference,
 }: {
   locale: keyof typeof copy;
   sourcePath: string;
   privacyVersion: string;
   topics: { value: string; label: string }[];
   preset: string;
+  policyReference?: string;
 }) {
-  const text = copy[locale];
+  const text = { ...copy[locale], ...(policyReference ? policyCopy[locale] : {}) };
   const heading = useId();
   const busy = useRef(false);
   const ready = useSyncExternalStore(
@@ -72,7 +87,8 @@ export function SubscriptionForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: fields.get("email"),
-          topic: fields.get("topic"),
+          topic: policyReference ? "policy-updates" : fields.get("topic"),
+          ...(policyReference ? { policyReference } : {}),
           contactFax: fields.get("contactFax"),
           consent: true,
           privacyVersion,
@@ -113,19 +129,21 @@ export function SubscriptionForm({
               required
             />
           </label>
-          <label className="subscription-field">
-            {text.topic}
-            <select name="topic" required defaultValue={preset}>
-              <option value="" disabled>
-                {text.choose}
-              </option>
-              {topics.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
+          {!policyReference && (
+            <label className="subscription-field">
+              {text.topic}
+              <select name="topic" required defaultValue={preset}>
+                <option value="" disabled>
+                  {text.choose}
                 </option>
-              ))}
-            </select>
-          </label>
+                {topics.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <div hidden aria-hidden="true">
             <input
               name="contactFax"

@@ -18,6 +18,8 @@ import { buildPolicyTable } from "@/lib/immigration-policy-table";
 import { contentMetadata, indexingAllowed } from "@/lib/seo";
 import { listPublicPolicies } from "@/server/immigration/public";
 import { isSiteLocale } from "@/server/site-config";
+import { subscriptionRequestConfig } from "@/server/subscription-readiness";
+import { policyMailReference } from "@/server/policy-subscription";
 import "@/components/immigration/policy-table.css";
 import "@/components/immigration/policy-query.css";
 
@@ -60,7 +62,18 @@ export default async function VisaCheckerPage({ params }: Props) {
   const policies = await listPublicPolicies(payload, locale);
   const guideKey = process.env.VISA_GUIDE_CONTENT_KEY;
   const faqKeys = process.env.VISA_FAQ_CONTENT_KEYS;
-  const published = guideKey?.trim() || faqKeys?.trim() ? await listPublished(payload, locale) : [];
+  const subscription = subscriptionRequestConfig();
+  const published =
+    subscription || guideKey?.trim() || faqKeys?.trim() ? await listPublished(payload, locale) : [];
+  const policyEmail =
+    subscription &&
+    published.some((doc) => doc.kind === "page" && doc.slug === "privacy") &&
+    (await payload.findGlobal({ slug: "workflow-settings" }).catch(() => null))?.emailEnabled
+      ? {
+          privacyVersion: subscription.privacyVersion,
+          references: policies.map((policy) => policyMailReference(locale, policy)),
+        }
+      : undefined;
   const visaGuide = selectPolicyVisaGuide(published, locale, guideKey);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const rows = buildPolicyTable(policies, today);
@@ -104,6 +117,7 @@ export default async function VisaCheckerPage({ params }: Props) {
           policies={policies}
           verifiedOnOrBefore={today}
           visaGuide={visaGuide}
+          policyEmail={policyEmail}
         >
           <PolicyTable rows={rows} locale={locale} />
         </PolicyQuery>

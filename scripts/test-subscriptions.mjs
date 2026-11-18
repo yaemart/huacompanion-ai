@@ -7,18 +7,35 @@ import pg from "pg";
 import { assertDemo, demoEnvironment } from "./lib/demo-environment.mjs";
 import { subscriptionPreview } from "./lib/subscription-preview.mjs";
 
-let state;
-try {
-  state = JSON.parse(readFileSync(".local/demo/state.json", "utf8"));
-} catch {
-  throw Error("请先运行 npm run demo，启动本机演示数据库。");
+const ci = process.env.GITHUB_ACTIONS === "true";
+function demoState() {
+  let state;
+  try {
+    state = JSON.parse(readFileSync(".local/demo/state.json", "utf8"));
+  } catch {
+    throw Error("请先运行 npm run demo，启动本机演示数据库。");
+  }
+  assertDemo(state);
+  return state;
 }
-assertDemo(state);
+const state = ci ? undefined : demoState();
 const name = "hua_subscriptions_" + randomUUID().replaceAll("-", "");
-const target = new URL(state.databaseURL);
+const target = new URL(ci ? (process.env.DATABASE_URL ?? "") : state.databaseURL);
+if (
+  ci &&
+  (target.protocol !== "postgresql:" ||
+    target.hostname !== "127.0.0.1" ||
+    target.port !== "55438" ||
+    target.username !== "hua" ||
+    target.pathname !== "/hua_companion" ||
+    target.search ||
+    target.hash)
+)
+  throw Error("订阅 CI 只允许使用独立的测试数据库服务。");
 target.pathname = "/postgres";
 const maintainer = new pg.Client({ connectionString: target.toString() });
 const preview = process.argv.includes("--preview");
+if (ci && preview) throw Error("订阅预览仅在本机运行。");
 const interrupt = new AbortController();
 const stop = () => interrupt.abort();
 if (preview) {
@@ -30,7 +47,11 @@ async function run() {
   const { signal } = interrupt;
   try {
     await maintainer.connect().catch(() => {
-      throw Error("无法连接本机演示数据库。请先运行 npm run demo。");
+      throw Error(
+        ci
+          ? "无法连接 CI 的 PostgreSQL 测试服务。"
+          : "无法连接本机演示数据库。请先运行 npm run demo。",
+      );
     });
     if (signal.aborted) return;
     await maintainer.query(`CREATE DATABASE "${name}"`);
@@ -38,12 +59,14 @@ async function run() {
     if (signal.aborted) return;
     target.pathname = "/" + name;
     const env = {
-      ...demoEnvironment(state, resolve(".local/demo/app")),
+      ...(ci ? process.env : demoEnvironment(state, resolve(".local/demo/app"))),
       DATABASE_URL: target.toString(),
       PAYLOAD_SECRET: randomBytes(32).toString("hex"),
       APP_URL: "http://127.0.0.1:3000",
       DOTENV_CONFIG_PATH: "/dev/null",
       NODE_ENV: "production",
+      APP_ENV: "local",
+      HUA_DEMO_SCHEMA_PUSH: "false",
     };
     const args = ["node_modules/payload/bin.js", "migrate"];
     const migration = { env: { ...env, APP_ENV: "migration-test" }, stdio: "inherit" };

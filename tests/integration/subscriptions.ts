@@ -18,6 +18,11 @@ import {
 } from "../../src/migrations/20261118_090000_subscription_delivery";
 import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
+import { testPolicyEmail } from "./policy-email";
+import {
+  up as upPolicyMail,
+  down as downPolicyMail,
+} from "../../src/migrations/20261118_130000_policy_subscription_mail";
 import { testSubscriptionSubmission } from "./subscription-submission";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 
@@ -34,7 +39,7 @@ assert.ok(
     (process.env.GITHUB_ACTIONS === "true" &&
       url.port === "55438" &&
       url.username === "hua" &&
-      url.pathname === "/hua_companion"),
+      /^\/hua_subscriptions_[a-f0-9]{32}$/.test(url.pathname)),
   "Subscriptions require an isolated test database",
 );
 const payload = await getPayload({ config });
@@ -82,6 +87,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downPolicyMail(adapter(db) as unknown as MigrateDownArgs);
     await downDelivery(adapter(db) as unknown as MigrateDownArgs);
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
@@ -97,6 +103,7 @@ try {
     await up(adapter(db) as unknown as MigrateUpArgs);
     await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
     await upDelivery(adapter(db) as unknown as MigrateUpArgs);
+    await upPolicyMail(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -318,15 +325,18 @@ try {
   console.log("PASS 免登录确认、只读预取、退订、再订阅及旧凭证拒绝");
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downPolicyMail(adapter(db) as unknown as MigrateDownArgs);
     await downDelivery(adapter(db) as unknown as MigrateDownArgs);
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
     await upDelivery(adapter(db) as unknown as MigrateUpArgs);
+    await upPolicyMail(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   await testSubscriptionSubmission(payload, url);
   await testSubscriptionDelivery(payload, url);
   await testSubscriptionForm(payload);
+  await testPolicyEmail(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

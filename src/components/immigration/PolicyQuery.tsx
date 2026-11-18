@@ -16,12 +16,14 @@ export function PolicyQuery({
   verifiedOnOrBefore,
   visaGuide,
   children,
+  policyEmail,
 }: {
   locale: "en" | "zh";
   policies: PublicPolicyData[];
   verifiedOnOrBefore: string;
   visaGuide: QueryResult["visaGuide"];
   children?: React.ReactNode;
+  policyEmail?: { privacyVersion: string; references: string[] };
 }) {
   const ready = React.useSyncExternalStore(
     subscribe,
@@ -41,7 +43,7 @@ export function PolicyQuery({
     const next = queryImmigrationPolicies(
       { nationalityISO: country === "__unlisted__" ? null : country, arrivalDate: date },
       policies,
-      { verifiedOnOrBefore, visaGuide },
+      { verifiedOnOrBefore, visaGuide, emailReferences: policyEmail?.references },
     );
     setResult(next);
     setReferenceOpen(next.status === "invalid-input");
@@ -114,7 +116,11 @@ export function PolicyQuery({
           {c.submit}
         </button>
       </fieldset>
-      <PolicyQueryResult result={result} locale={locale} />
+      <PolicyQueryResult
+        result={result}
+        locale={locale}
+        privacyVersion={policyEmail?.privacyVersion}
+      />
       {children && (
         <details
           className="policy-full-reference"

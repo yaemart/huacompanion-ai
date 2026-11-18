@@ -1621,6 +1621,7 @@ export interface SubscriptionCredential {
   version: number;
   expiresAt: string;
   consumedAt?: string | null;
+  policyRequestKey?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1647,6 +1648,16 @@ export interface SubscriptionMailJob {
   lease?: string | null;
   messageHash?: string | null;
   nextAt?: string | null;
+  policySelection?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  deliverPolicy: boolean;
   updatedAt: string;
   createdAt: string;
 }
@@ -2831,6 +2842,7 @@ export interface SubscriptionCredentialsSelect<T extends boolean = true> {
   version?: T;
   expiresAt?: T;
   consumedAt?: T;
+  policyRequestKey?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2848,6 +2860,8 @@ export interface SubscriptionMailJobsSelect<T extends boolean = true> {
   lease?: T;
   messageHash?: T;
   nextAt?: T;
+  policySelection?: T;
+  deliverPolicy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
