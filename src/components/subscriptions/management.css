@@ -1,0 +1,52 @@
+.subscription-management {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 20px 40px;
+}
+.subscription-management h1 {
+  margin: 20px 0 12px;
+}
+.subscription-table {
+  overflow-x: auto;
+  margin: 20px 0;
+}
+.subscription-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.subscription-table caption {
+  text-align: left;
+  margin-bottom: 10px;
+}
+.subscription-table :is(th, td) {
+  padding: 12px;
+  border-bottom: 1px solid #d5ddcf;
+  vertical-align: top;
+}
+.subscription-table td:first-child {
+  overflow-wrap: anywhere;
+  min-width: 220px;
+}
+.subscription-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.subscription-filters label {
+  display: grid;
+  gap: 6px;
+}
+.subscription-filters select {
+  min-height: 44px;
+  max-width: min(85vw, 480px);
+  font: inherit;
+}
+.subscription-pagination {
+  display: flex;
+  gap: 24px;
+}
+.subscription-pagination a {
+  padding: 12px;
+}

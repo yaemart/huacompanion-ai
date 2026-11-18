@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { getPayload } from "payload";
 import pg from "pg";
@@ -31,6 +34,45 @@ process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 process.once("disconnect", stop);
 try {
+  const password = randomBytes(18).toString("hex");
+  const accounts = [];
+  for (const role of ["admin", "operations"] as const) {
+    const email = `preview-${role}@example.invalid`;
+    await payload.create({
+      collection: "staff",
+      context: { allowLocalStaffSetup: true },
+      data: {
+        name: role === "admin" ? "预览管理员" : "预览运营",
+        email,
+        role,
+        active: true,
+        password,
+      },
+    });
+    accounts.push({ role, email, password });
+  }
+  const accountFile = resolve(process.env.HUA_DEMO_ROOT!, "preview-accounts.json");
+  writeFileSync(accountFile, JSON.stringify(accounts, null, 2), { mode: 0o600 });
+  console.log(`本次预览账号文件：${accountFile}`);
+  for (let i = 0; i < 28; i++) {
+    const status = (["pending", "confirmed", "unsubscribed"] as const)[i % 3];
+    const at = new Date().toISOString();
+    await payload.create({
+      collection: "subscriptions",
+      data: {
+        email: `sample-${i}@example.invalid`,
+        topic: i % 2 ? "exhibition:fictional-fair" : "policy-updates",
+        status,
+        locale: i % 2 ? "en" : "zh",
+        privacyVersion: "fictional-preview-v1",
+        sourcePath: "/en",
+        consentVersion: 1,
+        consentedAt: at,
+        confirmedAt: status === "pending" ? null : at,
+        unsubscribedAt: status === "unsubscribed" ? at : null,
+      },
+    });
+  }
   await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
   for (const locale of ["zh", "en"] as const) {
     await publishFictionalSubscriptionPrivacy(payload, locale);

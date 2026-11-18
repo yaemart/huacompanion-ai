@@ -1,6 +1,7 @@
 import { visaCheckerEnabled } from "../lib/immigration-policy-flags";
 import {
   isOperator,
+  isAdmin,
   canAccessContentKind,
   canManageContent,
   canReviewContent,
@@ -39,6 +40,12 @@ export function ContentNav({ user }: { user?: Staff }) {
       )}
       <p>
         <a href="/quality-center">内容质量与复核</a> · <a href="/workflow-center">内容待办</a>
+        {isAdmin(user) && (
+          <>
+            {" "}
+            · <a href="/subscription-center">订阅管理</a>
+          </>
+        )}
       </p>
       <h3 style={{ fontSize: 14 }}>内容管理</h3>
       {links

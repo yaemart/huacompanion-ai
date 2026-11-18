@@ -28,7 +28,9 @@ export function indexingAllowed(env: Record<string, string | undefined> = proces
 export function privateSearchPath(pathname: string) {
   return (
     /^\/(?:admin|api|content-preview)(?:\/|$)/.test(pathname) ||
-    /^\/(?:content|support|business|workflow|quality|performance)-center(?:\/|$)/.test(pathname) ||
+    /^\/(?:content|support|business|workflow|quality|performance|subscription)-center(?:\/|$)/.test(
+      pathname,
+    ) ||
     /^\/operations-overview(?:\/|$)/.test(pathname) ||
     /^\/[a-z]{2}\/(?:account|support)(?:\/|$)/.test(pathname)
   );
@@ -47,6 +49,7 @@ export function robotsContents(origin: string, index = indexingAllowed()) {
     "/workflow-center",
     "/quality-center",
     "/performance-center",
+    "/subscription-center",
     "/operations-overview",
     ...locales.flatMap((locale) => [`/${locale}/account`, `/${locale}/support`]),
   ];
