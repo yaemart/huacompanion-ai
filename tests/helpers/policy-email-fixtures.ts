@@ -44,3 +44,60 @@ export function publishFictionalMailPolicies(payload: Payload, locale: "zh" | "e
     ),
   );
 }
+
+export async function publishFictionalSharedMailPolicy(payload: Payload, policy: PublicPolicyData) {
+  const { maxStayDays, maxStayHours, publicNotes, ...facts } = policy;
+  const contentKey = `fixture-mail-${policy.policyType}`;
+  const group = await payload.create({
+    collection: "policy-groups",
+    data: { contentKey, revision: 1 },
+  });
+  const revision = {
+    group: group.id,
+    revision: 1,
+    sourceRevision: 1,
+    contributors: [1],
+    approvedBy: 1,
+  };
+  const fact = await payload.create({
+    collection: "policy-fact-versions",
+    data: {
+      ...revision,
+      facts: {
+        ...facts,
+        maximumStay: maxStayDays ?? maxStayHours,
+        stayUnit: maxStayHours == null ? "days" : "hours",
+        verifiedBy: 1,
+        internalNotes: "TEST PRIVATE STAFF NOTE",
+      },
+    },
+  });
+  const note = {
+    locale: "zh",
+    title: policy.countryNameZh,
+    slug: contentKey,
+    basedOnFactVersion: fact.id,
+    publicNotes,
+  };
+  const published = await payload.create({
+    collection: "policy-note-versions",
+    data: { ...revision, ...note },
+  });
+  await payload.create({
+    collection: "policy-note-drafts",
+    data: {
+      group: group.id,
+      revision: 1,
+      ...note,
+      reviewState: "approved",
+      needsReview: false,
+      publishedNoteVersion: published.id,
+    },
+  });
+  await payload.update({
+    collection: "policy-groups",
+    id: group.id,
+    data: { activeFactVersion: fact.id },
+  });
+  return { group: group.id, fact: fact.id };
+}

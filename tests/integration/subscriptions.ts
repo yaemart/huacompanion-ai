@@ -39,7 +39,7 @@ assert.ok(
     (process.env.GITHUB_ACTIONS === "true" &&
       url.port === "55438" &&
       url.username === "hua" &&
-      url.pathname === "/hua_companion"),
+      /^\/hua_subscriptions_[a-f0-9]{32}$/.test(url.pathname)),
   "Subscriptions require an isolated test database",
 );
 const payload = await getPayload({ config });

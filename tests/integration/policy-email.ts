@@ -13,9 +13,9 @@ import { runSubscriptionMail } from "../../src/server/subscription-mail";
 import { down } from "../../src/migrations/20261118_130000_policy_subscription_mail";
 import type { MailMessage } from "../../src/server/workflow/mail";
 import {
-  otherPolicy,
-  publishFictionalMailPolicies,
-  selectedPolicy,
+  otherPolicy as previewOtherPolicy,
+  publishFictionalSharedMailPolicy,
+  selectedPolicy as previewSelectedPolicy,
 } from "../helpers/policy-email-fixtures";
 import { publishFictionalSubscriptionPrivacy } from "../helpers/subscription-fixtures";
 
@@ -25,6 +25,8 @@ export async function testPolicyEmail(payload: Payload, dbURL: URL) {
   const db = new pg.Client({ connectionString: dbURL.toString() });
   await db.connect();
   const fixtures: number[] = [];
+  const selectedPolicy = { ...previewSelectedPolicy, countryCode: "DE" };
+  const otherPolicy = { ...previewOtherPolicy, countryCode: "DE" };
   const emails = [0, 1, 2].map(() => `policy-${randomUUID()}@example.invalid`);
   const origin = "http://127.0.0.1:3186";
   const prefix = "/zh/tools/china-visa-free-checker";
@@ -101,10 +103,11 @@ export async function testPolicyEmail(payload: Payload, dbURL: URL) {
     });
     await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
     fixtures.push((await publishFictionalSubscriptionPrivacy(payload, "zh")).id);
-    const docs = await publishFictionalMailPolicies(payload, "zh");
-    fixtures.push(...docs.map(({ id }) => id));
+    // The runner drops this dedicated database; immutable versions use normal publication guards.
+    await publishFictionalSharedMailPolicy(payload, selectedPolicy);
+    const other = await publishFictionalSharedMailPolicy(payload, otherPolicy);
     assert.equal((await submit({ consent: false })).status, 400);
-    assert.equal((await submit({ nationalityISO: "XY", arrivalDate: "2026-12-15" })).status, 400);
+    assert.equal((await submit({ nationalityISO: "DE", arrivalDate: "2026-12-15" })).status, 400);
     assert.equal(
       (await submit({ policyReference: policyMailReference("en", selectedPolicy) })).status,
       400,
@@ -154,9 +157,9 @@ export async function testPolicyEmail(payload: Payload, dbURL: URL) {
     assert.equal(mail.length, 3, "an already subscribed address still gets a scoped confirmation");
     assert.equal((await confirm(mail[2])).status, 200);
     await payload.update({
-      collection: "content-published",
-      id: docs[1].id,
-      data: { active: false },
+      collection: "policy-groups",
+      id: other.group,
+      data: { activeFactVersion: null },
     });
     await age(base.email);
     await run();
@@ -168,9 +171,9 @@ export async function testPolicyEmail(payload: Payload, dbURL: URL) {
       400,
     );
     await payload.update({
-      collection: "content-published",
-      id: docs[1].id,
-      data: { active: true },
+      collection: "policy-groups",
+      id: other.group,
+      data: { activeFactVersion: other.fact },
     });
     const email = emails[2];
     assert.equal((await submit({ email })).status, 202);
