@@ -118,6 +118,9 @@ try {
       const link = text.split("\n")[0].match(/http:\/\/127\.0\.0\.1:3186\/\S+$/)?.[0];
       assert.ok(link);
       console.log(`[模拟确认链接] ${to} ${link}`);
+      const unsubscribe = text.split("\n")[1].match(/http:\/\/127\.0\.0\.1:3186\/\S+$/)?.[0];
+      assert.ok(unsubscribe);
+      console.log(`[模拟退订链接] ${to} ${unsubscribe}`);
       return { status: "sent", providerId: "fictional-preview" };
     });
     await setTimeout(1000);
