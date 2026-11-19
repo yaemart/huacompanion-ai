@@ -11,6 +11,7 @@ export async function subscriptionPreview(baseEnv, signal) {
   const env = {
     ...baseEnv,
     APP_URL: origin,
+    NODE_ENV: "development",
     SUBSCRIPTIONS_ENABLED: "true",
     SUBSCRIPTION_REQUESTS_ENABLED: "true",
     SUBSCRIPTION_MAIL_LINKS_VERIFIED: "true",
