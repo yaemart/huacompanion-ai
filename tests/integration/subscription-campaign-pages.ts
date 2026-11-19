@@ -15,6 +15,8 @@ import { listPublicPolicies } from "../../src/server/immigration/public";
 import { policyMailReference } from "../../src/server/policy-subscription";
 
 export async function testCampaignPages(p: Payload) {
+  const savedPolicyFlag = process.env.VISA_CHECKER_ENABLED;
+  delete process.env.VISA_CHECKER_ENABLED;
   const key = randomUUID();
   const people: number[] = [];
   const origin = new URL(process.env.APP_URL!).origin;
@@ -95,6 +97,8 @@ export async function testCampaignPages(p: Payload) {
     assert.equal((await post(admin.token, "delete", {})).status, 400);
     assert.equal((await post(admin.token, "grant", { ...grant, enabled: "true" })).status, 400);
     assert.equal((await post(admin.token, "grant", grant)).status, 200);
+    assert.equal((await readCampaignWorkspace(p, manager.user)).choices.length, 0);
+    process.env.VISA_CHECKER_ENABLED = "true";
     const workspace = await readCampaignWorkspace(p, manager.user);
     assert.equal(workspace.canDraft, true);
     assert.equal(workspace.grants, null);
@@ -211,6 +215,8 @@ export async function testCampaignPages(p: Payload) {
     assert.equal((await p.count({ collection: "subscription-mail-jobs" })).totalDocs, jobs);
     console.log("PASS 群发后台授权、本人草稿操作流程、同源防护、撤权和预览隐私");
   } finally {
+    if (savedPolicyFlag === undefined) delete process.env.VISA_CHECKER_ENABLED;
+    else process.env.VISA_CHECKER_ENABLED = savedPolicyFlag;
     await p.delete({
       collection: "subscription-campaign-drafts",
       where: { owner: { in: people } },
