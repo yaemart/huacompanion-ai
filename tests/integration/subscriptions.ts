@@ -22,6 +22,8 @@ import { testPolicyEmail } from "./policy-email";
 import { testSubscriptionManagement } from "./subscription-management";
 import { testSubscriptionCsv } from "./subscription-csv";
 import { testSubscriptionJourney } from "./subscription-journey";
+import { testSubscriptionCampaignGrants } from "./subscription-campaign-grants";
+import { testCampaignAccess } from "./subscription-campaign-access";
 import {
   up as upPolicyMail,
   down as downPolicyMail,
@@ -343,6 +345,8 @@ try {
   await testSubscriptionManagement(payload);
   await testSubscriptionCsv(payload, url);
   await testSubscriptionJourney(payload);
+  await testSubscriptionCampaignGrants(payload, url);
+  await testCampaignAccess(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
