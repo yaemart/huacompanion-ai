@@ -68,6 +68,7 @@ async function report(p: Payload, req: Scope, row: SubscriptionCampaignDraft) {
     campaignKey: row.campaignKey,
     revision: row.revision,
     topic: row.topic,
+    policies: campaignPolicies(selection.policies),
     preview,
     current,
     counts: await campaignCounts(p, req, preview),

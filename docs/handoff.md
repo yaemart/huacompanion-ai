@@ -2,7 +2,13 @@
 
 日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B2a 草稿版本和双语预览（2026-11-20）
+## 当前开发：群发 B2b 授权管理和草稿页面（2026-11-20）
+
+PR84 已合并，`origin/main` 为 `d77ae451b9106a875d3c18d9539ceca21bb0995c`，新分支 `codex/subscription-campaign-pages` 从该提交开始。接入 `/subscription-campaigns` 和后台仪表板入口；管理员授撤主题授权，获授权主管创建及续存自己的活动草稿，查看双语固定预览与语言人数。管理员自己也须明确授权，普通主管不取得邮箱名单。仅保存，发送操作未接入。 [一页亲测](subscription-campaign-pages-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-pages.md)。
+
+本地 `npm run check` 353 项、订阅集成 15 组通过，lint 445 警告持平；3186 临时预览已完成管理员授权→主管创建/续存版本→撤权后拒绝、运营拒绝和 390 像素布局检查。无新迁移、环境变量、依赖或原演示种子变化。临时预览改用虚构共用事实政策及四个临时账号，原 3100 副本/55442 库/图片保留；按一页指南启动 3186 亲测，无需重置原库。后续才做本地模拟测试与手动确认条件，真实发件仍须另行授权。
+
+## 历史交接：群发 B2a 草稿版本和双语预览（2026-11-20）
 
 PR83 已合并，`origin/main` 为 `017ad7c4489b016b58804fe70f0835f810217a6a`，包含 B1 全部提交。新分支 `codex/subscription-campaign-drafts` 从该提交开始，工作区初始干净。私有草稿只追加版本，复用当前授权和公开政策投影，固定双语预览与语言人数均不暴露邮箱。 [一页亲测](subscription-campaign-drafts-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-drafts.md)。
 

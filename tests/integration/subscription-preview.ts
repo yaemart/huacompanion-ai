@@ -9,7 +9,11 @@ import { emptyExhibition } from "../../src/lib/exhibitions";
 import config from "../../src/payload.config";
 import { runSubscriptionMail } from "../../src/server/subscription-mail";
 import { publishFictionalSubscriptionPrivacy } from "../helpers/subscription-fixtures";
-import { publishFictionalMailPolicies } from "../helpers/policy-email-fixtures";
+import {
+  selectedPolicy,
+  otherPolicy,
+  publishFictionalSharedMailPolicy,
+} from "../helpers/policy-email-fixtures";
 
 const url = new URL(process.env.DATABASE_URL ?? "");
 assert.equal(url.hostname, "127.0.0.1");
@@ -35,14 +39,19 @@ process.on("SIGTERM", stop);
 process.once("disconnect", stop);
 try {
   const password = randomBytes(18).toString("hex");
-  const accounts = [];
-  for (const role of ["admin", "operations"] as const) {
-    const email = `preview-${role}@example.invalid`;
+  const accounts: { role: string; email: string; password: string }[] = [];
+  for (const role of ["admin", "manager", "manager", "operations"] as const) {
+    const email = `preview-${role}-${accounts.length}@example.invalid`;
     await payload.create({
       collection: "staff",
       context: { allowLocalStaffSetup: true },
       data: {
-        name: role === "admin" ? "预览管理员" : "预览运营",
+        name:
+          role === "admin"
+            ? "预览管理员"
+            : role === "manager"
+              ? `预览主管${accounts.length}`
+              : "预览运营",
         email,
         role,
         active: true,
@@ -74,9 +83,10 @@ try {
     });
   }
   await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
+  await publishFictionalSharedMailPolicy(payload, selectedPolicy);
+  await publishFictionalSharedMailPolicy(payload, otherPolicy);
   for (const locale of ["zh", "en"] as const) {
     await publishFictionalSubscriptionPrivacy(payload, locale);
-    await publishFictionalMailPolicies(payload, locale);
     await payload.create({
       collection: "content-published",
       data: {
