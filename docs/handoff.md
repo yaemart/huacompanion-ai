@@ -2,7 +2,11 @@
 
 日期：2026-11-19（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 订阅整体验收（2026-11-19）
+## 当前开发：停止点 C 群发方案比较（2026-11-19）
+
+从 PR81 合并提交 `912b154` 建 `codex/subscription-broadcast-proposal`。用户要求先只出方案，确认后再实施。本轮比较外部 Resend Broadcasts 和华伴后台受控群发，建议后者但尚未选定；所有权限、额度与分批开发都是待确认建议。 [一页选择单](subscription-broadcast-summary.md) · [完整比较](tasks/2026-11-19-subscription-broadcast-options.md)。文档 PR 合并不代表批准方案、实施或真实发件；不得据此创建联系人、接入群发或开启真实邮件。
+
+## 历史交接：任务 H 订阅整体验收（2026-11-19）
 
 从 PR80 合并提交 `78a22e2` 建 `codex/subscription-flow-acceptance`。新增中英文订阅串联回归，核对待确认、已订阅和已退订三个状态下的管理名单、CSV、审计及权限。模拟预览补充退订链接输出，便于人工走完流程。独立临时库、模拟邮件，无业务规则、迁移、环境变量或依赖变化。 [一页亲测](subscription-flow-summary.md)
 
