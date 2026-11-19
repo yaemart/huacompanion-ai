@@ -1,4 +1,4 @@
-import { getPayload, type Payload } from "payload";
+import { getPayload, type Payload, type PayloadRequest } from "payload";
 import config from "../payload.config";
 import { isActiveStaff, isAdmin, type Staff } from "../cms/access";
 import { isContentIdentifier } from "../lib/content-identifiers";
@@ -22,22 +22,29 @@ type SubscriptionRow = {
   unsubscribedAt: Date | null;
 };
 
-async function requireAdmin(payload: Payload, user: Staff) {
+export async function requireSubscriptionAdmin(
+  payload: Payload,
+  user: Staff,
+  req?: Partial<PayloadRequest>,
+) {
   if (!user || !isActiveStaff(user)) throw new ContentError("请使用管理员账号登录。", 403);
   const current = await payload.findByID({
     collection: "staff",
     id: user.id,
     depth: 0,
     disableErrors: true,
+    req,
   });
-  if (!isAdmin(current)) throw new ContentError("订阅管理仅限有效的管理员账号查看。", 403);
+  if (!current || !isAdmin(current))
+    throw new ContentError("订阅管理仅限有效的管理员账号查看。", 403);
+  return current;
 }
 
 export async function subscriptionAdminAuth(headers: Headers) {
   const p = await getPayload({ config });
   const { user } = await p.auth({ headers });
   if (user?.collection !== "staff") throw new ContentError("请使用管理员账号登录。", 403);
-  await requireAdmin(p, user);
+  await requireSubscriptionAdmin(p, user);
   return { p, user };
 }
 
@@ -59,7 +66,11 @@ function filters(input: Record<string, unknown>) {
   return { topic, status, page: Number(page) };
 }
 
-async function readSnapshot(payload: Payload, query: ReturnType<typeof filters>) {
+async function readSnapshot(
+  payload: Payload,
+  query: ReturnType<typeof filters>,
+  exportAll: boolean,
+) {
   const client = await payload.db.pool.connect();
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
@@ -97,15 +108,17 @@ async function readSnapshot(payload: Payload, query: ReturnType<typeof filters>)
       0,
     );
     const pages = Math.max(1, Math.ceil(total / 25));
+    if (exportAll && total > 100000)
+      throw new ContentError("记录超过十万条，请按主题和状态缩小范围。", 413);
     const page = Math.min(query.page, pages);
     const { rows } = await client.query<SubscriptionRow>(
       `
       SELECT id, email, topic, locale, status, consented_at AS "consentedAt",
         confirmed_at AS "confirmedAt", unsubscribed_at AS "unsubscribedAt"
       FROM subscriptions WHERE ($1::text='' OR topic=$1) AND ($2::text='' OR status::text=$2)
-      ORDER BY consented_at DESC, id DESC LIMIT 25 OFFSET $3
+      ORDER BY consented_at DESC, id DESC LIMIT $3 OFFSET $4
     `,
-      [query.topic, query.status, (page - 1) * 25],
+      [query.topic, query.status, exportAll ? 100000 : 25, exportAll ? 0 : (page - 1) * 25],
     );
     const { rows: clock } = await client.query<{ at: Date }>(
       "SELECT transaction_timestamp() AS at",
@@ -138,10 +151,11 @@ export async function readSubscriptionManagement(
   payload: Payload,
   user: Staff,
   input: Record<string, unknown>,
+  exportAll = false,
 ) {
-  await requireAdmin(payload, user);
-  const report = await readSnapshot(payload, filters(input));
+  await requireSubscriptionAdmin(payload, user);
+  const report = await readSnapshot(payload, filters(input), exportAll);
   // Release the snapshot connection before asking Payload for a fresh authority check.
-  await requireAdmin(payload, user);
+  await requireSubscriptionAdmin(payload, user);
   return report;
 }

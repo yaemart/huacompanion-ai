@@ -20,6 +20,7 @@ import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
 import { testPolicyEmail } from "./policy-email";
 import { testSubscriptionManagement } from "./subscription-management";
+import { testSubscriptionCsv } from "./subscription-csv";
 import {
   up as upPolicyMail,
   down as downPolicyMail,
@@ -339,6 +340,7 @@ try {
   await testSubscriptionForm(payload);
   await testPolicyEmail(payload, url);
   await testSubscriptionManagement(payload);
+  await testSubscriptionCsv(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

@@ -3,6 +3,7 @@ import {
   subscriptionStates,
   type readSubscriptionManagement,
 } from "@/server/subscription-management";
+import { SubscriptionCsvDownload } from "./SubscriptionCsvDownload";
 
 type Report = Awaited<ReturnType<typeof readSubscriptionManagement>>;
 export function SubscriptionManagement({ report }: { report: Report }) {
@@ -75,6 +76,7 @@ export function SubscriptionManagement({ report }: { report: Report }) {
       <p role="status">
         符合筛选 {report.total} 条，第 {report.page} / {report.pages} 页。
       </p>
+      <SubscriptionCsvDownload filters={report.filters} count={report.total} />
       <div className="subscription-table">
         <table>
           <caption>订阅记录 · 日期按北京时间显示</caption>

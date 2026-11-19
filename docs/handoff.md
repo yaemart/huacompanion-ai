@@ -2,7 +2,11 @@
 
 日期：2026-11-19（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：任务 H 2.4 订阅管理（2026-11-19）
+## 当前开发：任务 H 2.4 订阅 CSV 导出（2026-11-19）
+
+从 PR79 合并提交 `9e71c79` 建 `codex/subscription-csv`。管理员从订阅管理导出当前已应用主题和状态下的全部记录。API 为 `POST /api/subscriptions/export`。CSV 复用 BOM 和公式转义，审计落库后才返回文件，审计包含操作者、筛选、条数和统计截至时间。数据库、依赖和环境变量沿用现有版本。使用 3186 临时预览亲测，群发保持停止点 C。 [一页亲测](subscription-csv-summary.md)
+
+## 历史交接：任务 H 2.4 订阅管理（2026-11-19）
 
 从 PR78 合并提交 `9e5e630` 建 `codex/subscription-management`。有效管理员可在 `/subscription-center` 查看主题统计和筛选分页名单，API 为 `GET /api/subscriptions/manage`。按数据库当前角色检查权限，接口只返回列明的订阅字段。数据库、依赖、环境变量沿用现有版本。3186 临时预览增加管理员、运营和 28 条虚构订阅，账号文件随预览退出清理。CSV 导出留在下一批，群发保持停止点 C。 [一页亲测](subscription-management-summary.md)
 
