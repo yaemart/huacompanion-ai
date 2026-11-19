@@ -270,4 +270,10 @@ export const migrations = [
     down: migration_20261120_090000_subscription_campaign_grants.down,
     name: "20261120_090000_subscription_campaign_grants",
   },
+  {
+    up: migration_20261120_110000_subscription_campaign_drafts.up,
+    down: migration_20261120_110000_subscription_campaign_drafts.down,
+    name: "20261120_110000_subscription_campaign_drafts",
+  },
 ];
+import * as migration_20261120_110000_subscription_campaign_drafts from "./20261120_110000_subscription_campaign_drafts";

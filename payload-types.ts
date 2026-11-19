@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-drafts': SubscriptionCampaignDraft;
     'subscription-campaign-grants': SubscriptionCampaignGrant;
     subscriptions: Subscription;
     'subscription-credentials': SubscriptionCredential;
@@ -176,6 +177,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-drafts': SubscriptionCampaignDraftsSelect<false> | SubscriptionCampaignDraftsSelect<true>;
     'subscription-campaign-grants': SubscriptionCampaignGrantsSelect<false> | SubscriptionCampaignGrantsSelect<true>;
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
     'subscription-credentials': SubscriptionCredentialsSelect<false> | SubscriptionCredentialsSelect<true>;
@@ -1607,6 +1609,37 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-drafts".
+ */
+export interface SubscriptionCampaignDraft {
+  id: number;
+  campaignKey: string;
+  owner: number | Staff;
+  topic: 'policy-updates';
+  revision: number;
+  selections:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  preview:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-campaign-grants".
  */
 export interface SubscriptionCampaignGrant {
@@ -2850,6 +2883,20 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-drafts_select".
+ */
+export interface SubscriptionCampaignDraftsSelect<T extends boolean = true> {
+  campaignKey?: T;
+  owner?: T;
+  topic?: T;
+  revision?: T;
+  selections?: T;
+  preview?: T;
   updatedAt?: T;
   createdAt?: T;
 }
