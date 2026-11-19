@@ -2,7 +2,13 @@
 
 日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B1 独立授权基础（2026-11-20）
+## 当前开发：群发 B2a 草稿版本和双语预览（2026-11-20）
+
+PR83 已合并，`origin/main` 为 `017ad7c4489b016b58804fe70f0835f810217a6a`，包含 B1 全部提交。新分支 `codex/subscription-campaign-drafts` 从该提交开始，工作区初始干净。私有草稿只追加版本，复用当前授权和公开政策投影，固定双语预览与语言人数均不暴露邮箱。 [一页亲测](subscription-campaign-drafts-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-drafts.md)。
+
+本批是服务层，没有后台页面、发件任务或 worker 改动。`npm run check` 通过（353 项，445 条既有 lint 警告未增加），订阅集成 14 组通过。新迁移只应用独立临时库；原 3100 演示副本、55442 演示库和图片未升级。无新环境变量、依赖、种子。原库升级仍需数据库与图片配套备份及开发进程重启。下批页面接入，之后才做模拟测试和确认条件；不据本批开启真实邮件。
+
+## 历史交接：群发 B1 独立授权基础（2026-11-20）
 
 用户已明确接受方案 B 和默认规则，PR82 已合并。新分支 `codex/subscription-campaign-grants` 基于 `3464e028c17532945c7c302d198df7da1e9fbf0c`。新增私有授权表及管理员设置、撤销和审计服务，管理员/主管均不自动获得群发操作权，主管获授权也不能读取或导出邮箱名单。本批没有 UI、活动或发件入口。 [B1 亲测](subscription-campaign-grants-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-broadcast-grants.md)。
 

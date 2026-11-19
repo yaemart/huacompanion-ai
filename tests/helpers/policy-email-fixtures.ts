@@ -45,9 +45,12 @@ export function publishFictionalMailPolicies(payload: Payload, locale: "zh" | "e
   );
 }
 
-export async function publishFictionalSharedMailPolicy(payload: Payload, policy: PublicPolicyData) {
+export async function publishFictionalSharedMailPolicy(
+  payload: Payload,
+  policy: PublicPolicyData,
+  contentKey = `fixture-mail-${policy.policyType}`,
+) {
   const { maxStayDays, maxStayHours, publicNotes, ...facts } = policy;
-  const contentKey = `fixture-mail-${policy.policyType}`;
   const group = await payload.create({
     collection: "policy-groups",
     data: { contentKey, revision: 1 },
