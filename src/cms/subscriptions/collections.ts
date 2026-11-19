@@ -12,6 +12,19 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "subscription-campaign-grants",
+    typescript: { interface: "SubscriptionCampaignGrant" },
+    indexes: [{ fields: ["staff", "topic"], unique: true }],
+    fields: [
+      { name: "staff", type: "relationship", relationTo: "staff", required: true, index: true },
+      { name: "topic", type: "select", options: ["policy-updates"], required: true },
+      { name: "enabled", type: "checkbox", defaultValue: false, required: true },
+      { name: "revision", type: "number", min: 1, defaultValue: 1, required: true },
+      { name: "changedBy", type: "relationship", relationTo: "staff" },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscriptions",
     typescript: { interface: "Subscription" },
     indexes: [{ fields: ["email", "topic"], unique: true }],

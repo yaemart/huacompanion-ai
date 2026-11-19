@@ -70,11 +70,11 @@ export interface Config {
     teams: Team;
     staff: Staff;
     inquiries: Inquiry;
-    'inquiry-reply-templates': InquiryReplyTemplate;
     providers: Provider;
     notifications: Notification;
     'audit-events': AuditEvent;
     'intake-limits': IntakeLimit;
+    'inquiry-reply-templates': InquiryReplyTemplate;
     'content-drafts': ContentDraft;
     'content-published': ContentPublished;
     'content-events': ContentEvent;
@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-grants': SubscriptionCampaignGrant;
     subscriptions: Subscription;
     'subscription-credentials': SubscriptionCredential;
     'subscription-mail-jobs': SubscriptionMailJob;
@@ -129,11 +130,11 @@ export interface Config {
     teams: TeamsSelect<false> | TeamsSelect<true>;
     staff: StaffSelect<false> | StaffSelect<true>;
     inquiries: InquiriesSelect<false> | InquiriesSelect<true>;
-    'inquiry-reply-templates': InquiryReplyTemplatesSelect<false> | InquiryReplyTemplatesSelect<true>;
     providers: ProvidersSelect<false> | ProvidersSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'audit-events': AuditEventsSelect<false> | AuditEventsSelect<true>;
     'intake-limits': IntakeLimitsSelect<false> | IntakeLimitsSelect<true>;
+    'inquiry-reply-templates': InquiryReplyTemplatesSelect<false> | InquiryReplyTemplatesSelect<true>;
     'content-drafts': ContentDraftsSelect<false> | ContentDraftsSelect<true>;
     'content-published': ContentPublishedSelect<false> | ContentPublishedSelect<true>;
     'content-events': ContentEventsSelect<false> | ContentEventsSelect<true>;
@@ -175,6 +176,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-grants': SubscriptionCampaignGrantsSelect<false> | SubscriptionCampaignGrantsSelect<true>;
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
     'subscription-credentials': SubscriptionCredentialsSelect<false> | SubscriptionCredentialsSelect<true>;
     'subscription-mail-jobs': SubscriptionMailJobsSelect<false> | SubscriptionMailJobsSelect<true>;
@@ -298,7 +300,14 @@ export interface Staff {
  */
 export interface Inquiry {
   id: number;
-  reference: string;
+  status: 'new' | 'needs-info' | 'processing' | 'quoted' | 'won' | 'closed';
+  owner?: (number | null) | Staff;
+  nextFollowUp?: string | null;
+  /**
+   * 记录实际协调进展；处理状态用于整体业务管理。
+   */
+  coordinationStage?:
+    ('received' | 'contacting' | 'confirming' | 'proposal' | 'scheduled' | 'aftercare' | 'completed' | 'closed') | null;
   name: string;
   email: string;
   categories: (
@@ -314,10 +323,6 @@ export interface Inquiry {
     | number
     | boolean
     | null;
-  source?: ('website' | 'app' | 'manual') | null;
-  locale?: ('zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar') | null;
-  consentAt?: string | null;
-  privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
   homeFulfilment?: {
@@ -344,28 +349,7 @@ export interface Inquiry {
         id?: string | null;
       }[]
     | null;
-  team?: (number | null) | Team;
-  catalogSource?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  status: 'new' | 'needs-info' | 'processing' | 'quoted' | 'won' | 'closed';
-  /**
-   * 记录实际协调进展；处理状态用于整体业务管理。
-   */
-  coordinationStage?:
-    ('received' | 'contacting' | 'confirming' | 'proposal' | 'scheduled' | 'aftercare' | 'completed' | 'closed') | null;
-  owner?: (number | null) | Staff;
-  nextFollowUp?: string | null;
   notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-
   followUps?:
     | {
         [k: string]: unknown;
@@ -375,6 +359,23 @@ export interface Inquiry {
     | number
     | boolean
     | null;
+  reference: string;
+  source?: ('website' | 'app' | 'manual') | null;
+  locale?: ('zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar') | null;
+  consentAt?: string | null;
+  privacyVersion?: string | null;
+  catalogSource?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  team?: (number | null) | Team;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -382,8 +383,10 @@ export interface Inquiry {
  */
 export interface Provider {
   id: number;
+  status: 'applied' | 'needs-info' | 'verified' | 'contracted' | 'paused';
+  owner?: (number | null) | Staff;
+  publicApproved?: boolean | null;
   editBase?: string | null;
-  reference: string;
   name: string;
   email: string;
   categories: (
@@ -399,10 +402,6 @@ export interface Provider {
     | number
     | boolean
     | null;
-  source?: ('website' | 'app' | 'manual') | null;
-  locale?: ('zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar') | null;
-  consentAt?: string | null;
-  privacyVersion?: string | null;
   requestKey: string;
   contentHash: string;
   housekeepingApplication?:
@@ -424,8 +423,6 @@ export interface Provider {
     reviewedAt?: string | null;
     reviewed?: boolean | null;
   };
-  team?: (number | null) | Team;
-  owner?: (number | null) | Staff;
   organisation: string;
   phone: string;
   languages: string;
@@ -433,12 +430,7 @@ export interface Provider {
   website?: string | null;
   hours?: string | null;
   qualification?: string | null;
-  status: 'applied' | 'needs-info' | 'verified' | 'contracted' | 'paused';
-  publicApproved?: boolean | null;
   notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-
   followUps?:
     | {
         [k: string]: unknown;
@@ -448,6 +440,14 @@ export interface Provider {
     | number
     | boolean
     | null;
+  reference: string;
+  source?: ('website' | 'app' | 'manual') | null;
+  locale?: ('zh' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ar') | null;
+  consentAt?: string | null;
+  privacyVersion?: string | null;
+  team?: (number | null) | Team;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * 本地阶段未配置邮件服务。任务已保存，不代表邮件已发送。
@@ -506,6 +506,22 @@ export interface IntakeLimit {
   bucket: number;
   clientKey: string;
   count: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * 每条模板填写中英文正文。只写可供客户查看的通用文字，请勿填写客户资料、内部成本或密钥。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inquiry-reply-templates".
+ */
+export interface InquiryReplyTemplate {
+  id: number;
+  title: string;
+  category: 'inquiry' | 'quote' | 'confirmation';
+  enabled?: boolean | null;
+  bodyZh: string;
+  bodyEn: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -595,7 +611,12 @@ export interface ContentPublished {
  * via the `definition` "content-events".
  */
 export interface ContentEvent {
-  publicationParticipants?:
+  id: number;
+  draftId: number;
+  action: string;
+  actor: number;
+  revision?: number | null;
+  snapshot?:
     | {
         [k: string]: unknown;
       }
@@ -604,12 +625,7 @@ export interface ContentEvent {
     | number
     | boolean
     | null;
-  id: number;
-  draftId: number;
-  action: string;
-  actor: number;
-  revision?: number | null;
-  snapshot?:
+  publicationParticipants?:
     | {
         [k: string]: unknown;
       }
@@ -1329,7 +1345,6 @@ export interface WorkflowEvent {
  * via the `definition` "workflow-notifications".
  */
 export interface WorkflowNotification {
-  performanceIncident?: number | null;
   id: number;
   key: string;
   event?: (number | null) | WorkflowEvent;
@@ -1339,6 +1354,7 @@ export interface WorkflowNotification {
   title: string;
   readAt?: string | null;
   digestAt?: string | null;
+  performanceIncident?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1586,6 +1602,20 @@ export interface CustomerInquiryLink {
   revocationReason?: string | null;
   active?: boolean | null;
   dedupe: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-grants".
+ */
+export interface SubscriptionCampaignGrant {
+  id: number;
+  staff: number | Staff;
+  topic: 'policy-updates';
+  enabled: boolean;
+  revision: number;
+  changedBy?: (number | null) | Staff;
   updatedAt: string;
   createdAt: string;
 }
@@ -1947,16 +1977,15 @@ export interface StaffSelect<T extends boolean = true> {
  * via the `definition` "inquiries_select".
  */
 export interface InquiriesSelect<T extends boolean = true> {
-  reference?: T;
+  status?: T;
+  owner?: T;
+  nextFollowUp?: T;
+  coordinationStage?: T;
   name?: T;
   email?: T;
   categories?: T;
   city?: T;
   details?: T;
-  source?: T;
-  locale?: T;
-  consentAt?: T;
-  privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
   homeFulfilment?:
@@ -1982,34 +2011,32 @@ export interface InquiriesSelect<T extends boolean = true> {
         sharedAt?: T;
         id?: T;
       };
-  team?: T;
-  catalogSource?: T;
-  status?: T;
-  coordinationStage?: T;
-  owner?: T;
-  nextFollowUp?: T;
   notes?: T;
+  followUps?: T;
+  reference?: T;
+  source?: T;
+  locale?: T;
+  consentAt?: T;
+  privacyVersion?: T;
+  catalogSource?: T;
+  team?: T;
   updatedAt?: T;
   createdAt?: T;
-
-  followUps?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "providers_select".
  */
 export interface ProvidersSelect<T extends boolean = true> {
+  status?: T;
+  owner?: T;
+  publicApproved?: T;
   editBase?: T;
-  reference?: T;
   name?: T;
   email?: T;
   categories?: T;
   city?: T;
   details?: T;
-  source?: T;
-  locale?: T;
-  consentAt?: T;
-  privacyVersion?: T;
   requestKey?: T;
   contentHash?: T;
   housekeepingApplication?: T;
@@ -2025,8 +2052,6 @@ export interface ProvidersSelect<T extends boolean = true> {
         reviewedAt?: T;
         reviewed?: T;
       };
-  team?: T;
-  owner?: T;
   organisation?: T;
   phone?: T;
   languages?: T;
@@ -2034,13 +2059,16 @@ export interface ProvidersSelect<T extends boolean = true> {
   website?: T;
   hours?: T;
   qualification?: T;
-  status?: T;
-  publicApproved?: T;
   notes?: T;
+  followUps?: T;
+  reference?: T;
+  source?: T;
+  locale?: T;
+  consentAt?: T;
+  privacyVersion?: T;
+  team?: T;
   updatedAt?: T;
   createdAt?: T;
-
-  followUps?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2078,6 +2106,19 @@ export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
   clientKey?: T;
   count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inquiry-reply-templates_select".
+ */
+export interface InquiryReplyTemplatesSelect<T extends boolean = true> {
+  title?: T;
+  category?: T;
+  enabled?: T;
+  bodyZh?: T;
+  bodyEn?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2131,12 +2172,12 @@ export interface ContentPublishedSelect<T extends boolean = true> {
  * via the `definition` "content-events_select".
  */
 export interface ContentEventsSelect<T extends boolean = true> {
-  publicationParticipants?: T;
   draftId?: T;
   action?: T;
   actor?: T;
   revision?: T;
   snapshot?: T;
+  publicationParticipants?: T;
   overrideReason?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2595,7 +2636,6 @@ export interface WorkflowEventsSelect<T extends boolean = true> {
  * via the `definition` "workflow-notifications_select".
  */
 export interface WorkflowNotificationsSelect<T extends boolean = true> {
-  performanceIncident?: T;
   key?: T;
   event?: T;
   inquiry?: T;
@@ -2604,6 +2644,7 @@ export interface WorkflowNotificationsSelect<T extends boolean = true> {
   title?: T;
   readAt?: T;
   digestAt?: T;
+  performanceIncident?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2809,6 +2850,19 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-grants_select".
+ */
+export interface SubscriptionCampaignGrantsSelect<T extends boolean = true> {
+  staff?: T;
+  topic?: T;
+  enabled?: T;
+  revision?: T;
+  changedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3078,6 +3132,28 @@ export interface PublicCompanySetting {
   createdAt?: string | null;
 }
 /**
+ * 每类服务可保存一份模板。只填写可给客户看的文字，修改不会更新已保存的报价。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quote-template-settings".
+ */
+export interface QuoteTemplateSetting {
+  id: number;
+  templates?:
+    | {
+        category:
+          'housekeeping' | 'medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival';
+        enabled?: boolean | null;
+        included: string;
+        excluded: string;
+        terms: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "support-settings_select".
  */
@@ -3166,6 +3242,25 @@ export interface PublicCompanySettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quote-template-settings_select".
+ */
+export interface QuoteTemplateSettingsSelect<T extends boolean = true> {
+  templates?:
+    | T
+    | {
+        category?: T;
+        enabled?: T;
+        included?: T;
+        excluded?: T;
+        terms?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -3185,66 +3280,4 @@ export interface Auth {
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}
-}
-/**
- * 每类服务可保存一份模板。只填写可给客户看的文字，修改不会更新已保存的报价。
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "quote-template-settings".
- */
-export interface QuoteTemplateSetting {
-  id: number;
-  templates?:
-    | {
-        category:
-          'housekeeping' | 'medical' | 'business' | 'transport' | 'stays' | 'travel' | 'interpretation' | 'arrival';
-        enabled?: boolean | null;
-        included: string;
-        excluded: string;
-        terms: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "quote-template-settings_select".
- */
-export interface QuoteTemplateSettingsSelect<T extends boolean = true> {
-  templates?:
-    | T
-    | {
-        category?: T;
-        enabled?: T;
-        included?: T;
-        excluded?: T;
-        terms?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-
-export interface InquiryReplyTemplate {
-  id: number;
-  title: string;
-  category: 'inquiry' | 'quote' | 'confirmation';
-  enabled?: boolean | null;
-  bodyZh: string;
-  bodyEn: string;
-  updatedAt: string;
-  createdAt: string;
-}
-
-export interface InquiryReplyTemplatesSelect<T extends boolean = true> {
-  title?: T;
-  category?: T;
-  enabled?: T;
-  bodyZh?: T;
-  bodyEn?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }

@@ -1,8 +1,14 @@
 # 当前开发交接
 
-日期：2026-11-19（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
+日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：停止点 C 群发方案比较（2026-11-19）
+## 当前开发：群发 B1 独立授权基础（2026-11-20）
+
+用户已明确接受方案 B 和默认规则，PR82 已合并。新分支 `codex/subscription-campaign-grants` 基于 `3464e028c17532945c7c302d198df7da1e9fbf0c`。新增私有授权表及管理员设置、撤销和审计服务，管理员/主管均不自动获得群发操作权，主管获授权也不能读取或导出邮箱名单。本批没有 UI、活动或发件入口。 [B1 亲测](subscription-campaign-grants-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-broadcast-grants.md)。
+
+迁移 `20261120_090000_subscription_campaign_grants` 已在独立临时库验证，未应用原演示库；升级原库前仍需数据库与图片配套备份并重启站点。无新环境变量、依赖或演示种子变更。12 组订阅集成与 `npm run check` 通过，真实发送、费用和部署未授权。下一批为活动草稿、版本和固定双语预览，待本 PR 合并后从最新 main 开始。
+
+## 历史交接：停止点 C 群发方案比较（2026-11-19）
 
 从 PR81 合并提交 `912b154` 建 `codex/subscription-broadcast-proposal`。用户要求先只出方案，确认后再实施。本轮比较外部 Resend Broadcasts 和华伴后台受控群发，建议后者但尚未选定；所有权限、额度与分批开发都是待确认建议。 [一页选择单](subscription-broadcast-summary.md) · [完整比较](tasks/2026-11-19-subscription-broadcast-options.md)。文档 PR 合并不代表批准方案、实施或真实发件；不得据此创建联系人、接入群发或开启真实邮件。
 
