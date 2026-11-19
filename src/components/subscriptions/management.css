@@ -50,3 +50,9 @@
 .subscription-pagination a {
   padding: 12px;
 }
+.subscription-export {
+  margin: 12px 0;
+}
+.subscription-export p:not(:empty) {
+  margin-top: 8px;
+}
