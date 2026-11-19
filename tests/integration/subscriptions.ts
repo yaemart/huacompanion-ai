@@ -21,6 +21,7 @@ import { testSubscriptionForm } from "./subscription-form";
 import { testPolicyEmail } from "./policy-email";
 import { testSubscriptionManagement } from "./subscription-management";
 import { testSubscriptionCsv } from "./subscription-csv";
+import { testSubscriptionJourney } from "./subscription-journey";
 import {
   up as upPolicyMail,
   down as downPolicyMail,
@@ -341,6 +342,7 @@ try {
   await testPolicyEmail(payload, url);
   await testSubscriptionManagement(payload);
   await testSubscriptionCsv(payload, url);
+  await testSubscriptionJourney(payload);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
