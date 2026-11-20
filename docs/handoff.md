@@ -2,7 +2,15 @@
 
 日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B3 本地模拟测试与确认（2026-11-20）
+## 当前开发：群发 B4a 收件快照与暂存任务（2026-11-20）
+
+PR86 已合并，分支 `codex/subscription-campaign-freeze` 从最新 `origin/main` 的 `b5dc650b2a171d98a15cd552b8fa315ecc18d5b1` 开始。先做服务层，沿用有效本地模拟确认，在同一事务固定合资格名单和同意版本，生成只有 held 状态的私有暂存任务。没有新增公开 action、页面按钮、邮件适配器或 worker 接入。[一页验证](subscription-campaign-freeze-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-freeze.md)。
+
+17 组订阅集成和 `npm run check` 353 项通过，lint 445 警告持平。真实同邮箱最新退订、五类角色 CRUD、并发幂等、来源失效/恢复、1,000 接受与1,001全拒绝及审计延迟提交失败已验证。主管只得编号、时间和人数。重复冻结不加入新订阅者；改版续发本批拒绝并保留旧快照。冻结不是发送资格，发送前实时复核、额度、worker、回执仍待后续。
+
+新增迁移 `20261120_150000_subscription_campaign_freeze` 仅在随机临时库应用，未升级原 3100/55442、图片及种子。无新环境变量或依赖；真实邮件、AI、语音、通话和正式评分保持关闭。本批无新页面，不虚构浏览器/实体手机验收或截图。下一批须本 PR 合并后再开；精确推送 SHA 与 CI 在 PR 最终记录核对。
+
+## 历史交接：群发 B3 本地模拟测试与确认（2026-11-20）
 
 PR85 已合并，新分支 `codex/subscription-campaign-mock-checks` 基于 `c20b923d45d28a06732f433bac0bec054fc87d47`。获授权主管可测试本人已保存活动，逐语言确认可读；仅本地虚构邮件，不产生发送任务或真实发送资格。草稿、来源、授权和配置变化使旧结论失效，已观察到的失效持久记录，恢复旧配置也不复活结论。[一页亲测](subscription-campaign-mock-checks-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-mock-checks.md)。
 

@@ -12,6 +12,56 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "subscription-campaign-batches",
+    typescript: { interface: "SubscriptionCampaignBatch" },
+    fields: [
+      { name: "campaignKey", type: "text", required: true, unique: true },
+      {
+        name: "draft",
+        type: "relationship",
+        relationTo: "subscription-campaign-drafts",
+        required: true,
+        index: true,
+      },
+      {
+        name: "confirmation",
+        type: "relationship",
+        relationTo: "subscription-campaign-checks",
+        required: true,
+      },
+      { name: "frozenAt", type: "date", required: true },
+      { name: "counts", type: "json", required: true },
+    ],
+  },
+  {
+    ...internal,
+    slug: "subscription-campaign-jobs",
+    typescript: { interface: "SubscriptionCampaignJob" },
+    indexes: [{ fields: ["campaignKey", "recipientHash"], unique: true }],
+    fields: [
+      { name: "campaignKey", type: "text", required: true },
+      {
+        name: "batch",
+        type: "relationship",
+        relationTo: "subscription-campaign-batches",
+        required: true,
+        index: true,
+      },
+      {
+        name: "subscription",
+        type: "relationship",
+        relationTo: "subscriptions",
+        required: true,
+        index: true,
+      },
+      { name: "consentVersion", type: "number", min: 1, required: true },
+      { name: "locale", type: "select", options: ["zh", "en"], required: true },
+      { name: "recipientHash", type: "text", required: true, maxLength: 64 },
+      { name: "status", type: "select", options: ["held"], defaultValue: "held", required: true },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscription-campaign-checks",
     typescript: { interface: "SubscriptionCampaignCheck" },
     indexes: [{ fields: ["draft", "kind", "binding"], unique: true }],

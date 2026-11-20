@@ -1,3 +1,7 @@
+import {
+  up as upFreeze,
+  down as downFreeze,
+} from "../../src/migrations/20261120_150000_subscription_campaign_freeze";
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { getPayload, handleEndpoints, type Where } from "payload";
@@ -27,6 +31,7 @@ import { testCampaignAccess } from "./subscription-campaign-access";
 import { testCampaignDraftSchema } from "./subscription-campaign-drafts";
 import { testCampaignPreview } from "./subscription-campaign-preview";
 import { testCampaignPages } from "./subscription-campaign-pages";
+import { testCampaignFreeze } from "./subscription-campaign-freeze";
 import { testCampaignMockChecks } from "./subscription-campaign-mock-checks";
 import {
   up as upPolicyMail,
@@ -96,23 +101,31 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downFreeze(adapter(db) as unknown as MigrateDownArgs);
     await downPolicyMail(adapter(db) as unknown as MigrateDownArgs);
     await downDelivery(adapter(db) as unknown as MigrateDownArgs);
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 3);
+    assert.equal(former.length, before.length - 5);
     assert.deepEqual(
       former,
       before.filter(
         ({ table }) =>
-          !["subscriptions", "subscription_credentials", "subscription_mail_jobs"].includes(table),
+          ![
+            "subscriptions",
+            "subscription_credentials",
+            "subscription_mail_jobs",
+            "subscription_campaign_batches",
+            "subscription_campaign_jobs",
+          ].includes(table),
       ),
     );
     await up(adapter(db) as unknown as MigrateUpArgs);
     await upMailQueue(adapter(db) as unknown as MigrateUpArgs);
     await upDelivery(adapter(db) as unknown as MigrateUpArgs);
     await upPolicyMail(adapter(db) as unknown as MigrateUpArgs);
+    await upFreeze(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -355,6 +368,7 @@ try {
   await testCampaignPreview(payload, url);
   await testCampaignPages(payload);
   await testCampaignMockChecks(payload, url);
+  await testCampaignFreeze(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
