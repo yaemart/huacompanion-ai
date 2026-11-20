@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ContentError } from "@/server/content/error";
 import { campaignStaffAuth, readCampaignWorkspace } from "@/server/subscription-campaign-workspace";
 import { readCampaignDraft } from "@/server/subscription-campaign-drafts";
+import { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { CampaignWorkspace } from "@/components/subscriptions/CampaignWorkspace";
 import "@/components/subscriptions/management.css";
@@ -27,12 +28,19 @@ export default async function Page({
           revision: draft.revision,
         })
       : undefined;
+    const frozen = draft
+      ? await readCampaignFreeze(p, user, {
+          campaignKey: draft.campaignKey,
+          revision: draft.revision,
+        })
+      : undefined;
     return (
       <CampaignWorkspace
         workspace={workspace}
         draft={draft}
         saved={query.saved === "1"}
         checks={checks}
+        frozen={frozen}
       />
     );
   } catch (error) {

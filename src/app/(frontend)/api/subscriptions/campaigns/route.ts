@@ -3,6 +3,7 @@ import { ContentError } from "@/server/content/error";
 import { campaignStaffAuth } from "@/server/subscription-campaign-workspace";
 import { setCampaignGrant } from "@/server/subscription-campaign-access";
 import { saveCampaignDraft } from "@/server/subscription-campaign-drafts";
+import { freezeCampaignRecipients } from "@/server/subscription-campaign-freeze";
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     if (URL.parse(process.env.APP_URL ?? "")?.origin !== request.headers.get("origin"))
       throw new ContentError("请从华伴政策群发草稿页重新打开后操作。", 403);
     if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json")
-      throw new ContentError("请使用页面上的保存或授权按钮。", 415);
+      throw new ContentError("请使用页面上的操作按钮。", 415);
     const body: unknown = await limitedJSON(request, 16384);
     if (
       !body ||
@@ -31,6 +32,10 @@ export async function POST(request: Request) {
     if (body.action === "grant") {
       await setCampaignGrant(p, user, body.input as Parameters<typeof setCampaignGrant>[2]);
       return Response.json({ updated: true }, { headers });
+    }
+    if (body.action === "freeze-local") {
+      const snapshot = await freezeCampaignRecipients(p, user, body.input);
+      return Response.json({ snapshot }, { headers });
     }
     if (body.action === "mock-test" || body.action === "mock-confirm") {
       const result = await campaignMockChecks(

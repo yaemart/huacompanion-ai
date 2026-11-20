@@ -1,17 +1,29 @@
 import { createHash } from "node:crypto";
-import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 import type { SubscriptionCampaignBatch } from "../../payload-types";
 import { relationID, type Staff } from "../cms/access";
-import { customerEmail } from "../lib/customer";
 import { ContentError } from "./content/error";
-import { executeSQL } from "./db-types";
+import { campaignAudience } from "./subscription-campaign-audience";
+import { withCampaignDraft } from "./subscription-campaign-drafts";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
 import type { CampaignPreview } from "./subscription-campaign-preview";
 
 const collection = "subscription-campaign-batches";
 function report(row: SubscriptionCampaignBatch) {
-  return { id: row.id, frozenAt: row.frozenAt, counts: row.counts };
+  const counts = row.counts;
+  if (
+    !counts ||
+    typeof counts !== "object" ||
+    Array.isArray(counts) ||
+    typeof counts.zh !== "number" ||
+    typeof counts.en !== "number" ||
+    !Number.isSafeInteger(counts.zh) ||
+    !Number.isSafeInteger(counts.en) ||
+    counts.zh < 0 ||
+    counts.en < 0
+  )
+    throw new ContentError("快照人数暂不可用，请联系管理员核对。", 503);
+  return { id: row.id, frozenAt: row.frozenAt, counts: { zh: counts.zh, en: counts.en } };
 }
 
 export async function freezeCampaignRecipients(p: Payload, actor: Staff, input: unknown) {
@@ -31,48 +43,11 @@ export async function freezeCampaignRecipients(p: Payload, actor: Staff, input: 
       return { row: existing, auditId: null };
     }
     const preview = draft.preview as CampaignPreview;
-    const languages = (["zh", "en"] as const).filter((locale) => preview[locale]);
-    const privacy = process.env.PRIVACY_VERSION?.trim() || "";
-    const { rows } = await executeSQL(
-      p,
-      (await req.transactionID)!,
-      sql`
-      SELECT id, email, locale, consent_version AS version, status, confirmed_at, privacy_version
-      FROM subscriptions WHERE topic='policy-updates' ORDER BY consented_at DESC, id DESC
-    `,
-    );
-    const seen = new Set<string>();
     const recipients: { id: number; email: string; locale: "zh" | "en"; version: number }[] = [];
-    for (const row of rows as {
-      id: number;
-      email: string;
-      locale: string;
-      version: string;
-      status: string;
-      confirmed_at: string | null;
-      privacy_version: string;
-    }[]) {
-      let email: string;
-      try {
-        email = customerEmail(row.email);
-      } catch {
-        continue;
-      }
-      if (seen.has(email)) continue;
-      seen.add(email);
-      const version = Number(row.version);
-      if (
-        row.status !== "confirmed" ||
-        !row.confirmed_at ||
-        !Number.isSafeInteger(version) ||
-        version < 1 ||
-        !privacy ||
-        row.privacy_version !== privacy ||
-        (row.locale !== "zh" && row.locale !== "en") ||
-        !languages.includes(row.locale)
-      )
-        continue;
-      recipients.push({ id: row.id, email, locale: row.locale, version });
+    for (const row of await campaignAudience(p, req)) {
+      const locale = row.locale;
+      if ((locale === "zh" || locale === "en") && preview[locale])
+        recipients.push({ ...row, locale });
       if (recipients.length > 1000) break;
     }
     if (recipients.length > 1000)
@@ -139,4 +114,42 @@ export async function freezeCampaignRecipients(p: Payload, actor: Staff, input: 
   )
     throw new ContentError("收件快照未保存成功，请刷新后重试。", 503);
   return report(result.row);
+}
+
+export async function readCampaignFreeze(p: Payload, actor: Staff, input: unknown) {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input) ||
+    Object.keys(input).some((field) => !["campaignKey", "revision"].includes(field)) ||
+    !("campaignKey" in input) ||
+    !("revision" in input)
+  )
+    throw new ContentError("请从本人已保存的活动重新打开名单快照。", 400);
+  return withCampaignDraft(p, actor, input.campaignKey, input.revision, async (req, draft) => {
+    const batch = (
+      await p.find({
+        collection,
+        req,
+        depth: 0,
+        limit: 1,
+        where: { campaignKey: { equals: draft.campaignKey } },
+      })
+    ).docs[0];
+    if (!batch) return null;
+    const id = relationID(batch.draft);
+    if (!id) throw new ContentError("快照版本暂不可用，请联系管理员核对。", 503);
+    const version = await p.findByID({
+      collection: "subscription-campaign-drafts",
+      id,
+      req,
+      depth: 0,
+    });
+    if (
+      version.campaignKey !== draft.campaignKey ||
+      relationID(version.owner) !== relationID(draft.owner)
+    )
+      throw new ContentError("快照版本暂不可用，请联系管理员核对。", 503);
+    return { ...report(batch), revision: version.revision, current: id === draft.id };
+  });
 }

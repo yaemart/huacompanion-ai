@@ -5,6 +5,7 @@ import { publicSharedFacts, type SharedPolicyFacts } from "../lib/policy-shared-
 import { shanghaiToday } from "../lib/exhibitions";
 import { ContentError } from "./content/error";
 import { executeSQL } from "./db-types";
+import { campaignAudience } from "./subscription-campaign-audience";
 import { listPublicPolicies } from "./immigration/public";
 import { isPolicyReference, policyMailBody, policyMailReference } from "./policy-subscription";
 
@@ -96,21 +97,10 @@ export async function campaignCounts(
   req: Partial<PayloadRequest>,
   preview: CampaignPreview,
 ) {
-  const { rows } = await executeSQL(
-    p,
-    (await req.transactionID)!,
-    sql`
-    SELECT locale, count(*)::int AS n FROM subscriptions
-    WHERE topic='policy-updates' AND status='confirmed' AND confirmed_at IS NOT NULL
-      AND consent_version >= 1 AND privacy_version=${process.env.PRIVACY_VERSION?.trim() || ""}
-      AND privacy_version<>'' GROUP BY locale
-  `,
-  );
   const counts = { zh: 0, en: 0, excluded: 0 };
-  for (const row of rows as { locale: string; n: number }[]) {
-    if ((row.locale === "zh" || row.locale === "en") && preview[row.locale])
-      counts[row.locale] += row.n;
-    else counts.excluded += row.n;
+  for (const row of await campaignAudience(p, req)) {
+    if ((row.locale === "zh" || row.locale === "en") && preview[row.locale]) counts[row.locale]++;
+    else counts.excluded++;
   }
   return counts;
 }
