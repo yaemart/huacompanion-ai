@@ -2,7 +2,15 @@
 
 日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B4b 手动冻结与汇总页面（2026-11-20）
+## 当前开发：群发 B5a 资格复核与持久取消（2026-11-20）
+
+PR88合并 `17dd427677e672a01e1fe2a0d1d759217e20fba7` 已核对，从最新main建立 `codex/subscription-campaign-dispatch`。本批只做调度前置服务：复核已冻结任务的当前资格、原同意版本、语言及邮箱摘要，无效者持久取消；重订或资料恢复不复活旧任务。原快照计数及名单不变，新订阅不补入。[一页本机验证](subscription-campaign-recheck-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-recheck.md)。
+
+19组订阅集成和完整check353项通过，lint445警告持平。含真实本地退订/重订、并发复核、来源配置/权限拒绝、旧数据迁移往返、取消数据回退保护，以及延迟审计COMMIT失败全部回滚。一次只读复核无发现。新服务无公开API、页面按钮或worker接入；held/cancelled均不能发送。前批两处界面轻微项仍待相关界面批次。
+
+新迁移 `20261120_170000_subscription_campaign_recheck` 只在随机临时库应用，原3100/55442及图片、种子保留；无新环境变量或依赖。原库升级仍须配套备份与重启。额度占用、租约、实际投递时的退订竞争、拒发/回执和改版续发尚未实现，不据资格复核授予发送许可。真实邮件、AI、语音、通话和正式评分保持关闭；精确推送SHA及CI在PR最终记录实核。
+
+## 历史交接：群发 B4b 手动冻结与汇总页面（2026-11-20）
 
 PR87 合并提交 `eb042befa53a77170919319f38f9fceb330c63eb` 已通过连接器和fetch核对，从干净起点开 `codex/subscription-campaign-freeze-ui`。活动页面新增手动本地冻结与本人快照汇总，同源 `freeze-local` 重用上批有效确认和资格校验。主管只见版本、编号、时间和人数，不取得名单或任务。共享资格函数修复预估对历史重复邮箱多计人数的问题，并补英文模拟正文语言标记。[一页亲测](subscription-campaign-freeze-ui-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-freeze-ui.md)。
 

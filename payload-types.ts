@@ -1702,7 +1702,9 @@ export interface SubscriptionCampaignJob {
   consentVersion: number;
   locale: 'zh' | 'en';
   recipientHash: string;
-  status: 'held';
+  status: 'held' | 'cancelled';
+  cancelReason?: ('ineligible' | 'consent-changed' | 'contact-changed') | null;
+  cancelledAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2979,6 +2981,8 @@ export interface SubscriptionCampaignJobsSelect<T extends boolean = true> {
   locale?: T;
   recipientHash?: T;
   status?: T;
+  cancelReason?: T;
+  cancelledAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
