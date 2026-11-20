@@ -3,6 +3,7 @@ import { ContentError } from "@/server/content/error";
 import { campaignStaffAuth } from "@/server/subscription-campaign-workspace";
 import { setCampaignGrant } from "@/server/subscription-campaign-access";
 import { saveCampaignDraft } from "@/server/subscription-campaign-drafts";
+import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 
 export const runtime = "nodejs";
 const headers = {
@@ -31,7 +32,16 @@ export async function POST(request: Request) {
       await setCampaignGrant(p, user, body.input as Parameters<typeof setCampaignGrant>[2]);
       return Response.json({ updated: true }, { headers });
     }
-    if (body.action !== "save") throw new ContentError("请选择保存草稿或更新授权。", 400);
+    if (body.action === "mock-test" || body.action === "mock-confirm") {
+      const result = await campaignMockChecks(
+        p,
+        user,
+        body.action === "mock-test" ? "test" : "confirm",
+        body.input,
+      );
+      return Response.json({ campaignKey: result.campaignKey }, { headers });
+    }
+    if (body.action !== "save") throw new ContentError("请选择草稿、授权或本地模拟操作。", 400);
     const result = await saveCampaignDraft(p, user, body.input);
     return Response.json({ campaignKey: result.campaignKey }, { headers });
   } catch (error) {

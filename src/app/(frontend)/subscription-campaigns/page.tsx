@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ContentError } from "@/server/content/error";
 import { campaignStaffAuth, readCampaignWorkspace } from "@/server/subscription-campaign-workspace";
 import { readCampaignDraft } from "@/server/subscription-campaign-drafts";
+import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { CampaignWorkspace } from "@/components/subscriptions/CampaignWorkspace";
 import "@/components/subscriptions/management.css";
 
@@ -20,7 +21,20 @@ export default async function Page({
     const query = await searchParams;
     const workspace = await readCampaignWorkspace(p, user);
     const draft = query.campaign ? await readCampaignDraft(p, user, query.campaign) : undefined;
-    return <CampaignWorkspace workspace={workspace} draft={draft} saved={query.saved === "1"} />;
+    const checks = draft
+      ? await campaignMockChecks(p, user, "status", {
+          campaignKey: draft.campaignKey,
+          revision: draft.revision,
+        })
+      : undefined;
+    return (
+      <CampaignWorkspace
+        workspace={workspace}
+        draft={draft}
+        saved={query.saved === "1"}
+        checks={checks}
+      />
+    );
   } catch (error) {
     if (!(error instanceof ContentError)) throw error;
     return (

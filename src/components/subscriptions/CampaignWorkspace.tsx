@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import { staffDate, staffDateTime } from "@/lib/staff-display";
 import type { readCampaignWorkspace } from "@/server/subscription-campaign-workspace";
 import type { readCampaignDraft } from "@/server/subscription-campaign-drafts";
+import { CampaignMockChecks } from "./CampaignMockChecks";
+import type { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 
 type Workspace = Awaited<ReturnType<typeof readCampaignWorkspace>>;
 type Draft = Awaited<ReturnType<typeof readCampaignDraft>>;
@@ -11,13 +13,17 @@ export function CampaignWorkspace({
   workspace,
   draft,
   saved,
+  checks,
 }: {
   workspace: Workspace;
   draft?: Draft;
   saved?: boolean;
+  checks?: Awaited<ReturnType<typeof campaignMockChecks>>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [mockBusy, setMockBusy] = useState(false);
   const [error, setError] = useState("");
+  const [dirty, setDirty] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -91,7 +97,7 @@ export function CampaignWorkspace({
                 <option value="false">撤销政策更新操作权</option>
               </select>
             </label>
-            <button className="button" disabled={busy}>
+            <button className="button" disabled={busy || mockBusy}>
               更新主题授权
             </button>
           </form>
@@ -119,8 +125,8 @@ export function CampaignWorkspace({
               来源已变化、下架或过期。下方保留旧预览，请重新勾选当前资料并保存新版本。
             </p>
           )}
-          <form onSubmit={(event) => submit(event, "save")}>
-            <fieldset disabled={busy}>
+          <form onChange={() => setDirty(true)} onSubmit={(event) => submit(event, "save")}>
+            <fieldset disabled={busy || mockBusy}>
               <legend>选择已发布政策（最多 10 项）</legend>
               {!workspace.choices.length && <p>暂无可选政策，请先在政策工作台审核发布共用事实。</p>}
               {workspace.choices.map((choice) => (
@@ -168,6 +174,15 @@ export function CampaignWorkspace({
                 </article>
               ))}
             </section>
+          )}
+          {draft && checks && (
+            <CampaignMockChecks
+              draft={draft}
+              status={checks}
+              dirty={dirty}
+              disabled={busy}
+              onBusyChange={setMockBusy}
+            />
           )}
         </>
       )}

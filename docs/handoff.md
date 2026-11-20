@@ -2,7 +2,15 @@
 
 日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B2b 授权管理和草稿页面（2026-11-20）
+## 当前开发：群发 B3 本地模拟测试与确认（2026-11-20）
+
+PR85 已合并，新分支 `codex/subscription-campaign-mock-checks` 基于 `c20b923d45d28a06732f433bac0bec054fc87d47`。获授权主管可测试本人已保存活动，逐语言确认可读；仅本地虚构邮件，不产生发送任务或真实发送资格。草稿、来源、授权和配置变化使旧结论失效，已观察到的失效持久记录，恢复旧配置也不复活结论。[一页亲测](subscription-campaign-mock-checks-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-mock-checks.md)。
+
+最终 `npm run check` 353 项和订阅集成 16 组通过，lint 445 警告持平。浏览器完成生成→逐语言确认→改稿失效→重测、390 像素布局及延迟请求编辑保护。英文预览独立语言标记为轻微后续项，真人与实体手机留用户测试。原始截图本机归档，未上传 PR 附件。
+
+新增 `20261120_130000_subscription_campaign_checks` 仅在独立临时库验证，未升级原 3100/55442 演示和图片；无新环境变量、依赖或原种子变化。亲测按指南启 3186 随机副本自动应用迁移，Ctrl+C 清理。原库升级仍需配套备份与重启。真实邮件、AI、语音、通话及正式评分保持关闭。后续收件资格冻结、逐人任务/额度/回执尚未接入；不据本批模拟确认开启真实发送。
+
+## 历史交接：群发 B2b 授权管理和草稿页面（2026-11-20）
 
 PR84 已合并，`origin/main` 为 `d77ae451b9106a875d3c18d9539ceca21bb0995c`，新分支 `codex/subscription-campaign-pages` 从该提交开始。接入 `/subscription-campaigns` 和后台仪表板入口；管理员授撤主题授权，获授权主管创建及续存自己的活动草稿，查看双语固定预览与语言人数。管理员自己也须明确授权，普通主管不取得邮箱名单。仅保存，发送操作未接入。 [一页亲测](subscription-campaign-pages-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-pages.md)。
 
