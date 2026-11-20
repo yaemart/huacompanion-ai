@@ -1,3 +1,7 @@
+import {
+  up as upFreeze,
+  down as downFreeze,
+} from "../../src/migrations/20261120_150000_subscription_campaign_freeze";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createElement } from "react";
@@ -84,8 +88,10 @@ export async function testCampaignMockChecks(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downFreeze(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       await up(adapter as unknown as MigrateUpArgs);
+      await upFreeze(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

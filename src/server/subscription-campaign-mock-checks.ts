@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { Payload } from "payload";
-import type { SubscriptionCampaignCheck } from "../../payload-types";
+import type { Payload, PayloadRequest } from "payload";
+import type { SubscriptionCampaignCheck, SubscriptionCampaignDraft } from "../../payload-types";
 import { relationID, type Staff } from "../cms/access";
 import { ContentError } from "./content/error";
 import { withCampaignDraft } from "./subscription-campaign-drafts";
@@ -9,11 +9,36 @@ import { requireCampaignGrant } from "./subscription-campaign-access";
 const collection = "subscription-campaign-checks";
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 type Input = { campaignKey: unknown; revision: unknown; testId?: unknown; readable?: unknown };
+type ConfirmedWork<T> = (
+  req: Partial<PayloadRequest>,
+  draft: SubscriptionCampaignDraft,
+  confirmation: SubscriptionCampaignCheck,
+) => Promise<T>;
+
+export async function withConfirmedCampaign<T>(
+  p: Payload,
+  actor: Staff,
+  value: unknown,
+  work: ConfirmedWork<T>,
+) {
+  return (await runCampaignMockChecks(p, actor, "status", value, work)).output as T;
+}
+
 export async function campaignMockChecks(
   p: Payload,
   actor: Staff,
   action: "status" | "test" | "confirm",
   value: unknown,
+) {
+  return (await runCampaignMockChecks(p, actor, action, value)).state;
+}
+
+async function runCampaignMockChecks<T>(
+  p: Payload,
+  actor: Staff,
+  action: "status" | "test" | "confirm",
+  value: unknown,
+  work?: ConfirmedWork<T>,
 ) {
   const fields = ["campaignKey", "revision"];
   if (action === "confirm") fields.push("testId", "readable");
@@ -164,7 +189,15 @@ export async function campaignMockChecks(
         if (!(failure instanceof ContentError)) throw failure;
         error = failure;
       }
+      let output: T | undefined;
+      if (work && !error) {
+        if (!enabled) error = new ContentError("仅支持本地模拟，真实发送尚未开放。", 403);
+        else if (!available || !tested || relationID(confirmed?.test) !== tested.id)
+          error = new ContentError("尚无有效模拟确认，请重新测试并逐语言确认。", 409);
+        else output = await work(req, row, confirmed!);
+      }
       return {
+        output,
         auditId,
         error,
         state: {
@@ -196,5 +229,5 @@ export async function campaignMockChecks(
   )
     throw new ContentError("模拟操作未保存成功，请刷新后重试。", 503);
   if (result.error) throw result.error;
-  return result.state;
+  return result;
 }

@@ -116,6 +116,8 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-batches': SubscriptionCampaignBatch;
+    'subscription-campaign-jobs': SubscriptionCampaignJob;
     'subscription-campaign-checks': SubscriptionCampaignCheck;
     'subscription-campaign-drafts': SubscriptionCampaignDraft;
     'subscription-campaign-grants': SubscriptionCampaignGrant;
@@ -178,6 +180,8 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-batches': SubscriptionCampaignBatchesSelect<false> | SubscriptionCampaignBatchesSelect<true>;
+    'subscription-campaign-jobs': SubscriptionCampaignJobsSelect<false> | SubscriptionCampaignJobsSelect<true>;
     'subscription-campaign-checks': SubscriptionCampaignChecksSelect<false> | SubscriptionCampaignChecksSelect<true>;
     'subscription-campaign-drafts': SubscriptionCampaignDraftsSelect<false> | SubscriptionCampaignDraftsSelect<true>;
     'subscription-campaign-grants': SubscriptionCampaignGrantsSelect<false> | SubscriptionCampaignGrantsSelect<true>;
@@ -1611,16 +1615,15 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-campaign-checks".
+ * via the `definition` "subscription-campaign-batches".
  */
-export interface SubscriptionCampaignCheck {
+export interface SubscriptionCampaignBatch {
   id: number;
+  campaignKey: string;
   draft: number | SubscriptionCampaignDraft;
-  kind: 'mock-test' | 'mock-confirm' | 'mock-reset';
-  binding: string;
-  contextHash: string;
-  actor: number | Staff;
-  languages:
+  confirmation: number | SubscriptionCampaignCheck;
+  frozenAt: string;
+  counts:
     | {
         [k: string]: unknown;
       }
@@ -1629,7 +1632,6 @@ export interface SubscriptionCampaignCheck {
     | number
     | boolean
     | null;
-  test?: (number | null) | SubscriptionCampaignCheck;
   updatedAt: string;
   createdAt: string;
 }
@@ -1666,15 +1668,41 @@ export interface SubscriptionCampaignDraft {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-campaign-grants".
+ * via the `definition` "subscription-campaign-checks".
  */
-export interface SubscriptionCampaignGrant {
+export interface SubscriptionCampaignCheck {
   id: number;
-  staff: number | Staff;
-  topic: 'policy-updates';
-  enabled: boolean;
-  revision: number;
-  changedBy?: (number | null) | Staff;
+  draft: number | SubscriptionCampaignDraft;
+  kind: 'mock-test' | 'mock-confirm' | 'mock-reset';
+  binding: string;
+  contextHash: string;
+  actor: number | Staff;
+  languages:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  test?: (number | null) | SubscriptionCampaignCheck;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-jobs".
+ */
+export interface SubscriptionCampaignJob {
+  id: number;
+  campaignKey: string;
+  batch: number | SubscriptionCampaignBatch;
+  subscription: number | Subscription;
+  consentVersion: number;
+  locale: 'zh' | 'en';
+  recipientHash: string;
+  status: 'held';
   updatedAt: string;
   createdAt: string;
 }
@@ -1695,6 +1723,20 @@ export interface Subscription {
   partnerCode?: string | null;
   confirmedAt?: string | null;
   unsubscribedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-grants".
+ */
+export interface SubscriptionCampaignGrant {
+  id: number;
+  staff: number | Staff;
+  topic: 'policy-updates';
+  enabled: boolean;
+  revision: number;
+  changedBy?: (number | null) | Staff;
   updatedAt: string;
   createdAt: string;
 }
@@ -2909,6 +2951,34 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-batches_select".
+ */
+export interface SubscriptionCampaignBatchesSelect<T extends boolean = true> {
+  campaignKey?: T;
+  draft?: T;
+  confirmation?: T;
+  frozenAt?: T;
+  counts?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-jobs_select".
+ */
+export interface SubscriptionCampaignJobsSelect<T extends boolean = true> {
+  campaignKey?: T;
+  batch?: T;
+  subscription?: T;
+  consentVersion?: T;
+  locale?: T;
+  recipientHash?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }

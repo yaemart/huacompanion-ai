@@ -1,3 +1,7 @@
+import {
+  up as upFreeze,
+  down as downFreeze,
+} from "../../src/migrations/20261120_150000_subscription_campaign_freeze";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { MigrateDownArgs, MigrateUpArgs } from "@payloadcms/db-postgres";
@@ -25,17 +29,24 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downFreeze(adapter as unknown as MigrateDownArgs);
       await downChecks(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       assert.deepEqual(
         await databaseFingerprints(db),
         before.filter(
           (r) =>
-            !["subscription_campaign_drafts", "subscription_campaign_checks"].includes(r.table),
+            ![
+              "subscription_campaign_drafts",
+              "subscription_campaign_checks",
+              "subscription_campaign_batches",
+              "subscription_campaign_jobs",
+            ].includes(r.table),
         ),
       );
       await up(adapter as unknown as MigrateUpArgs);
       await upChecks(adapter as unknown as MigrateUpArgs);
+      await upFreeze(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");
