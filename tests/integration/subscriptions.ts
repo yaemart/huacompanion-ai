@@ -27,6 +27,7 @@ import { testCampaignAccess } from "./subscription-campaign-access";
 import { testCampaignDraftSchema } from "./subscription-campaign-drafts";
 import { testCampaignPreview } from "./subscription-campaign-preview";
 import { testCampaignPages } from "./subscription-campaign-pages";
+import { testCampaignMockChecks } from "./subscription-campaign-mock-checks";
 import {
   up as upPolicyMail,
   down as downPolicyMail,
@@ -353,6 +354,7 @@ try {
   await testCampaignDraftSchema(payload, url);
   await testCampaignPreview(payload, url);
   await testCampaignPages(payload);
+  await testCampaignMockChecks(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

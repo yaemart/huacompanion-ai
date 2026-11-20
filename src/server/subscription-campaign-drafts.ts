@@ -82,6 +82,24 @@ export async function readCampaignDraft(p: Payload, actor: Staff, key: unknown) 
   );
 }
 
+export async function withCampaignDraft<T>(
+  p: Payload,
+  actor: Staff,
+  key: unknown,
+  revision: unknown,
+  run: (
+    req: Scope,
+    row: SubscriptionCampaignDraft,
+    snapshot: Awaited<ReturnType<typeof report>>,
+  ) => Promise<T>,
+) {
+  return campaignTransaction(p, actor, async (req, owner) => {
+    const row = await latest(p, req, owner, campaignKey(key));
+    if (revision !== row.revision) throw new ContentError("草稿已有更新，请刷新后重新测试。", 409);
+    return run(req, row, await report(p, req, row));
+  });
+}
+
 export async function saveCampaignDraft(p: Payload, actor: Staff, input: unknown) {
   const saved = await campaignTransaction(p, actor, async (req, owner) => {
     if (

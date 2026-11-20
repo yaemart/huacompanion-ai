@@ -5,6 +5,10 @@ import { handleEndpoints, type Payload } from "payload";
 import pg from "pg";
 import config from "../../src/payload.config";
 import { up, down } from "../../src/migrations/20261120_110000_subscription_campaign_drafts";
+import {
+  up as upChecks,
+  down as downChecks,
+} from "../../src/migrations/20261120_130000_subscription_campaign_checks";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 
 export async function testCampaignDraftSchema(payload: Payload, url: URL) {
@@ -21,12 +25,17 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downChecks(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       assert.deepEqual(
         await databaseFingerprints(db),
-        before.filter((r) => r.table !== "subscription_campaign_drafts"),
+        before.filter(
+          (r) =>
+            !["subscription_campaign_drafts", "subscription_campaign_checks"].includes(r.table),
+        ),
       );
       await up(adapter as unknown as MigrateUpArgs);
+      await upChecks(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

@@ -275,5 +275,11 @@ export const migrations = [
     down: migration_20261120_110000_subscription_campaign_drafts.down,
     name: "20261120_110000_subscription_campaign_drafts",
   },
+  {
+    up: migration_20261120_130000_subscription_campaign_checks.up,
+    down: migration_20261120_130000_subscription_campaign_checks.down,
+    name: "20261120_130000_subscription_campaign_checks",
+  },
 ];
 import * as migration_20261120_110000_subscription_campaign_drafts from "./20261120_110000_subscription_campaign_drafts";
+import * as migration_20261120_130000_subscription_campaign_checks from "./20261120_130000_subscription_campaign_checks";

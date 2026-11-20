@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-checks': SubscriptionCampaignCheck;
     'subscription-campaign-drafts': SubscriptionCampaignDraft;
     'subscription-campaign-grants': SubscriptionCampaignGrant;
     subscriptions: Subscription;
@@ -177,6 +178,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-checks': SubscriptionCampaignChecksSelect<false> | SubscriptionCampaignChecksSelect<true>;
     'subscription-campaign-drafts': SubscriptionCampaignDraftsSelect<false> | SubscriptionCampaignDraftsSelect<true>;
     'subscription-campaign-grants': SubscriptionCampaignGrantsSelect<false> | SubscriptionCampaignGrantsSelect<true>;
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
@@ -1609,6 +1611,30 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-checks".
+ */
+export interface SubscriptionCampaignCheck {
+  id: number;
+  draft: number | SubscriptionCampaignDraft;
+  kind: 'mock-test' | 'mock-confirm' | 'mock-reset';
+  binding: string;
+  contextHash: string;
+  actor: number | Staff;
+  languages:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  test?: (number | null) | SubscriptionCampaignCheck;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-campaign-drafts".
  */
 export interface SubscriptionCampaignDraft {
@@ -2883,6 +2909,21 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-checks_select".
+ */
+export interface SubscriptionCampaignChecksSelect<T extends boolean = true> {
+  draft?: T;
+  kind?: T;
+  binding?: T;
+  contextHash?: T;
+  actor?: T;
+  languages?: T;
+  test?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -12,6 +12,32 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "subscription-campaign-checks",
+    typescript: { interface: "SubscriptionCampaignCheck" },
+    indexes: [{ fields: ["draft", "kind", "binding"], unique: true }],
+    fields: [
+      {
+        name: "draft",
+        type: "relationship",
+        relationTo: "subscription-campaign-drafts",
+        required: true,
+        index: true,
+      },
+      {
+        name: "kind",
+        type: "select",
+        options: ["mock-test", "mock-confirm", "mock-reset"],
+        required: true,
+      },
+      { name: "binding", type: "text", required: true, maxLength: 64 },
+      { name: "contextHash", type: "text", required: true, maxLength: 64 },
+      { name: "actor", type: "relationship", relationTo: "staff", required: true, index: true },
+      { name: "languages", type: "json", required: true },
+      { name: "test", type: "relationship", relationTo: "subscription-campaign-checks" },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscription-campaign-drafts",
     typescript: { interface: "SubscriptionCampaignDraft" },
     indexes: [{ fields: ["campaignKey", "revision"], unique: true }],
