@@ -57,7 +57,19 @@ export const subscriptionCollections: CollectionConfig[] = [
       { name: "consentVersion", type: "number", min: 1, required: true },
       { name: "locale", type: "select", options: ["zh", "en"], required: true },
       { name: "recipientHash", type: "text", required: true, maxLength: 64 },
-      { name: "status", type: "select", options: ["held"], defaultValue: "held", required: true },
+      {
+        name: "status",
+        type: "select",
+        options: ["held", "cancelled"],
+        defaultValue: "held",
+        required: true,
+      },
+      {
+        name: "cancelReason",
+        type: "select",
+        options: ["ineligible", "consent-changed", "contact-changed"],
+      },
+      { name: "cancelledAt", type: "date" },
     ],
   },
   {

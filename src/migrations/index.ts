@@ -1,3 +1,4 @@
+import * as migration_20261120_170000_subscription_campaign_recheck from "./20261120_170000_subscription_campaign_recheck";
 import * as migration_20261120_150000_subscription_campaign_freeze from "./20261120_150000_subscription_campaign_freeze";
 import * as migration_20261120_090000_subscription_campaign_grants from "./20261120_090000_subscription_campaign_grants";
 import * as migration_20261118_090000_subscription_delivery from "./20261118_090000_subscription_delivery";
@@ -285,6 +286,11 @@ export const migrations = [
     up: migration_20261120_150000_subscription_campaign_freeze.up,
     down: migration_20261120_150000_subscription_campaign_freeze.down,
     name: "20261120_150000_subscription_campaign_freeze",
+  },
+  {
+    up: migration_20261120_170000_subscription_campaign_recheck.up,
+    down: migration_20261120_170000_subscription_campaign_recheck.down,
+    name: "20261120_170000_subscription_campaign_recheck",
   },
 ];
 import * as migration_20261120_110000_subscription_campaign_drafts from "./20261120_110000_subscription_campaign_drafts";

@@ -1,4 +1,8 @@
 import {
+  up as upRecheck,
+  down as downRecheck,
+} from "../../src/migrations/20261120_170000_subscription_campaign_recheck";
+import {
   up as upFreeze,
   down as downFreeze,
 } from "../../src/migrations/20261120_150000_subscription_campaign_freeze";
@@ -29,6 +33,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downRecheck(adapter as unknown as MigrateDownArgs);
       await downFreeze(adapter as unknown as MigrateDownArgs);
       await downChecks(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
@@ -47,6 +52,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
       await up(adapter as unknown as MigrateUpArgs);
       await upChecks(adapter as unknown as MigrateUpArgs);
       await upFreeze(adapter as unknown as MigrateUpArgs);
+      await upRecheck(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

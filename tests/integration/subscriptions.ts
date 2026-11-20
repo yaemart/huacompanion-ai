@@ -1,3 +1,8 @@
+import {
+  up as upRecheck,
+  down as downRecheck,
+} from "../../src/migrations/20261120_170000_subscription_campaign_recheck";
+import { testCampaignRecheck } from "./subscription-campaign-recheck";
 import { testCampaignFreezeUI } from "./subscription-campaign-freeze-ui";
 import {
   up as upFreeze,
@@ -102,6 +107,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downRecheck(adapter(db) as unknown as MigrateDownArgs);
     await downFreeze(adapter(db) as unknown as MigrateDownArgs);
     await downPolicyMail(adapter(db) as unknown as MigrateDownArgs);
     await downDelivery(adapter(db) as unknown as MigrateDownArgs);
@@ -127,6 +133,7 @@ try {
     await upDelivery(adapter(db) as unknown as MigrateUpArgs);
     await upPolicyMail(adapter(db) as unknown as MigrateUpArgs);
     await upFreeze(adapter(db) as unknown as MigrateUpArgs);
+    await upRecheck(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -371,6 +378,7 @@ try {
   await testCampaignMockChecks(payload, url);
   await testCampaignFreeze(payload, url);
   await testCampaignFreezeUI(payload);
+  await testCampaignRecheck(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
