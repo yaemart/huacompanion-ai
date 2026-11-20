@@ -1,3 +1,4 @@
+import { testCampaignFreezeUI } from "./subscription-campaign-freeze-ui";
 import {
   up as upFreeze,
   down as downFreeze,
@@ -369,6 +370,7 @@ try {
   await testCampaignPages(payload);
   await testCampaignMockChecks(payload, url);
   await testCampaignFreeze(payload, url);
+  await testCampaignFreezeUI(payload);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { staffDateTime } from "@/lib/staff-display";
+import type { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import type { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 type Status = Awaited<ReturnType<typeof campaignMockChecks>>;
 type Draft = { campaignKey: string; revision: number };
 export function CampaignMockChecks({
   draft,
   status,
+  frozen,
   dirty,
   disabled,
   onBusyChange,
 }: {
   draft: Draft;
   status: Status;
+  frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
   dirty: boolean;
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
@@ -20,7 +24,10 @@ export function CampaignMockChecks({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const blocked = dirty || disabled || !status.enabled || !status.current || busy;
-  async function submit(event: FormEvent<HTMLFormElement>, action: "mock-test" | "mock-confirm") {
+  async function submit(
+    event: FormEvent<HTMLFormElement>,
+    action: "mock-test" | "mock-confirm" | "freeze-local",
+  ) {
     event.preventDefault();
     const readable = new FormData(event.currentTarget).getAll("readable");
     setBusy(true);
@@ -75,8 +82,10 @@ export function CampaignMockChecks({
         <details key={message.locale} open>
           <summary>{message.locale === "zh" ? "中文" : "英文"}模拟邮件（未实际发送）</summary>
           <p>模拟收件人：{message.to}</p>
-          <h3>{message.subject}</h3>
-          <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.body}</p>
+          <div lang={message.locale}>
+            <h3>{message.subject}</h3>
+            <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.body}</p>
+          </div>
         </details>
       ))}
       <form onSubmit={(event) => submit(event, "mock-confirm")}>
@@ -100,8 +109,29 @@ export function CampaignMockChecks({
           </button>
         </fieldset>
       </form>
-      {status.mockConfirmed && !dirty && (
-        <p role="status">已完成本地模拟确认，未发送邮件；收件资格冻结与发送仍未启用。</p>
+      {status.mockConfirmed && !dirty && <p role="status">已完成本地模拟确认，未发送邮件。</p>}
+      <h3>收件名单快照（仅本地暂存）</h3>
+      {frozen ? (
+        <div role="status">
+          <p>
+            第 {frozen.revision} 版快照 · 编号 {frozen.id} · 全部暂存，未发送
+          </p>
+          <p>
+            中文 {frozen.counts.zh} 人，英文 {frozen.counts.en} 人。冻结于{" "}
+            {staffDateTime(frozen.frozenAt)}（北京时间）。
+          </p>
+          {dirty && <p>当前选择未保存，下方历史快照不会因此改变。</p>}
+          {!frozen.current && <p>这是旧版快照；改版续发尚未开放，原快照已保留。</p>}
+          <p>冻结后新增的订阅者不补入本轮；发送前仍须重新核验资格和额度。</p>
+        </div>
+      ) : (
+        <form onSubmit={(event) => submit(event, "freeze-local")}>
+          {!status.mockConfirmed && <p>请先生成模拟邮件并逐语言确认可读，再冻结本轮名单。</p>}
+          <p>按点击时的当前资格冻结，最多 1,000 人；保存暂存任务，不发送邮件。</p>
+          <button className="button" disabled={blocked || !status.mockConfirmed}>
+            冻结本轮名单（不发送）
+          </button>
+        </form>
       )}
     </section>
   );

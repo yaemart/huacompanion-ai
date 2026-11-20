@@ -2,7 +2,15 @@
 
 日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B4a 收件快照与暂存任务（2026-11-20）
+## 当前开发：群发 B4b 手动冻结与汇总页面（2026-11-20）
+
+PR87 合并提交 `eb042befa53a77170919319f38f9fceb330c63eb` 已通过连接器和fetch核对，从干净起点开 `codex/subscription-campaign-freeze-ui`。活动页面新增手动本地冻结与本人快照汇总，同源 `freeze-local` 重用上批有效确认和资格校验。主管只见版本、编号、时间和人数，不取得名单或任务。共享资格函数修复预估对历史重复邮箱多计人数的问题，并补英文模拟正文语言标记。[一页亲测](subscription-campaign-freeze-ui-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-freeze-ui.md)。
+
+`npm run check`353项及18组订阅集成通过，lint445警告持平。独立3186浏览器完成未确认/未保存禁用、模拟逐语言确认、手动冻结、改稿保留旧版本快照；390像素布局及50像素按钮已验。快照只表示历史暂存，非真实发送资格。改版续发仍拒绝，真实调度、额度/回执未接。一次只读复核无阻断项；授权下拉在请求中仍可改、未保存提示方位措辞为轻微待办。
+
+无新迁移、环境变量、依赖、原种子；原3100/55442和图片保留，临时预览正常关闭清理。截图本机忽略归档，未上传PR附件；真实手机/新人无提示待用户亲测。精确推送SHA及CI以PR最终记录核对。预估也共用全主题扫描，规模增长前需优化；真实邮件、AI、语音、通话和正式评分保持关闭。
+
+## 历史交接：群发 B4a 收件快照与暂存任务（2026-11-20）
 
 PR86 已合并，分支 `codex/subscription-campaign-freeze` 从最新 `origin/main` 的 `b5dc650b2a171d98a15cd552b8fa315ecc18d5b1` 开始。先做服务层，沿用有效本地模拟确认，在同一事务固定合资格名单和同意版本，生成只有 held 状态的私有暂存任务。没有新增公开 action、页面按钮、邮件适配器或 worker 接入。[一页验证](subscription-campaign-freeze-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-freeze.md)。
 

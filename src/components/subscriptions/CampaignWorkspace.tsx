@@ -5,6 +5,7 @@ import { staffDate, staffDateTime } from "@/lib/staff-display";
 import type { readCampaignWorkspace } from "@/server/subscription-campaign-workspace";
 import type { readCampaignDraft } from "@/server/subscription-campaign-drafts";
 import { CampaignMockChecks } from "./CampaignMockChecks";
+import type { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import type { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 
 type Workspace = Awaited<ReturnType<typeof readCampaignWorkspace>>;
@@ -14,11 +15,13 @@ export function CampaignWorkspace({
   draft,
   saved,
   checks,
+  frozen,
 }: {
   workspace: Workspace;
   draft?: Draft;
   saved?: boolean;
   checks?: Awaited<ReturnType<typeof campaignMockChecks>>;
+  frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
 }) {
   const [busy, setBusy] = useState(false);
   const [mockBusy, setMockBusy] = useState(false);
@@ -179,6 +182,7 @@ export function CampaignWorkspace({
             <CampaignMockChecks
               draft={draft}
               status={checks}
+              frozen={frozen}
               dirty={dirty}
               disabled={busy}
               onBusyChange={setMockBusy}

@@ -9,7 +9,10 @@ import {
   withConfirmedCampaign,
 } from "../../src/server/subscription-campaign-mock-checks";
 import { setCampaignGrant } from "../../src/server/subscription-campaign-access";
-import { saveCampaignDraft } from "../../src/server/subscription-campaign-drafts";
+import {
+  readCampaignDraft,
+  saveCampaignDraft,
+} from "../../src/server/subscription-campaign-drafts";
 import { readCampaignWorkspace } from "../../src/server/subscription-campaign-workspace";
 import { ContentError } from "../../src/server/content/error";
 import { up, down } from "../../src/migrations/20261120_150000_subscription_campaign_freeze";
@@ -127,6 +130,11 @@ export async function testCampaignFreeze(p: Payload, url: URL) {
       }
     }
     const input = await freshDraft();
+    assert.deepEqual(
+      (await readCampaignDraft(p, manager, input.campaignKey)).counts,
+      { zh: 1, en: 1, excluded: 1 },
+      "preview must share canonical latest-consent eligibility",
+    );
     const freeze = () => freezeCampaignRecipients(p, manager, input);
     for (const who of [
       undefined,
