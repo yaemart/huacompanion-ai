@@ -116,6 +116,8 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudget;
+    'subscription-campaign-mock-slots': SubscriptionCampaignMockSlot;
     'subscription-campaign-batches': SubscriptionCampaignBatch;
     'subscription-campaign-jobs': SubscriptionCampaignJob;
     'subscription-campaign-checks': SubscriptionCampaignCheck;
@@ -180,6 +182,8 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudgetsSelect<false> | SubscriptionCampaignMockBudgetsSelect<true>;
+    'subscription-campaign-mock-slots': SubscriptionCampaignMockSlotsSelect<false> | SubscriptionCampaignMockSlotsSelect<true>;
     'subscription-campaign-batches': SubscriptionCampaignBatchesSelect<false> | SubscriptionCampaignBatchesSelect<true>;
     'subscription-campaign-jobs': SubscriptionCampaignJobsSelect<false> | SubscriptionCampaignJobsSelect<true>;
     'subscription-campaign-checks': SubscriptionCampaignChecksSelect<false> | SubscriptionCampaignChecksSelect<true>;
@@ -1615,6 +1619,53 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-budgets".
+ */
+export interface SubscriptionCampaignMockBudget {
+  id: number;
+  remaining: number;
+  baseUsage: number;
+  expiresAt: string;
+  actor: number | Staff;
+  reason: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-slots".
+ */
+export interface SubscriptionCampaignMockSlot {
+  id: number;
+  key: string;
+  job: number | SubscriptionCampaignJob;
+  batch: number | SubscriptionCampaignBatch;
+  budget: number | SubscriptionCampaignMockBudget;
+  recipientHash: string;
+  reservedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-jobs".
+ */
+export interface SubscriptionCampaignJob {
+  id: number;
+  campaignKey: string;
+  batch: number | SubscriptionCampaignBatch;
+  subscription: number | Subscription;
+  consentVersion: number;
+  locale: 'zh' | 'en';
+  recipientHash: string;
+  status: 'held' | 'cancelled';
+  cancelReason?: ('ineligible' | 'consent-changed' | 'contact-changed') | null;
+  cancelledAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-campaign-batches".
  */
 export interface SubscriptionCampaignBatch {
@@ -1687,24 +1738,6 @@ export interface SubscriptionCampaignCheck {
     | boolean
     | null;
   test?: (number | null) | SubscriptionCampaignCheck;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-campaign-jobs".
- */
-export interface SubscriptionCampaignJob {
-  id: number;
-  campaignKey: string;
-  batch: number | SubscriptionCampaignBatch;
-  subscription: number | Subscription;
-  consentVersion: number;
-  locale: 'zh' | 'en';
-  recipientHash: string;
-  status: 'held' | 'cancelled';
-  cancelReason?: ('ineligible' | 'consent-changed' | 'contact-changed') | null;
-  cancelledAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2953,6 +2986,33 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-budgets_select".
+ */
+export interface SubscriptionCampaignMockBudgetsSelect<T extends boolean = true> {
+  remaining?: T;
+  baseUsage?: T;
+  expiresAt?: T;
+  actor?: T;
+  reason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-slots_select".
+ */
+export interface SubscriptionCampaignMockSlotsSelect<T extends boolean = true> {
+  key?: T;
+  job?: T;
+  batch?: T;
+  budget?: T;
+  recipientHash?: T;
+  reservedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,4 +1,8 @@
 import {
+  up as upQuota,
+  down as downQuota,
+} from "../../src/migrations/20261121_090000_subscription_campaign_mock_quota";
+import {
   up as upRecheck,
   down as downRecheck,
 } from "../../src/migrations/20261120_170000_subscription_campaign_recheck";
@@ -117,10 +121,12 @@ export async function testCampaignFreeze(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downQuota(adapter as unknown as MigrateDownArgs);
       await downRecheck(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       await up(adapter as unknown as MigrateUpArgs);
       await upRecheck(adapter as unknown as MigrateUpArgs);
+      await upQuota(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

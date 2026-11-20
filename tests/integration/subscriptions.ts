@@ -1,4 +1,9 @@
 import {
+  up as upQuota,
+  down as downQuota,
+} from "../../src/migrations/20261121_090000_subscription_campaign_mock_quota";
+import { testCampaignQuota } from "./subscription-campaign-quota";
+import {
   up as upRecheck,
   down as downRecheck,
 } from "../../src/migrations/20261120_170000_subscription_campaign_recheck";
@@ -107,6 +112,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downQuota(adapter(db) as unknown as MigrateDownArgs);
     await downRecheck(adapter(db) as unknown as MigrateDownArgs);
     await downFreeze(adapter(db) as unknown as MigrateDownArgs);
     await downPolicyMail(adapter(db) as unknown as MigrateDownArgs);
@@ -114,7 +120,7 @@ try {
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 5);
+    assert.equal(former.length, before.length - 7);
     assert.deepEqual(
       former,
       before.filter(
@@ -125,6 +131,8 @@ try {
             "subscription_mail_jobs",
             "subscription_campaign_batches",
             "subscription_campaign_jobs",
+            "subscription_campaign_mock_budgets",
+            "subscription_campaign_mock_slots",
           ].includes(table),
       ),
     );
@@ -134,6 +142,7 @@ try {
     await upPolicyMail(adapter(db) as unknown as MigrateUpArgs);
     await upFreeze(adapter(db) as unknown as MigrateUpArgs);
     await upRecheck(adapter(db) as unknown as MigrateUpArgs);
+    await upQuota(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -379,6 +388,7 @@ try {
   await testCampaignFreeze(payload, url);
   await testCampaignFreezeUI(payload);
   await testCampaignRecheck(payload, url);
+  await testCampaignQuota(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
