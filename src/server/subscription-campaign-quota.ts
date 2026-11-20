@@ -30,11 +30,14 @@ async function usage(p: Payload, req: Partial<PayloadRequest>) {
     SELECT count(*)::int AS total,
       count(*) FILTER (WHERE (reserved_at AT TIME ZONE 'Asia/Shanghai')::date=
         (statement_timestamp() AT TIME ZONE 'Asia/Shanghai')::date)::int AS today,
+      coalesce(array_agg(DISTINCT recipient_hash) FILTER (
+        WHERE reserved_at > date_trunc('milliseconds', statement_timestamp()) - interval '24 hours'
+      ), ARRAY[]::varchar[]) AS "recentHashes",
       floor(extract(epoch FROM statement_timestamp())*1000)::double precision AS ms
     FROM subscription_campaign_mock_slots
   `,
   );
-  return rows[0] as { total: number; today: number; ms: number };
+  return rows[0] as { total: number; today: number; recentHashes: string[]; ms: number };
 }
 async function committed(p: Payload, id: number | null) {
   if (
@@ -195,23 +198,11 @@ export async function reserveMockCampaignSlot(
           where: { batch: { equals: batch.id } },
         })
       ).docs;
+      const recentRecipients = new Set(clock.recentHashes);
       let blocked: State = "no-candidate";
       for (const job of jobs) {
         if (occupied.has(job.id) || !eligible(job)) continue;
-        if (
-          (
-            await p.count({
-              collection: slots,
-              req,
-              where: {
-                and: [
-                  { recipientHash: { equals: job.recipientHash } },
-                  { reservedAt: { greater_than: new Date(clock.ms - 86400000).toISOString() } },
-                ],
-              },
-            })
-          ).totalDocs
-        ) {
+        if (recentRecipients.has(job.recipientHash)) {
           blocked = "email-limit";
           continue;
         }
