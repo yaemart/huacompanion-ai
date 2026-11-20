@@ -92,6 +92,13 @@ export async function testCampaignFreeze(p: Payload, url: URL) {
       email: withdrawn.email.toUpperCase(),
       status: "unsubscribed",
     });
+
+    const paddedOriginal = await subscribe("padded-withdrawal-original");
+    const paddedWithdrawal = await subscribe("padded-withdrawal-later", { status: "unsubscribed" });
+    await db.query("UPDATE subscriptions SET email=$1 WHERE id=$2", [
+      "\t\u00a0" + paddedOriginal.email.toUpperCase() + "\u00a0\t",
+      paddedWithdrawal.id,
+    ]);
     await subscribe("pending", { status: "pending" });
     await subscribe("unsubscribed", { status: "unsubscribed" });
     await subscribe("unconfirmed", { confirmedAt: null });
@@ -331,7 +338,10 @@ export async function testCampaignFreeze(p: Payload, url: URL) {
     });
     await p.delete({ collection: "audit-events", where: { actor: { in: people } } });
     await p.delete({ collection: "staff", where: { id: { in: people } } });
-    await db.query("DELETE FROM subscriptions WHERE email ILIKE $1", [`%${key}@example.invalid`]);
+    await db.query("DELETE FROM subscriptions WHERE id=ANY($1::int[]) OR email ILIKE $2", [
+      subscriptions,
+      `%${key}@example.invalid`,
+    ]);
     await db.end();
     for (const variable of Object.keys(process.env))
       if (!(variable in env)) delete process.env[variable];

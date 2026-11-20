@@ -3,6 +3,7 @@ import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 import type { SubscriptionCampaignBatch } from "../../payload-types";
 import { relationID, type Staff } from "../cms/access";
+import { customerEmail } from "../lib/customer";
 import { ContentError } from "./content/error";
 import { executeSQL } from "./db-types";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
@@ -36,22 +37,44 @@ export async function freezeCampaignRecipients(p: Payload, actor: Staff, input: 
       p,
       (await req.transactionID)!,
       sql`
-      SELECT * FROM (
-        SELECT DISTINCT ON (lower(btrim(email))) id, lower(btrim(email)) AS email, locale,
-          consent_version AS version, status, confirmed_at, privacy_version
-        FROM subscriptions WHERE topic='policy-updates'
-        ORDER BY lower(btrim(email)), consented_at DESC, id DESC
-      ) s WHERE status='confirmed' AND confirmed_at IS NOT NULL AND version >= 1
-        AND privacy_version=${privacy} AND privacy_version<>'' AND locale::text IN (SELECT jsonb_array_elements_text(${JSON.stringify(languages)}::jsonb))
-      ORDER BY id LIMIT 1001
+      SELECT id, email, locale, consent_version AS version, status, confirmed_at, privacy_version
+      FROM subscriptions WHERE topic='policy-updates' ORDER BY consented_at DESC, id DESC
     `,
     );
-    const recipients = rows as {
+    const seen = new Set<string>();
+    const recipients: { id: number; email: string; locale: "zh" | "en"; version: number }[] = [];
+    for (const row of rows as {
       id: number;
       email: string;
-      locale: "zh" | "en";
+      locale: string;
       version: string;
-    }[];
+      status: string;
+      confirmed_at: string | null;
+      privacy_version: string;
+    }[]) {
+      let email: string;
+      try {
+        email = customerEmail(row.email);
+      } catch {
+        continue;
+      }
+      if (seen.has(email)) continue;
+      seen.add(email);
+      const version = Number(row.version);
+      if (
+        row.status !== "confirmed" ||
+        !row.confirmed_at ||
+        !Number.isSafeInteger(version) ||
+        version < 1 ||
+        !privacy ||
+        row.privacy_version !== privacy ||
+        (row.locale !== "zh" && row.locale !== "en") ||
+        !languages.includes(row.locale)
+      )
+        continue;
+      recipients.push({ id: row.id, email, locale: row.locale, version });
+      if (recipients.length > 1000) break;
+    }
     if (recipients.length > 1000)
       throw new ContentError("当前合资格收件人超过每批 1,000 人上限，本批未冻结。", 400);
     if (!recipients.length)
