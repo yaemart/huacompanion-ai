@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { SubscriptionCampaignJob } from "../../payload-types";
 import type { Payload } from "payload";
 import { relationID, type Staff } from "../cms/access";
 import { ContentError } from "./content/error";
@@ -11,6 +12,22 @@ const reasonKeys = {
   "consent-changed": "consentChanged",
   "contact-changed": "contactChanged",
 } as const;
+
+export function campaignTaskReason(
+  job: SubscriptionCampaignJob,
+  live: Awaited<ReturnType<typeof campaignAudience>>[number] | undefined,
+  preview: CampaignPreview,
+): keyof typeof reasonKeys | null {
+  return !live
+    ? "ineligible"
+    : live.version !== job.consentVersion
+      ? "consent-changed"
+      : live.locale !== job.locale ||
+          !preview[job.locale] ||
+          createHash("sha256").update(live.email).digest("hex") !== job.recipientHash
+        ? "contact-changed"
+        : null;
+}
 
 export async function recheckCampaignRecipients(p: Payload, actor: Staff, input: unknown) {
   const saved = await withConfirmedCampaign(p, actor, input, async (req, draft) => {
@@ -40,15 +57,7 @@ export async function recheckCampaignRecipients(p: Payload, actor: Staff, input:
     for (const job of jobs) {
       if (job.status === "cancelled") continue;
       const live = current.get(relationID(job.subscription)!);
-      const reason = !live
-        ? "ineligible"
-        : live.version !== job.consentVersion
-          ? "consent-changed"
-          : live.locale !== job.locale ||
-              !preview[job.locale] ||
-              createHash("sha256").update(live.email).digest("hex") !== job.recipientHash
-            ? "contact-changed"
-            : null;
+      const reason = campaignTaskReason(job, live, preview);
       if (!reason) continue;
       const cancelledAt = new Date().toISOString();
       await p.update({

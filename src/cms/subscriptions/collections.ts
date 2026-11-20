@@ -12,6 +12,49 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "subscription-campaign-mock-budgets",
+    typescript: { interface: "SubscriptionCampaignMockBudget" },
+    fields: [
+      { name: "remaining", type: "number", min: 0, max: 2000, required: true },
+      { name: "baseUsage", type: "number", min: 0, required: true },
+      { name: "expiresAt", type: "date", required: true },
+      { name: "actor", type: "relationship", relationTo: "staff", required: true },
+      { name: "reason", type: "text", maxLength: 500, required: true },
+    ],
+  },
+  {
+    ...internal,
+    slug: "subscription-campaign-mock-slots",
+    typescript: { interface: "SubscriptionCampaignMockSlot" },
+    fields: [
+      { name: "key", type: "text", unique: true, required: true },
+      {
+        name: "job",
+        type: "relationship",
+        relationTo: "subscription-campaign-jobs",
+        unique: true,
+        required: true,
+      },
+      {
+        name: "batch",
+        type: "relationship",
+        relationTo: "subscription-campaign-batches",
+        index: true,
+        required: true,
+      },
+      {
+        name: "budget",
+        type: "relationship",
+        relationTo: "subscription-campaign-mock-budgets",
+        index: true,
+        required: true,
+      },
+      { name: "recipientHash", type: "text", maxLength: 64, index: true, required: true },
+      { name: "reservedAt", type: "date", index: true, required: true },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscription-campaign-batches",
     typescript: { interface: "SubscriptionCampaignBatch" },
     fields: [

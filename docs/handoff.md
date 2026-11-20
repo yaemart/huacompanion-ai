@@ -1,8 +1,16 @@
 # 当前开发交接
 
-日期：2026-11-20（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
+日期：2026-11-21（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：群发 B5a 资格复核与持久取消（2026-11-20）
+## 当前开发：群发 B5b 本地模拟额度（2026-11-21）
+
+从已核对PR89合并提交 `452ae9643c87fde918a60703ca2492dc5e5d5c90` 新建 `codex/subscription-campaign-quota`。两张私有账本记录模拟余额与原冻结任务唯一占位，当前授权/本人版本/来源/同意门槛不变，仅@example.invalid虚构邮箱。无页面、API或worker接入，收据不代表发送许可。[一页验证](subscription-campaign-quota-summary.md) · [实施计划](superpowers/plans/2026-11-21-subscription-campaign-quota.md)。
+
+20组订阅集成与完整check353项通过，lint445持平，736个源码文件行长无例外。覆盖并发、北京每日2,000、邮箱滚动24小时、重设预算不能绕过、审计提交失败回滚及迁移保护。一次只读复核留轻微性能项：受限邮箱逐个查询可能延长共享锁占用，接入调度前需批量查询。模拟余额固定1小时过期，需本机刷新；真实账户证据有效期尚未决定。
+
+新迁移 `20261121_090000_subscription_campaign_mock_quota` 仅随机库验证，非空拒绝回退；原3100/55442、图片、种子保留，无新环境变量/依赖。原库升级前仍需配套备份、迁移并重启。共用尝试/冷却、全站传输限额/优先级、租约、真实余额及真实投递未接，原单封队列不改。真实邮件、AI、语音、通话及正式评分关闭，下一批待本PR合并后从最新main开始；精确远端SHA和CI见PR最终实核记录。
+
+## 历史交接：群发 B5a 资格复核与持久取消（2026-11-20）
 
 PR88合并 `17dd427677e672a01e1fe2a0d1d759217e20fba7` 已核对，从最新main建立 `codex/subscription-campaign-dispatch`。本批只做调度前置服务：复核已冻结任务的当前资格、原同意版本、语言及邮箱摘要，无效者持久取消；重订或资料恢复不复活旧任务。原快照计数及名单不变，新订阅不补入。[一页本机验证](subscription-campaign-recheck-summary.md) · [实施计划](superpowers/plans/2026-11-20-subscription-campaign-recheck.md)。
 
