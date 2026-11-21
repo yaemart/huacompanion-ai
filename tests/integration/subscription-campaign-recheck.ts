@@ -226,7 +226,12 @@ export async function testCampaignRecheck(p: Payload, url: URL) {
     );
     for (const result of results) {
       assert.deepEqual(result.held, { zh: 1, en: 0 });
-      assert.deepEqual(result.cancelled, { ineligible: 2, consentChanged: 1, contactChanged: 2 });
+      assert.deepEqual(result.cancelled, {
+        ineligible: 2,
+        consentChanged: 1,
+        contactChanged: 2,
+        campaignCancelled: 0,
+      });
       assert.doesNotMatch(
         JSON.stringify(result),
         /@|email|recipientHash|password|token|subscription/,

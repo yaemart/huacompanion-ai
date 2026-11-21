@@ -1,3 +1,4 @@
+import { testCampaignCancel } from "./subscription-campaign-cancel";
 import { testCampaignControl } from "./subscription-campaign-control";
 import { testCampaignPauseUI } from "./subscription-campaign-pause-ui";
 import {
@@ -402,6 +403,7 @@ try {
   await testCampaignLeases(payload, url);
   await testCampaignControl(payload, url);
   await testCampaignPauseUI(payload);
+  await testCampaignCancel(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

@@ -20,6 +20,8 @@ export const subscriptionCollections: CollectionConfig[] = [
       { name: "paused", type: "checkbox", required: true, defaultValue: false },
       { name: "reason", type: "text", required: true, maxLength: 500 },
       { name: "changedAt", type: "date", required: true },
+      { name: "cancelledAt", type: "date" },
+      { name: "cancelReason", type: "text", maxLength: 500 },
     ],
   },
   {
@@ -139,7 +141,7 @@ export const subscriptionCollections: CollectionConfig[] = [
       {
         name: "cancelReason",
         type: "select",
-        options: ["ineligible", "consent-changed", "contact-changed"],
+        options: ["ineligible", "consent-changed", "contact-changed", "campaign-cancelled"],
       },
       { name: "cancelledAt", type: "date" },
     ],

@@ -162,7 +162,11 @@ export function CampaignWorkspace({
             </p>
           )}
           <form onChange={() => setDirty(true)} onSubmit={(event) => submit(event, "save")}>
-            <fieldset disabled={busy || mockBusy || controlBusy || controlUncertain}>
+            <fieldset
+              disabled={
+                busy || mockBusy || controlBusy || controlUncertain || !!control?.cancelledAt
+              }
+            >
               <legend>选择已发布政策（最多 10 项）</legend>
               {!workspace.choices.length && <p>暂无可选政策，请先在政策工作台审核发布共用事实。</p>}
               {workspace.choices.map((choice) => (
@@ -217,7 +221,7 @@ export function CampaignWorkspace({
               status={checks}
               frozen={frozen}
               dirty={dirty}
-              disabled={busy || controlBusy || controlUncertain}
+              disabled={busy || controlBusy || controlUncertain || !!control?.cancelledAt}
               paused={control?.paused}
               onBusyChange={setMockBusy}
             />

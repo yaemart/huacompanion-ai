@@ -1,3 +1,7 @@
+import {
+  up as upCancel,
+  down as downCancel,
+} from "../../src/migrations/20261121_190000_subscription_campaign_cancel";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fork, type ChildProcess } from "node:child_process";
@@ -95,8 +99,10 @@ export async function testCampaignControl(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downCancel(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       await up(adapter as unknown as MigrateUpArgs);
+      await upCancel(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

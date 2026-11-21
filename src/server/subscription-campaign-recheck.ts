@@ -3,12 +3,14 @@ import type { SubscriptionCampaignJob } from "../../payload-types";
 import type { Payload } from "payload";
 import { relationID, type Staff } from "../cms/access";
 import { ContentError } from "./content/error";
+import { campaignControl } from "./subscription-campaign-control";
 import { campaignAudience } from "./subscription-campaign-audience";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
 import type { CampaignPreview } from "./subscription-campaign-preview";
 
 const reasonKeys = {
   ineligible: "ineligible",
+  "campaign-cancelled": "campaignCancelled",
   "consent-changed": "consentChanged",
   "contact-changed": "contactChanged",
 } as const;
@@ -54,8 +56,9 @@ export async function recheckCampaignRecipients(p: Payload, actor: Staff, input:
     const current = new Map((await campaignAudience(p, req)).map((row) => [row.id, row]));
     const preview = draft.preview as CampaignPreview;
     const changes: { id: number; reason: keyof typeof reasonKeys }[] = [];
+    const stopped = !!(await campaignControl(p, req, draft.campaignKey))?.cancelledAt;
     for (const job of jobs) {
-      if (job.status === "cancelled") continue;
+      if (stopped || job.status === "cancelled") continue;
       const live = current.get(relationID(job.subscription)!);
       const reason = campaignTaskReason(job, live, preview);
       if (!reason) continue;
@@ -73,7 +76,7 @@ export async function recheckCampaignRecipients(p: Payload, actor: Staff, input:
       changes.push({ id: job.id, reason });
     }
     const held = { zh: 0, en: 0 };
-    const cancelled = { ineligible: 0, consentChanged: 0, contactChanged: 0 };
+    const cancelled = { ineligible: 0, consentChanged: 0, contactChanged: 0, campaignCancelled: 0 };
     for (const job of jobs) {
       if (job.status === "held") held[job.locale]++;
       else {
