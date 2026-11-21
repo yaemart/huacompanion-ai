@@ -13,7 +13,11 @@ import {
   readCampaignPause,
   setCampaignPause,
 } from "../../src/server/subscription-campaign-control";
-import { saveCampaignDraft } from "../../src/server/subscription-campaign-drafts";
+import { CampaignWorkspace } from "../../src/components/subscriptions/CampaignWorkspace";
+import {
+  readCampaignDraft,
+  saveCampaignDraft,
+} from "../../src/server/subscription-campaign-drafts";
 import { readCampaignWorkspace } from "../../src/server/subscription-campaign-workspace";
 import { setCampaignGrant } from "../../src/server/subscription-campaign-access";
 import { campaignMockChecks } from "../../src/server/subscription-campaign-mock-checks";
@@ -181,7 +185,7 @@ export async function testCampaignCancel(p: Payload, url: URL) {
     );
     assert.match(rendered, /当前状态：已取消/);
     assert.match(rendered, /不能恢复/);
-    assert.match(rendered, /<button[^>]*disabled=""/);
+    assert.doesNotMatch(rendered, /<form|<button/);
     for (const paused of [true, false])
       await assert.rejects(setCampaignPause(p, manager, { ...input, paused, reason: "不能复活" }), {
         status: 409,
@@ -381,6 +385,26 @@ export async function testCampaignCancel(p: Payload, url: URL) {
       id: Number(doneRow.subscription),
       data: { status: "unsubscribed" },
     });
+    const historicalSnapshot = (await readCampaignFreeze(p, manager, current))!;
+    for (const snapshot of [undefined, historicalSnapshot]) {
+      const page = renderToStaticMarkup(
+        createElement(CampaignWorkspace, {
+          workspace: await readCampaignWorkspace(p, manager),
+          draft: await readCampaignDraft(p, manager, current.campaignKey),
+          checks: await campaignMockChecks(p, manager, "status", current),
+          pause: { ...(await readCampaignPause(p, manager, current)), paused: true },
+          frozen: snapshot,
+        }),
+      );
+      assert.match(page, /当前状态：已取消/);
+      assert.doesNotMatch(page, /恢复后再冻结|再冻结本轮名单|按点击时的当前资格冻结/);
+      assert.doesNotMatch(
+        page,
+        /<button[^>]*>生成本地模拟邮件|<button[^>]*>记录本地模拟确认|<button[^>]*>冻结本轮名单/,
+      );
+      if (snapshot) assert.match(page, new RegExp(`编号 ${snapshot.id}`));
+      else assert.match(page, /没有已保存的名单快照/);
+    }
     const rechecked = await recheckCampaignRecipients(p, manager, current);
     assert.deepEqual(
       await p.findByID({ collection: "subscription-campaign-jobs", id: doneRow.id, depth: 0 }),

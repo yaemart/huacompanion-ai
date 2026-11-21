@@ -105,6 +105,17 @@ export function CampaignPauseControls({
       onBusyChange?.(false);
     }
   }
+  if (control.cancelledAt && !uncertain)
+    return (
+      <section className="campaign-control" aria-label="活动已取消">
+        <h2>活动已取消（仅本地模拟）</h2>
+        <p role="status">当前状态：已取消，未发送邮件。</p>
+        <p>
+          取消时间：{staffDateTime(control.cancelledAt)}（北京时间） · 原因：{control.cancelReason}
+        </p>
+        <p>本活动不能恢复或继续处理，取消前的历史记录保留。</p>
+      </section>
+    );
   return (
     <section className="campaign-control" aria-label="活动暂停与恢复">
       <h2>活动暂停与恢复（仅本地模拟）</h2>

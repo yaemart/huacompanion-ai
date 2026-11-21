@@ -196,7 +196,10 @@ export function CampaignWorkspace({
               <p>
                 人数为预估：中文 {draft.counts.zh}，英文 {draft.counts.en}，缺语言资料排除{" "}
                 {draft.counts.excluded}。统计截至 {staffDateTime(draft.asOf)}
-                （北京时间），实际发送前仍须复查资格和额度。
+                （北京时间），
+                {control?.cancelledAt
+                  ? "本活动已取消，以下资料仅供查阅。"
+                  : "实际发送前仍须复查资格和额度。"}
               </p>
               {(["zh", "en"] as const).map((locale) => (
                 <article lang={locale} key={locale}>
@@ -223,6 +226,7 @@ export function CampaignWorkspace({
               dirty={dirty}
               disabled={busy || controlBusy || controlUncertain || !!control?.cancelledAt}
               paused={control?.paused}
+              cancelled={!!control?.cancelledAt}
               onBusyChange={setMockBusy}
             />
           )}
