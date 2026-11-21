@@ -7,7 +7,7 @@
 ## 浏览器亲测
 
 1. 启动 `npm run demo`。再开一个终端，运行 `npm run test:subscriptions -- --preview`。
-2. 打开 [中文免签页](http://127.0.0.1:3186/zh/tools/china-visa-free-checker) 或 [英文免签页](http://127.0.0.1:3186/en/tools/china-visa-free-checker)。选虚构测试国家 XY，并设入境日期为 2026-12-15。
+2. 等待隔离预览构建完成，打开 [中文免签页](http://127.0.0.1:3186/zh/tools/china-visa-free-checker) 或 [英文免签页](http://127.0.0.1:3186/en/tools/china-visa-free-checker)。选德国 DE，并设入境日期为 2026-12-15。结果中的德国政策醒目标记为虚构隔离预览资料，仅供测试。
 3. 查询后会出现两张卡。只在「单方面免签」卡片展开「发到我的邮箱」，用 `policy@example.invalid` 勾选并提交。确认前，终端只有「模拟确认链接」。
 4. 打开链接并点「确认订阅」。终端应显示「模拟政策资料邮件」，其中有 `fictional-selected` 来源，且没有另一条政策和输入的 2026-12-15。预览加速了两封模拟邮件之间的等待。按 Ctrl+C 清理临时库。
 
