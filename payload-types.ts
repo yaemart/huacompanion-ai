@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-controls': SubscriptionCampaignControl;
     'subscription-campaign-mock-leases': SubscriptionCampaignMockLease;
     'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudget;
     'subscription-campaign-mock-slots': SubscriptionCampaignMockSlot;
@@ -183,6 +184,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-controls': SubscriptionCampaignControlsSelect<false> | SubscriptionCampaignControlsSelect<true>;
     'subscription-campaign-mock-leases': SubscriptionCampaignMockLeasesSelect<false> | SubscriptionCampaignMockLeasesSelect<true>;
     'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudgetsSelect<false> | SubscriptionCampaignMockBudgetsSelect<true>;
     'subscription-campaign-mock-slots': SubscriptionCampaignMockSlotsSelect<false> | SubscriptionCampaignMockSlotsSelect<true>;
@@ -1621,6 +1623,20 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-controls".
+ */
+export interface SubscriptionCampaignControl {
+  id: number;
+  campaignKey: string;
+  owner: number | Staff;
+  paused: boolean;
+  reason: string;
+  changedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-campaign-mock-leases".
  */
 export interface SubscriptionCampaignMockLease {
@@ -3001,6 +3017,19 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-controls_select".
+ */
+export interface SubscriptionCampaignControlsSelect<T extends boolean = true> {
+  campaignKey?: T;
+  owner?: T;
+  paused?: T;
+  reason?: T;
+  changedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

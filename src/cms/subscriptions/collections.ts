@@ -12,6 +12,18 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "subscription-campaign-controls",
+    typescript: { interface: "SubscriptionCampaignControl" },
+    fields: [
+      { name: "campaignKey", type: "text", required: true, unique: true },
+      { name: "owner", type: "relationship", relationTo: "staff", required: true },
+      { name: "paused", type: "checkbox", required: true, defaultValue: false },
+      { name: "reason", type: "text", required: true, maxLength: 500 },
+      { name: "changedAt", type: "date", required: true },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscription-campaign-mock-leases",
     typescript: { interface: "SubscriptionCampaignMockLease" },
     fields: [

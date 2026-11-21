@@ -10,6 +10,7 @@ import { campaignTaskReason } from "./subscription-campaign-recheck";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
 import type { CampaignPreview } from "./subscription-campaign-preview";
 import { subscriptionLockKey } from "./subscriptions";
+import { requireCampaignRunning } from "./subscription-campaign-control";
 
 const collection = "subscription-campaign-mock-leases";
 type Report =
@@ -61,6 +62,7 @@ async function operate(
     actor,
     { campaignKey: input.campaignKey, revision: input.revision },
     async (req, draft) => {
+      await requireCampaignRunning(p, req, draft.campaignKey);
       const stop = (state: "busy" | "completed-local" | "ineligible", id?: number) => ({
         auditId: null,
         report: { state, ...(id === undefined ? {} : { id }) } as Report,
