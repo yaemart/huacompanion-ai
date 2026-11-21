@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { staffDateTime } from "@/lib/staff-display";
+import { loadCampaignTaskStatus } from "@/lib/subscription-campaign-status-client";
 import type { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 
 type Status = Awaited<ReturnType<typeof readCampaignTaskStatus>>;
@@ -39,18 +40,7 @@ export function CampaignTaskStatus({
     setError("");
     setNotice("");
     try {
-      const response = await fetch("/api/subscriptions/campaigns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "read-mock-status-local",
-          input: { campaignKey: draft.campaignKey, revision: draft.revision },
-        }),
-      });
-      const result = (await response.json()) as { error?: string; taskStatus?: Status };
-      if (!response.ok || !result.taskStatus?.counts || !result.taskStatus.asOf)
-        throw Error(result.error || "统计未更新，请稍后重试。");
-      setStatus(result.taskStatus);
+      setStatus(await loadCampaignTaskStatus(draft));
       setNotice("状态已更新，当前未保存的选择仍保留。");
     } catch (error) {
       setError(

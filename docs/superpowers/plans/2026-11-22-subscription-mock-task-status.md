@@ -38,15 +38,15 @@
 
 **Files:** 新建src/server/subscription-campaign-status.ts；修改原campaigns/route.ts；新建tests/integration/subscription-campaign-status.ts并加入subscriptions.ts。
 
-- [ ] 写实际随机数据库及POST回归，观察缺少服务导出RED。
-- [ ] 实现严格输入及只读汇总，新增read-mock-status-local action。
-- [ ] 验证角色/归属/旧版/非本地/输入/同源与隐私；各分类、时间边界、历史及全库指纹不变。
+- [x] 写实际随机数据库及POST回归，观察缺少服务导出RED。
+- [x] 实现严格输入及只读汇总，新增read-mock-status-local action。
+- [x] 验证角色/归属/旧版/非本地/输入/同源与隐私；各分类、时间边界、历史及全库指纹不变。
 
 ### Task 2：活动页与交付
 
 **Files:** 新建CampaignTaskStatus.tsx；修改原page.tsx和CampaignWorkspace.tsx；同一集成中渲染完整工作区；更新中文小结、progress/handoff。
 
-- [ ] 先运行页面渲染RED，再实现首屏及独立刷新，错误不伪称更新。
-- [ ] 完整check、订阅集成、真实隔离生产预览及手机布局/刷新流程。
-- [ ] 一次新上下文只读复核，重要问题TDD修正，列明轻微项，不重复复审。
+- [x] 先运行页面渲染RED，再实现首屏及独立刷新，错误不伪称更新。
+- [x] 完整check、订阅集成、真实隔离生产预览及手机布局/刷新流程。
+- [x] 一次新上下文只读复核，重要问题TDD修正，列明轻微项，不重复复审。
 - [ ] 推送独立PR，核对精确SHA、远端与CI，不自动合并。
