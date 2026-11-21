@@ -76,3 +76,28 @@
 .campaign-control .button {
   min-height: 44px;
 }
+
+.campaign-cancel {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #d5ddcf;
+}
+.campaign-cancel summary {
+  cursor: pointer;
+  padding: 12px 0;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.campaign-cancel label {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 0;
+}
+.campaign-cancel input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.campaign-cancel .button {
+  background: #842b29;
+  border-color: #842b29;
+}
