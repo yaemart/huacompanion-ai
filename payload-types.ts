@@ -1632,6 +1632,8 @@ export interface SubscriptionCampaignControl {
   paused: boolean;
   reason: string;
   changedAt: string;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1676,7 +1678,7 @@ export interface SubscriptionCampaignJob {
   locale: 'zh' | 'en';
   recipientHash: string;
   status: 'held' | 'cancelled';
-  cancelReason?: ('ineligible' | 'consent-changed' | 'contact-changed') | null;
+  cancelReason?: ('ineligible' | 'consent-changed' | 'contact-changed' | 'campaign-cancelled') | null;
   cancelledAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -3030,6 +3032,8 @@ export interface SubscriptionCampaignControlsSelect<T extends boolean = true> {
   paused?: T;
   reason?: T;
   changedAt?: T;
+  cancelledAt?: T;
+  cancelReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }

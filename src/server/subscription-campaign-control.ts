@@ -31,7 +31,7 @@ function inputFor(value: unknown, change = false): Input {
   if (process.env.APP_ENV !== "local") throw new ContentError("仅支持本地模拟活动控制。", 403);
   return value as Input;
 }
-async function control(p: Payload, req: Scope, campaignKey: string) {
+export async function campaignControl(p: Payload, req: Scope, campaignKey: string) {
   return (
     await p.find({
       collection,
@@ -49,26 +49,31 @@ function report(campaignKey: string, row?: SubscriptionCampaignControl, invalida
     changedAt: row?.changedAt ?? null,
     reason: row?.reason ?? null,
     invalidatedLeases,
+    cancelledAt: row?.cancelledAt ?? null,
+    cancelReason: row?.cancelReason ?? null,
   };
 }
 
 export async function requireCampaignRunning(p: Payload, req: Scope, campaignKey: string) {
   if (!req.transactionID) throw new ContentError("模拟活动控制需要数据库事务。", 503);
-  if ((await control(p, req, campaignKey))?.paused)
-    throw new ContentError("本活动已暂停，请确认当前模拟测试后由负责人恢复。", 409);
+  const row = await campaignControl(p, req, campaignKey);
+  if (row?.cancelledAt) throw new ContentError("本活动已取消，不能恢复或继续处理。", 409);
+  if (row?.paused) throw new ContentError("本活动已暂停，请确认当前模拟测试后由负责人恢复。", 409);
 }
 
 export async function readCampaignPause(p: Payload, actor: Staff, value: unknown) {
   const input = inputFor(value);
   return withCampaignDraft(p, actor, input.campaignKey, input.revision, async (req, draft) =>
-    report(draft.campaignKey, await control(p, req, draft.campaignKey)),
+    report(draft.campaignKey, await campaignControl(p, req, draft.campaignKey)),
   );
 }
 
 export async function setCampaignPause(p: Payload, actor: Staff, value: unknown) {
   const input = inputFor(value, true);
   const work = async (req: Scope, draft: SubscriptionCampaignDraft) => {
-    const previous = await control(p, req, draft.campaignKey);
+    const previous = await campaignControl(p, req, draft.campaignKey);
+    if (previous?.cancelledAt)
+      throw new ContentError("本活动已取消，不能恢复或修改暂停状态。", 409);
     if ((previous?.paused ?? false) === input.paused)
       return { auditId: null, report: report(draft.campaignKey, previous) };
     const { rows } = await executeSQL(
@@ -87,20 +92,9 @@ export async function setCampaignPause(p: Payload, actor: Staff, value: unknown)
     const row = previous
       ? await p.update({ collection, id: previous.id, req, depth: 0, data })
       : await p.create({ collection, req, depth: 0, data });
-    let invalidatedLeases = 0;
-    if (input.paused) {
-      const expired = await executeSQL(
-        p,
-        (await req.transactionID)!,
-        sql`
-        UPDATE subscription_campaign_mock_leases l SET expires_at=${changedAt}::timestamptz, updated_at=${changedAt}::timestamptz
-        FROM subscription_campaign_mock_slots s JOIN subscription_campaign_batches b ON b.id=s.batch_id
-        WHERE l.slot_id=s.id AND b.campaign_key=${draft.campaignKey}
-          AND l.completed_at IS NULL AND l.expires_at>${changedAt}::timestamptz RETURNING l.id
-      `,
-      );
-      invalidatedLeases = expired.rows.length;
-    }
+    const invalidatedLeases = input.paused
+      ? await expireCampaignLeases(p, req, draft.campaignKey, changedAt)
+      : 0;
     const output = report(draft.campaignKey, row, invalidatedLeases);
     const audit = await p.create({
       collection: "audit-events",
@@ -135,4 +129,23 @@ export async function setCampaignPause(p: Payload, actor: Staff, value: unknown)
   )
     throw new ContentError("活动暂停或恢复未保存成功，请刷新后重试。", 503);
   return result.report;
+}
+
+export async function expireCampaignLeases(
+  p: Payload,
+  req: Scope,
+  campaignKey: string,
+  at: string,
+) {
+  const expired = await executeSQL(
+    p,
+    (await req.transactionID)!,
+    sql`
+    UPDATE subscription_campaign_mock_leases l SET expires_at=${at}::timestamptz, updated_at=${at}::timestamptz
+    FROM subscription_campaign_mock_slots s JOIN subscription_campaign_batches b ON b.id=s.batch_id
+    WHERE l.slot_id=s.id AND b.campaign_key=${campaignKey}
+      AND l.completed_at IS NULL AND l.expires_at>${at}::timestamptz RETURNING l.id
+  `,
+  );
+  return expired.rows.length;
 }

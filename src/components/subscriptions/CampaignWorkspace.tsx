@@ -162,7 +162,11 @@ export function CampaignWorkspace({
             </p>
           )}
           <form onChange={() => setDirty(true)} onSubmit={(event) => submit(event, "save")}>
-            <fieldset disabled={busy || mockBusy || controlBusy || controlUncertain}>
+            <fieldset
+              disabled={
+                busy || mockBusy || controlBusy || controlUncertain || !!control?.cancelledAt
+              }
+            >
               <legend>选择已发布政策（最多 10 项）</legend>
               {!workspace.choices.length && <p>暂无可选政策，请先在政策工作台审核发布共用事实。</p>}
               {workspace.choices.map((choice) => (
@@ -192,7 +196,10 @@ export function CampaignWorkspace({
               <p>
                 人数为预估：中文 {draft.counts.zh}，英文 {draft.counts.en}，缺语言资料排除{" "}
                 {draft.counts.excluded}。统计截至 {staffDateTime(draft.asOf)}
-                （北京时间），实际发送前仍须复查资格和额度。
+                （北京时间），
+                {control?.cancelledAt
+                  ? "本活动已取消，以下资料仅供查阅。"
+                  : "实际发送前仍须复查资格和额度。"}
               </p>
               {(["zh", "en"] as const).map((locale) => (
                 <article lang={locale} key={locale}>
@@ -217,8 +224,9 @@ export function CampaignWorkspace({
               status={checks}
               frozen={frozen}
               dirty={dirty}
-              disabled={busy || controlBusy || controlUncertain}
+              disabled={busy || controlBusy || controlUncertain || !!control?.cancelledAt}
               paused={control?.paused}
+              cancelled={!!control?.cancelledAt}
               onBusyChange={setMockBusy}
             />
           )}

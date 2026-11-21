@@ -14,6 +14,7 @@ export function CampaignMockChecks({
   disabled,
   onBusyChange,
   paused = false,
+  cancelled = false,
 }: {
   draft: Draft;
   status: Status;
@@ -22,6 +23,7 @@ export function CampaignMockChecks({
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
   paused?: boolean;
+  cancelled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,6 +66,33 @@ export function CampaignMockChecks({
       onBusyChange?.(false);
     }
   }
+  const snapshot = frozen ? (
+    <div role="status">
+      <p>
+        第 {frozen.revision} 版快照 · 编号 {frozen.id} ·{" "}
+        {cancelled ? "历史名单，未发送" : "全部暂存，未发送"}
+      </p>
+      <p>
+        中文 {frozen.counts.zh} 人，英文 {frozen.counts.en} 人。冻结于{" "}
+        {staffDateTime(frozen.frozenAt)}（北京时间）。
+      </p>
+      {dirty && <p>当前选择未保存，已保存的历史快照不会因此改变。</p>}
+      {!cancelled && !frozen.current && <p>这是旧版快照；改版续发尚未开放，原快照已保留。</p>}
+      <p>
+        {cancelled
+          ? "取消前的名单和人数保留，不代表实际送达；本活动不会继续处理。"
+          : "冻结后新增的订阅者不补入本轮；发送前仍须重新核验资格和额度。"}
+      </p>
+    </div>
+  ) : null;
+  if (cancelled)
+    return (
+      <section id="campaign-mock-checks" aria-label="已取消活动的历史记录">
+        <h2>已取消活动的历史记录</h2>
+        <p>本活动已取消，不能测试、确认、冻结或恢复；仅保留历史记录，未发送邮件。</p>
+        {snapshot || <p>本活动没有已保存的名单快照。</p>}
+      </section>
+    );
   return (
     <section id="campaign-mock-checks" aria-label="本地模拟测试与确认">
       <h2>本地模拟测试与确认</h2>
@@ -115,18 +144,7 @@ export function CampaignMockChecks({
       <h3>收件名单快照（仅本地暂存）</h3>
       {paused && <p>活动已暂停；可以继续生成模拟邮件并确认，恢复后再冻结名单。</p>}
       {frozen ? (
-        <div role="status">
-          <p>
-            第 {frozen.revision} 版快照 · 编号 {frozen.id} · 全部暂存，未发送
-          </p>
-          <p>
-            中文 {frozen.counts.zh} 人，英文 {frozen.counts.en} 人。冻结于{" "}
-            {staffDateTime(frozen.frozenAt)}（北京时间）。
-          </p>
-          {dirty && <p>当前选择未保存，已保存的历史快照不会因此改变。</p>}
-          {!frozen.current && <p>这是旧版快照；改版续发尚未开放，原快照已保留。</p>}
-          <p>冻结后新增的订阅者不补入本轮；发送前仍须重新核验资格和额度。</p>
-        </div>
+        snapshot
       ) : (
         <form onSubmit={(event) => submit(event, "freeze-local")}>
           {!status.mockConfirmed && <p>请先生成模拟邮件并逐语言确认可读，再冻结本轮名单。</p>}

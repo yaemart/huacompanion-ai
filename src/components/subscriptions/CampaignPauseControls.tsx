@@ -47,11 +47,13 @@ export function CampaignPauseControls({
       ? "正在处理其他操作，请稍后再试。"
       : uncertain
         ? "操作结果待核实，请先核实活动状态；原因和当前选择已保留。"
-        : control.paused && dirty
-          ? "请先保存当前选择，并为新版本重新完成模拟确认，再恢复活动。"
-          : control.paused && !canResume
-            ? "请先生成模拟邮件并逐语言确认可读，再恢复活动。"
-            : "";
+        : control.cancelledAt
+          ? "本活动已取消，不能恢复或继续处理。"
+          : control.paused && dirty
+            ? "请先保存当前选择，并为新版本重新完成模拟确认，再恢复活动。"
+            : control.paused && !canResume
+              ? "请先生成模拟邮件并逐语言确认可读，再恢复活动。"
+              : "";
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await run();
@@ -89,7 +91,7 @@ export function CampaignPauseControls({
         readOnly
           ? "活动状态已核实，当前填写和选择已保留。"
           : result.control.paused
-            ? `活动已暂停。本次停止了 ${result.control.invalidatedLeases} 项未完成模拟任务，已完成记录保留。`
+            ? `活动已暂停。本次使 ${result.control.invalidatedLeases} 个未完成模拟任务的领取凭证失效，已完成记录保留。`
             : "活动已恢复本地模拟。未完成任务须重新领取，旧处理凭证不会复活；未发送邮件。",
       );
     } catch (failure) {
@@ -103,19 +105,43 @@ export function CampaignPauseControls({
       onBusyChange?.(false);
     }
   }
+  if (control.cancelledAt && !uncertain)
+    return (
+      <section className="campaign-control" aria-label="活动已取消">
+        <h2>活动已取消（仅本地模拟）</h2>
+        <p role="status">当前状态：已取消，未发送邮件。</p>
+        <p>
+          取消时间：{staffDateTime(control.cancelledAt)}（北京时间） · 原因：{control.cancelReason}
+        </p>
+        <p>本活动不能恢复或继续处理，取消前的历史记录保留。</p>
+      </section>
+    );
   return (
     <section className="campaign-control" aria-label="活动暂停与恢复">
       <h2>活动暂停与恢复（仅本地模拟）</h2>
       <p role="status">
-        当前状态：{uncertain ? "待核实" : control.paused ? "已暂停" : "未暂停"}，未发送邮件。
+        当前状态：
+        {uncertain
+          ? "待核实"
+          : control.cancelledAt
+            ? "已取消"
+            : control.paused
+              ? "已暂停"
+              : "未暂停"}
+        ，未发送邮件。
       </p>
-      {control.changedAt && !uncertain && (
+      {control.cancelledAt && !uncertain && (
+        <p>
+          取消时间：{staffDateTime(control.cancelledAt)}（北京时间） · 原因：{control.cancelReason}
+        </p>
+      )}
+      {control.changedAt && !uncertain && !control.cancelledAt && (
         <p>
           最近操作：{staffDateTime(control.changedAt)}（北京时间） · 原因：{control.reason}
         </p>
       )}
       <p>操作针对已保存的第 {draft.revision} 版。暂停保留历史和已完成记录，恢复只解除本地暂停。</p>
-      {dirty && !control.paused && !uncertain && (
+      {dirty && !control.paused && !uncertain && !control.cancelledAt && (
         <p>当前选择尚未保存，仍可暂停已保存的活动；本次操作不会丢弃当前选择。</p>
       )}
       {error && <p role="alert">{error}</p>}
@@ -141,7 +167,7 @@ export function CampaignPauseControls({
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            disabled={busy || disabled || !enabled}
+            disabled={busy || disabled || !enabled || !!control.cancelledAt}
             aria-describedby="campaign-control-help"
           />
         </label>
@@ -149,13 +175,19 @@ export function CampaignPauseControls({
           请说明本次暂停或恢复的原因，最多500字符。重复同一状态不会覆盖旧原因。
         </p>
         {blocked && <p>{blocked}</p>}
-        {control.paused && !canResume && (
+        {control.paused && !control.cancelledAt && !canResume && (
           <p>
             <a href="#campaign-mock-checks">前往本地模拟测试与确认</a>
           </p>
         )}
         <button className="button" disabled={busy || !!blocked}>
-          {busy ? "正在保存…" : control.paused ? "恢复本地活动" : "暂停本地活动"}
+          {busy
+            ? "正在保存…"
+            : control.cancelledAt
+              ? "活动已取消"
+              : control.paused
+                ? "恢复本地活动"
+                : "暂停本地活动"}
         </button>
       </form>
     </section>
