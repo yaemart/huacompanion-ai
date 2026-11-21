@@ -5,6 +5,7 @@ import { setCampaignGrant } from "@/server/subscription-campaign-access";
 import { saveCampaignDraft } from "@/server/subscription-campaign-drafts";
 import { freezeCampaignRecipients } from "@/server/subscription-campaign-freeze";
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
+import { readCampaignPause, setCampaignPause } from "@/server/subscription-campaign-control";
 
 export const runtime = "nodejs";
 const headers = {
@@ -29,6 +30,14 @@ export async function POST(request: Request) {
       !("input" in body)
     )
       throw new ContentError("操作内容无效，请重新打开页面。", 400);
+    if (body.action === "read-control-local") {
+      const control = await readCampaignPause(p, user, body.input);
+      return Response.json({ control }, { headers });
+    }
+    if (body.action === "control-local") {
+      const control = await setCampaignPause(p, user, body.input);
+      return Response.json({ control }, { headers });
+    }
     if (body.action === "grant") {
       await setCampaignGrant(p, user, body.input as Parameters<typeof setCampaignGrant>[2]);
       return Response.json({ updated: true }, { headers });

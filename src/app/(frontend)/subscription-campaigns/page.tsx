@@ -5,6 +5,7 @@ import { campaignStaffAuth, readCampaignWorkspace } from "@/server/subscription-
 import { readCampaignDraft } from "@/server/subscription-campaign-drafts";
 import { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
+import { readCampaignPause } from "@/server/subscription-campaign-control";
 import { CampaignWorkspace } from "@/components/subscriptions/CampaignWorkspace";
 import "@/components/subscriptions/management.css";
 
@@ -34,6 +35,13 @@ export default async function Page({
           revision: draft.revision,
         })
       : undefined;
+    const pause =
+      draft && checks?.enabled
+        ? await readCampaignPause(p, user, {
+            campaignKey: draft.campaignKey,
+            revision: draft.revision,
+          })
+        : undefined;
     return (
       <CampaignWorkspace
         workspace={workspace}
@@ -41,6 +49,7 @@ export default async function Page({
         saved={query.saved === "1"}
         checks={checks}
         frozen={frozen}
+        pause={pause}
       />
     );
   } catch (error) {

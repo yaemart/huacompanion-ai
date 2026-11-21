@@ -13,6 +13,7 @@ export function CampaignMockChecks({
   dirty,
   disabled,
   onBusyChange,
+  paused = false,
 }: {
   draft: Draft;
   status: Status;
@@ -20,6 +21,7 @@ export function CampaignMockChecks({
   dirty: boolean;
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
+  paused?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +65,7 @@ export function CampaignMockChecks({
     }
   }
   return (
-    <section aria-label="本地模拟测试与确认">
+    <section id="campaign-mock-checks" aria-label="本地模拟测试与确认">
       <h2>本地模拟测试与确认</h2>
       <p>
         仅生成虚构收件人的模拟邮件，未实际发送，也不代表真实发件获准。退订凭证随后续逐人发送接入。
@@ -111,6 +113,7 @@ export function CampaignMockChecks({
       </form>
       {status.mockConfirmed && !dirty && <p role="status">已完成本地模拟确认，未发送邮件。</p>}
       <h3>收件名单快照（仅本地暂存）</h3>
+      {paused && <p>活动已暂停；可以继续生成模拟邮件并确认，恢复后再冻结名单。</p>}
       {frozen ? (
         <div role="status">
           <p>
@@ -120,7 +123,7 @@ export function CampaignMockChecks({
             中文 {frozen.counts.zh} 人，英文 {frozen.counts.en} 人。冻结于{" "}
             {staffDateTime(frozen.frozenAt)}（北京时间）。
           </p>
-          {dirty && <p>当前选择未保存，下方历史快照不会因此改变。</p>}
+          {dirty && <p>当前选择未保存，已保存的历史快照不会因此改变。</p>}
           {!frozen.current && <p>这是旧版快照；改版续发尚未开放，原快照已保留。</p>}
           <p>冻结后新增的订阅者不补入本轮；发送前仍须重新核验资格和额度。</p>
         </div>
@@ -128,7 +131,7 @@ export function CampaignMockChecks({
         <form onSubmit={(event) => submit(event, "freeze-local")}>
           {!status.mockConfirmed && <p>请先生成模拟邮件并逐语言确认可读，再冻结本轮名单。</p>}
           <p>按点击时的当前资格冻结，最多 1,000 人；保存暂存任务，不发送邮件。</p>
-          <button className="button" disabled={blocked || !status.mockConfirmed}>
+          <button className="button" disabled={blocked || !status.mockConfirmed || paused}>
             冻结本轮名单（不发送）
           </button>
         </form>

@@ -7,6 +7,8 @@ import type { readCampaignDraft } from "@/server/subscription-campaign-drafts";
 import { CampaignMockChecks } from "./CampaignMockChecks";
 import type { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import type { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
+import type { readCampaignPause } from "@/server/subscription-campaign-control";
+import { CampaignPauseControls } from "./CampaignPauseControls";
 
 type Workspace = Awaited<ReturnType<typeof readCampaignWorkspace>>;
 type Draft = Awaited<ReturnType<typeof readCampaignDraft>>;
@@ -16,17 +18,22 @@ export function CampaignWorkspace({
   saved,
   checks,
   frozen,
+  pause,
 }: {
   workspace: Workspace;
   draft?: Draft;
   saved?: boolean;
   checks?: Awaited<ReturnType<typeof campaignMockChecks>>;
   frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
+  pause?: Awaited<ReturnType<typeof readCampaignPause>>;
 }) {
   const [busy, setBusy] = useState(false);
   const [mockBusy, setMockBusy] = useState(false);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [controlBusy, setControlBusy] = useState(false);
+  const [control, setControl] = useState(pause);
+  const [controlUncertain, setControlUncertain] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -82,7 +89,12 @@ export function CampaignWorkspace({
           <form onSubmit={(event) => submit(event, "grant")} className="subscription-filters">
             <label>
               员工
-              <select name="staffId" required defaultValue="">
+              <select
+                name="staffId"
+                required
+                defaultValue=""
+                disabled={busy || mockBusy || controlBusy || controlUncertain}
+              >
                 <option value="" disabled>
                   请选择员工
                 </option>
@@ -95,12 +107,19 @@ export function CampaignWorkspace({
             </label>
             <label>
               主题权限
-              <select name="enabled" defaultValue="true">
+              <select
+                name="enabled"
+                defaultValue="true"
+                disabled={busy || mockBusy || controlBusy || controlUncertain}
+              >
                 <option value="true">授予政策更新操作权</option>
                 <option value="false">撤销政策更新操作权</option>
               </select>
             </label>
-            <button className="button" disabled={busy || mockBusy}>
+            <button
+              className="button"
+              disabled={busy || mockBusy || controlBusy || controlUncertain}
+            >
               更新主题授权
             </button>
           </form>
@@ -123,13 +142,27 @@ export function CampaignWorkspace({
             ))}
           </ul>
           <h2>{draft ? `编辑草稿 · 第 ${draft.revision} 版` : "新建草稿"}</h2>
+          {draft && checks && control && (
+            <CampaignPauseControls
+              draft={draft}
+              control={control}
+              dirty={dirty}
+              canResume={checks.enabled && checks.current && checks.mockConfirmed}
+              enabled={checks.enabled}
+              disabled={busy || mockBusy}
+              uncertain={controlUncertain}
+              onUncertainChange={setControlUncertain}
+              onChange={setControl}
+              onBusyChange={setControlBusy}
+            />
+          )}
           {draft && !draft.current && (
             <p role="alert">
               来源已变化、下架或过期。下方保留旧预览，请重新勾选当前资料并保存新版本。
             </p>
           )}
           <form onChange={() => setDirty(true)} onSubmit={(event) => submit(event, "save")}>
-            <fieldset disabled={busy || mockBusy}>
+            <fieldset disabled={busy || mockBusy || controlBusy || controlUncertain}>
               <legend>选择已发布政策（最多 10 项）</legend>
               {!workspace.choices.length && <p>暂无可选政策，请先在政策工作台审核发布共用事实。</p>}
               {workspace.choices.map((choice) => (
@@ -184,7 +217,8 @@ export function CampaignWorkspace({
               status={checks}
               frozen={frozen}
               dirty={dirty}
-              disabled={busy}
+              disabled={busy || controlBusy || controlUncertain}
+              paused={control?.paused}
               onBusyChange={setMockBusy}
             />
           )}
