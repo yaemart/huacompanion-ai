@@ -1,3 +1,7 @@
+import {
+  up as upLeases,
+  down as downLeases,
+} from "../../src/migrations/20261121_130000_subscription_campaign_mock_leases";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -105,8 +109,10 @@ export async function testCampaignQuota(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downLeases(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       await up(adapter as unknown as MigrateUpArgs);
+      await upLeases(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");
@@ -344,6 +350,12 @@ export async function testCampaignQuota(p: Payload, url: URL) {
       })
     ).docs;
     assert.equal(candidates.length, 1000);
+    // Anchor this load fixture after freezing; the separate midnight assertions remain above.
+    await db.query(
+      `UPDATE subscription_campaign_mock_slots SET reserved_at=statement_timestamp()-interval '1 hour'
+      WHERE recipient_hash IN (SELECT recipient_hash FROM subscription_campaign_jobs WHERE batch_id=$1)`,
+      [dense.batch.id],
+    );
     const beforeDense = await count();
     const originalCount = p.count;
     let recipientCounts = 0;

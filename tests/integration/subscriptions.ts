@@ -1,4 +1,9 @@
 import {
+  up as upLeases,
+  down as downLeases,
+} from "../../src/migrations/20261121_130000_subscription_campaign_mock_leases";
+import { testCampaignLeases } from "./subscription-campaign-leases";
+import {
   up as upQuota,
   down as downQuota,
 } from "../../src/migrations/20261121_090000_subscription_campaign_mock_quota";
@@ -112,6 +117,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downLeases(adapter(db) as unknown as MigrateDownArgs);
     await downQuota(adapter(db) as unknown as MigrateDownArgs);
     await downRecheck(adapter(db) as unknown as MigrateDownArgs);
     await downFreeze(adapter(db) as unknown as MigrateDownArgs);
@@ -120,7 +126,7 @@ try {
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 7);
+    assert.equal(former.length, before.length - 8);
     assert.deepEqual(
       former,
       before.filter(
@@ -133,6 +139,7 @@ try {
             "subscription_campaign_jobs",
             "subscription_campaign_mock_budgets",
             "subscription_campaign_mock_slots",
+            "subscription_campaign_mock_leases",
           ].includes(table),
       ),
     );
@@ -143,6 +150,7 @@ try {
     await upFreeze(adapter(db) as unknown as MigrateUpArgs);
     await upRecheck(adapter(db) as unknown as MigrateUpArgs);
     await upQuota(adapter(db) as unknown as MigrateUpArgs);
+    await upLeases(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -389,6 +397,7 @@ try {
   await testCampaignFreezeUI(payload);
   await testCampaignRecheck(payload, url);
   await testCampaignQuota(payload, url);
+  await testCampaignLeases(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

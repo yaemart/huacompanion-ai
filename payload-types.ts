@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-mock-leases': SubscriptionCampaignMockLease;
     'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudget;
     'subscription-campaign-mock-slots': SubscriptionCampaignMockSlot;
     'subscription-campaign-batches': SubscriptionCampaignBatch;
@@ -182,6 +183,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-mock-leases': SubscriptionCampaignMockLeasesSelect<false> | SubscriptionCampaignMockLeasesSelect<true>;
     'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudgetsSelect<false> | SubscriptionCampaignMockBudgetsSelect<true>;
     'subscription-campaign-mock-slots': SubscriptionCampaignMockSlotsSelect<false> | SubscriptionCampaignMockSlotsSelect<true>;
     'subscription-campaign-batches': SubscriptionCampaignBatchesSelect<false> | SubscriptionCampaignBatchesSelect<true>;
@@ -1619,15 +1621,14 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-campaign-mock-budgets".
+ * via the `definition` "subscription-campaign-mock-leases".
  */
-export interface SubscriptionCampaignMockBudget {
+export interface SubscriptionCampaignMockLease {
   id: number;
-  remaining: number;
-  baseUsage: number;
+  slot: number | SubscriptionCampaignMockSlot;
+  token: string;
   expiresAt: string;
-  actor: number | Staff;
-  reason: string;
+  completedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1758,6 +1759,20 @@ export interface Subscription {
   partnerCode?: string | null;
   confirmedAt?: string | null;
   unsubscribedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-budgets".
+ */
+export interface SubscriptionCampaignMockBudget {
+  id: number;
+  remaining: number;
+  baseUsage: number;
+  expiresAt: string;
+  actor: number | Staff;
+  reason: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -2986,6 +3001,18 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-leases_select".
+ */
+export interface SubscriptionCampaignMockLeasesSelect<T extends boolean = true> {
+  slot?: T;
+  token?: T;
+  expiresAt?: T;
+  completedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
