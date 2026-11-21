@@ -83,8 +83,14 @@ try {
     });
   }
   await payload.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
-  await publishFictionalSharedMailPolicy(payload, selectedPolicy);
-  await publishFictionalSharedMailPolicy(payload, otherPolicy);
+  for (const policy of [selectedPolicy, otherPolicy])
+    await publishFictionalSharedMailPolicy(payload, {
+      ...policy,
+      countryCode: "DE",
+      countryNameZh: "虚构德国资料（仅隔离预览）",
+      countryNameEn: "Fictional Germany data for isolated preview",
+    });
+  console.log("隔离预览中的德国 DE 政策为虚构资料，仅供测试。");
   for (const locale of ["zh", "en"] as const) {
     await publishFictionalSubscriptionPrivacy(payload, locale);
     await payload.create({
