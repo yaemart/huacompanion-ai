@@ -11,7 +11,7 @@ export async function subscriptionPreview(baseEnv, signal, isolatedBrowser = fal
   const env = {
     ...baseEnv,
     APP_URL: origin,
-    NODE_ENV: "development",
+    NODE_ENV: "production",
     SUBSCRIPTIONS_ENABLED: "true",
     SUBSCRIPTION_REQUESTS_ENABLED: "true",
     SUBSCRIPTION_MAIL_LINKS_VERIFIED: "true",
@@ -52,25 +52,31 @@ export async function subscriptionPreview(baseEnv, signal, isolatedBrowser = fal
         throw Error("模拟发件进程未能启动。");
       }),
     ]);
+    // Build both root layouts together before serving their shared client references.
+    console.log("正在构建隔离预览，请等待构建完成后再打开页面。");
+    const build = spawn(
+      process.execPath,
+      ["node_modules/next/dist/bin/next", "build", "--webpack"],
+      { cwd: app, env, stdio: "inherit" },
+    );
+    children.push(build);
+    const [code] = await Promise.race([
+      once(build, "exit", { signal }),
+      once(mail, "exit", { signal }).then(() => {
+        throw Error("模拟发件进程已退出，预览未启动。");
+      }),
+    ]);
+    if (code !== 0) throw Error("隔离预览构建失败，请查看上方错误后重新启动。");
+    signal.throwIfAborted();
     const web = spawn(
       process.execPath,
-      [
-        "--import",
-        "./scripts/dev-env.mjs",
-        "node_modules/next/dist/bin/next",
-        "dev",
-        "--webpack",
-        "--hostname",
-        "127.0.0.1",
-        "--port",
-        "3186",
-      ],
-      { cwd: app, env: { ...env, NODE_ENV: "development" }, stdio: "inherit" },
+      ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3186"],
+      { cwd: app, env, stdio: "inherit" },
     );
     children.push(web);
     console.log(`订阅演示 ${origin}/zh 或 ${origin}/en。请使用示例邮箱 name@example.invalid。`);
     console.log("模拟确认链接会显示在这里。按 Ctrl+C 关闭并清理临时库。");
-    await Promise.race(children.map((child) => once(child, "exit", { signal })));
+    await Promise.race([mail, web].map((child) => once(child, "exit", { signal })));
     throw Error("订阅演示子进程已退出。");
   } catch (error) {
     if (!signal.aborted) throw error;
