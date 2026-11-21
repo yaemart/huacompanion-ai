@@ -22,7 +22,7 @@ assert.equal(url.username, "hua_demo");
 assert.match(url.pathname, /^\/hua_subscriptions_[a-f0-9]{32}$/);
 assert.ok(!url.search && !url.hash);
 assert.equal(process.env.APP_ENV, "local");
-assert.equal(process.env.APP_URL, "http://127.0.0.1:3186");
+assert.ok(["http://127.0.0.1:3186", "http://localhost:3186"].includes(process.env.APP_URL!));
 assert.equal(process.env.WORKFLOW_MAIL_API_KEY, "fictional-preview-only");
 assert.equal(process.env.HUA_DEMO_SCHEMA_PUSH, "false");
 assert.ok(process.send);
@@ -125,11 +125,15 @@ try {
         console.log(`[模拟政策资料邮件] ${to}\n${text}\n[模拟邮件结束]`);
         return { status: "sent", providerId: "fictional-preview" };
       }
-      const link = text.split("\n")[0].match(/http:\/\/127\.0\.0\.1:3186\/\S+$/)?.[0];
+      const link = text.split("\n")[0].match(/http:\/\/(?:127\.0\.0\.1|localhost):3186\/\S+$/)?.[0];
       assert.ok(link);
+      assert.equal(new URL(link).origin, process.env.APP_URL);
       console.log(`[模拟确认链接] ${to} ${link}`);
-      const unsubscribe = text.split("\n")[1].match(/http:\/\/127\.0\.0\.1:3186\/\S+$/)?.[0];
+      const unsubscribe = text
+        .split("\n")[1]
+        .match(/http:\/\/(?:127\.0\.0\.1|localhost):3186\/\S+$/)?.[0];
       assert.ok(unsubscribe);
+      assert.equal(new URL(unsubscribe).origin, process.env.APP_URL);
       console.log(`[模拟退订链接] ${to} ${unsubscribe}`);
       return { status: "sent", providerId: "fictional-preview" };
     });

@@ -81,7 +81,7 @@ async function run() {
       } finally {
         signal.removeEventListener("abort", terminate);
       }
-      await subscriptionPreview(env, signal);
+      await subscriptionPreview(env, signal, process.argv.includes("--isolated-browser"));
     } else {
       execFileSync(process.execPath, args, migration);
       execFileSync(process.execPath, ["--import", "tsx", "tests/integration/subscriptions.ts"], {

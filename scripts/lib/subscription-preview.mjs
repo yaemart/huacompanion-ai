@@ -4,8 +4,8 @@ import { cpSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { ensureFree } from "./demo-environment.mjs";
 
-export async function subscriptionPreview(baseEnv, signal) {
-  const origin = "http://127.0.0.1:3186";
+export async function subscriptionPreview(baseEnv, signal, isolatedBrowser = false) {
+  const origin = `http://${isolatedBrowser ? "localhost" : "127.0.0.1"}:3186`;
   await ensureFree(3186);
   const app = mkdtempSync(resolve(".local/subscription-preview-"));
   const env = {
@@ -55,6 +55,8 @@ export async function subscriptionPreview(baseEnv, signal) {
     const web = spawn(
       process.execPath,
       [
+        "--import",
+        "./scripts/dev-env.mjs",
         "node_modules/next/dist/bin/next",
         "dev",
         "--webpack",

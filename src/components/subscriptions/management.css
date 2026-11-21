@@ -56,3 +56,23 @@
 .subscription-export p:not(:empty) {
   margin-top: 8px;
 }
+.campaign-control {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #d5ddcf;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.campaign-control label {
+  display: grid;
+  gap: 8px;
+}
+.campaign-control textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+}
+.campaign-control .button {
+  min-height: 44px;
+}
