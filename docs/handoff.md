@@ -2,7 +2,15 @@
 
 日期：2026-11-21（Asia/Shanghai）。这是换电脑和继续开发时先读的入口。
 
-## 当前开发：本地模拟任务租约（2026-11-21）
+## 当前开发：本地活动暂停恢复（2026-11-21）
+
+PR92合并 `d7a8af9568ac3d7ae4db1a2f0517e19b666889c0` 已核对，新分支 `codex/subscription-campaign-pause` 从最新main干净起点开始。当前获授权主管只能控制本人活动；暂停阻止冻结、占位、抢占/完成，并让未完成有效租约到期；完成历史和份额保留。恢复仍须有效模拟确认和新租约，新草稿不能绕过暂停。[一页亲测](subscription-campaign-pause-summary.md) · [实施计划](superpowers/plans/2026-11-21-subscription-campaign-pause.md)。
+
+22组订阅集成通过；一次复核的重要测试证据项已用延迟子进程与独立连接观察两层阻塞链RED→GREEN补齐，未改服务逻辑或追加复核。覆盖下架/确认失效仍可停、恢复门禁、旧凭证拒绝、已完成保留、权限及COMMIT回滚。补强后完整check353项通过、lint445持平、743源码文件行长无例外；精确SHA/CI见最终实核记录。
+
+新增 `20261121_150000_subscription_campaign_control` 仅随机库验证，非空拒绝回退；原3100/55442、图片和种子保留，无新依赖或需配置环境变量。原库升级仍需配套备份/迁移/重启。状态变化必填原因，同状态不覆盖旧原因；未完成工作恢复后须新租约。无后台按钮、API、worker或真实发送接入。永久取消、重试/待核对、共用尝试、限速/优先级、真实余额和回执待后续，真实邮件、AI、语音、通话及正式评分关闭。
+
+## 历史交接：本地模拟任务租约（2026-11-21）
 
 已核对PR91合并提交 `d2bbd1dfbc8c3b6c15c2652f0fd9357cd435e30b`，新分支 `codex/subscription-mock-task-leases` 从最新main干净起点开始。私有表按原占位唯一，数据库时间60秒租约，恢复更换凭证，旧凭证不能提交，模拟完成与审计仅记录一次。无页面、API、worker或真实传输接入。[一页亲测](subscription-mock-task-leases-summary.md) · [实施计划](superpowers/plans/2026-11-21-subscription-mock-task-leases.md)。
 

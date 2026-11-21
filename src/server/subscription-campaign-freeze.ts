@@ -7,6 +7,7 @@ import { campaignAudience } from "./subscription-campaign-audience";
 import { withCampaignDraft } from "./subscription-campaign-drafts";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
 import type { CampaignPreview } from "./subscription-campaign-preview";
+import { requireCampaignRunning } from "./subscription-campaign-control";
 
 const collection = "subscription-campaign-batches";
 function report(row: SubscriptionCampaignBatch) {
@@ -28,6 +29,7 @@ function report(row: SubscriptionCampaignBatch) {
 
 export async function freezeCampaignRecipients(p: Payload, actor: Staff, input: unknown) {
   const result = await withConfirmedCampaign(p, actor, input, async (req, draft, confirmation) => {
+    await requireCampaignRunning(p, req, draft.campaignKey);
     const existing = (
       await p.find({
         collection,

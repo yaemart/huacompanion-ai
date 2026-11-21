@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import {
@@ -17,14 +18,18 @@ assert.ok(
     (process.env.GITHUB_ACTIONS === "true" && url.port === "55438" && url.username === "hua"),
 );
 const p = await getPayload({ config });
-process.on("message", async (message: { actorId: number; action: string; input: unknown }) => {
-  try {
-    const actor = await p.findByID({ collection: "staff", id: message.actorId, depth: 0 });
-    assert.ok(["claim", "complete"].includes(message.action));
-    const work = message.action === "claim" ? claimMockCampaignTask : completeMockCampaignTask;
-    process.send!({ pid: process.pid, report: await work(p, actor, message.input) });
-  } catch (error) {
-    process.send!({ pid: process.pid, error: (error as { status?: number }).status ?? 500 });
-  }
-});
+process.on(
+  "message",
+  async (message: { actorId: number; action: string; input: unknown; delayStart?: boolean }) => {
+    try {
+      if (message.delayStart) await delay(200);
+      const actor = await p.findByID({ collection: "staff", id: message.actorId, depth: 0 });
+      assert.ok(["claim", "complete"].includes(message.action));
+      const work = message.action === "claim" ? claimMockCampaignTask : completeMockCampaignTask;
+      process.send!({ pid: process.pid, report: await work(p, actor, message.input) });
+    } catch (error) {
+      process.send!({ pid: process.pid, error: (error as { status?: number }).status ?? 500 });
+    }
+  },
+);
 process.send!({ ready: true, pid: process.pid });

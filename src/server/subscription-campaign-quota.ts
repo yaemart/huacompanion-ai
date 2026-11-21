@@ -9,6 +9,7 @@ import { campaignAudience } from "./subscription-campaign-audience";
 import { campaignTaskReason } from "./subscription-campaign-recheck";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
 import type { CampaignPreview } from "./subscription-campaign-preview";
+import { requireCampaignRunning } from "./subscription-campaign-control";
 
 const budgets = "subscription-campaign-mock-budgets";
 const slots = "subscription-campaign-mock-slots";
@@ -126,6 +127,7 @@ export async function reserveMockCampaignSlot(
     actor,
     { campaignKey: input.campaignKey, revision: input.revision },
     async (req, draft) => {
+      await requireCampaignRunning(p, req, draft.campaignKey);
       const stop = (state: State) => ({ auditId: null, report: { state } as Report });
       const batch = (
         await p.find({

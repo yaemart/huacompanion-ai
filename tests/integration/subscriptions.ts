@@ -1,3 +1,4 @@
+import { testCampaignControl } from "./subscription-campaign-control";
 import {
   up as upLeases,
   down as downLeases,
@@ -398,6 +399,7 @@ try {
   await testCampaignRecheck(payload, url);
   await testCampaignQuota(payload, url);
   await testCampaignLeases(payload, url);
+  await testCampaignControl(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
