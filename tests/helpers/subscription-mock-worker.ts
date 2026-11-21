@@ -4,6 +4,8 @@ import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import {
   claimMockCampaignTask,
+  beginMockCampaignAttempt,
+  recordMockCampaignOutcome,
   completeMockCampaignTask,
 } from "../../src/server/subscription-campaign-leases";
 
@@ -24,8 +26,15 @@ process.on(
     try {
       if (message.delayStart) await delay(200);
       const actor = await p.findByID({ collection: "staff", id: message.actorId, depth: 0 });
-      assert.ok(["claim", "complete"].includes(message.action));
-      const work = message.action === "claim" ? claimMockCampaignTask : completeMockCampaignTask;
+      assert.ok(["claim", "complete", "begin", "result"].includes(message.action));
+      const work =
+        message.action === "claim"
+          ? claimMockCampaignTask
+          : message.action === "begin"
+            ? beginMockCampaignAttempt
+            : message.action === "result"
+              ? recordMockCampaignOutcome
+              : completeMockCampaignTask;
       process.send!({ pid: process.pid, report: await work(p, actor, message.input) });
     } catch (error) {
       process.send!({ pid: process.pid, error: (error as { status?: number }).status ?? 500 });

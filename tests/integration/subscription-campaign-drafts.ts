@@ -1,4 +1,8 @@
 import {
+  up as upAttempts,
+  down as downAttempts,
+} from "../../src/migrations/20261121_213000_subscription_campaign_mock_attempts";
+import {
   up as upLeases,
   down as downLeases,
 } from "../../src/migrations/20261121_130000_subscription_campaign_mock_leases";
@@ -41,6 +45,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downAttempts(adapter as unknown as MigrateDownArgs);
       await downLeases(adapter as unknown as MigrateDownArgs);
       await downQuota(adapter as unknown as MigrateDownArgs);
       await downRecheck(adapter as unknown as MigrateDownArgs);
@@ -58,6 +63,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
               "subscription_campaign_jobs",
               "subscription_campaign_mock_budgets",
               "subscription_campaign_mock_slots",
+              "subscription_campaign_mock_attempts",
               "subscription_campaign_mock_leases",
             ].includes(r.table),
         ),
@@ -68,6 +74,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
       await upRecheck(adapter as unknown as MigrateUpArgs);
       await upQuota(adapter as unknown as MigrateUpArgs);
       await upLeases(adapter as unknown as MigrateUpArgs);
+      await upAttempts(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

@@ -1,3 +1,8 @@
+import {
+  mockAttemptState,
+  type AttemptReport,
+  type MockOutcome,
+} from "./subscription-campaign-attempt-state";
 import { randomUUID } from "node:crypto";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
@@ -14,9 +19,31 @@ import { requireCampaignRunning } from "./subscription-campaign-control";
 
 const collection = "subscription-campaign-mock-leases";
 type Report =
+  | AttemptReport
   | { state: "claimed-local"; id: number; token: string; expiresAt: string }
   | { state: "busy" | "completed-local" | "ineligible"; id?: number };
-type Input = { campaignKey: unknown; revision: unknown; slotId: number; token?: string };
+type Input = {
+  campaignKey: unknown;
+  revision: unknown;
+  slotId: number;
+  token?: string;
+  outcome?: MockOutcome;
+  retryAfterMs?: number;
+};
+export function beginMockCampaignAttempt(
+  p: Payload,
+  actor: Staff,
+  input: unknown,
+): Promise<Report> {
+  return operate(p, actor, input, false, "begin");
+}
+export function recordMockCampaignOutcome(
+  p: Payload,
+  actor: Staff,
+  input: unknown,
+): Promise<Report> {
+  return operate(p, actor, input, false, "result");
+}
 
 export function claimMockCampaignTask(p: Payload, actor: Staff, input: unknown): Promise<Report> {
   return operate(p, actor, input, false);
@@ -35,8 +62,16 @@ async function operate(
   actor: Staff,
   value: unknown,
   complete: boolean,
+  attempt?: "begin" | "result",
 ): Promise<Report> {
-  const fields = ["campaignKey", "revision", "slotId", ...(complete ? ["token"] : [])];
+  const requiresToken = complete || !!attempt;
+  const fields = [
+    "campaignKey",
+    "revision",
+    "slotId",
+    ...(requiresToken ? ["token"] : []),
+    ...(attempt === "result" ? ["outcome", "retryAfterMs"] : []),
+  ];
   if (
     !value ||
     typeof value !== "object" ||
@@ -48,7 +83,7 @@ async function operate(
     typeof value.slotId !== "number" ||
     !Number.isSafeInteger(value.slotId) ||
     value.slotId <= 0 ||
-    (complete &&
+    (requiresToken &&
       (!("token" in value) ||
         typeof value.token !== "string" ||
         !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
@@ -56,6 +91,18 @@ async function operate(
         )))
   )
     throw new ContentError("请从当前活动选择有效的模拟任务和租约凭证。", 400);
+  if (
+    attempt === "result" &&
+    (!("outcome" in value) ||
+      typeof value.outcome !== "string" ||
+      !["accepted", "temporary", "rate-limited", "unknown", "permanent"].includes(value.outcome) ||
+      ("retryAfterMs" in value &&
+        (value.outcome !== "rate-limited" ||
+          typeof value.retryAfterMs !== "number" ||
+          !Number.isSafeInteger(value.retryAfterMs) ||
+          value.retryAfterMs < 0)))
+  )
+    throw new ContentError("请选择有效的本地模拟结果和等待时间。", 400);
   const input = value as Input;
   const result = await withConfirmedCampaign(
     p,
@@ -132,9 +179,24 @@ async function operate(
       const previous = (
         await p.find({ collection, req, depth: 0, limit: 1, where: { slot: { equals: slot.id } } })
       ).docs[0];
+      if (requiresToken && (!previous || previous.token !== input.token!.toLowerCase()))
+        throw new ContentError("租约凭证已失效，请重新抢占模拟任务。", 409);
+      const attemptResult = await mockAttemptState(
+        p,
+        req,
+        {
+          actorId: relationID(draft.owner)!,
+          slotId: slot.id,
+          job,
+          message: (draft.preview as CampaignPreview)[job.locale],
+          lease: previous,
+          now,
+        },
+        attempt ?? (complete ? "complete" : "claim"),
+        input,
+      );
+      if (attemptResult) return attemptResult;
       if (complete) {
-        if (!previous || previous.token !== input.token!.toLowerCase())
-          throw new ContentError("租约凭证已失效，请重新抢占模拟任务。", 409);
         if (previous.completedAt) return stop("completed-local", previous.id);
         if (!(Date.parse(previous.expiresAt) > now))
           throw new ContentError("模拟租约已到期，请重新抢占后处理。", 409);
