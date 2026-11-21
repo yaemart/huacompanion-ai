@@ -7,6 +7,7 @@ import { freezeCampaignRecipients } from "@/server/subscription-campaign-freeze"
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { cancelMockCampaign } from "@/server/subscription-campaign-cancel";
 import { readCampaignPause, setCampaignPause } from "@/server/subscription-campaign-control";
+import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 
 export const runtime = "nodejs";
 const headers = {
@@ -31,6 +32,10 @@ export async function POST(request: Request) {
       !("input" in body)
     )
       throw new ContentError("操作内容无效，请重新打开页面。", 400);
+    if (body.action === "read-mock-status-local") {
+      const taskStatus = await readCampaignTaskStatus(p, user, body.input);
+      return Response.json({ taskStatus }, { headers });
+    }
     if (body.action === "cancel-local") {
       const input = body.input;
       if (
