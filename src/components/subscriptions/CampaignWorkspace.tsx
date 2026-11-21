@@ -9,6 +9,8 @@ import type { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import type { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import type { readCampaignPause } from "@/server/subscription-campaign-control";
 import { CampaignPauseControls } from "./CampaignPauseControls";
+import { CampaignTaskStatus } from "./CampaignTaskStatus";
+import type { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 
 type Workspace = Awaited<ReturnType<typeof readCampaignWorkspace>>;
 type Draft = Awaited<ReturnType<typeof readCampaignDraft>>;
@@ -19,6 +21,7 @@ export function CampaignWorkspace({
   checks,
   frozen,
   pause,
+  taskStatus,
 }: {
   workspace: Workspace;
   draft?: Draft;
@@ -26,6 +29,7 @@ export function CampaignWorkspace({
   checks?: Awaited<ReturnType<typeof campaignMockChecks>>;
   frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
   pause?: Awaited<ReturnType<typeof readCampaignPause>>;
+  taskStatus?: Awaited<ReturnType<typeof readCampaignTaskStatus>>;
 }) {
   const [busy, setBusy] = useState(false);
   const [mockBusy, setMockBusy] = useState(false);
@@ -231,6 +235,13 @@ export function CampaignWorkspace({
               paused={control?.paused}
               cancelled={!!control?.cancelledAt}
               onBusyChange={setMockBusy}
+            />
+          )}
+          {draft && taskStatus && (
+            <CampaignTaskStatus
+              draft={draft}
+              initial={taskStatus}
+              blocked={busy || mockBusy || controlBusy}
             />
           )}
         </>

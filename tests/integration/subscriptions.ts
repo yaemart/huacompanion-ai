@@ -3,6 +3,7 @@ import {
   down as downAttempts,
 } from "../../src/migrations/20261121_213000_subscription_campaign_mock_attempts";
 import { testCampaignRetries } from "./subscription-campaign-retries";
+import { testCampaignStatus } from "./subscription-campaign-status";
 import { testCampaignCancelUI } from "./subscription-campaign-cancel-ui";
 import { testCampaignCancel } from "./subscription-campaign-cancel";
 import { testCampaignControl } from "./subscription-campaign-control";
@@ -415,6 +416,7 @@ try {
   await testCampaignCancel(payload, url);
   await testCampaignCancelUI(payload);
   await testCampaignRetries(payload, url);
+  await testCampaignStatus(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

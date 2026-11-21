@@ -101,3 +101,19 @@
   background: #842b29;
   border-color: #842b29;
 }
+
+.campaign-task-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 12px;
+}
+.campaign-task-counts div {
+  padding: 12px;
+  background: #f3f5f0;
+  border-radius: 6px;
+}
+.campaign-task-counts dd {
+  margin: 6px 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
