@@ -52,7 +52,7 @@ export async function testCampaignPauseUI(p: Payload) {
   const post = (
     token: string,
     input: unknown,
-    patch: { origin?: string; type?: string; raw?: string } = {},
+    patch: { origin?: string; type?: string; raw?: string; action?: string } = {},
   ) =>
     POST(
       new Request(origin + "/api/subscriptions/campaigns", {
@@ -62,7 +62,7 @@ export async function testCampaignPauseUI(p: Payload) {
           origin: patch.origin ?? origin,
           "content-type": patch.type ?? "application/json",
         },
-        body: patch.raw ?? JSON.stringify({ action: "control-local", input }),
+        body: patch.raw ?? JSON.stringify({ action: patch.action ?? "control-local", input }),
       }),
     );
   try {
@@ -123,6 +123,7 @@ export async function testCampaignPauseUI(p: Payload) {
       canResume = false,
       enabled = true,
       disabled = false,
+      uncertain = false,
     ) =>
       renderToStaticMarkup(
         createElement(CampaignPauseControls, {
@@ -132,10 +133,17 @@ export async function testCampaignPauseUI(p: Payload) {
           canResume,
           enabled,
           disabled,
+          uncertain,
+          onUncertainChange: () => undefined,
           onChange: () => undefined,
         }),
       );
     assert.match(render(), /原因（必填）/);
+    const unknown = render(initial, false, true, true, false, true);
+    assert.match(unknown, /当前状态：待核实/);
+    assert.doesNotMatch(unknown, /当前状态：未暂停/);
+    assert.match(unknown, /核实活动状态/);
+    assert.match(unknown, /<button[^>]*disabled=""[^>]*>暂停本地活动/);
     assert.match(render(), /required=""/);
     assert.doesNotMatch(render(initial, true), /<button[^>]*disabled=""[^>]*>暂停本地活动/);
     assert.match(render(initial, false, false, false), /<button[^>]*disabled=""[^>]*>暂停本地活动/);
@@ -147,6 +155,13 @@ export async function testCampaignPauseUI(p: Payload) {
     assert.equal(response.status, 200);
     assert.match(response.headers.get("cache-control")!, /no-store/);
     assert.match(response.headers.get("x-robots-tag")!, /noindex/);
+    // The mutation committed, but its response is discarded: reconcile via a fresh read.
+    const verified = await post(manager.token, input, { action: "read-control-local" });
+    assert.equal(verified.status, 200);
+    assert.equal((await verified.json()).control.paused, true);
+    for (const who of ["", admin.token, operations.token, editor.token, reviewer.token])
+      assert.equal((await post(who, input, { action: "read-control-local" })).status, 403);
+    assert.equal((await post(other.token, input, { action: "read-control-local" })).status, 404);
     const result = await response.json();
     assert.equal(result.control.paused, true);
     assert.doesNotMatch(JSON.stringify(result), /@|recipient|password|token|API_KEY|subscription/);

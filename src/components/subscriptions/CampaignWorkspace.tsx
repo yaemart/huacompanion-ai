@@ -33,6 +33,7 @@ export function CampaignWorkspace({
   const [dirty, setDirty] = useState(false);
   const [controlBusy, setControlBusy] = useState(false);
   const [control, setControl] = useState(pause);
+  const [controlUncertain, setControlUncertain] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -92,7 +93,7 @@ export function CampaignWorkspace({
                 name="staffId"
                 required
                 defaultValue=""
-                disabled={busy || mockBusy || controlBusy}
+                disabled={busy || mockBusy || controlBusy || controlUncertain}
               >
                 <option value="" disabled>
                   请选择员工
@@ -106,12 +107,19 @@ export function CampaignWorkspace({
             </label>
             <label>
               主题权限
-              <select name="enabled" defaultValue="true" disabled={busy || mockBusy || controlBusy}>
+              <select
+                name="enabled"
+                defaultValue="true"
+                disabled={busy || mockBusy || controlBusy || controlUncertain}
+              >
                 <option value="true">授予政策更新操作权</option>
                 <option value="false">撤销政策更新操作权</option>
               </select>
             </label>
-            <button className="button" disabled={busy || mockBusy || controlBusy}>
+            <button
+              className="button"
+              disabled={busy || mockBusy || controlBusy || controlUncertain}
+            >
               更新主题授权
             </button>
           </form>
@@ -142,6 +150,8 @@ export function CampaignWorkspace({
               canResume={checks.enabled && checks.current && checks.mockConfirmed}
               enabled={checks.enabled}
               disabled={busy || mockBusy}
+              uncertain={controlUncertain}
+              onUncertainChange={setControlUncertain}
               onChange={setControl}
               onBusyChange={setControlBusy}
             />
@@ -152,7 +162,7 @@ export function CampaignWorkspace({
             </p>
           )}
           <form onChange={() => setDirty(true)} onSubmit={(event) => submit(event, "save")}>
-            <fieldset disabled={busy || mockBusy || controlBusy}>
+            <fieldset disabled={busy || mockBusy || controlBusy || controlUncertain}>
               <legend>选择已发布政策（最多 10 项）</legend>
               {!workspace.choices.length && <p>暂无可选政策，请先在政策工作台审核发布共用事实。</p>}
               {workspace.choices.map((choice) => (
@@ -207,7 +217,7 @@ export function CampaignWorkspace({
               status={checks}
               frozen={frozen}
               dirty={dirty}
-              disabled={busy || controlBusy}
+              disabled={busy || controlBusy || controlUncertain}
               paused={control?.paused}
               onBusyChange={setMockBusy}
             />
