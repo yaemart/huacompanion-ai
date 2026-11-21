@@ -332,6 +332,54 @@ export async function testCampaignQuota(p: Payload, url: URL) {
       ),
       /unique/i,
     );
+    process.env.PRIVACY_VERSION = "hist-b" + key;
+    const dense = await fresh();
+    const candidates = (
+      await p.find({
+        collection: "subscription-campaign-jobs",
+        depth: 0,
+        pagination: false,
+        sort: "id",
+        where: { batch: { equals: dense.batch.id } },
+      })
+    ).docs;
+    assert.equal(candidates.length, 1000);
+    const beforeDense = await count();
+    const originalCount = p.count;
+    let recipientCounts = 0;
+    p.count = (options) => {
+      if (options.collection === "subscription-campaign-mock-slots") recipientCounts++;
+      return originalCount.call(p, options);
+    };
+    try {
+      assert.equal(
+        (await reserveMockCampaignSlot(p, manager, { ...dense.input, key: randomUUID() })).state,
+        "email-limit",
+      );
+      assert.equal(recipientCounts, 0, "1,000 blocked candidates must not cause per-email counts");
+      const last = candidates.at(-1)!;
+      await db.query(
+        "UPDATE subscription_campaign_mock_slots SET reserved_at=statement_timestamp()-interval '24 hours 1 millisecond' WHERE recipient_hash=$1",
+        [last.recipientHash],
+      );
+      const result = await reserveMockCampaignSlot(p, manager, {
+        ...dense.input,
+        key: randomUUID(),
+      });
+      assert.equal(result.state, "reserved-local");
+      assert.equal(recipientCounts, 0, "skip 999 blocked candidates without per-email counts");
+      const receipt = await p.findByID({
+        collection: "subscription-campaign-mock-slots",
+        id: result.id!,
+        depth: 0,
+      });
+      assert.equal(receipt.job, last.id);
+    } finally {
+      p.count = originalCount;
+    }
+    assert.equal(await count(), beforeDense + 1, "only the newly eligible recipient gets a slot");
+    process.env.PRIVACY_VERSION = key;
+    await prepare(input);
     assert.deepEqual(
       (await databaseFingerprints(db)).find((row) => row.table === "subscription_mail_jobs"),
       mailBefore,
@@ -342,7 +390,9 @@ export async function testCampaignQuota(p: Payload, url: URL) {
       enabled: false,
     });
     await assert.rejects(reserve(randomUUID()), { status: 403 });
-    console.log("PASS 本地模拟余额、唯一占位、并发限额、北京日界线、滚动24小时、权限与审计回滚");
+    console.log(
+      "PASS 本地模拟余额、唯一占位、并发限额、北京日界线、滚动24小时、千人限额批量查询、权限与审计回滚",
+    );
   } finally {
     await p.delete({ collection: "subscription-campaign-mock-slots", where: {} });
     await p.delete({ collection: "subscription-campaign-mock-budgets", where: {} });
