@@ -158,7 +158,10 @@ export function CampaignWorkspace({
           )}
           {draft && !draft.current && (
             <p role="alert">
-              来源已变化、下架或过期。下方保留旧预览，请重新勾选当前资料并保存新版本。
+              来源已变化、下架或过期。
+              {control?.cancelledAt
+                ? "本活动已取消，下方保留的旧预览仅供查阅。"
+                : "下方保留旧预览，请重新勾选当前资料并保存新版本。"}
             </p>
           )}
           <form onChange={() => setDirty(true)} onSubmit={(event) => submit(event, "save")}>
