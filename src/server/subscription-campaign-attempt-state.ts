@@ -89,11 +89,11 @@ export async function mockAttemptState(
       req,
       data: {
         entity: collection,
-        recordId: String(ctx.slotId),
+        recordId: String(row.id),
         actor: ctx.actorId,
         action: actionName,
         fields: "state,attemptedAt,nextAttemptAt,lastOutcome",
-        after: output,
+        after: { ...output, slotId: ctx.slotId },
       },
     });
     return { auditId: audit.id, report: output };

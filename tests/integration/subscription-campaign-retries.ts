@@ -201,6 +201,7 @@ export async function testCampaignRetries(p: Payload, url: URL) {
     } finally {
       await allowAudit();
     }
+    await db.query("SELECT setval('subscription_campaign_mock_attempts_id_seq',1000000,true)");
     child = fork(new URL("../helpers/subscription-mock-worker.ts", import.meta.url), [], {
       execArgv: ["--import", "tsx"],
       stdio: ["ignore", "ignore", "inherit", "ipc"],
@@ -214,6 +215,8 @@ export async function testCampaignRetries(p: Payload, url: URL) {
     const childBegan = (await childBegin)[0].report;
     assert.equal(childBegan.state, "attempting-local");
     assert.equal(Number("started" in begun && begun.started) + Number(childBegan.started), 1);
+    const first = await row();
+    assert.notEqual(first.id, current.target.slotId);
     assert.equal(
       (
         await p.count({
@@ -222,14 +225,13 @@ export async function testCampaignRetries(p: Payload, url: URL) {
             and: [
               { entity: { equals: collection } },
               { action: { equals: "begin-mock-attempt" } },
-              { recordId: { equals: String(current.target.slotId) } },
+              { recordId: { equals: String(first.id) } },
             ],
           },
         })
       ).totalDocs,
       1,
     );
-    const first = await row();
     assert.equal((first.attemptedAt as string[]).length, 1);
     assert.match(first.key, /^[a-f0-9]{64}$/);
     assert.equal(JSON.stringify(first).includes(current.lease.token), false);
@@ -326,7 +328,7 @@ export async function testCampaignRetries(p: Payload, url: URL) {
             and: [
               { entity: { equals: collection } },
               { action: { equals: "outcome-mock-attempt" } },
-              { recordId: { equals: String(concurrent.target.slotId) } },
+              { recordId: { equals: String((await row(concurrent.target.slotId)).id) } },
             ],
           },
         })
@@ -515,6 +517,10 @@ export async function testCampaignRetries(p: Payload, url: URL) {
       })
     ).docs;
     assert.doesNotMatch(JSON.stringify(audits), /@|leaseTokenHash|subject|FICTIONAL|"token"/);
+    const firstAudit = audits.find(
+      (a) => a.action === "begin-mock-attempt" && a.recordId === String(first.id),
+    );
+    assert.equal((firstAudit!.after as { slotId: number }).slotId, current.target.slotId);
     assert.equal((await p.count({ collection: "subscription-campaign-mock-slots" })).totalDocs, 10);
     assert.deepEqual(
       (await databaseFingerprints(db)).find((r) => r.table === "subscription_mail_jobs"),
