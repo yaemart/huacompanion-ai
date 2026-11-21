@@ -386,6 +386,36 @@ export async function testCampaignCancel(p: Payload, url: URL) {
       data: { status: "unsubscribed" },
     });
     const historicalSnapshot = (await readCampaignFreeze(p, manager, current))!;
+    const staleDraft = {
+      ...(await readCampaignDraft(p, manager, current.campaignKey)),
+      current: false,
+    };
+    const staleWorkspace = await readCampaignWorkspace(p, manager);
+    const staleChecks = await campaignMockChecks(p, manager, "status", current);
+    const cancelledControl = await readCampaignPause(p, manager, current);
+    const stalePage = renderToStaticMarkup(
+      createElement(CampaignWorkspace, {
+        workspace: staleWorkspace,
+        draft: staleDraft,
+        checks: staleChecks,
+        pause: cancelledControl,
+        frozen: historicalSnapshot,
+      }),
+    );
+    assert.match(stalePage, /来源已变化、下架或过期/);
+    assert.match(stalePage, /本活动已取消/);
+    assert.doesNotMatch(stalePage, /请重新勾选当前资料并保存新版本/);
+    assert.match(stalePage, /<fieldset disabled=""/);
+    assert.match(stalePage, new RegExp(`编号 ${historicalSnapshot.id}`));
+    const editablePage = renderToStaticMarkup(
+      createElement(CampaignWorkspace, {
+        workspace: staleWorkspace,
+        draft: staleDraft,
+        checks: staleChecks,
+        pause: { ...cancelledControl, cancelledAt: null, cancelReason: null },
+      }),
+    );
+    assert.match(editablePage, /请重新勾选当前资料并保存新版本/);
     for (const snapshot of [undefined, historicalSnapshot]) {
       const page = renderToStaticMarkup(
         createElement(CampaignWorkspace, {
