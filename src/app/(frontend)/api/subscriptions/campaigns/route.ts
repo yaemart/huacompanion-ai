@@ -5,6 +5,7 @@ import { setCampaignGrant } from "@/server/subscription-campaign-access";
 import { saveCampaignDraft } from "@/server/subscription-campaign-drafts";
 import { freezeCampaignRecipients } from "@/server/subscription-campaign-freeze";
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
+import { cancelMockCampaign } from "@/server/subscription-campaign-cancel";
 import { readCampaignPause, setCampaignPause } from "@/server/subscription-campaign-control";
 
 export const runtime = "nodejs";
@@ -30,6 +31,29 @@ export async function POST(request: Request) {
       !("input" in body)
     )
       throw new ContentError("操作内容无效，请重新打开页面。", 400);
+    if (body.action === "cancel-local") {
+      const input = body.input;
+      if (
+        !input ||
+        typeof input !== "object" ||
+        Array.isArray(input) ||
+        Object.keys(input).some(
+          (key) => !["campaignKey", "revision", "reason", "confirmed"].includes(key),
+        ) ||
+        !("campaignKey" in input) ||
+        !("revision" in input) ||
+        !("reason" in input) ||
+        !("confirmed" in input) ||
+        input.confirmed !== true
+      )
+        throw new ContentError("请填写原因，并明确确认取消后不能恢复。", 400);
+      const cancellation = await cancelMockCampaign(p, user, {
+        campaignKey: input.campaignKey,
+        revision: input.revision,
+        reason: input.reason,
+      });
+      return Response.json({ cancellation }, { headers });
+    }
     if (body.action === "read-control-local") {
       const control = await readCampaignPause(p, user, body.input);
       return Response.json({ control }, { headers });
