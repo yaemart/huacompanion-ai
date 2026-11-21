@@ -2,8 +2,11 @@
 
 ## 取消终态提示与隔离预览冷启动（2026-11-21）
 
-核对main为PR96合并 `4baf78b6f73f9fa01251e24f55be17a035c8669f`，从干净起点建立
-`codex/subscription-preview-stability`，草稿[PR98](https://github.com/yaemart/huacompanion-ai/pull/98)。
+来源终态提示已通过[PR98](https://github.com/yaemart/huacompanion-ai/pull/98)合并，
+最新main为 `bb298be9428da3a717c6196cdec669f691210f99`。
+本轮冷启动修复在 `codex/subscription-preview-cold-start` 独立交付。
+PR98在后续修复完成前由用户合并，只包含83ad7b1的来源提示及回归；
+已验证的冷启动提交从最新main应用到本分支，应用后的文件树与原验证版本一致。
 来源变化、下架或过期且活动已取消时，明确旧预览仅供查阅；可编辑活动继续提示重选保存。
 完整工作区回归先RED复现错误保存指引，再GREEN；历史快照和表单禁用一并检查。
 [一页亲测](subscription-preview-stability-summary.md)。
@@ -21,6 +24,7 @@ SiteContext/CampaignWorkspace，定位为开发路由编译期间的客户端模
 此修改仅涉及随机预览种子，原3100演示种子和数据保留。构建保留既有警告及嵌套目录的
 workspace根目录提示，实际构建通过。
 
+首轮沙箱基线单测的本机端口用例遇到EPERM，使用所需本机端口权限后353项通过。
 最终Node24.22.1完整 `npm run check` 通过，353/353单测、lint0错误/445警告持平，
 750源码文件行长无例外。取消提示修复后25组订阅集成通过。
 新增生命周期集成先RED再GREEN，真实子进程验证构建先于启动、失败不启动、
