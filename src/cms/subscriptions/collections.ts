@@ -12,6 +12,36 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "subscription-campaign-mock-attempts",
+    typescript: { interface: "SubscriptionCampaignMockAttempt" },
+    fields: [
+      {
+        name: "slot",
+        type: "relationship",
+        relationTo: "subscription-campaign-mock-slots",
+        required: true,
+        unique: true,
+      },
+      { name: "key", type: "text", required: true, unique: true, maxLength: 64 },
+      { name: "message", type: "json", required: true },
+      { name: "attemptedAt", type: "json", required: true },
+      { name: "leaseTokenHash", type: "text", required: true, maxLength: 64 },
+      {
+        name: "state",
+        type: "select",
+        options: ["attempting", "retry", "review", "failed", "completed"],
+        required: true,
+      },
+      {
+        name: "lastOutcome",
+        type: "select",
+        options: ["accepted", "temporary", "rate-limited", "unknown", "permanent"],
+      },
+      { name: "nextAttemptAt", type: "date" },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscription-campaign-controls",
     typescript: { interface: "SubscriptionCampaignControl" },
     fields: [

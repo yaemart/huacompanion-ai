@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-mock-attempts': SubscriptionCampaignMockAttempt;
     'subscription-campaign-controls': SubscriptionCampaignControl;
     'subscription-campaign-mock-leases': SubscriptionCampaignMockLease;
     'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudget;
@@ -184,6 +185,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-mock-attempts': SubscriptionCampaignMockAttemptsSelect<false> | SubscriptionCampaignMockAttemptsSelect<true>;
     'subscription-campaign-controls': SubscriptionCampaignControlsSelect<false> | SubscriptionCampaignControlsSelect<true>;
     'subscription-campaign-mock-leases': SubscriptionCampaignMockLeasesSelect<false> | SubscriptionCampaignMockLeasesSelect<true>;
     'subscription-campaign-mock-budgets': SubscriptionCampaignMockBudgetsSelect<false> | SubscriptionCampaignMockBudgetsSelect<true>;
@@ -1623,30 +1625,34 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-campaign-controls".
+ * via the `definition` "subscription-campaign-mock-attempts".
  */
-export interface SubscriptionCampaignControl {
-  id: number;
-  campaignKey: string;
-  owner: number | Staff;
-  paused: boolean;
-  reason: string;
-  changedAt: string;
-  cancelledAt?: string | null;
-  cancelReason?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-campaign-mock-leases".
- */
-export interface SubscriptionCampaignMockLease {
+export interface SubscriptionCampaignMockAttempt {
   id: number;
   slot: number | SubscriptionCampaignMockSlot;
-  token: string;
-  expiresAt: string;
-  completedAt?: string | null;
+  key: string;
+  message:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  attemptedAt:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  leaseTokenHash: string;
+  state: 'attempting' | 'retry' | 'review' | 'failed' | 'completed';
+  lastOutcome?: ('accepted' | 'temporary' | 'rate-limited' | 'unknown' | 'permanent') | null;
+  nextAttemptAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1791,6 +1797,35 @@ export interface SubscriptionCampaignMockBudget {
   expiresAt: string;
   actor: number | Staff;
   reason: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-controls".
+ */
+export interface SubscriptionCampaignControl {
+  id: number;
+  campaignKey: string;
+  owner: number | Staff;
+  paused: boolean;
+  reason: string;
+  changedAt: string;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-leases".
+ */
+export interface SubscriptionCampaignMockLease {
+  id: number;
+  slot: number | SubscriptionCampaignMockSlot;
+  token: string;
+  expiresAt: string;
+  completedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3019,6 +3054,22 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-mock-attempts_select".
+ */
+export interface SubscriptionCampaignMockAttemptsSelect<T extends boolean = true> {
+  slot?: T;
+  key?: T;
+  message?: T;
+  attemptedAt?: T;
+  leaseTokenHash?: T;
+  state?: T;
+  lastOutcome?: T;
+  nextAttemptAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
