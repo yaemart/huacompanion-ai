@@ -1,3 +1,4 @@
+import { admitDispatch, ownsDispatch, finishDispatch } from "./local-mail-dispatch";
 import { customerEmail } from "../lib/customer";
 import { subscriptionAttemptBudgetSQL } from "./subscription-attempt-budget";
 import { createHash, createHmac, randomUUID } from "node:crypto";
@@ -25,7 +26,7 @@ import {
 
 type Statement = ReturnType<typeof sql>;
 type Query = (statement: Statement) => Promise<Record<string, unknown>[]>;
-type Job = {
+export type Job = {
   id: number;
   key: string;
   subscription_id: number;
@@ -47,7 +48,7 @@ type Job = {
   policy_selection: PolicySelection | null;
   deliver_policy: boolean;
 };
-const eligible = (job: Job, origin: string) =>
+export const eligible = (job: Job, origin: string) =>
   (!job.policy_selection || isPolicySelection(job.policy_selection)) &&
   (job.deliver_policy
     ? !!job.policy_selection && job.consent_status === "confirmed"
@@ -58,8 +59,8 @@ const eligible = (job: Job, origin: string) =>
     process.env.PRIVACY_VERSION?.trim() &&
   job.site_origin === origin &&
   job.within_window;
-const due = sql`(status = 'queued' AND (next_at IS NULL OR next_at <= statement_timestamp()))
-  OR (status IN ('running','retry','uncertain') AND next_at <= statement_timestamp())`;
+export const due = sql`(j.status = 'queued' AND (j.next_at IS NULL OR j.next_at <= statement_timestamp()))
+  OR (j.status IN ('running','retry','uncertain') AND j.next_at <= statement_timestamp())`;
 
 function transaction<T>(payload: Payload, work: (query: Query) => Promise<T>) {
   return payload.db.drizzle.transaction((db) =>
@@ -70,8 +71,8 @@ function transaction<T>(payload: Payload, work: (query: Query) => Promise<T>) {
   );
 }
 
-async function readJob(query: Query, id: number) {
-  const rows = await query(sql`
+export function mailJobSQL(where: Statement) {
+  return sql`
     SELECT j.*, s.email, s.topic, s.locale, s.privacy_version, s.status AS consent_status, s.consent_version AS live_version,
       j.next_at > statement_timestamp() AS lease_active,
       d.deadline::text AS deadline, d.deadline > statement_timestamp() AS within_window
@@ -80,9 +81,11 @@ async function readJob(query: Query, id: number) {
       SELECT CASE WHEN j.deliver_policy THEN
         COALESCE((j.attempted_at->>0)::timestamptz + interval '23 hours', j.created_at + interval '48 hours')
         ELSE j.created_at + interval '23 hours' END AS deadline
-    ) d WHERE j.id=${id}
-  `);
-  return rows[0] as Job | undefined;
+    ) d WHERE (${where})
+  `;
+}
+async function readJob(query: Query, id: number) {
+  return (await query(mailJobSQL(sql`j.id=${id}`)))[0] as Job | undefined;
 }
 
 async function lock(query: Query, email: string, topic: string) {
@@ -105,7 +108,7 @@ async function finish(
   `);
 }
 
-function messageFor(job: Job, origin: string, policy?: PublicPolicyData) {
+export function messageFor(job: Job, origin: string, policy?: PublicPolicyData) {
   const secret = process.env.PAYLOAD_SECRET!;
   const token = (purpose: string) =>
     createHmac("sha256", secret)
@@ -159,7 +162,8 @@ async function claim(payload: Payload, id: number, origin: string, policy?: Publ
     const job = await readJob(query, id);
     if (
       !job ||
-      !(await query(sql`SELECT id FROM subscription_mail_jobs WHERE id=${id} AND (${due})`)).length
+      !(await query(sql`SELECT id FROM subscription_mail_jobs j WHERE j.id=${id} AND (${due})`))
+        .length
     )
       return;
     const attempts = job.attempted_at?.length ?? 0;
@@ -186,6 +190,12 @@ async function claim(payload: Payload, id: number, origin: string, policy?: Publ
       await finish(query, id, "uncertain");
       return;
     }
+    const lease = randomUUID();
+    const wait = await admitDispatch(query, `subscription:${lease}`, 70000);
+    if (wait) {
+      await finish(query, id, job.status, wait.nextAttemptAt);
+      return;
+    }
     if (!job.message_hash)
       for (const purpose of job.deliver_policy
         ? (["unsubscribe"] as const)
@@ -196,7 +206,6 @@ async function claim(payload: Payload, id: number, origin: string, policy?: Publ
             ${job.consent_version}, statement_timestamp() + ${credentialLifetimes[purpose]} * interval '1 millisecond',
             ${purpose === "confirm" && job.policy_selection ? job.key : null})
         `);
-    const lease = randomUUID();
     // Reserve through the 60-second lease and 10-second transport timeout in case the worker dies.
     await query(sql`
       UPDATE subscription_mail_jobs SET status='running', lease=${lease}, message_hash=${hash},
@@ -208,7 +217,7 @@ async function claim(payload: Payload, id: number, origin: string, policy?: Publ
   });
 }
 
-function mailOrigin(mockSender: boolean) {
+export function mailOrigin(mockSender: boolean) {
   const env = process.env;
   const site = URL.parse(env.APP_URL ?? "");
   const access = trialAccess(null, env);
@@ -244,7 +253,7 @@ export async function runSubscriptionMail(
   if (!origin || !(await payload.findGlobal({ slug: "workflow-settings" })).emailEnabled) return;
   const rows = await transaction(payload, (query) =>
     query(sql`
-    SELECT id, deliver_policy, policy_selection FROM subscription_mail_jobs WHERE ${due} ORDER BY created_at LIMIT 20
+    SELECT j.id, j.deliver_policy, j.policy_selection FROM subscription_mail_jobs j WHERE ${due} ORDER BY j.created_at LIMIT 20
   `),
   );
   const sendJob = async (id: number, policy?: PublicPolicyData) => {
@@ -253,11 +262,16 @@ export async function runSubscriptionMail(
     await transaction(payload, async (query) => {
       await lock(query, customerEmail(claimed.job.email), "");
       await lock(query, claimed.job.email, claimed.job.topic);
+      if (!(await ownsDispatch(query, `subscription:${claimed.lease}`))) return;
       const job = await readJob(query, id);
-      if (!job || job.lease !== claimed.lease || !job.lease_active) return;
+      if (!job || job.lease !== claimed.lease || !job.lease_active) {
+        await finishDispatch(query, `subscription:${claimed.lease}`);
+        return;
+      }
       const attempts = job.attempted_at?.length ?? 1;
       if (!eligible(job, origin)) {
         await finish(query, id, attempts > 1 ? "uncertain" : "cancelled");
+        await finishDispatch(query, `subscription:${claimed.lease}`);
         return;
       }
       let result: MailResult = { status: "disabled" };
@@ -282,6 +296,7 @@ export async function runSubscriptionMail(
             ? "retry"
             : "uncertain";
       await finish(query, id, status, canRetry ? new Date(next).toISOString() : null, enabled);
+      await finishDispatch(query, `subscription:${claimed.lease}`);
     });
   };
   for (const row of rows) {

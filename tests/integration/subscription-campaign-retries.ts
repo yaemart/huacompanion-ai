@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fork, type ChildProcess } from "node:child_process";
@@ -100,6 +101,7 @@ export async function testCampaignRetries(p: Payload, url: URL) {
     await freezeCampaignRecipients(p, manager, input);
     await setMockCampaignBudget(p, admin, { remaining: 10, reason: "虚构重试余额" });
     const fresh = async () => {
+      await advanceDispatchClock(p);
       const slot = await reserveMockCampaignSlot(p, manager, { ...input, key: randomUUID() });
       assert.equal(slot.state, "reserved-local");
       const target = { ...input, slotId: slot.id! };
@@ -111,14 +113,16 @@ export async function testCampaignRetries(p: Payload, url: URL) {
     const row = async (slotId = current.target.slotId) =>
       (await p.find({ collection, depth: 0, limit: 1, where: { slot: { equals: slotId } } }))
         .docs[0];
-    const moveDue = (slotId: number) =>
-      db.query(
+    const moveDue = async (slotId: number) => {
+      await advanceDispatchClock(p);
+      return db.query(
         `UPDATE subscription_campaign_mock_attempts SET
           attempted_at=(SELECT jsonb_agg((t::timestamptz-interval '16 minutes')::text)
             FROM jsonb_array_elements_text(attempted_at) AS x(t)),
           next_attempt_at=statement_timestamp()-interval '1 millisecond' WHERE slot_id=$1`,
         [slotId],
       );
+    };
     const expired = (leaseId: number) =>
       db.query(
         "UPDATE subscription_campaign_mock_leases SET expires_at=statement_timestamp()-interval '1 millisecond' WHERE id=$1",

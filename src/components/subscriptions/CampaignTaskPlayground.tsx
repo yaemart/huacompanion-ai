@@ -14,6 +14,7 @@ import {
 import { requestNextMockSlot } from "@/lib/subscription-campaign-scheduling-client";
 
 const states = {
+  "dispatch-wait-local": "等待全站调度间隔或确认/资料邮件优先处理，未开始新尝试",
   "cooldown-local": "等待同邮箱共用冷却或尝试预算，未开始新尝试",
   "claimed-local": "已领取，尚未开始",
   busy: "任务已被领取，本页没有可用凭证，请稍后再领取",
@@ -181,6 +182,7 @@ export function CampaignTaskPlayground({
       )}
       {schedule && <p role="status">{schedule}</p>}
       <p>同邮箱跨确认、资料与本地营销共用15分钟间隔、滚动24小时最多5次尝试；领取和等待不计次。</p>
+      <p>本地全站每秒最多放行一次；营销让行可处理的确认/资料邮件，等待不计尝试。</p>
       {!availableSlots.length && (
         <p>
           暂无当前版本的已占位任务。请在上方准备面板新增任务占位，成功后即可在此领取；旧版名单不能续发。
@@ -195,10 +197,15 @@ export function CampaignTaskPlayground({
       {receipt && (
         <p role="status">
           {states[receipt.state]}
+          {receipt.state === "dispatch-wait-local" &&
+            (receipt.reason === "subscription-priority" ? " · 确认/资料优先" : " · 全站限速")}
           {"attempts" in receipt && ` · 累计本地尝试 ${receipt.attempts} 次。`}
           {"nextAttemptAt" in receipt &&
             receipt.nextAttemptAt &&
             ` 下次不早于 ${staffDateTime(receipt.nextAttemptAt, true)}（北京时间）。`}
+          {receipt.state === "dispatch-wait-local" &&
+            lease &&
+            "可等到下次时间后再次开始，原凭证不会续期。"}
           请点击下方“刷新状态”更新汇总。
         </p>
       )}

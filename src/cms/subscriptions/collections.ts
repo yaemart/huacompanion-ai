@@ -12,6 +12,15 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
+    slug: "local-mail-dispatch",
+    fields: [
+      { name: "key", type: "text", unique: true, required: true },
+      { name: "owner", type: "text", maxLength: 64 },
+      { name: "nextAt", type: "date", required: true },
+    ],
+  },
+  {
+    ...internal,
     slug: "subscription-campaign-mock-attempts",
     typescript: { interface: "SubscriptionCampaignMockAttempt" },
     fields: [

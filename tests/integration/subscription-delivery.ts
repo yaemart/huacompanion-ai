@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { MigrateDownArgs, MigrateUpArgs } from "@payloadcms/db-postgres";
@@ -38,8 +39,12 @@ export async function testSubscriptionDelivery(payload: Payload, url: URL) {
       return new Response(null, { status: 429, headers: { "Retry-After": "1800" } });
     return Response.json({ id: "mock-accepted" });
   };
-  const run = () =>
-    runSubscriptionMail(payload, (message) => sendConfiguredMail(message, { fetch: mockFetch }));
+  const run = async () => {
+    await advanceDispatchClock(payload);
+    return runSubscriptionMail(payload, (message) =>
+      sendConfiguredMail(message, { fetch: mockFetch }),
+    );
+  };
   const jobs = async () =>
     (
       await db.query(

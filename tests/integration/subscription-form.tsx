@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -133,6 +134,7 @@ export async function testSubscriptionForm(payload: Payload) {
     assert.equal((await submit(true)).status, 202);
     assert.equal((await records())[0].status, "pending");
     const messages: MailMessage[] = [];
+    await advanceDispatchClock(payload);
     await runSubscriptionMail(payload, async (message) => {
       messages.push(message);
       return { status: "sent", providerId: "mock-confirmation" };

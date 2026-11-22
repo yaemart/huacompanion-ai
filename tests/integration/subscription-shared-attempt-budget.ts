@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fork, type ChildProcess } from "node:child_process";
@@ -141,6 +142,7 @@ export async function testSubscriptionSharedAttempts(p: Payload, url: URL) {
       return (await response.json()).task;
     };
     const claim = async (index: number) => {
+      await advanceDispatchClock(p);
       const report = await claimMockCampaignTask(p, manager, {
         ...input,
         slotId: targets[index].slotId,
@@ -188,11 +190,13 @@ export async function testSubscriptionSharedAttempts(p: Payload, url: URL) {
         id,
       ]);
     let sent = 0;
-    const run = () =>
-      runSubscriptionMail(p, async () => {
+    const run = async () => {
+      await advanceDispatchClock(p);
+      return runSubscriptionMail(p, async () => {
         sent++;
         return { status: "sent" };
       });
+    };
     await mail(targets[6].email, [], "queued");
     await run();
     assert.equal(sent, 1, "control confirms the fictional mail adapter is enabled");

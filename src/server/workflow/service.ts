@@ -1,3 +1,6 @@
+import { admitDispatch, withLocalTransport } from "../local-mail-dispatch";
+import { configuredMailEnabled } from "./mail";
+import { executeSQL } from "../db-types";
 import { refreshSharedNoteAssignees } from "../immigration/shared-note-tasks";
 import { canAccessContentKind, canReviewContent } from "../../cms/access";
 import { randomUUID } from "node:crypto";
@@ -10,7 +13,7 @@ import type {
 } from "../../../payload-types";
 import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
-import type { MailResult } from "./mail";
+import type { MailResult, MailMessage } from "./mail";
 import { transactionSession } from "../db-types";
 import { staffDigestAt, type DigestCandidate } from "../../lib/staff-daily-digest";
 import { chinaDay } from "../../lib/staff-today";
@@ -574,7 +577,10 @@ function canRetryMail(job: Pick<WorkflowMailJob, "status" | "createdAt">) {
 async function updateMailJob(
   payload: Payload,
   id: string | number,
-  change: (job: WorkflowMailJob) => Partial<WorkflowMailJob> | null,
+  change: (
+    job: WorkflowMailJob,
+    req: Partial<PayloadRequest>,
+  ) => Partial<WorkflowMailJob> | null | Promise<Partial<WorkflowMailJob> | null>,
 ) {
   const tx = await payload.db.beginTransaction();
   if (!tx) throw Error("Transaction required");
@@ -583,7 +589,7 @@ async function updateMailJob(
   try {
     await transactionSession(payload, tx).db.execute("SELECT pg_advisory_xact_lock(726282)");
     const job = await p.findByID({ collection: "workflow-mail-jobs", id, depth: 0, req });
-    const data = change(job);
+    const data = await change(job, req);
     if (data) await p.update({ collection: "workflow-mail-jobs", id, data, req });
     await payload.db.commitTransaction(tx);
     return !!data;
@@ -676,8 +682,20 @@ export async function runWorkflowJobs(payload: Payload) {
   });
   for (const j of jobs.docs) {
     const lease = randomUUID();
-    const claimed = await updateMailJob(payload, j.id, (current) => {
+    let dispatchReserved = false,
+      transportStarted = false;
+    const claimed = await updateMailJob(payload, j.id, async (current, req) => {
       if (current.updatedAt !== j.updatedAt) return null;
+      if (settings.emailEnabled && configuredMailEnabled()) {
+        const wait = await admitDispatch(
+          async (statement) =>
+            (await executeSQL(payload, (await req.transactionID)!, statement)).rows,
+          `workflow:${lease}`,
+          70000,
+        );
+        if (wait) return null;
+        dispatchReserved = process.env.APP_ENV === "local";
+      }
       return {
         status: "running",
         lease,
@@ -686,6 +704,11 @@ export async function runWorkflowJobs(payload: Payload) {
       };
     });
     if (!claimed) continue;
+    const deliver = (message: MailMessage) =>
+      withLocalTransport(payload, `workflow:${lease}`, () => {
+        transportStarted = true;
+        return sendConfiguredMail(message);
+      });
     let result: MailResult = { status: "failed" };
     // Never retry beyond provider's 24-hour idempotency window; uncertain delivery needs manual review.
     if (Date.now() - Date.parse(j.createdAt) > 23 * 3600000 || j.attempts! >= 5)
@@ -710,7 +733,8 @@ export async function runWorkflowJobs(payload: Payload) {
             await customerOwnsInquiry(p, customer, relationID(n.inquiry));
             allowed = true;
           } catch {}
-          if (!settings.emailEnabled || !allowed) result = { status: "disabled" };
+          if (!settings.emailEnabled || !configuredMailEnabled() || !allowed)
+            result = { status: "disabled" };
           else {
             const inquiry = await p.findByID({
               collection: "inquiries",
@@ -723,7 +747,7 @@ export async function runWorkflowJobs(payload: Payload) {
               origin && /^https?:\/\//.test(origin)
                 ? new URL(`/${copy.locale}/account`, origin).toString()
                 : `/${copy.locale}/account`;
-            result = await sendConfiguredMail({
+            result = await deliver({
               to: customer.email,
               subject: copy.subject,
               text: `${copy.text}\n${link}`,
@@ -742,9 +766,9 @@ export async function runWorkflowJobs(payload: Payload) {
             depth: 0,
           });
           result =
-            !settings.emailEnabled || !(await visible(p, staff, n))
+            !settings.emailEnabled || !configuredMailEnabled() || !(await visible(p, staff, n))
               ? { status: "disabled" }
-              : await sendConfiguredMail({
+              : await deliver({
                   to: staff.email,
                   subject: "华伴待办提醒",
                   text: "您有新的站内通知，请登录华伴工作台查看。",
@@ -755,6 +779,8 @@ export async function runWorkflowJobs(payload: Payload) {
         result = { status: "retry" };
       }
     }
+    if (dispatchReserved && !transportStarted)
+      await withLocalTransport(payload, `workflow:${lease}`, async () => ({ status: "disabled" }));
     const terminal = j.attempts! >= 5 || Date.now() - Date.parse(j.createdAt) > 23 * 3600000;
     await updateMailJob(payload, j.id, (current) =>
       current.lease === lease

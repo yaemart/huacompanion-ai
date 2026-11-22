@@ -51,12 +51,14 @@ export async function requestMockTask(command: TaskCommand): Promise<Receipt> {
     throw new MockTaskRequestError(fallback, true);
   const date = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
   const valid =
-    task.state === "cooldown-local"
+    task.state === "cooldown-local" || task.state === "dispatch-wait-local"
       ? command.action !== "record-mock-result-local" &&
         Number.isSafeInteger(task.attempts) &&
         task.attempts >= 0 &&
         task.attempts <= 5 &&
         task.started === false &&
+        (task.state !== "dispatch-wait-local" ||
+          ["rate-limit", "subscription-priority"].includes(task.reason!)) &&
         date(task.nextAttemptAt)
       : task?.state === "claimed-local"
         ? command.action === "claim-mock-task-local" &&
@@ -93,6 +95,13 @@ export function taskLeaseAfter(
   action: TaskAction,
   receipt: Receipt,
 ): LocalLease | undefined {
+  if (
+    action === "begin-mock-attempt-local" &&
+    receipt.state === "dispatch-wait-local" &&
+    lease?.slotId === slotId &&
+    lease.phase === "claimed"
+  )
+    return lease;
   if (action === "claim-mock-task-local" && receipt.state === "claimed-local")
     return { slotId, token: receipt.token, expiresAt: receipt.expiresAt, phase: "claimed" };
   if (

@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -193,7 +194,10 @@ export async function testCampaignPlayground(p: Payload, url: URL) {
       assert.equal(response.status, 200);
       return (await response.json()).task;
     };
-    const claim = (slotId: number) => call(actions[1], { ...input, slotId });
+    const claim = async (slotId: number) => {
+      await advanceDispatchClock(p);
+      return call(actions[1], { ...input, slotId });
+    };
     const begin = (value: object) => call(actions[2], value);
     const result = (value: object, outcome: string, retryAfterMs?: number) =>
       call(actions[3], {
@@ -280,7 +284,7 @@ export async function testCampaignPlayground(p: Payload, url: URL) {
       assert.equal((await result(value, outcome)).state, state);
       const before = await databaseFingerprints(db);
       assert.equal((await result(value, outcome)).state, state);
-      assert.equal((await claim(slots[index])).state, state);
+      assert.equal((await call(actions[1], { ...input, slotId: slots[index] })).state, state);
       assert.deepEqual(await databaseFingerprints(db), before);
     }
     const interrupted = { ...input, slotId: slots[4], token: (await claim(slots[4])).token };

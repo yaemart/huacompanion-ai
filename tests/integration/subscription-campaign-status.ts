@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -161,6 +162,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       "accepted",
     ] as const;
     for (let i = 1; i <= 7; i++) {
+      await advanceDispatchClock(p);
       const lease = await claimMockCampaignTask(p, manager.user, { ...input, slotId: slots[i] });
       assert.equal(lease.state, "claimed-local");
       if (lease.state !== "claimed-local") throw Error("missing lease");

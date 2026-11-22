@@ -116,6 +116,7 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'local-mail-dispatch': LocalMailDispatch;
     'subscription-campaign-mock-attempts': SubscriptionCampaignMockAttempt;
     'subscription-campaign-controls': SubscriptionCampaignControl;
     'subscription-campaign-mock-leases': SubscriptionCampaignMockLease;
@@ -185,6 +186,7 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'local-mail-dispatch': LocalMailDispatchSelect<false> | LocalMailDispatchSelect<true>;
     'subscription-campaign-mock-attempts': SubscriptionCampaignMockAttemptsSelect<false> | SubscriptionCampaignMockAttemptsSelect<true>;
     'subscription-campaign-controls': SubscriptionCampaignControlsSelect<false> | SubscriptionCampaignControlsSelect<true>;
     'subscription-campaign-mock-leases': SubscriptionCampaignMockLeasesSelect<false> | SubscriptionCampaignMockLeasesSelect<true>;
@@ -1625,6 +1627,18 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "local-mail-dispatch".
+ */
+export interface LocalMailDispatch {
+  id: number;
+  key: string;
+  owner?: string | null;
+  nextAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-campaign-mock-attempts".
  */
 export interface SubscriptionCampaignMockAttempt {
@@ -3054,6 +3068,17 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "local-mail-dispatch_select".
+ */
+export interface LocalMailDispatchSelect<T extends boolean = true> {
+  key?: T;
+  owner?: T;
+  nextAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

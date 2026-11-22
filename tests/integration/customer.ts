@@ -4,7 +4,7 @@ import { randomUUID, randomBytes } from "node:crypto";
 import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import {
-  requestVerification,
+  requestVerification as requestVerificationService,
   verifyCustomer,
   customerSession,
   customerOwnsInquiry,
@@ -22,6 +22,10 @@ if (
   !process.env.DATABASE_URL?.includes("@127.0.0.1:55438/hua_companion")
 )
   throw Error("Local fixture database required");
+const requestVerification: typeof requestVerificationService = async (...args) => {
+  await new Promise((resolve) => setTimeout(resolve, 1010));
+  return requestVerificationService(...args);
+};
 const p = await getPayload({ config });
 const originalRollback = p.db.rollbackTransaction.bind(p.db);
 const run = `customer-${randomUUID()}`;

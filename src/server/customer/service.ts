@@ -33,6 +33,8 @@ import {
 } from "../../lib/customer";
 import { relationID, isOperator } from "../../cms/access";
 import { ContentError } from "../content/service";
+import { admitDispatch, withLocalTransport } from "../local-mail-dispatch";
+import { executeSQL } from "../db-types";
 import { configuredMailEnabled, sendConfiguredMail } from "../workflow/mail";
 const fresh = () => randomBytes(32).toString("hex");
 const now = () => new Date().toISOString();
@@ -89,6 +91,14 @@ export async function requestVerification(
       }),
     ]);
     if (all.totalDocs >= 100 || own.totalDocs >= 3) return null;
+    if (
+      await admitDispatch(
+        async (s) => (await executeSQL(p, (await req.transactionID)!, s)).rows,
+        `customer:${handle}`,
+        70000,
+      )
+    )
+      return null;
     return p.create({
       collection: "customer-challenges",
       data: {
@@ -107,12 +117,14 @@ export async function requestVerification(
     const copy = customerCopy(isLocale(input.locale) ? input.locale : "en");
     try {
       status = (
-        await mail({
-          to: email,
-          subject: `Hua Companion · ${copy[4]}`,
-          text: `${copy[4]}: ${token}\n${copy[8]}`,
-          idempotencyKey: `customer-verification-${challenge.id}`,
-        })
+        await withLocalTransport(p, `customer:${handle}`, () =>
+          mail({
+            to: email,
+            subject: `Hua Companion · ${copy[4]}`,
+            text: `${copy[4]}: ${token}\n${copy[8]}`,
+            idempotencyKey: `customer-verification-${challenge.id}`,
+          }),
+        )
       ).status;
     } catch {}
     if (status !== "sent")
