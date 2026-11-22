@@ -47,6 +47,8 @@ export async function requestMockTask(command: TaskCommand): Promise<Receipt> {
       response.status >= 500,
     );
   const task = body?.task;
+  if (!task || typeof task !== "object" || Array.isArray(task))
+    throw new MockTaskRequestError(fallback, true);
   const date = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
   const valid =
     task?.state === "claimed-local"

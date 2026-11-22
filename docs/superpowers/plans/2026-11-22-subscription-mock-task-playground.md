@@ -39,12 +39,12 @@
 
 **Files:** 新建server/subscription-campaign-task-options.ts、lib/subscription-campaign-task-client.ts、components/subscriptions/CampaignTaskPlayground.tsx；修改原route.ts、page.tsx、CampaignWorkspace.tsx和必要样式；新增客户端单测及订阅集成。
 
-- [ ] 新增真实POST、权限/隐私、重试/终态/中断/审计原子性及全工作区渲染回归，观察RED。
-- [ ] 最小实现读取选项、三项原服务接口和页面步骤；客户端错误和凭证边界单测先RED后GREEN。
-- [ ] 28组订阅集成、完整check及生产隔离预览；浏览器成功/失败/响应丢失/手机视口验证。
+- [x] 新增真实POST、权限/隐私、重试/终态/中断/审计原子性及全工作区渲染回归，观察RED。
+- [x] 最小实现读取选项、三项原服务接口和页面步骤；客户端错误和凭证边界单测先RED后GREEN。
+- [x] 28组订阅集成、完整check及生产隔离预览；浏览器成功/失败/响应丢失/手机视口验证。
 
 ### Task 2：交付
 
-- [ ] 一次独立只读源码复核，重要问题RED/GREEN修正，不重复复审。
-- [ ] 中文一页亲测与progress/handoff；截图/原始日志本机忽略归档，未上传PR附件时明确说明。
+- [x] 一次独立只读源码复核，重要问题RED/GREEN修正，不重复复审。
+- [x] 中文一页亲测与progress/handoff；截图/原始日志本机忽略归档，未上传PR附件时明确说明。
 - [ ] 独立PR，精确远端SHA与CI核对，不自动合并。

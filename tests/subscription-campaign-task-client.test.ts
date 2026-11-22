@@ -87,6 +87,11 @@ for (const [name, response, uncertain] of [
     () => Response.json({ task: { ...claimed, token: "bad" } }),
     true,
   ],
+  [
+    "a primitive receipt remains a Chinese uncertain error",
+    () => Response.json({ task: "unexpected" }),
+    true,
+  ],
   ["a missing receipt is uncertain", () => Response.json({ updated: true }), true],
 ] as const) {
   test(name, async (t) => {
