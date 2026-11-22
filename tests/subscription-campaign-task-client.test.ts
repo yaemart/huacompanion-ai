@@ -183,3 +183,75 @@ test("cooldown cannot claim a started attempt or replace a result receipt", asyn
     MockTaskRequestError,
   );
 });
+test("dispatch wait accepts a zero-count priority receipt without retaining credentials", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  globalThis.fetch = async () =>
+    Response.json({
+      task: {
+        state: "dispatch-wait-local",
+        attempts: 0,
+        started: false,
+        nextAttemptAt: "2030-01-01T00:00:01.001Z",
+        reason: "subscription-priority",
+      },
+    });
+  const receipt = await requestMockTask(command);
+  assert.equal(receipt.state, "dispatch-wait-local");
+  assert.equal(taskLeaseAfter(undefined, 7, command.action, receipt), undefined);
+});
+test("dispatch wait rejects invented reasons and a result-phase wait", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  const task = {
+    state: "dispatch-wait-local",
+    attempts: 0,
+    started: false,
+    nextAttemptAt: "2030-01-01T00:00:01.001Z",
+    reason: "invented",
+  };
+  globalThis.fetch = async () => Response.json({ task });
+  await assert.rejects(requestMockTask(command), MockTaskRequestError);
+  task.reason = "rate-limit";
+  await assert.rejects(
+    requestMockTask({
+      ...command,
+      action: "record-mock-result-local",
+      input: { ...command.input, token, outcome: "accepted" },
+    }),
+    MockTaskRequestError,
+  );
+});
+test("short dispatch wait keeps only the original unstarted lease and never renews its expiry", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  globalThis.fetch = async () =>
+    Response.json({
+      task: {
+        state: "dispatch-wait-local",
+        attempts: 0,
+        started: false,
+        nextAttemptAt: "2030-01-01T00:00:01.001Z",
+        reason: "rate-limit",
+      },
+    });
+  const begin = {
+    ...command,
+    action: "begin-mock-attempt-local" as const,
+    input: { ...command.input, token },
+  };
+  const receipt = await requestMockTask(begin);
+  const held = { slotId: 7, token, expiresAt: claimed.expiresAt, phase: "claimed" as const };
+  assert.deepEqual(taskLeaseAfter(held, 7, begin.action, receipt), held);
+  assert.equal(taskLeaseAfter({ ...held, slotId: 8 }, 7, begin.action, receipt), undefined);
+  assert.equal(
+    taskLeaseAfter({ ...held, phase: "attempting" }, 7, begin.action, receipt),
+    undefined,
+  );
+});

@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -49,8 +50,9 @@ export async function testPolicyEmail(payload: Payload, dbURL: URL) {
       }),
     );
   const mail: MailMessage[] = [];
-  const run = () =>
-    runSubscriptionMail(payload, async (message) => {
+  const run = async () => {
+    await advanceDispatchClock(payload);
+    return runSubscriptionMail(payload, async (message) => {
       if (message.idempotencyKey.startsWith("policy-material:")) {
         const lock = await db.query("SELECT pg_try_advisory_xact_lock(726271) AS acquired");
         assert.equal(lock.rows[0].acquired, false, "publication stays locked through dispatch");
@@ -58,6 +60,7 @@ export async function testPolicyEmail(payload: Payload, dbURL: URL) {
       mail.push(message);
       return { status: "sent", providerId: "fixture-policy-mail" };
     });
+  };
   const confirm = (message: MailMessage) => {
     const href = message.text.split("\n")[0].match(/http:\/\/127\.0\.0\.1:3186\S+$/)?.[0];
     assert.ok(href);

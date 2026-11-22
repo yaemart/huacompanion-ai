@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -168,8 +169,10 @@ export async function testCampaignScheduling(p: Payload, url: URL) {
       }),
     );
     assert.match(markup, /自动领取/);
-    const claim = async (slotId: number) =>
-      (await action("claim-mock-task-local", { ...input, slotId })).task;
+    const claim = async (slotId: number) => {
+      await advanceDispatchClock(p);
+      return (await action("claim-mock-task-local", { ...input, slotId })).task;
+    };
     const outcome = async (slotId: number, outcome: string) => {
       const lease = await claim(slotId);
       assert.equal(lease.state, "claimed-local");
@@ -214,6 +217,7 @@ export async function testCampaignScheduling(p: Payload, url: URL) {
       id: Number(invalidJob.subscription),
       data: { status: "unsubscribed" },
     });
+    await advanceDispatchClock(p);
     const beforeStates = await databaseFingerprints(db);
     const candidate = await next();
     assert.equal(
@@ -272,6 +276,7 @@ export async function testCampaignScheduling(p: Payload, url: URL) {
       "UPDATE subscription_campaign_mock_leases SET expires_at=statement_timestamp()-interval '1 second' WHERE slot_id=$1",
       [slots[4]],
     );
+    await advanceDispatchClock(p);
     assert.equal((await next()).slotId, slots[4]);
     await setCampaignPause(p, manager.user, { ...input, paused: true, reason: "虚构暂停" });
     assert.equal((await post(manager.token, input)).status, 409);

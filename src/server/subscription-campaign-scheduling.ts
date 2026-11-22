@@ -1,3 +1,5 @@
+import { readDispatchWait } from "./local-mail-dispatch";
+import { hasSubscriptionPriority } from "./subscription-mail-priority";
 import { subscriptionAttemptBudgetSQL } from "./subscription-attempt-budget";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
@@ -76,6 +78,10 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
       ),
     );
     const waits = new Map(shared.map((row) => [String(row.email), Date.parse(String(row.next))]));
+    const dispatch = await readDispatchWait(
+      async (statement) => (await executeSQL(p, (await req.transactionID)!, statement)).rows,
+      () => hasSubscriptionPriority(p, req),
+    );
     let slotId: number | null = null;
     let nextAt: number | null = null;
     for (const row of rows as Candidate[]) {
@@ -111,6 +117,7 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
         row.expires ?? 0,
         row.state === "retry" ? row.next! : 0,
         waits.get(live.email) ?? 0,
+        dispatch ? Date.parse(dispatch.nextAttemptAt) : 0,
       );
       if (readyAt > now) nextAt = nextAt === null ? readyAt : Math.min(nextAt, readyAt);
       else if (slotId === null) slotId = row.id;

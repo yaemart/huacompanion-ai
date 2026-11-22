@@ -1,3 +1,4 @@
+import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -126,12 +127,14 @@ export async function testSubscriptionJourney(payload: Payload) {
       assert.equal((await report(topic, "confirmed")).total, confirmedBefore);
       await file(topic, "confirmed", email, false);
       const messages: MailMessage[] = [];
-      const send = async () =>
-        runSubscriptionMail(payload, async (message) => {
+      const send = async () => {
+        await advanceDispatchClock(payload);
+        return runSubscriptionMail(payload, async (message) => {
           assert.equal(message.to, email);
           messages.push(message);
           return { status: "sent", providerId: "fictional-journey" };
         });
+      };
       await send();
       await send();
       assert.equal(messages.length, 1, "one confirmation mail, no duplicate worker delivery");

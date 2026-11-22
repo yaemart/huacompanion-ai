@@ -1,3 +1,11 @@
+import { sql } from "@payloadcms/db-postgres";
+import {
+  admitDispatch,
+  readDispatchWait,
+  finishDispatch,
+  type DispatchQuery,
+} from "./local-mail-dispatch";
+import { hasSubscriptionPriority } from "./subscription-mail-priority";
 import { executeSQL } from "./db-types";
 import { subscriptionAttemptBudgetSQL } from "./subscription-attempt-budget";
 import { createHash } from "node:crypto";
@@ -18,7 +26,9 @@ export type AttemptReport = {
     | "review-local"
     | "failed-local"
     | "completed-local"
-    | "cooldown-local";
+    | "cooldown-local"
+    | "dispatch-wait-local";
+  reason?: "rate-limit" | "subscription-priority";
   id?: number;
   attempts: number;
   nextAttemptAt: string | null;
@@ -44,6 +54,8 @@ export async function mockAttemptState(
   action: "claim" | "complete" | "begin" | "result",
   input: Input,
 ): Promise<{ auditId: number | null; report: AttemptReport } | null> {
+  const query: DispatchQuery = async (statement) =>
+    (await executeSQL(p, (await req.transactionID)!, statement)).rows;
   let row = (
     await p.find({ collection, req, depth: 0, limit: 1, where: { slot: { equals: ctx.slotId } } })
   ).docs[0] as SubscriptionCampaignMockAttempt | undefined;
@@ -186,14 +198,41 @@ export async function mockAttemptState(
         },
       };
   }
+  if (action === "claim" || action === "begin") {
+    const priority = () => hasSubscriptionPriority(p, req);
+    const wait =
+      action === "begin"
+        ? await admitDispatch(query, undefined, 1000, priority)
+        : await readDispatchWait(query, priority);
+    if (wait)
+      return {
+        auditId: null,
+        report: {
+          state: "dispatch-wait-local",
+          ...wait,
+          id: ctx.lease?.id,
+          attempts: attemptedAt.length,
+          started: false,
+        },
+      };
+    if (action === "begin") {
+      ctx.now = Date.parse(
+        String((await query(sql`SELECT clock_timestamp()::text AS now`))[0].now),
+      );
+      if (row && ctx.now >= Date.parse(attemptedAt[0]) + 23 * 3600000)
+        return store("review", "review-mock-attempt", { nextAttemptAt: null });
+    }
+  }
   if (action !== "begin") return null;
   if (!ctx.lease || ctx.lease.completedAt || Date.parse(ctx.lease.expiresAt) <= ctx.now)
     throw new ContentError("模拟租约已失效，请重新领取后开始尝试。", 409);
   if (!ctx.message) throw new ContentError("模拟正文缺失，请核对已保存版本。", 503);
-  return store("attempting", "begin-mock-attempt", {
+  const result = await store("attempting", "begin-mock-attempt", {
     attemptedAt: [...attemptedAt, new Date(ctx.now).toISOString()],
     leaseTokenHash: tokenHash,
     lastOutcome: null,
     nextAttemptAt: null,
   });
+  await finishDispatch(query);
+  return result;
 }
