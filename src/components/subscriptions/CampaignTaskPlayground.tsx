@@ -89,7 +89,7 @@ export function CampaignTaskPlayground({
           setSchedule(
             next.nextAttemptAt
               ? `暂无可领取任务，下次候选不早于 ${staffDateTime(next.nextAttemptAt, true)}（北京时间）。`
-              : "暂无可领取任务，将继续核对；待核对和终态不会重新领取。",
+              : "暂无可领取任务；开启自动领取后将继续核对，待核对和终态不会重新领取。",
           );
           return;
         }
