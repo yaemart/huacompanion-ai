@@ -117,3 +117,10 @@
   font-size: 1.25rem;
   font-weight: 700;
 }
+
+.campaign-control :is(select, input[type="number"]) {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  box-sizing: border-box;
+}

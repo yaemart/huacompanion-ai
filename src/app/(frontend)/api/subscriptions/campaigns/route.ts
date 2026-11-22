@@ -8,6 +8,12 @@ import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { cancelMockCampaign } from "@/server/subscription-campaign-cancel";
 import { readCampaignPause, setCampaignPause } from "@/server/subscription-campaign-control";
 import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
+import { readCampaignMockSlots } from "@/server/subscription-campaign-task-options";
+import {
+  claimMockCampaignTask,
+  beginMockCampaignAttempt,
+  recordMockCampaignOutcome,
+} from "@/server/subscription-campaign-leases";
 
 export const runtime = "nodejs";
 const headers = {
@@ -32,6 +38,22 @@ export async function POST(request: Request) {
       !("input" in body)
     )
       throw new ContentError("操作内容无效，请重新打开页面。", 400);
+    if (body.action === "read-mock-slots-local") {
+      return Response.json(
+        { slots: await readCampaignMockSlots(p, user, body.input) },
+        { headers },
+      );
+    }
+    const taskAction =
+      body.action === "claim-mock-task-local"
+        ? claimMockCampaignTask
+        : body.action === "begin-mock-attempt-local"
+          ? beginMockCampaignAttempt
+          : body.action === "record-mock-result-local"
+            ? recordMockCampaignOutcome
+            : null;
+    if (taskAction)
+      return Response.json({ task: await taskAction(p, user, body.input) }, { headers });
     if (body.action === "read-mock-status-local") {
       const taskStatus = await readCampaignTaskStatus(p, user, body.input);
       return Response.json({ taskStatus }, { headers });

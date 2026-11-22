@@ -11,6 +11,7 @@ import type { readCampaignPause } from "@/server/subscription-campaign-control";
 import { CampaignPauseControls } from "./CampaignPauseControls";
 import { CampaignTaskStatus } from "./CampaignTaskStatus";
 import type { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
+import { CampaignTaskPlayground } from "./CampaignTaskPlayground";
 
 type Workspace = Awaited<ReturnType<typeof readCampaignWorkspace>>;
 type Draft = Awaited<ReturnType<typeof readCampaignDraft>>;
@@ -22,6 +23,7 @@ export function CampaignWorkspace({
   frozen,
   pause,
   taskStatus,
+  taskSlots,
 }: {
   workspace: Workspace;
   draft?: Draft;
@@ -30,14 +32,19 @@ export function CampaignWorkspace({
   frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
   pause?: Awaited<ReturnType<typeof readCampaignPause>>;
   taskStatus?: Awaited<ReturnType<typeof readCampaignTaskStatus>>;
+  taskSlots?: number[];
 }) {
   const [busy, setBusy] = useState(false);
-  const [mockBusy, setMockBusy] = useState(false);
+  const [checkBusy, setMockBusy] = useState(false);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [controlBusy, setControlBusy] = useState(false);
   const [control, setControl] = useState(pause);
   const [controlUncertain, setControlUncertain] = useState(false);
+  const [taskBusy, setTaskBusy] = useState(false);
+  const [taskUncertain, setTaskUncertain] = useState(false);
+  const taskBlocked = taskBusy || taskUncertain;
+  const mockBusy = checkBusy || taskBlocked;
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -231,10 +238,29 @@ export function CampaignWorkspace({
               status={checks}
               frozen={frozen}
               dirty={dirty}
-              disabled={busy || controlBusy || controlUncertain || !!control?.cancelledAt}
+              disabled={
+                busy || taskBlocked || controlBusy || controlUncertain || !!control?.cancelledAt
+              }
               paused={control?.paused}
               cancelled={!!control?.cancelledAt}
               onBusyChange={setMockBusy}
+            />
+          )}
+          {draft && taskSlots && (
+            <CampaignTaskPlayground
+              draft={draft}
+              slots={taskSlots}
+              eligible={
+                !!checks?.enabled &&
+                checks.current &&
+                checks.mockConfirmed &&
+                !dirty &&
+                !control?.paused &&
+                !control?.cancelledAt
+              }
+              disabled={busy || checkBusy || controlBusy || controlUncertain}
+              onBusyChange={setTaskBusy}
+              onUncertainChange={setTaskUncertain}
             />
           )}
           {draft && taskStatus && (
