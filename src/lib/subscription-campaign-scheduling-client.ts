@@ -11,7 +11,10 @@ export async function requestNextMockSlot(input: { campaignKey: string; revision
     response = await fetch("/api/subscriptions/campaigns", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "read-next-mock-slot-local", input }),
+      body: JSON.stringify({
+        action: "read-next-mock-slot-local",
+        input: { campaignKey: input.campaignKey, revision: input.revision },
+      }),
     });
     body = await response.json();
   } catch {

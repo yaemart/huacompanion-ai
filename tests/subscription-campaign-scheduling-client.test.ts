@@ -48,3 +48,22 @@ test("selection failures keep Chinese stop guidance and do not run a claim", asy
   globalThis.fetch = async () => Response.json({ error: "权限已撤销" }, { status: 403 });
   await assert.rejects(requestNextMockSlot(input), /权限已撤销/);
 });
+test("full page draft is projected to the two allowed identity fields", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  let sent: unknown;
+  globalThis.fetch = async (_url, init) => {
+    sent = JSON.parse(String(init?.body));
+    return Response.json({ nextTask: { slotId: 7, nextAttemptAt: null, asOf } });
+  };
+  const draft = {
+    ...input,
+    policies: [{ zh: 1, en: 2 }],
+    preview: { zh: { body: "PRIVATE" } },
+    current: true,
+  };
+  await requestNextMockSlot(draft);
+  assert.deepEqual(sent, { action: "read-next-mock-slot-local", input });
+});
