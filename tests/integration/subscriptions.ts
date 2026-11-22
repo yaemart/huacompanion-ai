@@ -5,6 +5,7 @@ import {
 import { testCampaignRetries } from "./subscription-campaign-retries";
 import { testCampaignStatus } from "./subscription-campaign-status";
 import { testCampaignPlayground } from "./subscription-campaign-playground";
+import { testCampaignScheduling } from "./subscription-campaign-scheduling";
 import { testCampaignPreparation } from "./subscription-campaign-preparation";
 import { testCampaignCancelUI } from "./subscription-campaign-cancel-ui";
 import { testCampaignCancel } from "./subscription-campaign-cancel";
@@ -421,6 +422,7 @@ try {
   await testCampaignStatus(payload, url);
   await testCampaignPlayground(payload, url);
   await testCampaignPreparation(payload, url);
+  await testCampaignScheduling(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
