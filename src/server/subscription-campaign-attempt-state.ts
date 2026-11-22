@@ -1,3 +1,4 @@
+import { MockCampaignLeaseError } from "./subscription-campaign-lease-error";
 import { sql } from "@payloadcms/db-postgres";
 import {
   admitDispatch,
@@ -184,7 +185,7 @@ export async function mockAttemptState(
       action === "begin" &&
       (!ctx.lease || ctx.lease.completedAt || Date.parse(ctx.lease.expiresAt) <= ctx.now)
     )
-      throw new ContentError("模拟租约已失效，请重新领取后开始尝试。", 409);
+      throw new MockCampaignLeaseError("模拟租约已失效，请重新领取后开始尝试。");
     const next = await sharedNext();
     if (next > ctx.now)
       return {
@@ -225,7 +226,7 @@ export async function mockAttemptState(
   }
   if (action !== "begin") return null;
   if (!ctx.lease || ctx.lease.completedAt || Date.parse(ctx.lease.expiresAt) <= ctx.now)
-    throw new ContentError("模拟租约已失效，请重新领取后开始尝试。", 409);
+    throw new MockCampaignLeaseError("模拟租约已失效，请重新领取后开始尝试。");
   if (!ctx.message) throw new ContentError("模拟正文缺失，请核对已保存版本。", 503);
   const result = await store("attempting", "begin-mock-attempt", {
     attemptedAt: [...attemptedAt, new Date(ctx.now).toISOString()],

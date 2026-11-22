@@ -1,3 +1,4 @@
+import { testCampaignWorker } from "./subscription-campaign-worker";
 import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import { testLocalMailDispatch } from "./local-mail-dispatch";
 import { testSubscriptionSharedAttempts } from "./subscription-shared-attempt-budget";
@@ -456,6 +457,8 @@ try {
   await testCampaignPreparation(payload, url);
   await advanceDispatchClock(payload);
   await testCampaignScheduling(payload, url);
+  await advanceDispatchClock(payload);
+  await testCampaignWorker(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {
