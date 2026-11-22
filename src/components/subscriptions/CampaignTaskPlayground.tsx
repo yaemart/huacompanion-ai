@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { staffDateTime } from "@/lib/staff-display";
 import {
   requestMockTask,
@@ -10,6 +10,8 @@ import {
   type TaskAction,
   type TaskCommand,
 } from "@/lib/subscription-campaign-task-client";
+
+import { requestNextMockSlot } from "@/lib/subscription-campaign-scheduling-client";
 
 const states = {
   "claimed-local": "已领取，尚未开始",
@@ -37,8 +39,14 @@ export function CampaignTaskPlayground({
   onUncertainChange: (value: boolean) => void;
 }) {
   const [choice, setSlotId] = useState(slots[0] ?? 0);
-  const slotId = slots.includes(choice) ? choice : (slots[0] ?? 0);
+  const availableSlots = [...new Set([...slots, ...(choice > 0 ? [choice] : [])])];
+  const slotId = availableSlots.includes(choice) ? choice : (availableSlots[0] ?? 0);
+  const [automatic, setAutomatic] = useState(false);
+  const [schedule, setSchedule] = useState("");
+  const canAutomaticallyClaim = useRef(false);
+  canAutomaticallyClaim.current = automatic && eligible && !disabled;
   const [lease, setLease] = useState<LocalLease>();
+  const heldLease = useRef<LocalLease | undefined>(undefined);
   const [receipt, setReceipt] = useState<Awaited<ReturnType<typeof requestMockTask>>>();
   const [outcome, setOutcome] = useState("unknown");
   const [seconds, setSeconds] = useState("30");
@@ -47,45 +55,84 @@ export function CampaignTaskPlayground({
   const pending = useRef<TaskCommand | null>(null);
   const inFlight = useRef(false);
   const uncertain = !!pending.current && !busy;
-  async function run(action: TaskAction) {
+  const tick = useEffectEvent(() => void run("claim-mock-task-local", true));
+  useEffect(() => {
+    if (!automatic || lease || busy || uncertain || !eligible || disabled) return;
+    const timer = setTimeout(tick, 5000);
+    return () => clearTimeout(timer);
+  }, [automatic, lease, busy, uncertain, eligible, disabled]);
+  useEffect(
+    () => () => {
+      canAutomaticallyClaim.current = false;
+    },
+    [],
+  );
+  async function run(action: TaskAction, scheduled = false) {
+    if (scheduled && (heldLease.current || pending.current || !canAutomaticallyClaim.current))
+      return;
     if (
       inFlight.current ||
       disabled ||
-      (!pending.current && (!eligible || !slots.includes(slotId)))
+      (!pending.current && (!eligible || (!scheduled && !availableSlots.includes(slotId))))
     )
       return;
-    const command = pending.current ?? {
-      action,
-      input: {
-        campaignKey: draft.campaignKey,
-        revision: draft.revision,
-        slotId,
-        ...(action !== "claim-mock-task-local" ? { token: lease?.token } : {}),
-        ...(action === "record-mock-result-local"
-          ? {
-              outcome,
-              ...(outcome === "rate-limited" ? { retryAfterMs: Number(seconds) * 1000 } : {}),
-            }
-          : {}),
-      },
-    };
-    pending.current = command;
     inFlight.current = true;
     setBusy(true);
     onBusyChange(true);
     setError("");
     try {
+      let selected = slotId;
+      if (scheduled) {
+        const next = await requestNextMockSlot(draft);
+        if (!canAutomaticallyClaim.current) return;
+        if (next.slotId === null) {
+          setSchedule(
+            next.nextAttemptAt
+              ? `暂无可领取任务，下次候选不早于 ${staffDateTime(next.nextAttemptAt, true)}（北京时间）。`
+              : "暂无可领取任务，将继续核对；待核对和终态不会重新领取。",
+          );
+          return;
+        }
+        selected = next.slotId;
+        setSlotId(selected);
+      }
+      const command = pending.current ?? {
+        action,
+        input: {
+          campaignKey: draft.campaignKey,
+          revision: draft.revision,
+          slotId: selected,
+          ...(action !== "claim-mock-task-local" ? { token: lease?.token } : {}),
+          ...(action === "record-mock-result-local"
+            ? {
+                outcome,
+                ...(outcome === "rate-limited" ? { retryAfterMs: Number(seconds) * 1000 } : {}),
+              }
+            : {}),
+        },
+      };
+      pending.current = command;
       const updated = await requestMockTask(command);
+      setSchedule("");
       setReceipt(updated);
-      setLease(taskLeaseAfter(lease, command.input.slotId, command.action, updated));
+      heldLease.current = taskLeaseAfter(
+        heldLease.current,
+        command.input.slotId,
+        command.action,
+        updated,
+      );
+      setLease(heldLease.current);
       pending.current = null;
       onUncertainChange(false);
     } catch (error) {
       setError(error instanceof Error ? error.message : "模拟操作结果待核实。");
-      const unknown = !(error instanceof MockTaskRequestError) || error.uncertain;
+      setAutomatic(false);
+      const unknown =
+        !!pending.current && (!(error instanceof MockTaskRequestError) || error.uncertain);
       onUncertainChange(unknown);
       if (!unknown) {
         pending.current = null;
+        heldLease.current = undefined;
         setLease(undefined);
       }
     } finally {
@@ -111,7 +158,28 @@ export function CampaignTaskPlayground({
       <p>
         只处理已占位的虚构任务，不发送邮件。领取不计尝试，开始后才计一次；最多5次、首次起23小时，待核对不能在此清除。
       </p>
-      {!slots.length && (
+      <p>
+        开启后每5秒核对并领取一个已占位任务，开始与结果仍手动。关闭、刷新或离开停止后续调度；在途请求仍可能完成。
+      </p>
+      <button
+        type="button"
+        className="button"
+        aria-pressed={automatic}
+        disabled={
+          !automatic && (disabled || busy || uncertain || !eligible || !availableSlots.length)
+        }
+        onClick={() => {
+          canAutomaticallyClaim.current = !automatic && eligible && !disabled;
+          setAutomatic(!automatic);
+        }}
+      >
+        {automatic ? "关闭本页自动领取" : "开启本页自动领取"}
+      </button>
+      {automatic && (
+        <p role="status">本页自动领取已开启；持有凭证时等待手动处理，不会自动开始尝试。</p>
+      )}
+      {schedule && <p role="status">{schedule}</p>}
+      {!availableSlots.length && (
         <p>
           暂无当前版本的已占位任务。请在上方准备面板新增任务占位，成功后即可在此领取；旧版名单不能续发。
         </p>
@@ -132,7 +200,7 @@ export function CampaignTaskPlayground({
           请点击下方“刷新状态”更新汇总。
         </p>
       )}
-      <fieldset disabled={disabled || busy || uncertain || !eligible || !slots.length}>
+      <fieldset disabled={disabled || busy || uncertain || !eligible || !availableSlots.length}>
         <legend>选择任务并领取</legend>
         <label>
           已占位模拟任务
@@ -144,7 +212,7 @@ export function CampaignTaskPlayground({
               setReceipt(undefined);
             }}
           >
-            {slots.map((id) => (
+            {availableSlots.map((id) => (
               <option key={id} value={id}>
                 任务 {id}
               </option>

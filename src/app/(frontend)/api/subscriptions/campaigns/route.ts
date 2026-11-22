@@ -1,3 +1,4 @@
+import { readNextCampaignMockSlot } from "@/server/subscription-campaign-scheduling";
 import { limitedJSON } from "@/server/content/auth";
 import { ContentError } from "@/server/content/error";
 import { campaignStaffAuth } from "@/server/subscription-campaign-workspace";
@@ -56,6 +57,11 @@ export async function POST(request: Request) {
     if (body.action === "reserve-mock-slot-local")
       return Response.json(
         { reservation: await reserveMockCampaignSlot(p, user, body.input) },
+        { headers },
+      );
+    if (body.action === "read-next-mock-slot-local")
+      return Response.json(
+        { nextTask: await readNextCampaignMockSlot(p, user, body.input) },
         { headers },
       );
     if (body.action === "read-mock-slots-local") {
