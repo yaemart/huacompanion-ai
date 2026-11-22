@@ -10,6 +10,8 @@ export class MockWorkerInputError extends Error {}
 const invalid = () => new MockWorkerInputError("请指定有效主管、活动、版本及本地模拟结果。");
 export function requireLocalMockWorker(env: Record<string, string | undefined> = process.env) {
   if (env.APP_ENV !== "local") throw new MockWorkerInputError("仅支持本地模拟 worker。");
+  if (env.PAYLOAD_DROP_DATABASE === "true")
+    throw new MockWorkerInputError("本地模拟worker禁止清理数据库。");
 }
 export function mockWorkerOptions(value: unknown): MockWorkerOptions {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw invalid();

@@ -75,3 +75,10 @@ test("worker freezes a validated copy so a caller cannot change scope or outcome
   ])
     assert.throws(() => api.mockWorkerOptions(input));
 });
+test("worker rejects inherited schema deletion before any database initialization", () => {
+  assert.ok(api);
+  assert.throws(
+    () => api.requireLocalMockWorker({ APP_ENV: "local", PAYLOAD_DROP_DATABASE: "true" }),
+    /清理|删除/,
+  );
+});

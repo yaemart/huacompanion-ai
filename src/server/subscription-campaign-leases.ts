@@ -1,3 +1,4 @@
+import { MockCampaignLeaseError } from "./subscription-campaign-lease-error";
 import {
   mockAttemptState,
   type AttemptReport,
@@ -184,8 +185,11 @@ async function operate(
       const previous = (
         await p.find({ collection, req, depth: 0, limit: 1, where: { slot: { equals: slot.id } } })
       ).docs[0];
-      if (requiresToken && (!previous || previous.token !== input.token!.toLowerCase()))
-        throw new ContentError("租约凭证已失效，请重新抢占模拟任务。", 409);
+      if (requiresToken && (!previous || previous.token !== input.token!.toLowerCase())) {
+        const message = "租约凭证已失效，请重新抢占模拟任务。";
+        if (attempt === "begin") throw new MockCampaignLeaseError(message);
+        throw new ContentError(message, 409);
+      }
       const attemptResult = await mockAttemptState(
         p,
         req,

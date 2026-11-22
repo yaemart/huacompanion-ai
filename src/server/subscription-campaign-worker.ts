@@ -1,3 +1,4 @@
+import { MockCampaignLeaseError } from "./subscription-campaign-lease-error";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 import { mockWorkerOptions, requireLocalMockWorker } from "../lib/subscription-mock-worker-options";
@@ -63,7 +64,14 @@ export function createMockCampaignWorker(p: Payload, value: unknown) {
         };
       }
       const current = pending;
-      const started = await beginMockCampaignAttempt(p, actor, current.input);
+      let started: TaskReport;
+      try {
+        started = await beginMockCampaignAttempt(p, actor, current.input);
+      } catch (error) {
+        if (!(error instanceof MockCampaignLeaseError)) throw error;
+        pending = null;
+        return { state: "idle-local", slotId: current.input.slotId, nextAttemptAt: null };
+      }
       if (started.state === "dispatch-wait-local") return safeReport(started, current.input.slotId);
       if (started.state !== "attempting-local" || !started.started) {
         pending = null;

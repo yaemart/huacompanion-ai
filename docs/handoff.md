@@ -1,5 +1,49 @@
 # 当前开发交接
 
+## 本地模拟营销独立 worker（2026-11-22）
+
+已确认PR105合并，最新main `02bec32f150c88c1496424e9015cb2a8a396718c`，从该点建立
+`codex/subscription-mock-worker`，早期建立[PR106](https://github.com/yaemart/huacompanion-ai/pull/106)。
+用户已选择“指定活动和模拟结果”，只消费已有占位。专用CLI串接原候选、领取、开始与结果，默认accepted，
+可选temporary/rate-limited/unknown/permanent。`--once`仅一轮，空闲/等待是正常结果，不保证完成。
+[一页中文用法与验收](subscription-mock-worker-summary.md)，README已加虚构编号示例。
+
+每阶段复核当前主管/主题授权、本人活动/版本/确认/资格/暂停取消；原额度、共用尝试预算、全站限速/优先及重试保持。
+不准备余额/占位、不代确认、不消费优先单封邮件、不全站扫描、不真实发送，不清除review。
+短时dispatch等待保留原未开始凭证且不续期，数据库当前租约/token/时钟决定是否失效；确定的begin前租约竞争
+以ContentError子类标识，保持原HTTP409/中文文案，只有此类可丢弃内存凭证并下轮重选。
+本轮started=true才记录启动时固定的虚构结果。其他权限/结果/COMMIT异常停机并毒化实例，不补成功，重启不接管已开始任务。
+
+仅APP_ENV=local；参数与PAYLOAD_DROP_DATABASE=true在Payload初始化前拒绝。专用adapter保留原选项，禁止自动建库/push；
+关闭命令自身类型生成、HMR和遥测，原已解析配置不重新sanitize，不改Web配置。仅输出安全状态/编号/次数/下次时间。
+无新增依赖、迁移或产品环境变量；原PR97/105待应用迁移仍须先备份、停止Web/worker、迁移并重启，原库未自动升级。
+
+Node24.22.1完整 `npm run check` 397/397通过，lint0错误/445既有警告，785源码文件行长合格，无例外。
+33组订阅集成在全新随机库通过。新增真实CLI/双进程单槽竞争、五类结果、temp受15m后重试、global30s及优先只读等待、
+withdraw资格拒绝、短等待凭证/expiry不变、当前DB租约提前失效及查询后竞争恢复、暂停/角色/跨主管/旧版拒绝、
+begin后撤权不得补结果、结果审计延迟COMMIT失败CLI退出1、重启不接管、SIGKILL后review推导与TERM轮次间退出。
+子进程拦截全部fetch、ws及类型生成子进程并验证0触发；完整stdout/stderr不含联系人或凭证。
+另外npm实际入口非local拒绝；初次沙盒tsx IPC管道EPERM不计作正确拒绝，允许本地管道后核实固定中文错误和退出1。
+
+TDD：参数和worker导出缺失先RED；null outcome误默认成功RED后改undefined-only；新增夹具/ProcessEnv/stdio类型错误按实际契约修正。
+实际捕获Payload启动遥测RED，命令局部关闭后GREEN。内存到期收据不能代表当前DB租约的RED后改读当前记录。
+一次新上下文只读复核a177e78：1严重/2重要/1轻微。严重/重要均接受：删除开关/自动建库、开发生成类型/HMR、
+查询后到begin之间租约竞争误停。随机隔离启动探针实际RED为dropRejected=false/autoCreated=true/generated=1，
+不向既有库注入删除开关；只有随机空库错误建库被复现并清理。修正后true/false/0，网络守卫0；
+租约窗口竞争真实数据库RED后专用错误恢复GREEN，完整397/33组回归，不追加复审。
+复核者独立Node24参数5/5与diff检查通过，未冒称独立DB/构建/浏览器/CI验证。开发配置不是原始Config，未重建或强转，
+用已解析配置的局部覆盖保留其余设置。测试守卫queueMicrotask全局及新增const警告已修正，lint恢复445。
+
+轻微延后：SIGKILL仅在观察到begin提交后发送，未保证已进入休眠结果事务；TERM在首条完整回执后发送，
+只证明轮次间退出，处理中信号同步测试尚未补强，不称已验收该时点。此处是测试覆盖局限，未发现对应生产状态越权。
+复核边界逐项核对：完整检查/DB/最终CI由主执行实核；本批无UI改动所以未做浏览器；交付文档由主执行完成；
+真实提供商/人工清除属于用户明确未开放范围，没有据本批推断可用。
+
+本批没有生产副本/截图或真人手机验收；实际体验验收为独立CLI进程与数据库，构建由最终CI核实。
+随机库/子进程已清理，原3100/zh仍200，55442及图片保留。日志在 `.local/subscription-mock-worker/`，未上传PR附件。
+业务源码及package累计250行≤400；没有新权限入口或新网络适配器。最终推送SHA与精确PR触发CI见PR106实核记录；
+不自动合并，不声称其他电脑已同步或所有push触发CI已通过。
+
 ## 本地全站邮件限速与营销让行（2026-11-22）
 
 已确认PR104合并，最新main `392da87f8f35104145546818ae4518fdf826d87d`，从该点建立

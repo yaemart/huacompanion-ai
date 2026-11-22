@@ -66,6 +66,18 @@ npm run support:worker
 npm run workflow:worker
 ```
 
+本地营销演练使用独立命令，只消费后台已确认、冻结且已占位的虚构任务。指定获独立主题授权的主管、
+本人当前活动与版本；下例为虚构编号，需替换。本机先应用既有迁移，不自动建库或同步schema：
+
+```sh
+npm run subscriptions:mock-worker -- --staff 7 --campaign 00000000-0000-4000-8000-000000000001 --revision 1 --once
+```
+
+去掉 `--once` 持续运行，默认模拟完成；可用 `--outcome temporary`、`--outcome rate-limited`、
+`--outcome unknown` 或 `--outcome permanent` 指定一种结果，429可加 `--retry-after-ms 120000`。
+APP_ENV须为local，沿用原权限/额度/冷却/全站限速和确认资料优先；不准备任务、不消费优先单封邮件、不真实发送或清除待核对。
+退出停止后续轮次，异常/强制中断后的已开始任务按原规则待核对。[用法与验收边界](docs/subscription-mock-worker-summary.md)。
+
 ## 验证与本地容器
 
 ```sh

@@ -19,14 +19,22 @@ try {
   const options = parseMockWorkerArgs(process.argv.slice(2));
   // This command consumes existing migrated data; it must never synchronize a local schema.
   process.env.HUA_DEMO_SCHEMA_PUSH = "false";
+  process.env.DISABLE_PAYLOAD_HMR = "true";
   const { getPayload } = await import("payload");
   const { default: config } = await import("../src/payload.config");
   const { createMockCampaignWorker } = await import("../src/server/subscription-campaign-worker");
+  const resolved = await config;
   const localOnly = {
     telemetry: false,
     logger: { options: { level: "silent" } },
-  } satisfies Pick<Config, "telemetry" | "logger">;
-  const localConfig = Object.assign({}, await config, localOnly);
+    typescript: { ...resolved.typescript, autoGenerate: false },
+  } satisfies Pick<Config, "telemetry" | "logger" | "typescript">;
+  const db = {
+    ...resolved.db,
+    init: (args: Parameters<typeof resolved.db.init>[0]) =>
+      Object.assign(resolved.db.init(args), { disableCreateDatabase: true, push: false }),
+  };
+  const localConfig = Object.assign({}, resolved, localOnly, { db });
   payload = await getPayload({ config: localConfig });
   const tick = createMockCampaignWorker(payload, options);
   while (!stopped) {

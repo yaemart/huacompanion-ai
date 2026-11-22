@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { setTimeout as delay } from "node:timers/promises";
@@ -152,8 +153,9 @@ export async function testCampaignWorker(p: Payload, url: URL) {
       );
       children.add(child);
       let stdout = "",
-        stderr = "",
-        network: string[] = [];
+        stderr = "";
+      const network: string[] = [];
+      const generated: boolean[] = [];
       child.stdout!.on("data", (s) => {
         stdout += s;
       });
@@ -161,13 +163,18 @@ export async function testCampaignWorker(p: Payload, url: URL) {
         stderr += s;
       });
       child.on("message", (m) => {
+        if ((m as { forbiddenGeneration?: boolean }).forbiddenGeneration) generated.push(true);
         if ((m as { forbiddenNetwork?: boolean }).forbiddenNetwork)
           network.push(String((m as { origin?: string }).origin));
       });
       const done = once(child, "exit", { signal: AbortSignal.timeout(45000) }).then(
         ([code, signal]) => {
           children.delete(child);
-          assert.deepEqual(network, [], "worker must not call any network transport");
+          assert.deepEqual(
+            { network, generated },
+            { network: [], generated: [] },
+            "worker startup must not connect HMR or generate files",
+          );
           assert.equal(
             /@example\.invalid|leaseTokenHash|"token"/.test(stdout + stderr),
             false,
@@ -211,6 +218,44 @@ export async function testCampaignWorker(p: Payload, url: URL) {
       assert.equal(result.code, 1);
       assert.match(result.stderr, /本地模拟|有效主管/);
       assert.equal(/ECONNREFUSED|postgres|unused-secret/.test(result.stderr), false);
+    }
+    const forbiddenDrop = await launch("accepted", {
+      PAYLOAD_DROP_DATABASE: "true",
+      DATABASE_URL: "postgresql://unused@127.0.0.1:1/unused",
+    }).done;
+    assert.equal(forbiddenDrop.code, 1);
+    assert.match(forbiddenDrop.stderr, /清理|删除/);
+    const typesBefore = await readFile("payload-types.ts");
+    assert.equal(
+      (
+        await cli("accepted", {
+          NODE_ENV: "development",
+          DISABLE_PAYLOAD_HMR: "false",
+          PAYLOAD_HMR_URL_OVERRIDE: "ws://forbidden.example.invalid/hmr",
+        })
+      ).state,
+      "idle-local",
+    );
+    assert.deepEqual(await readFile("payload-types.ts"), typesBefore);
+    const absentURL = new URL(url);
+    absentURL.pathname = "/hua_subscriptions_" + randomUUID().replaceAll("-", "");
+    const absentName = absentURL.pathname.slice(1);
+    assert.match(absentName, /^hua_subscriptions_[a-f0-9]{32}$/);
+    try {
+      assert.equal(
+        (await db.query("SELECT 1 FROM pg_database WHERE datname=$1", [absentName])).rowCount,
+        0,
+      );
+      const absent = await launch("accepted", { DATABASE_URL: absentURL.toString() }).done;
+      assert.equal(absent.code, 1);
+      assert.equal(
+        (await db.query("SELECT 1 FROM pg_database WHERE datname=$1", [absentName])).rowCount,
+        0,
+        "worker must not create a misspelled database",
+      );
+    } finally {
+      if ((await db.query("SELECT 1 FROM pg_database WHERE datname=$1", [absentName])).rowCount)
+        await db.query(`DROP DATABASE "${absentName}" WITH (FORCE)`);
     }
     const emptyBefore = await databaseFingerprints(db);
     assert.equal((await createMockCampaignWorker(p, options)()).state, "idle-local");
@@ -334,7 +379,7 @@ export async function testCampaignWorker(p: Payload, url: URL) {
       data: { status: "cancelled" },
     });
     // Inject contention AFTER claim commits. Repeated ticks keep the SAME original lease.
-    const blockAfterClaim = async (slot: number, expire = false) => {
+    const blockAfterClaim = async (slot: number, expire = false, race = false) => {
       const tick = createMockCampaignWorker(p, options);
       let injected = false;
       p.db.commitTransaction = async (id) => {
@@ -372,19 +417,46 @@ export async function testCampaignWorker(p: Payload, url: URL) {
           [slot],
         );
       await fresh();
+      if (race) {
+        const execute = p.db.drizzle.execute;
+        let expired = false;
+        p.db.drizzle.execute = new Proxy(execute, {
+          apply(target, self, args) {
+            return Reflect.apply(target, self, args).then(
+              async (result: { rows: { active?: boolean }[] }) => {
+                if (!expired && result.rows[0]?.active) {
+                  expired = true;
+                  await db.query(
+                    "UPDATE subscription_campaign_mock_leases SET expires_at=clock_timestamp()-interval '1 second' WHERE slot_id=$1",
+                    [slot],
+                  );
+                }
+                return result;
+              },
+            );
+          },
+        });
+        try {
+          assert.equal((await tick()).state, "idle-local");
+        } finally {
+          p.db.drizzle.execute = execute;
+        }
+        assert.equal((await attempts(slot)).length, 0);
+      }
       assert.equal((await tick()).state, "completed-local");
       const current = await p.findByID({
         collection: "subscription-campaign-mock-leases",
         id: old.id,
         depth: 0,
       });
-      assert.equal(current.token === old.token, !expire);
-      if (!expire)
+      assert.equal(current.token === old.token, !(expire || race));
+      if (!expire && !race)
         assert.equal(current.expiresAt, old.expiresAt, "short wait must not renew lease");
       assert.equal(((await attempts(slot))[0].attemptedAt as string[]).length, 1);
     };
     await blockAfterClaim(waiting);
     await blockAfterClaim(await prepare(), true);
+    await blockAfterClaim(await prepare(), false, true);
     // Worker still goes through old authorization, pause and current-version gates.
     await setCampaignPause(p, manager, { ...input, paused: true, reason: "虚构暂停" });
     before = await databaseFingerprints(db);
