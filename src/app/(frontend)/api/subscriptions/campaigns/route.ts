@@ -10,6 +10,11 @@ import { readCampaignPause, setCampaignPause } from "@/server/subscription-campa
 import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 import { readCampaignMockSlots } from "@/server/subscription-campaign-task-options";
 import {
+  readMockCampaignBudget,
+  setMockCampaignBudget,
+  reserveMockCampaignSlot,
+} from "@/server/subscription-campaign-quota";
+import {
   claimMockCampaignTask,
   beginMockCampaignAttempt,
   recordMockCampaignOutcome,
@@ -38,6 +43,21 @@ export async function POST(request: Request) {
       !("input" in body)
     )
       throw new ContentError("操作内容无效，请重新打开页面。", 400);
+    if (body.action === "read-mock-budget-local")
+      return Response.json(
+        { budget: await readMockCampaignBudget(p, user, body.input) },
+        { headers },
+      );
+    if (body.action === "set-mock-budget-local")
+      return Response.json(
+        { budget: await setMockCampaignBudget(p, user, body.input) },
+        { headers },
+      );
+    if (body.action === "reserve-mock-slot-local")
+      return Response.json(
+        { reservation: await reserveMockCampaignSlot(p, user, body.input) },
+        { headers },
+      );
     if (body.action === "read-mock-slots-local") {
       return Response.json(
         { slots: await readCampaignMockSlots(p, user, body.input) },

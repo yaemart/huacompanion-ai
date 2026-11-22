@@ -36,7 +36,8 @@ export function CampaignTaskPlayground({
   onBusyChange: (value: boolean) => void;
   onUncertainChange: (value: boolean) => void;
 }) {
-  const [slotId, setSlotId] = useState(slots[0] ?? 0);
+  const [choice, setSlotId] = useState(slots[0] ?? 0);
+  const slotId = slots.includes(choice) ? choice : (slots[0] ?? 0);
   const [lease, setLease] = useState<LocalLease>();
   const [receipt, setReceipt] = useState<Awaited<ReturnType<typeof requestMockTask>>>();
   const [outcome, setOutcome] = useState("unknown");

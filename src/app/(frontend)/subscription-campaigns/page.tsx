@@ -8,6 +8,7 @@ import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { readCampaignPause } from "@/server/subscription-campaign-control";
 import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 import { readCampaignMockSlots } from "@/server/subscription-campaign-task-options";
+import { readMockCampaignBudget } from "@/server/subscription-campaign-quota";
 import { CampaignWorkspace } from "@/components/subscriptions/CampaignWorkspace";
 import "@/components/subscriptions/management.css";
 
@@ -52,6 +53,11 @@ export default async function Page({
         checks={checks}
         frozen={frozen}
         pause={pause}
+        preparationBudget={
+          workspace.grants && process.env.APP_ENV === "local"
+            ? await readMockCampaignBudget(p, user, {})
+            : undefined
+        }
         taskSlots={
           draft && process.env.APP_ENV === "local"
             ? await readCampaignMockSlots(p, user, {
