@@ -33,13 +33,13 @@
 **Interfaces:** subscriptionAttemptBudgetSQL(emails:string[])返回SQL，rows为{email:string,next:string}；冷却缺席表示当前可用。
 新cooldown-local回执沿用AttemptReport字段，attempts0..5、started:false、有效nextAttemptAt；不增加持久attempt行。
 
-- [ ] 新增双向真实计数/HTTP冷却/边界/并发/幂等/回滚回归，先观察RED。
-- [ ] 接共享SQL和规范无主题锁，再接营销开始/临时结果和候选；原schema不变。
-- [ ] 冷却回执校验单测RED后GREEN，页面中文等待提示，不开放reset。
-- [ ] 更新模拟时间夹具、完整check和31组订阅集成；隔离生产预览亲测冷却和原凭证核实。
-- [ ] 一次独立复核，重要问题一轮RED/GREEN，不追加复审。
+- [x] 新增双向真实计数/HTTP冷却/边界/并发/幂等/回滚回归，先观察RED。
+- [x] 接共享SQL和规范无主题锁，再接营销开始/临时结果和候选；原schema不变。
+- [x] 冷却回执校验单测RED后GREEN，页面中文等待提示，不开放reset。
+- [x] 更新模拟时间夹具、完整check和31组订阅集成；隔离生产预览亲测冷却和原凭证核实。
+- [x] 一次独立复核，重要问题一轮RED/GREEN，不追加复审。
 
 ### Task 2：交付
 
-- [ ] 一页中文亲测、progress/handoff保留旧记录；截图日志忽略归档，未上传如实说明。
-- [ ] 最新main/远端SHA/CI实核，独立PR可审阅，不自动合并。
+- [x] 一页中文亲测、progress/handoff保留旧记录；截图日志忽略归档，未上传如实说明。
+- [ ] 最新main/远端SHA/CI实核，独立PR可审阅，不自动合并（本地交付完成，远端结果见PR104）。
