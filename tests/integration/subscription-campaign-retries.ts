@@ -113,7 +113,10 @@ export async function testCampaignRetries(p: Payload, url: URL) {
         .docs[0];
     const moveDue = (slotId: number) =>
       db.query(
-        "UPDATE subscription_campaign_mock_attempts SET next_attempt_at=statement_timestamp()-interval '1 millisecond' WHERE slot_id=$1",
+        `UPDATE subscription_campaign_mock_attempts SET
+          attempted_at=(SELECT jsonb_agg((t::timestamptz-interval '16 minutes')::text)
+            FROM jsonb_array_elements_text(attempted_at) AS x(t)),
+          next_attempt_at=statement_timestamp()-interval '1 millisecond' WHERE slot_id=$1`,
         [slotId],
       );
     const expired = (leaseId: number) =>

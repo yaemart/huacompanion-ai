@@ -82,7 +82,7 @@ export function CampaignTaskStatus({
             <p>最早重试时间：{staffDateTime(status.nextAttemptAt, true)}（北京时间）。</p>
           )}
           <p>
-            重试时间已到只表示等待结束，继续处理仍须核验授权、来源、资格、暂停和取消状态；本页不会自动运行任务。
+            重试时间已到只表示原退避结束，继续处理还须核验同邮箱共用预算/冷却、授权、来源、资格、暂停和取消状态；开始和结果仍需手动。
           </p>
         </>
       )}

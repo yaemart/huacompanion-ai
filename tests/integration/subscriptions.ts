@@ -1,3 +1,4 @@
+import { testSubscriptionSharedAttempts } from "./subscription-shared-attempt-budget";
 import {
   up as upAttempts,
   down as downAttempts,
@@ -418,6 +419,7 @@ try {
   await testCampaignPauseUI(payload);
   await testCampaignCancel(payload, url);
   await testCampaignCancelUI(payload);
+  await testSubscriptionSharedAttempts(payload, url);
   await testCampaignRetries(payload, url);
   await testCampaignStatus(payload, url);
   await testCampaignPlayground(payload, url);

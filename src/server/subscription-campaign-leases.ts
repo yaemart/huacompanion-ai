@@ -149,6 +149,11 @@ async function operate(
         return stop("ineligible");
       }
       // Serialize with public confirmation/withdrawal, including legacy non-normalized addresses.
+      await executeSQL(
+        p,
+        (await req.transactionID)!,
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${subscriptionLockKey(normalized, "")},0))`,
+      );
       const keys = [
         ...new Set([
           subscriptionLockKey(subscription.email, subscription.topic),
@@ -186,6 +191,7 @@ async function operate(
         req,
         {
           actorId: relationID(draft.owner)!,
+          email: normalized,
           slotId: slot.id,
           job,
           message: (draft.preview as CampaignPreview)[job.locale],

@@ -1,3 +1,4 @@
+import { subscriptionAttemptBudgetSQL } from "./subscription-attempt-budget";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 import { relationID, type Staff } from "../cms/access";
@@ -65,6 +66,16 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
       ).docs.map((j) => [j.id, j]),
     );
     const audience = new Map((await campaignAudience(p, req)).map((row) => [row.id, row]));
+    const { rows: shared } = await executeSQL(
+      p,
+      (await req.transactionID)!,
+      subscriptionAttemptBudgetSQL(
+        [...jobs.values()]
+          .map((job) => audience.get(relationID(job.subscription)!)?.email)
+          .filter((email): email is string => !!email),
+      ),
+    );
+    const waits = new Map(shared.map((row) => [String(row.email), Date.parse(String(row.next))]));
     let slotId: number | null = null;
     let nextAt: number | null = null;
     for (const row of rows as Candidate[]) {
@@ -96,7 +107,11 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
         continue;
       if (row.state === "retry" && (row.next === null || !Number.isFinite(row.next)))
         throw new ContentError("模拟重试时间缺失，请联系管理员核对。", 503);
-      const readyAt = Math.max(row.expires ?? 0, row.state === "retry" ? row.next! : 0);
+      const readyAt = Math.max(
+        row.expires ?? 0,
+        row.state === "retry" ? row.next! : 0,
+        waits.get(live.email) ?? 0,
+      );
       if (readyAt > now) nextAt = nextAt === null ? readyAt : Math.min(nextAt, readyAt);
       else if (slotId === null) slotId = row.id;
     }
