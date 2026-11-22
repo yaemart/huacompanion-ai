@@ -239,7 +239,9 @@ export async function testLocalMailDispatch(p: Payload, url: URL) {
     } finally {
       await db.query("ROLLBACK");
     }
-    await advance();
+    // The lock-isolation probe inserted the gate; remove only this disposable fixture so
+    // the following AFTER INSERT delay really runs rather than taking ON CONFLICT UPDATE.
+    await db.query("DELETE FROM local_mail_dispatch");
     const a = await claim(0),
       b = await claim(1);
     if (a.state !== "claimed-local" || b.state !== "claimed-local")
