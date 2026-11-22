@@ -14,6 +14,7 @@ import {
 import { requestNextMockSlot } from "@/lib/subscription-campaign-scheduling-client";
 
 const states = {
+  "cooldown-local": "等待同邮箱共用冷却或尝试预算，未开始新尝试",
   "claimed-local": "已领取，尚未开始",
   busy: "任务已被领取，本页没有可用凭证，请稍后再领取",
   "attempting-local": "本地尝试已开始",
@@ -179,6 +180,7 @@ export function CampaignTaskPlayground({
         <p role="status">本页自动领取已开启；持有凭证时等待手动处理，不会自动开始尝试。</p>
       )}
       {schedule && <p role="status">{schedule}</p>}
+      <p>同邮箱跨确认、资料与本地营销共用15分钟间隔、滚动24小时最多5次尝试；领取和等待不计次。</p>
       {!availableSlots.length && (
         <p>
           暂无当前版本的已占位任务。请在上方准备面板新增任务占位，成功后即可在此领取；旧版名单不能续发。

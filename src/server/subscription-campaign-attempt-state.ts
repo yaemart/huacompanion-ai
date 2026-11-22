@@ -1,3 +1,5 @@
+import { executeSQL } from "./db-types";
+import { subscriptionAttemptBudgetSQL } from "./subscription-attempt-budget";
 import { createHash } from "node:crypto";
 import type { Payload, PayloadRequest } from "payload";
 import type {
@@ -10,13 +12,20 @@ import type { CampaignPreview } from "./subscription-campaign-preview";
 
 export type MockOutcome = "accepted" | "temporary" | "rate-limited" | "unknown" | "permanent";
 export type AttemptReport = {
-  state: "attempting-local" | "retry-local" | "review-local" | "failed-local" | "completed-local";
+  state:
+    | "attempting-local"
+    | "retry-local"
+    | "review-local"
+    | "failed-local"
+    | "completed-local"
+    | "cooldown-local";
   id?: number;
   attempts: number;
   nextAttemptAt: string | null;
   started: boolean;
 };
 type Context = {
+  email: string;
   slotId: number;
   job: SubscriptionCampaignJob;
   message: CampaignPreview["en"];
@@ -56,6 +65,14 @@ export async function mockAttemptState(
     attempts: (row!.attemptedAt as string[]).length,
     nextAttemptAt: row!.nextAttemptAt ?? null,
   });
+  const sharedNext = async () => {
+    const { rows } = await executeSQL(
+      p,
+      (await req.transactionID)!,
+      subscriptionAttemptBudgetSQL([ctx.email]),
+    );
+    return typeof rows[0]?.next === "string" ? Date.parse(rows[0].next) : 0;
+  };
   const unchanged = () => ({ auditId: null, report: report() });
   const store = async (
     state: SubscriptionCampaignMockAttempt["state"],
@@ -115,8 +132,10 @@ export async function mockAttemptState(
     }
     if (action === "result") {
       if (row.state !== "attempting") throw new ContentError("请先开始一次有效模拟尝试。", 409);
-      const next =
-        ctx.now + Math.max(input.retryAfterMs ?? 0, 30000 * 2 ** (attemptedAt.length - 1));
+      const next = Math.max(
+        ctx.now + Math.max(input.retryAfterMs ?? 0, 30000 * 2 ** (attemptedAt.length - 1)),
+        ["temporary", "rate-limited"].includes(input.outcome!) ? await sharedNext() : 0,
+      );
       const state =
         input.outcome === "accepted"
           ? "completed"
@@ -147,6 +166,25 @@ export async function mockAttemptState(
         return store("review", "review-mock-attempt", { nextAttemptAt: null });
       if (Date.parse(row.nextAttemptAt) > ctx.now || action === "complete") return unchanged();
     }
+  }
+  if (action === "claim" || action === "begin") {
+    if (
+      action === "begin" &&
+      (!ctx.lease || ctx.lease.completedAt || Date.parse(ctx.lease.expiresAt) <= ctx.now)
+    )
+      throw new ContentError("模拟租约已失效，请重新领取后开始尝试。", 409);
+    const next = await sharedNext();
+    if (next > ctx.now)
+      return {
+        auditId: null,
+        report: {
+          state: "cooldown-local",
+          id: ctx.lease?.id,
+          attempts: attemptedAt.length,
+          nextAttemptAt: new Date(next).toISOString(),
+          started: false,
+        },
+      };
   }
   if (action !== "begin") return null;
   if (!ctx.lease || ctx.lease.completedAt || Date.parse(ctx.lease.expiresAt) <= ctx.now)

@@ -51,24 +51,33 @@ export async function requestMockTask(command: TaskCommand): Promise<Receipt> {
     throw new MockTaskRequestError(fallback, true);
   const date = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
   const valid =
-    task?.state === "claimed-local"
-      ? command.action === "claim-mock-task-local" &&
-        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(task.token) &&
-        date(task.expiresAt)
-      : task && "attempts" in task
-        ? [
-            "attempting-local",
-            "retry-local",
-            "review-local",
-            "failed-local",
-            "completed-local",
-          ].includes(task.state) &&
-          Number.isSafeInteger(task.attempts) &&
-          task.attempts >= 1 &&
-          task.attempts <= 5 &&
-          typeof task.started === "boolean" &&
-          (task.state === "retry-local" ? date(task.nextAttemptAt) : task.nextAttemptAt === null)
-        : task && ["busy", "completed-local", "ineligible"].includes(task.state);
+    task.state === "cooldown-local"
+      ? command.action !== "record-mock-result-local" &&
+        Number.isSafeInteger(task.attempts) &&
+        task.attempts >= 0 &&
+        task.attempts <= 5 &&
+        task.started === false &&
+        date(task.nextAttemptAt)
+      : task?.state === "claimed-local"
+        ? command.action === "claim-mock-task-local" &&
+          /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
+            task.token,
+          ) &&
+          date(task.expiresAt)
+        : task && "attempts" in task
+          ? [
+              "attempting-local",
+              "retry-local",
+              "review-local",
+              "failed-local",
+              "completed-local",
+            ].includes(task.state) &&
+            Number.isSafeInteger(task.attempts) &&
+            task.attempts >= 1 &&
+            task.attempts <= 5 &&
+            typeof task.started === "boolean" &&
+            (task.state === "retry-local" ? date(task.nextAttemptAt) : task.nextAttemptAt === null)
+          : task && ["busy", "completed-local", "ineligible"].includes(task.state);
   if (
     !task ||
     !valid ||

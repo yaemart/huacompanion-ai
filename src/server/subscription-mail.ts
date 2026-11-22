@@ -1,3 +1,5 @@
+import { customerEmail } from "../lib/customer";
+import { subscriptionAttemptBudgetSQL } from "./subscription-attempt-budget";
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { sql } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
@@ -152,7 +154,7 @@ async function claim(payload: Payload, id: number, origin: string, policy?: Publ
   return transaction(payload, async (query) => {
     const initial = await readJob(query, id);
     if (!initial) return;
-    await lock(query, initial.email, "");
+    await lock(query, customerEmail(initial.email), "");
     await lock(query, initial.email, initial.topic);
     const job = await readJob(query, id);
     if (
@@ -165,16 +167,7 @@ async function claim(payload: Payload, id: number, origin: string, policy?: Publ
       await finish(query, id, attempts ? "uncertain" : "cancelled");
       return;
     }
-    const [quota] = await query(sql`
-      WITH cutoff AS (
-        SELECT greatest(max(a.at::timestamptz) + interval '15 minutes',
-          CASE WHEN count(*) >= 5 THEN min(a.at::timestamptz) + interval '24 hours' END) AS next
-        FROM subscription_mail_jobs j JOIN subscriptions s ON s.id = j.subscription_id
-        CROSS JOIN LATERAL jsonb_array_elements_text(j.attempted_at) a(at)
-        WHERE s.email=${job.email} AND a.at::timestamptz > statement_timestamp() - interval '24 hours'
-      )
-      SELECT next::text FROM cutoff WHERE next > statement_timestamp()
-    `);
+    const [quota] = await query(subscriptionAttemptBudgetSQL([job.email]));
     if (typeof quota?.next === "string") {
       await finish(query, id, job.status === "running" ? "uncertain" : job.status, quota.next);
       return;
@@ -258,7 +251,7 @@ export async function runSubscriptionMail(
     const claimed = await claim(payload, id, origin, policy);
     if (!claimed) return;
     await transaction(payload, async (query) => {
-      await lock(query, claimed.job.email, "");
+      await lock(query, customerEmail(claimed.job.email), "");
       await lock(query, claimed.job.email, claimed.job.topic);
       const job = await readJob(query, id);
       if (!job || job.lease !== claimed.lease || !job.lease_active) return;

@@ -134,3 +134,52 @@ test("a replay sends the original task, credential, outcome and retry delay unch
   assert.equal((await requestMockTask(value)).state, "retry-local");
   assert.deepEqual(bodies, [JSON.stringify(value), JSON.stringify(value)]);
 });
+test("shared cooldown accepts zero attempts and drops the page credential without claiming progress", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  globalThis.fetch = async () =>
+    Response.json({
+      task: {
+        state: "cooldown-local",
+        attempts: 0,
+        nextAttemptAt: "2030-01-01T00:15:00.000Z",
+        started: false,
+      },
+    });
+  const receipt = await requestMockTask(command);
+  assert.equal(receipt.state, "cooldown-local");
+  assert.equal(
+    taskLeaseAfter(
+      { slotId: 7, token, expiresAt: claimed.expiresAt, phase: "claimed" },
+      7,
+      command.action,
+      receipt,
+    ),
+    undefined,
+  );
+});
+test("cooldown cannot claim a started attempt or replace a result receipt", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  const task = {
+    state: "cooldown-local",
+    attempts: 0,
+    nextAttemptAt: "2030-01-01T00:15:00.000Z",
+    started: true,
+  };
+  globalThis.fetch = async () => Response.json({ task });
+  await assert.rejects(requestMockTask(command), MockTaskRequestError);
+  task.started = false;
+  await assert.rejects(
+    requestMockTask({
+      ...command,
+      action: "record-mock-result-local",
+      input: { ...command.input, token, outcome: "accepted" },
+    }),
+    MockTaskRequestError,
+  );
+});
