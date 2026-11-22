@@ -59,13 +59,13 @@ export async function testLocalMailDispatch(p: Payload, url: URL) {
       WORKFLOW_MAIL_FROM: "sender@example.invalid",
     });
     await p.updateGlobal({ slug: "workflow-settings", data: { emailEnabled: true } });
-    const person = async (role: "admin" | "manager") => {
+    const person = async (role: "admin" | "manager", label: string = role) => {
       const user = await p.create({
         collection: "staff",
         context: { allowLocalStaffSetup: true },
         data: {
           name: "虚构共用预算",
-          email: `${role}-${key}@example.invalid`,
+          email: `${label}-${key}@example.invalid`,
           role,
           active: true,
           password: key,
@@ -75,7 +75,8 @@ export async function testLocalMailDispatch(p: Payload, url: URL) {
       return user;
     };
     const admin = await person("admin"),
-      manager = await person("manager");
+      manager = await person("manager"),
+      noticeRecipient = await person("manager", "notice");
     const token = (
       await p.login({ collection: "staff", data: { email: manager.email, password: key } })
     ).token!;
@@ -456,6 +457,103 @@ export async function testLocalMailDispatch(p: Payload, url: URL) {
       await db.query(
         "DROP TRIGGER reject_dispatch_commit ON audit_events; DROP FUNCTION reject_dispatch_commit()",
       );
+    }
+    // An exception escaping transport keeps its already committed reservation.
+    await advance();
+    assert.equal(await reserve("throwing-transport"), null);
+    await assert.rejects(() =>
+      withLocalTransport(p, "throwing-transport", async () => {
+        throw Error("fictional escaping transport error");
+      }),
+    );
+    assert.ok(
+      (await db.query("SELECT owner FROM local_mail_dispatch WHERE key='local'")).rows[0].owner,
+    );
+    await db.query(
+      "UPDATE local_mail_dispatch SET owner=NULL,next_at=clock_timestamp()-interval '1 second'",
+    );
+    // Review regression: no transport releases its own hold; provider uncertainty keeps old status.
+    for (const variant of ["unconfigured", "expired", "denied", "read-failure", "send-failure"]) {
+      await advance();
+      const n = await p.create({
+        collection: "workflow-notifications",
+        data: {
+          key: randomUUID(),
+          recipient: variant === "denied" ? noticeRecipient.id : admin.id,
+          title: "虚构无投递边界",
+        },
+      });
+      notifications.push(n.id);
+      const j = await p.create({
+        collection: "workflow-mail-jobs",
+        data: {
+          key: randomUUID(),
+          notification: n.id,
+          status: "queued",
+          attempts: 0,
+          nextAt: new Date(Date.now() - 1000).toISOString(),
+        },
+      });
+      workflowJobs.push(j.id);
+      if (variant === "expired")
+        await db.query(
+          "UPDATE workflow_mail_jobs SET created_at=clock_timestamp()-interval '24 hours' WHERE id=$1",
+          [j.id],
+        );
+      if (variant === "denied")
+        await p.update({
+          collection: "staff",
+          id: noticeRecipient.id,
+          user: admin,
+          data: { active: false },
+        });
+      if (variant === "unconfigured") process.env.WORKFLOW_MAIL_ENABLED = "false";
+      let calls = 0;
+      globalThis.fetch = async () => {
+        calls++;
+        throw Error("fictional transport failure");
+      };
+      const proxy = new Proxy(p, {
+        get(target, key) {
+          if (key === "findByID" && variant === "read-failure")
+            return (args: Parameters<typeof p.findByID>[0]) => {
+              if (args.collection === "workflow-notifications")
+                throw Error("fictional pre-send read failure");
+              return target.findByID(args);
+            };
+          const value = Reflect.get(target, key);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+      await runWorkflowJobs(proxy);
+      const output = await p.findByID({ collection: "workflow-mail-jobs", id: j.id, depth: 0 });
+      assert.equal(
+        output.status,
+        variant === "expired"
+          ? "failed"
+          : variant === "send-failure"
+            ? "uncertain"
+            : variant === "read-failure"
+              ? "retry"
+              : "disabled",
+      );
+      assert.equal(calls, variant === "send-failure" ? 1 : 0);
+      const clock = (
+        await db.query(
+          "SELECT owner, next_at <= clock_timestamp()+interval '1500 milliseconds' AS released FROM local_mail_dispatch WHERE key='local'",
+        )
+      ).rows[0];
+      assert.equal(!!clock?.owner, false);
+      if (clock) assert.equal(clock.released, true);
+      process.env.WORKFLOW_MAIL_ENABLED = "true";
+      if (variant === "denied")
+        await p.update({
+          collection: "staff",
+          id: noticeRecipient.id,
+          user: admin,
+          data: { active: true },
+        });
+      await p.delete({ collection: "workflow-mail-jobs", id: j.id });
     }
     // Actual notification queue uses the same global gate before increasing attempts.
     await advance();

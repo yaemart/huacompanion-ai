@@ -13,7 +13,7 @@ import type {
 } from "../../../payload-types";
 import type { Staff } from "../../cms/access";
 import type { CustomerIdentity } from "../customer/service";
-import type { MailResult } from "./mail";
+import type { MailResult, MailMessage } from "./mail";
 import { transactionSession } from "../db-types";
 import { staffDigestAt, type DigestCandidate } from "../../lib/staff-daily-digest";
 import { chinaDay } from "../../lib/staff-today";
@@ -682,19 +682,20 @@ export async function runWorkflowJobs(payload: Payload) {
   });
   for (const j of jobs.docs) {
     const lease = randomUUID();
+    let dispatchReserved = false,
+      transportStarted = false;
     const claimed = await updateMailJob(payload, j.id, async (current, req) => {
       if (current.updatedAt !== j.updatedAt) return null;
-      if (
-        settings.emailEnabled &&
-        configuredMailEnabled() &&
-        (await admitDispatch(
+      if (settings.emailEnabled && configuredMailEnabled()) {
+        const wait = await admitDispatch(
           async (statement) =>
             (await executeSQL(payload, (await req.transactionID)!, statement)).rows,
           `workflow:${lease}`,
           70000,
-        ))
-      )
-        return null;
+        );
+        if (wait) return null;
+        dispatchReserved = process.env.APP_ENV === "local";
+      }
       return {
         status: "running",
         lease,
@@ -703,6 +704,11 @@ export async function runWorkflowJobs(payload: Payload) {
       };
     });
     if (!claimed) continue;
+    const deliver = (message: MailMessage) =>
+      withLocalTransport(payload, `workflow:${lease}`, () => {
+        transportStarted = true;
+        return sendConfiguredMail(message);
+      });
     let result: MailResult = { status: "failed" };
     // Never retry beyond provider's 24-hour idempotency window; uncertain delivery needs manual review.
     if (Date.now() - Date.parse(j.createdAt) > 23 * 3600000 || j.attempts! >= 5)
@@ -727,7 +733,8 @@ export async function runWorkflowJobs(payload: Payload) {
             await customerOwnsInquiry(p, customer, relationID(n.inquiry));
             allowed = true;
           } catch {}
-          if (!settings.emailEnabled || !allowed) result = { status: "disabled" };
+          if (!settings.emailEnabled || !configuredMailEnabled() || !allowed)
+            result = { status: "disabled" };
           else {
             const inquiry = await p.findByID({
               collection: "inquiries",
@@ -740,14 +747,12 @@ export async function runWorkflowJobs(payload: Payload) {
               origin && /^https?:\/\//.test(origin)
                 ? new URL(`/${copy.locale}/account`, origin).toString()
                 : `/${copy.locale}/account`;
-            result = await withLocalTransport(payload, `workflow:${lease}`, () =>
-              sendConfiguredMail({
-                to: customer.email,
-                subject: copy.subject,
-                text: `${copy.text}\n${link}`,
-                idempotencyKey: j.key,
-              }),
-            );
+            result = await deliver({
+              to: customer.email,
+              subject: copy.subject,
+              text: `${copy.text}\n${link}`,
+              idempotencyKey: j.key,
+            });
           }
         } else {
           const n = await p.findByID({
@@ -761,21 +766,21 @@ export async function runWorkflowJobs(payload: Payload) {
             depth: 0,
           });
           result =
-            !settings.emailEnabled || !(await visible(p, staff, n))
+            !settings.emailEnabled || !configuredMailEnabled() || !(await visible(p, staff, n))
               ? { status: "disabled" }
-              : await withLocalTransport(payload, `workflow:${lease}`, () =>
-                  sendConfiguredMail({
-                    to: staff.email,
-                    subject: "华伴待办提醒",
-                    text: "您有新的站内通知，请登录华伴工作台查看。",
-                    idempotencyKey: j.key,
-                  }),
-                );
+              : await deliver({
+                  to: staff.email,
+                  subject: "华伴待办提醒",
+                  text: "您有新的站内通知，请登录华伴工作台查看。",
+                  idempotencyKey: j.key,
+                });
         }
       } catch {
         result = { status: "retry" };
       }
     }
+    if (dispatchReserved && !transportStarted)
+      await withLocalTransport(payload, `workflow:${lease}`, async () => ({ status: "disabled" }));
     const terminal = j.attempts! >= 5 || Date.now() - Date.parse(j.createdAt) > 23 * 3600000;
     await updateMailJob(payload, j.id, (current) =>
       current.lease === lease

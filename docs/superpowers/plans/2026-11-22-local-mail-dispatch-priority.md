@@ -28,16 +28,16 @@
 
 ### Task 1：持久闸门与全部本地入口
 
-**Files:** 新增server/local-mail-dispatch.ts、subscription-mail-priority.ts；cms/subscriptions/collections.ts与20261122_210000_local_mail_dispatch迁移/registry/types；修改subscription-mail.ts导出原资格构件并接闸门、workflow/service.ts接同一闸门；campaign attempt/scheduling与client/Playground/Status接等待。
+**Files:** 新增server/local-mail-dispatch.ts、subscription-mail-priority.ts；cms/subscriptions/collections.ts与20261122_210000_local_mail_dispatch迁移/registry/types；修改subscription-mail.ts导出原资格构件并接闸门、workflow/service.ts与customer/service.ts验证码接同一闸门；campaign attempt/scheduling与client/Playground/Status接等待。
 **Interfaces:** query(statement)返回rows；readDispatchWait(query,priority?)读等待；admitDispatch(query,owner?,holdMs?,priority?)在try-lock下放行或返回等待；guard/release核对hashed owner。hasSubscriptionPriority(p,req)只读原单封资格。
 
-- [ ] 新增真实HTTP/DB/多进程限速、优先、跨队列、在途归属/回滚、ACL和迁移测试，先RED。
-- [ ] 迁移+私有模型+类型；实现闸门和复用原资格的优先查询，保持锁序。
-- [ ] 接全部入口与等待回执，未知重放/终态优先，候选只读；单测先RED后GREEN。
-- [ ] 原回归夹具显式推进调度时钟；check、32组订阅和相关workflow集成、生产隔离浏览器。
-- [ ] 一次独立只读复核，重要问题一轮RED/GREEN修正，不追加复审。
+- [x] 新增真实HTTP/DB/多进程限速、优先、跨队列、在途归属/回滚、ACL和迁移测试，先RED。
+- [x] 迁移+私有模型+类型；实现闸门和复用原资格的优先查询，保持锁序。
+- [x] 接全部入口与等待回执，未知重放/终态优先，候选只读；单测先RED后GREEN。
+- [x] 原回归夹具显式推进调度时钟；check、32组订阅和相关workflow集成、生产隔离浏览器。
+- [x] 一次独立只读复核，重要问题一轮RED/GREEN修正，不追加复审。
 
 ### Task 2：交付
 
-- [ ] 一页中文小结及progress/handoff，迁移/重启说明，截图/日志忽略归档，未上传如实说明。
+- [x] 一页中文小结及progress/handoff，迁移/重启说明，截图/日志忽略归档，未上传如实说明。
 - [ ] latestmain/远端SHA/精确CI核对，独立PR可审阅，不自动合并。
