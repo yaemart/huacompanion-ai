@@ -36,12 +36,12 @@
 
 **Files:** 修改server/subscription-campaign-quota.ts新增只读余额；原route.ts接三个action；新增lib/subscription-campaign-preparation-client.ts、components/subscriptions/CampaignPreparation.tsx；修改page.tsx、CampaignWorkspace.tsx及演练选项兼容；新增单测、真实POST集成并加入subscriptions.ts。
 
-- [ ] 新增真实权限、严格输入、占位幂等/竞争、余额/日/邮箱限制、到期、审计回滚和完整页面回归，先RED。
-- [ ] 接原服务、新增只读快照；客户端未知结果协议与字段校验单测先RED后GREEN。
-- [ ] 完整check及29组订阅集成，生产预览浏览器完成管理员→主管→冻结→占位→演练，覆盖回执丢失核实及手机。
+- [x] 新增真实权限、严格输入、占位幂等/竞争、余额/日/邮箱限制、到期、审计回滚和完整页面回归，先RED。
+- [x] 接原服务、新增只读快照；客户端未知结果协议与字段校验单测先RED后GREEN。
+- [x] 完整check及29组订阅集成，生产预览浏览器完成管理员→主管→冻结→占位→演练，覆盖回执丢失核实及手机。
 
 ### Task 2：交付
 
-- [ ] 一次新上下文只读复核，重要问题RED/GREEN修正，不重复复审。
-- [ ] 一页中文亲测与progress/handoff，截图/日志本机忽略归档，未上传PR附件则说明。
-- [ ] 推送独立PR，核对精确远端SHA与CI，不自动合并。
+- [x] 一次新上下文只读复核，重要问题RED/GREEN修正，不重复复审。
+- [x] 一页中文亲测与progress/handoff，截图/日志本机忽略归档，未上传PR附件则说明。
+- [ ] 推送独立PR，核对精确远端SHA与CI，不自动合并（本地交付完成，远端结果见PR102实核）。
