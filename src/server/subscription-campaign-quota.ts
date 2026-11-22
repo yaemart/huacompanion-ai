@@ -13,6 +13,27 @@ import { requireCampaignRunning } from "./subscription-campaign-control";
 
 const budgets = "subscription-campaign-mock-budgets";
 const slots = "subscription-campaign-mock-slots";
+export async function readMockCampaignBudget(p: Payload, actor: Staff, input: unknown) {
+  if (process.env.APP_ENV !== "local") throw new ContentError("仅支持本地虚构余额。", 403);
+  if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).length)
+    throw new ContentError("请从准备面板核对余额。", 400);
+  return businessTransaction(p, async (req) => {
+    await requireSubscriptionAdmin(p, actor, req);
+    const clock = await usage(p, req);
+    const row = (await p.find({ collection: budgets, req, depth: 0, limit: 1, sort: "-id" }))
+      .docs[0];
+    const valid = !!row && Date.parse(row.expiresAt) > clock.ms && clock.total >= row.baseUsage;
+    return {
+      id: row?.id ?? null,
+      configured: row?.remaining ?? null,
+      remaining: valid ? Math.max(0, row.remaining - (clock.total - row.baseUsage)) : null,
+      valid,
+      reason: row?.reason ?? null,
+      expiresAt: row?.expiresAt ?? null,
+      asOf: new Date(clock.ms).toISOString(),
+    };
+  });
+}
 type State =
   | "reserved-local"
   | "already-reserved"

@@ -12,6 +12,8 @@ import { CampaignPauseControls } from "./CampaignPauseControls";
 import { CampaignTaskStatus } from "./CampaignTaskStatus";
 import type { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 import { CampaignTaskPlayground } from "./CampaignTaskPlayground";
+import { CampaignPreparation } from "./CampaignPreparation";
+import type { BudgetSnapshot } from "@/lib/subscription-campaign-preparation-client";
 
 type Workspace = Awaited<ReturnType<typeof readCampaignWorkspace>>;
 type Draft = Awaited<ReturnType<typeof readCampaignDraft>>;
@@ -23,7 +25,8 @@ export function CampaignWorkspace({
   frozen,
   pause,
   taskStatus,
-  taskSlots,
+  taskSlots: initialTaskSlots,
+  preparationBudget,
 }: {
   workspace: Workspace;
   draft?: Draft;
@@ -33,6 +36,7 @@ export function CampaignWorkspace({
   pause?: Awaited<ReturnType<typeof readCampaignPause>>;
   taskStatus?: Awaited<ReturnType<typeof readCampaignTaskStatus>>;
   taskSlots?: number[];
+  preparationBudget?: BudgetSnapshot;
 }) {
   const [busy, setBusy] = useState(false);
   const [checkBusy, setMockBusy] = useState(false);
@@ -43,8 +47,12 @@ export function CampaignWorkspace({
   const [controlUncertain, setControlUncertain] = useState(false);
   const [taskBusy, setTaskBusy] = useState(false);
   const [taskUncertain, setTaskUncertain] = useState(false);
+  const [taskSlots, setTaskSlots] = useState(initialTaskSlots);
+  const [preparing, setPreparing] = useState(false);
+  const [preparationUncertain, setPreparationUncertain] = useState(false);
+  const preparationBlocked = preparing || preparationUncertain;
   const taskBlocked = taskBusy || taskUncertain;
-  const mockBusy = checkBusy || taskBlocked;
+  const mockBusy = checkBusy || taskBlocked || preparationBlocked;
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -135,6 +143,24 @@ export function CampaignWorkspace({
             </button>
           </form>
         </section>
+      )}
+      {(preparationBudget || taskSlots) && (
+        <CampaignPreparation
+          initialBudget={preparationBudget}
+          draft={draft}
+          eligible={
+            !!checks?.mockConfirmed &&
+            checks.current &&
+            !!frozen?.current &&
+            !dirty &&
+            !control?.paused &&
+            !control?.cancelledAt
+          }
+          disabled={busy || checkBusy || taskBlocked || controlBusy || controlUncertain}
+          onReserved={(id) => setTaskSlots((previous) => [...new Set([...(previous ?? []), id])])}
+          onBusyChange={setPreparing}
+          onUncertainChange={setPreparationUncertain}
+        />
       )}
       {!workspace.canDraft ? (
         <p>当前账号尚未获活动操作授权，请先由管理员授权后重新打开本页。</p>
@@ -239,7 +265,12 @@ export function CampaignWorkspace({
               frozen={frozen}
               dirty={dirty}
               disabled={
-                busy || taskBlocked || controlBusy || controlUncertain || !!control?.cancelledAt
+                busy ||
+                taskBlocked ||
+                preparationBlocked ||
+                controlBusy ||
+                controlUncertain ||
+                !!control?.cancelledAt
               }
               paused={control?.paused}
               cancelled={!!control?.cancelledAt}
@@ -258,7 +289,7 @@ export function CampaignWorkspace({
                 !control?.paused &&
                 !control?.cancelledAt
               }
-              disabled={busy || checkBusy || controlBusy || controlUncertain}
+              disabled={busy || checkBusy || preparationBlocked || controlBusy || controlUncertain}
               onBusyChange={setTaskBusy}
               onUncertainChange={setTaskUncertain}
             />

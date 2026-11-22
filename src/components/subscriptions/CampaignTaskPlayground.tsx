@@ -36,7 +36,8 @@ export function CampaignTaskPlayground({
   onBusyChange: (value: boolean) => void;
   onUncertainChange: (value: boolean) => void;
 }) {
-  const [slotId, setSlotId] = useState(slots[0] ?? 0);
+  const [choice, setSlotId] = useState(slots[0] ?? 0);
+  const slotId = slots.includes(choice) ? choice : (slots[0] ?? 0);
   const [lease, setLease] = useState<LocalLease>();
   const [receipt, setReceipt] = useState<Awaited<ReturnType<typeof requestMockTask>>>();
   const [outcome, setOutcome] = useState("unknown");
@@ -112,7 +113,7 @@ export function CampaignTaskPlayground({
       </p>
       {!slots.length && (
         <p>
-          暂无当前版本的已占位任务。余额和占位仍由现有本地服务准备，准备后重新打开本页；旧版名单不能续发。
+          暂无当前版本的已占位任务。请在上方准备面板新增任务占位，成功后即可在此领取；旧版名单不能续发。
         </p>
       )}
       {!eligible && (
