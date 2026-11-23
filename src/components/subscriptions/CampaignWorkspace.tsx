@@ -10,6 +10,7 @@ import type { campaignMockChecks } from "@/server/subscription-campaign-mock-che
 import type { readCampaignPause } from "@/server/subscription-campaign-control";
 import { CampaignPauseControls } from "./CampaignPauseControls";
 import { CampaignTaskStatus } from "./CampaignTaskStatus";
+import { CampaignReviewDetails } from "./CampaignReviewDetails";
 import type { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
 import { CampaignTaskPlayground } from "./CampaignTaskPlayground";
 import { CampaignPreparation } from "./CampaignPreparation";
@@ -25,6 +26,7 @@ export function CampaignWorkspace({
   frozen,
   pause,
   taskStatus,
+  reviewDetails,
   taskSlots: initialTaskSlots,
   preparationBudget,
 }: {
@@ -35,6 +37,7 @@ export function CampaignWorkspace({
   frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
   pause?: Awaited<ReturnType<typeof readCampaignPause>>;
   taskStatus?: Awaited<ReturnType<typeof readCampaignTaskStatus>>;
+  reviewDetails?: Parameters<typeof CampaignReviewDetails>[0]["initial"];
   taskSlots?: number[];
   preparationBudget?: BudgetSnapshot;
 }) {
@@ -298,6 +301,13 @@ export function CampaignWorkspace({
             <CampaignTaskStatus
               draft={draft}
               initial={taskStatus}
+              blocked={busy || mockBusy || controlBusy}
+            />
+          )}
+          {draft && reviewDetails && (
+            <CampaignReviewDetails
+              draft={draft}
+              initial={reviewDetails}
               blocked={busy || mockBusy || controlBusy}
             />
           )}
