@@ -1,5 +1,44 @@
 # 当前开发交接
 
+## 独立 worker 处理中 SIGKILL/SIGTERM 同步验收（2026-11-23）
+
+已确认PR106合并，最新main `6645d967731e52ce6f57a190e225a3827a13cb5b`，从该点建立
+`codex/worker-signal-sync`，早期建立[PR107](https://github.com/yaemart/huacompanion-ai/pull/107)。
+[一页中文验收](worker-signal-sync-summary.md)。本批补齐PR106的处理中信号轻微待办；生产worker、src、scripts、
+package/锁文件/生成类型与该main无diff，业务改动0行。原权限、额度、共用预算、限速、优先及重试保持。
+不开放真实发送或清除待核对；无新依赖、产品环境变量或迁移，原库不升级。
+
+只在随机订阅库创建指定slot结果审计的BEFORE INSERT屏障，父连接持唯一session advisory锁，子事务申请同key xact锁。
+独立application_name、wait_event和pg_blocking_pids指向父连接，正向证明到达当前结果事务后才发信号。
+SIGKILL后排空子进程close，释放屏障并等待全部命名数据库会话消失，才核对回滚。原attempt仍1次且lastOutcome空，
+领取/开始审计各1，无结果审计。仅随机夹具模拟租约到期，状态汇总review保持4；accepted/unknown两次新CLI均idle，
+全库指纹不变，无重记、补结果或清除。
+
+SIGTERM前已有当前项及下一项。当前结果事务阻塞时发信号，测试preload仅在同步监听器本轮后nextTick报告IPC，
+不设置stop、不实现业务退出。收到报告后仍确认同一PG backend阻塞，才释放；进程完成当前结果、只有一份完成回执、
+退出0，下一项无lease/attempt/claim审计。显式新进程随后可处理下一项，证明它不是本来不可处理。
+launch等待close排空stdio；清理先订阅close再杀未退出子进程，避免错过exit事件；唯一锁/DDL均finally清理。
+没有固定sleep猜信号阶段。SIGINT、平台服务管理器或真实邮件传输中断不据此推断已验收。
+
+Node24.22.1最终完整check398/398通过，lint0错误/445既有警告持平，789源码文件行长合格，无例外。
+33组订阅集成在全新随机库全部通过，保留原独立进程/权限/预算/限速/优先/重试回归与网络、生成类型和日志护栏。
+基线完整check397通过；首版新检查发现删除旧sleep后unused delay多1警告，清理导入后恢复445，没有跳过检查。
+
+测试加强采用三组错误控制，全部跑真实CLI及数据库：屏障不匹配时因结果事务未达而worker先退出；TERM立刻退出时
+因处理中确认前退出；TERM忽略停止时因领取下一项。三个指定断言均RED，退出1，每次finally逐字恢复原文件；
+随后正常398/33组GREEN。错误控制只临时改本任务已保存的精确文件，记录caught/restored均true，不提交变体，
+不使用reset/强推或清理他人目录；生产源码最终对main逐字无diff。原始记录在 `.local/worker-signal-sync/`，未上传PR附件。
+
+本批没有页面改动、浏览器/手机/真实提供商验收或截图。实际体验证据是独立进程、事务阻塞、信号、退出码及数据库审计。
+随机库、锁、触发器与测试子进程已清理；原3100/zh仍200，55442及图片保留。旧handoff/progress原文整体保留，
+旧worker小结的当前遗留说明链接到本批，历史阶段局限不删除。PR97/105既有待应用迁移仍须备份、停Web/worker、迁移后重启。
+一次独立只读复核：0严重/1重要/0轻微。唯一P2是回执Promise提前拒绝可能抢先退出、跳过finally；
+无数据库严格拒绝子进程反例先RED，再立即登记拒绝处理且返回原Promise，证明清理执行、后续仍收到原错误后GREEN。
+修正已接入launch，完整398/33组重新验证，不追加复审，无遗留发现。复核者独立diff检查及最小反例，
+未独立跑DB/构建/浏览器/CI；完整检查、DB和最终CI由主执行实核，页面无改动不追加UI验收。
+一次沙箱完整check被既有端口监听测试EPERM阻断；允许本机监听后原命令重跑，未跳过测试。
+最终推送SHA与PR触发CI见PR107实核，不自动合并、不推断其他电脑同步或所有push触发CI通过。
+
 ## 本地模拟营销独立 worker（2026-11-22）
 
 已确认PR105合并，最新main `02bec32f150c88c1496424e9015cb2a8a396718c`，从该点建立
