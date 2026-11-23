@@ -22,6 +22,6 @@
 **Files:** tests/helpers/campaign-review-details.ts；中文小结与handoff/progress。
 **Interfaces:** 服务和夹具签名保持，second.rows逐项新增两个独立断言。
 
-- [ ] 加逐项断言，保留5项数量与编号检查。
-- [ ] 两个错误控制分别指定RED且恢复；正常check432及33组GREEN。
+- [x] 加逐项断言，保留5项数量与编号检查。
+- [x] 两个错误控制分别指定RED且恢复；正常check432及33组GREEN。
 - [ ] 一次只读复核，中文记录保留历史；最终推送SHA及CI实核，PR可审阅不合并。

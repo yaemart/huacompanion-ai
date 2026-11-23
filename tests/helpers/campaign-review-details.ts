@@ -141,6 +141,14 @@ export async function assertCampaignReviewDetails(
     assert.equal(first.total, 30);
     assert.equal(first.rows.length, 25);
     assert.equal(second.rows.length, 5);
+    for (const row of second.rows) {
+      assert.deepEqual(row.events, [], "second-page tasks without audits must keep empty history");
+      assert.equal(
+        row.hasOlderEvents,
+        false,
+        "second-page tasks without audits must not report older history",
+      );
+    }
     assert.deepEqual(
       [...first.rows, ...second.rows].map((r) => r.slotId),
       [...slots.slice(2, 6), ...createdSlots],
