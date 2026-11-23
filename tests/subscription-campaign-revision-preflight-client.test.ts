@@ -39,6 +39,28 @@ for (const [name, patch] of [
   ],
   ["a missing snapshot cannot carry tasks", { snapshot: null }],
   [
+    "an empty missing snapshot still requires its blocker",
+    {
+      snapshot: null,
+      total: 0,
+      counts: { attempted: 0, cancelled: 0, ineligible: 0, leased: 0, candidates: 0 },
+      blockers: [],
+    },
+  ],
+  [
+    "a current snapshot requires the not-revised blocker",
+    { snapshot: { revision: 2, current: true } },
+  ],
+  ["leased tasks require an active-lease blocker", { blockers: ["confirmation-required"] }],
+  [
+    "an existing snapshot cannot be reported missing",
+    { blockers: [...report.blockers, "no-snapshot"] },
+  ],
+  [
+    "a revised snapshot cannot be labelled not-revised",
+    { blockers: [...report.blockers, "not-revised"] },
+  ],
+  [
     "private snapshot fields are rejected",
     { snapshot: { revision: 1, current: false, email: "private" } },
   ],
@@ -125,4 +147,13 @@ test("empty preflight without a snapshot remains readable", async (t) => {
   };
   globalThis.fetch = async () => Response.json({ preflight: empty });
   assert.deepEqual(await loadCampaignRevisionPreflight(draft), empty);
+});
+test("attempted history may hold an active lease even with no unstarted leases", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  const activeHistory = { ...report, counts: { ...report.counts, leased: 0, candidates: 3 } };
+  globalThis.fetch = async () => Response.json({ preflight: activeHistory });
+  assert.deepEqual(await loadCampaignRevisionPreflight(draft), activeHistory);
 });

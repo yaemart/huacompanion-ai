@@ -52,7 +52,12 @@ export async function loadCampaignRevisionPreflight(draft: {
         data.snapshot.current !== (data.snapshot.revision === draft.revision)) ||
     !Array.isArray(data.blockers) ||
     new Set(data.blockers).size !== data.blockers.length ||
-    !data.blockers.every((key) => typeof key === "string" && Object.hasOwn(preflightBlockers, key))
+    !data.blockers.every(
+      (key) => typeof key === "string" && Object.hasOwn(preflightBlockers, key),
+    ) ||
+    data.blockers.includes("no-snapshot") !== (data.snapshot === null) ||
+    data.blockers.includes("not-revised") !== (data.snapshot?.current === true) ||
+    (data.counts.leased > 0 && !data.blockers.includes("active-lease"))
   )
     throw Error(fallback);
   return data;
