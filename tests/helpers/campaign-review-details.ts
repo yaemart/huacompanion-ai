@@ -5,6 +5,8 @@ import type pg from "pg";
 import type { Staff } from "../../src/cms/access";
 import { readCampaignReviewDetails } from "../../src/server/subscription-campaign-review";
 import { databaseFingerprints } from "./database-fingerprints";
+import { observePGQueries } from "./observe-pg-queries";
+import { assertReviewAuditPerformance } from "./campaign-review-performance";
 
 export async function assertCampaignReviewDetails(
   p: Payload,
@@ -128,9 +130,14 @@ export async function assertCampaignReviewDetails(
       );
     }
     const before = await databaseFingerprints(db);
-    const first = await readCampaignReviewDetails(p, actor, { ...input, page: 1 });
-    const second = await readCampaignReviewDetails(p, actor, { ...input, page: 2 });
-    const empty = await readCampaignReviewDetails(p, actor, { ...input, page: 3 });
+    const observe = (page: number) =>
+      observePGQueries(p, () => readCampaignReviewDetails(p, actor, { ...input, page }));
+    const page1 = await observe(1),
+      page2 = await observe(2),
+      page3 = await observe(3);
+    const first = page1.result,
+      second = page2.result,
+      empty = page3.result;
     assert.equal(first.total, 30);
     assert.equal(first.rows.length, 25);
     assert.equal(second.rows.length, 5);
@@ -145,6 +152,9 @@ export async function assertCampaignReviewDetails(
     assert.equal(truncated.events.length, 20);
     assert.equal(truncated.hasOlderEvents, true);
     assert.ok(truncated.events.every((e) => e.action === "recover-mock-task"));
+    assert.equal(page1.statements.length, 1, "a full review page must read audits in one batch");
+    assert.equal(page2.statements.length, 1, "a partial review page must use one audit query");
+    assert.equal(page3.statements.length, 0, "an empty review page must not query audits");
     assert.doesNotMatch(
       JSON.stringify(first),
       /@|private_|token|hash|subject|body|subscription|recipient|message|recordId/i,
@@ -154,6 +164,7 @@ export async function assertCampaignReviewDetails(
       before,
       "detail pagination never writes any table",
     );
+    await assertReviewAuditPerformance(p, db, actor, input, first);
   } finally {
     await db.query("DELETE FROM audit_events WHERE id=ANY($1)", [auditIds]);
     await db.query("DELETE FROM subscription_campaign_mock_attempts WHERE slot_id=ANY($1)", [

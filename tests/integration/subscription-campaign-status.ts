@@ -282,6 +282,51 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.equal(capped.counts.review, 4, "five attempts cannot be presented as ready to retry");
     assert.equal(capped.counts.retryReady, 0);
     assert.equal(capped.nextAttemptAt, null);
+    const expectedHistory = await readCampaignReviewDetails(p, manager.user, input);
+    const activeFacts = (
+      await db.query(
+        "SELECT id, active_fact_version_id FROM policy_groups WHERE active_fact_version_id IS NOT NULL",
+      )
+    ).rows;
+    assert.ok(activeFacts.length > 0);
+    try {
+      await db.query(
+        "UPDATE policy_groups SET active_fact_version_id=NULL WHERE active_fact_version_id IS NOT NULL",
+      );
+      assert.equal(
+        (await readCampaignDraft(p, manager.user, input.campaignKey)).current,
+        false,
+        "fixture must really invalidate the source",
+      );
+      const invalidBefore = await databaseFingerprints(db);
+      const invalidResponse = await detail();
+      assert.equal(
+        invalidResponse.status,
+        200,
+        "source-invalid review history must remain readable",
+      );
+      const invalidHistory = await readCampaignReviewDetails(p, manager.user, input);
+      const invalidReceipt = (await invalidResponse.json()).reviewDetails;
+      assert.deepEqual(invalidHistory.rows, expectedHistory.rows);
+      assert.deepEqual(invalidReceipt.rows, expectedHistory.rows);
+      assert.deepEqual(invalidReceipt.snapshot, expectedHistory.snapshot);
+      assert.equal(invalidReceipt.total, 4);
+      assert.doesNotMatch(
+        JSON.stringify(invalidReceipt),
+        /@|token|hash|subscription|recipient|message|recordId/i,
+      );
+      assert.deepEqual(
+        await databaseFingerprints(db),
+        invalidBefore,
+        "reading source-invalid history never changes any table",
+      );
+    } finally {
+      for (const row of activeFacts)
+        await db.query("UPDATE policy_groups SET active_fact_version_id=$1 WHERE id=$2", [
+          row.active_fact_version_id,
+          row.id,
+        ]);
+    }
     await assertCampaignReviewDetails(p, db, manager.user, input, slots);
     const detailBefore = await databaseFingerprints(db);
     const detailResponse = await detail();
