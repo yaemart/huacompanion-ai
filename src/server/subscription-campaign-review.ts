@@ -94,29 +94,46 @@ export async function readCampaignReviewDetails(p: Payload, actor: Staff, input:
       return reason ? [{ ...task, reason }] : [];
     });
     result.total = reviews.length;
-    for (const task of reviews.slice((page - 1) * 25, page * 25)) {
+    const selected = reviews.slice((page - 1) * 25, page * 25);
+    const grouped = new Map<number, { action: string; at: string }[]>();
+    if (selected.length) {
+      const targets = selected.flatMap((task) => [
+        sql`(${task.slotId}::int,'subscription-campaign-mock-attempts',${String(task.attemptId)}::text)`,
+        ...(task.leaseId === null
+          ? []
+          : [
+              sql`(${task.slotId}::int,'subscription-campaign-mock-leases',${String(task.leaseId)}::text)`,
+            ]),
+      ]);
       const events = await query(sql`
-        SELECT action, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS at FROM audit_events
-        WHERE "after"->>'slotId'=${String(task.slotId)} AND (
-          (entity='subscription-campaign-mock-leases' AND record_id=${String(task.leaseId)}
-            AND action IN ('claim-mock-task','recover-mock-task')) OR
-          (entity='subscription-campaign-mock-attempts' AND record_id=${String(task.attemptId)}
-            AND action IN ('begin-mock-attempt','outcome-mock-attempt','review-mock-attempt'))
-        ) ORDER BY id DESC LIMIT 21
+        WITH targets(slot_id,entity,record_id) AS (VALUES ${sql.join(targets, sql`, `)}), ranked AS (
+          SELECT t.slot_id, a.action, a.created_at,
+            row_number() OVER (PARTITION BY t.slot_id ORDER BY a.id DESC) AS position
+          FROM audit_events a JOIN targets t ON a.entity=t.entity AND a.record_id=t.record_id
+          WHERE a."after"->>'slotId'=t.slot_id::text AND (
+            (t.entity='subscription-campaign-mock-leases' AND a.action IN ('claim-mock-task','recover-mock-task')) OR
+            (t.entity='subscription-campaign-mock-attempts' AND a.action IN ('begin-mock-attempt','outcome-mock-attempt','review-mock-attempt'))
+          )
+        ) SELECT slot_id AS "slotId",action,
+          to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS at
+        FROM ranked WHERE position<=21 ORDER BY slot_id,position
       `);
+      for (const event of events) {
+        const slotId = Number(event.slotId);
+        const history = grouped.get(slotId) ?? [];
+        history.push({ action: String(event.action), at: String(event.at) });
+        grouped.set(slotId, history);
+      }
+    }
+    for (const task of selected) {
+      const events = grouped.get(task.slotId) ?? [];
       result.rows.push({
         slotId: task.slotId,
         attemptedAt: task.attemptedAt.map((at) => new Date(at).toISOString()),
         lastOutcome: task.lastOutcome,
         reason: task.reason,
         hasOlderEvents: events.length > 20,
-        events: events
-          .slice(0, 20)
-          .reverse()
-          .map((event) => ({
-            action: String(event.action),
-            at: String(event.at),
-          })),
+        events: events.slice(0, 20).reverse(),
       });
     }
     return result;
