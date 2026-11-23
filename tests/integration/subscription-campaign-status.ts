@@ -28,6 +28,8 @@ import {
   recordMockCampaignOutcome,
 } from "../../src/server/subscription-campaign-leases";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
+import { assertCampaignReviewDetails } from "../helpers/campaign-review-details";
+import { readCampaignReviewDetails } from "../../src/server/subscription-campaign-review";
 
 export async function testCampaignStatus(p: Payload, url: URL) {
   const env = { ...process.env };
@@ -59,7 +61,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
   const post = (
     token: string,
     input: unknown,
-    patch: { origin?: string; type?: string; raw?: string } = {},
+    patch: { origin?: string; type?: string; raw?: string; action?: string } = {},
   ) =>
     POST(
       new Request(origin + "/api/subscriptions/campaigns", {
@@ -69,7 +71,8 @@ export async function testCampaignStatus(p: Payload, url: URL) {
           origin: patch.origin ?? origin,
           "content-type": patch.type ?? "application/json",
         },
-        body: patch.raw ?? JSON.stringify({ action: "read-mock-status-local", input }),
+        body:
+          patch.raw ?? JSON.stringify({ action: patch.action ?? "read-mock-status-local", input }),
       }),
     );
   try {
@@ -95,13 +98,26 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     const draft = await saveCampaignDraft(p, manager.user, { policies });
     const input = { campaignKey: draft.campaignKey, revision: draft.revision };
     const read = () => readCampaignTaskStatus(p, manager.user, input);
+    const detail = (who = manager.token, value: unknown = input, patch = {}) =>
+      post(who, value, { ...patch, action: "read-mock-review-local" });
     const empty = await read();
     assert.equal(empty.snapshot, null);
     assert.equal(empty.total, 0);
     assert.equal(empty.attempts, 0);
+    assert.equal(
+      (await post(manager.token, input, { action: "read-mock-review-local" })).status,
+      200,
+      "authorized owner can read an empty review detail list",
+    );
     for (const token of ["", admin.token, operations.token, editor.token, reviewer.token])
-      assert.equal((await post(token, input)).status, 403);
+      for (const request of [post, detail]) assert.equal((await request(token, input)).status, 403);
     assert.equal((await post(other.token, input)).status, 404);
+    assert.equal((await detail(other.token)).status, 404);
+    assert.equal(
+      (await detail(manager.token, input, { origin: "https://elsewhere.invalid" })).status,
+      403,
+    );
+    assert.equal((await detail(manager.token, input, { type: "text/plain" })).status, 415);
     assert.equal(
       (await post(manager.token, input, { origin: "https://elsewhere.invalid" })).status,
       403,
@@ -116,10 +132,14 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       { ...input, token: key },
       { ...input, reset: true },
     ])
-      assert.equal((await post(manager.token, invalid)).status, 400);
+      for (const request of [post, detail])
+        assert.equal((await request(manager.token, invalid)).status, 400);
+    for (const page of [0, -1, 1.5, "1", 41, Number.MAX_SAFE_INTEGER])
+      assert.equal((await detail(manager.token, { ...input, page })).status, 400);
     assert.equal((await post(manager.token, { ...input, revision: 99 })).status, 409);
     process.env.APP_ENV = "trial";
     assert.equal((await post(manager.token, input)).status, 403);
+    assert.equal((await detail()).status, 403);
     process.env.APP_ENV = "local";
     for (let i = 0; i < 10; i++) {
       const sub = await p.create({
@@ -206,6 +226,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
         workspace: await readCampaignWorkspace(p, manager.user),
         draft: await readCampaignDraft(p, manager.user, input.campaignKey),
         taskStatus: status,
+        reviewDetails: await readCampaignReviewDetails(p, manager.user, input),
       }),
     );
     assert.match(markup, /本地模拟任务状态/);
@@ -213,6 +234,11 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.match(markup, /待核对<\/dt><dd>1<\/dd>/);
     assert.match(markup, /刷新状态/);
     assert.match(markup, /不会自动重发/);
+    assert.match(markup, /待核对任务明细/);
+    assert.match(markup, /结果不明/);
+    assert.match(markup, /记录模拟结果/);
+    assert.match(markup, /刷新待核对明细/);
+    assert.doesNotMatch(markup, /@example.invalid|leaseTokenHash|PRIVATE|清除按钮/);
     assert.doesNotMatch(markup, /重置待核对|立即重试/);
     assert.deepEqual(status.snapshot, { revision: 1, current: true });
     assert.ok(Date.parse(status.nextAttemptAt!) > Date.parse(status.asOf));
@@ -255,9 +281,19 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.equal(capped.counts.review, 4, "five attempts cannot be presented as ready to retry");
     assert.equal(capped.counts.retryReady, 0);
     assert.equal(capped.nextAttemptAt, null);
+    await assertCampaignReviewDetails(p, db, manager.user, input, slots);
+    const detailBefore = await databaseFingerprints(db);
+    const detailResponse = await detail();
+    assert.equal(detailResponse.status, 200);
+    assert.match(detailResponse.headers.get("cache-control")!, /no-store/);
+    assert.match(detailResponse.headers.get("x-robots-tag")!, /noindex/);
+    assert.equal(detailResponse.headers.get("referrer-policy"), "no-referrer");
+    assert.equal((await detailResponse.json()).reviewDetails.total, 4);
+    assert.deepEqual(await databaseFingerprints(db), detailBefore);
     await setCampaignPause(p, manager.user, { ...input, paused: true, reason: "历史状态仍可读" });
     assert.equal((await post(manager.token, input)).status, 200);
     process.env.SUBSCRIPTIONS_ENABLED = "false";
+    assert.equal((await detail()).status, 200, "disabled and paused history remains readable");
     assert.equal(
       (await post(manager.token, input)).status,
       200,
@@ -269,9 +305,15 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.equal(cancelled.counts.completed, 1);
     assert.equal(cancelled.counts.failed, 1);
     assert.equal(cancelled.counts.review, 4, "uncertain attempt history survives cancellation");
+    assert.equal((await readCampaignReviewDetails(p, manager.user, input)).total, 4);
     assert.equal((await post(manager.token, input)).status, 200);
     const newer = await saveCampaignDraft(p, manager.user, { ...input, policies });
     const current = { ...input, revision: newer.revision };
+    assert.equal((await detail()).status, 409);
+    assert.deepEqual((await readCampaignReviewDetails(p, manager.user, current)).snapshot, {
+      revision: 1,
+      current: false,
+    });
     assert.equal((await post(manager.token, input)).status, 409);
     const historical = await readCampaignTaskStatus(p, manager.user, current);
     assert.deepEqual(historical.snapshot, { revision: 1, current: false });
@@ -281,6 +323,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       topic: "policy-updates",
       enabled: false,
     });
+    assert.equal((await detail(manager.token, current)).status, 403);
     assert.equal(
       (await post(manager.token, current)).status,
       403,
@@ -291,6 +334,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       topic: "policy-updates",
       enabled: true,
     });
+    assert.equal((await detail(manager.token, current)).status, 200);
     await p.update({
       collection: "staff",
       id: manager.user.id,
@@ -298,6 +342,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       data: { active: false },
     });
     assert.equal((await post(manager.token, current)).status, 403);
+    assert.equal((await detail(manager.token, current)).status, 403);
     console.log("PASS 本地模拟任务状态汇总、重试待核对边界、本人权限、只读刷新和历史保留");
   } finally {
     for (const collection of [
