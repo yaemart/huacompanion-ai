@@ -27,15 +27,15 @@
 **Files:** Modify src/server/subscription-campaign-review.ts、tests/helpers/campaign-review-details.ts、tests/integration/subscription-campaign-status.ts；Create tests/helpers/observe-pg-queries.ts。
 **Interfaces:** observePGQueries(run)返回result/statements/elapsedMs，透传真实pg查询并finally恢复；服务响应类型保持。
 
-- [ ] 先加来源失效服务/POST/全表指纹及真实审计查询计数；原实现25!=1 RED。
-- [ ] 本页VALUES目标集单次关联、逐占位排名取21，旧投影20条及顺序保持；无数据不查审计。
-- [ ] 源失效拒绝错误控制得到指定RED，逐字恢复后完整33组GREEN并提交。
+- [x] 先加来源失效服务/POST/全表指纹及真实审计查询计数；原实现25!=1 RED。
+- [x] 本页VALUES目标集单次关联、逐占位排名取21，旧投影20条及顺序保持；无数据不查审计。
+- [x] 源失效拒绝错误控制得到指定RED，逐字恢复后完整33组GREEN并提交。
 
 ### Task 2：大表性能与交付
 
 **Files:** Create tests/helpers/campaign-review-performance.ts；Modify campaign-review-details.ts；中文小结/handoff/progress及旧明细小结当前遗留说明。
 **Interfaces:** assertReviewAuditPerformance(p,db,actor,input,expectedPage)在原30项夹具内测量实际查询、旧谓词等价基线和计划，输出不含私密数据的PERF摘要。
 
-- [ ] 先加扫描/等价/安全投影/集中历史断言，再实测10万＋1万夹具；预热后5轮交错对比，保留指标与原始计划本机归档。
+- [x] 先加扫描/等价/安全投影/集中历史断言，再实测10万＋1万夹具；预热后5轮交错对比，保留指标与原始计划本机归档。
 - [ ] 完整check/33组及生产构建由CI核实；不追加无关UI验收，原站点200、随机库及夹具清理。
 - [ ] 一次独立只读复核、重要项RED/GREEN修正，不追加复审；中文记录与原历史保留，最终SHA推送及精确CI成功，可审阅不合并。
