@@ -9,6 +9,7 @@ import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { cancelMockCampaign } from "@/server/subscription-campaign-cancel";
 import { readCampaignPause, setCampaignPause } from "@/server/subscription-campaign-control";
 import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
+import { readCampaignReviewDetails } from "@/server/subscription-campaign-review";
 import { readCampaignMockSlots } from "@/server/subscription-campaign-task-options";
 import {
   readMockCampaignBudget,
@@ -80,6 +81,11 @@ export async function POST(request: Request) {
             : null;
     if (taskAction)
       return Response.json({ task: await taskAction(p, user, body.input) }, { headers });
+    if (body.action === "read-mock-review-local")
+      return Response.json(
+        { reviewDetails: await readCampaignReviewDetails(p, user, body.input) },
+        { headers },
+      );
     if (body.action === "read-mock-status-local") {
       const taskStatus = await readCampaignTaskStatus(p, user, body.input);
       return Response.json({ taskStatus }, { headers });

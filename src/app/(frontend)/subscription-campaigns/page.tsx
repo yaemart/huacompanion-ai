@@ -7,6 +7,7 @@ import { readCampaignFreeze } from "@/server/subscription-campaign-freeze";
 import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { readCampaignPause } from "@/server/subscription-campaign-control";
 import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
+import { readCampaignReviewDetails } from "@/server/subscription-campaign-review";
 import { readCampaignMockSlots } from "@/server/subscription-campaign-task-options";
 import { readMockCampaignBudget } from "@/server/subscription-campaign-quota";
 import { CampaignWorkspace } from "@/components/subscriptions/CampaignWorkspace";
@@ -69,6 +70,14 @@ export default async function Page({
         taskStatus={
           draft && process.env.APP_ENV === "local"
             ? await readCampaignTaskStatus(p, user, {
+                campaignKey: draft.campaignKey,
+                revision: draft.revision,
+              })
+            : undefined
+        }
+        reviewDetails={
+          draft && process.env.APP_ENV === "local"
+            ? await readCampaignReviewDetails(p, user, {
                 campaignKey: draft.campaignKey,
                 revision: draft.revision,
               })
