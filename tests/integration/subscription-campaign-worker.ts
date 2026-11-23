@@ -1,3 +1,4 @@
+import { observeWorkerCompletion } from "../helpers/worker-completion";
 import {
   createWorkerResultBarrier,
   waitForWorkerCondition,
@@ -176,8 +177,8 @@ export async function testCampaignWorker(p: Payload, url: URL) {
         if ((m as { forbiddenNetwork?: boolean }).forbiddenNetwork)
           network.push(String((m as { origin?: string }).origin));
       });
-      const done = once(child, "close", { signal: AbortSignal.timeout(45000) }).then(
-        ([code, signal]) => {
+      const done = observeWorkerCompletion(
+        once(child, "close", { signal: AbortSignal.timeout(45000) }).then(([code, signal]) => {
           assert.deepEqual(
             { network, generated },
             { network: [], generated: [] },
@@ -198,7 +199,7 @@ export async function testCampaignWorker(p: Payload, url: URL) {
             "logs expose safe receipts only",
           );
           return { code, signal, reports, stdout, stderr };
-        },
+        }),
       );
       return { child, done, output: () => stdout, signalObserved: () => signalObserved };
     };
