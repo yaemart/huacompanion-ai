@@ -1,9 +1,13 @@
+import {
+  createWorkerResultBarrier,
+  waitForWorkerCondition,
+  waitForWorkerSessionsGone,
+} from "../helpers/worker-result-barrier";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
 import type { Payload } from "payload";
 import { relationID } from "../../src/cms/access";
@@ -33,8 +37,7 @@ export async function testCampaignWorker(p: Payload, url: URL) {
   const people: number[] = [],
     subscribers: number[] = [];
   const children = new Set<ChildProcess>();
-  let rejectTrigger = false,
-    slowResult = false;
+  let rejectTrigger = false;
   const originalCommit = p.db.commitTransaction.bind(p.db);
   try {
     Object.assign(process.env, {
@@ -126,6 +129,7 @@ export async function testCampaignWorker(p: Payload, url: URL) {
       patch: Record<string, string | undefined> = {},
       extra: string[] = [],
       loop = false,
+      observeSignal = false,
     ) => {
       const child = spawn(
         process.execPath,
@@ -134,6 +138,7 @@ export async function testCampaignWorker(p: Payload, url: URL) {
           "tsx",
           "--import",
           "./tests/helpers/mock-worker-network-guard.mjs",
+          ...(observeSignal ? ["--import", "./tests/helpers/mock-worker-signal-observer.mjs"] : []),
           "scripts/subscription-mock-worker.ts",
           "--staff",
           String(manager.id),
@@ -152,10 +157,12 @@ export async function testCampaignWorker(p: Payload, url: URL) {
         },
       );
       children.add(child);
+      child.once("close", () => children.delete(child));
       let stdout = "",
         stderr = "";
       const network: string[] = [];
       const generated: boolean[] = [];
+      let signalObserved = false;
       child.stdout!.on("data", (s) => {
         stdout += s;
       });
@@ -163,13 +170,14 @@ export async function testCampaignWorker(p: Payload, url: URL) {
         stderr += s;
       });
       child.on("message", (m) => {
+        if ((m as { workerTestSignal?: string }).workerTestSignal === "SIGTERM")
+          signalObserved = true;
         if ((m as { forbiddenGeneration?: boolean }).forbiddenGeneration) generated.push(true);
         if ((m as { forbiddenNetwork?: boolean }).forbiddenNetwork)
           network.push(String((m as { origin?: string }).origin));
       });
-      const done = once(child, "exit", { signal: AbortSignal.timeout(45000) }).then(
+      const done = once(child, "close", { signal: AbortSignal.timeout(45000) }).then(
         ([code, signal]) => {
-          children.delete(child);
           assert.deepEqual(
             { network, generated },
             { network: [], generated: [] },
@@ -192,7 +200,7 @@ export async function testCampaignWorker(p: Payload, url: URL) {
           return { code, signal, reports, stdout, stderr };
         },
       );
-      return { child, done, output: () => stdout };
+      return { child, done, output: () => stdout, signalObserved: () => signalObserved };
     };
     const cli = async (
       outcome = "accepted",
@@ -539,52 +547,143 @@ export async function testCampaignWorker(p: Payload, url: URL) {
       before,
       "expired begun tasks cannot be cleared by restart",
     );
-    // A real SIGKILL after begin rolls back the pending result; restart cannot adopt it.
+    const audits = async (slot: number) =>
+      Object.fromEntries(
+        (
+          await db.query<{ action: string; n: number }>(
+            `
+      SELECT action,count(*)::int AS n FROM audit_events WHERE "after"->>'slotId'=$1
+      AND action IN ('claim-mock-task','recover-mock-task','begin-mock-attempt','outcome-mock-attempt')
+      GROUP BY action`,
+            [String(slot)],
+          )
+        ).rows.map((row) => [row.action, row.n]),
+      );
+    const workerURL = (applicationName: string) => {
+      const connection = new URL(url);
+      connection.searchParams.set("application_name", applicationName);
+      return connection.toString();
+    };
+    // Positive PG blocking evidence pins SIGKILL inside the uncommitted result transaction.
     const interrupted = await prepare();
-    await db.query(`CREATE FUNCTION slow_worker_result() RETURNS trigger LANGUAGE plpgsql AS $$
-      BEGIN IF NEW.action='outcome-mock-attempt' THEN PERFORM pg_sleep(2); END IF; RETURN NEW; END $$;
-      CREATE TRIGGER slow_worker_result BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION slow_worker_result();`);
-    slowResult = true;
-    const killed = launch();
-    const killDeadline = Date.now() + 30000;
-    while (!(await attempts(interrupted)).length && Date.now() < killDeadline) await delay(25);
-    assert.equal((await attempts(interrupted)).length, 1);
-    killed.child.kill("SIGKILL");
-    assert.equal((await killed.done).signal, "SIGKILL");
-    await delay(2200);
-    await db.query(
-      "DROP TRIGGER slow_worker_result ON audit_events; DROP FUNCTION slow_worker_result()",
-    );
-    slowResult = false;
+    const killName = `kill-${key}`;
+    const killBarrier = await createWorkerResultBarrier(db, interrupted);
+    const killed = launch("accepted", { DATABASE_URL: workerURL(killName) });
+    try {
+      await killBarrier.waitForBlocked(killName, killed.child);
+      assert.equal((await attempts(interrupted))[0].state, "attempting");
+      assert.equal(((await attempts(interrupted))[0].attemptedAt as string[]).length, 1);
+      assert.deepEqual(await audits(interrupted), {
+        "claim-mock-task": 1,
+        "begin-mock-attempt": 1,
+      });
+      assert.equal(killed.output().includes('{"state":'), false);
+      assert.equal(killed.child.kill("SIGKILL"), true);
+      const result = await killed.done;
+      assert.equal(result.signal, "SIGKILL");
+      assert.equal(result.reports.length, 0);
+      await killBarrier.release();
+      await waitForWorkerSessionsGone(db, killName);
+    } finally {
+      if (killed.child.exitCode === null && killed.child.signalCode === null)
+        killed.child.kill("SIGKILL");
+      await killed.done.catch(() => {});
+      await killBarrier.close();
+    }
     assert.equal((await attempts(interrupted))[0].state, "attempting");
+    assert.equal((await attempts(interrupted))[0].lastOutcome, null);
+    assert.equal(((await attempts(interrupted))[0].attemptedAt as string[]).length, 1);
+    assert.deepEqual(await audits(interrupted), { "claim-mock-task": 1, "begin-mock-attempt": 1 });
     await db.query(
       "UPDATE subscription_campaign_mock_leases SET expires_at=clock_timestamp()-interval '1 second' WHERE slot_id=$1",
       [interrupted],
     );
     before = await databaseFingerprints(db);
-    assert.equal((await cli()).state, "idle-local");
-    assert.deepEqual(await databaseFingerprints(db), before);
-    assert.equal((await readCampaignTaskStatus(p, manager, input)).counts.review, 4);
-    // Graceful TERM completes its current round and stops further polling.
-    const graceful = await prepare();
-    const looping = launch("accepted", {}, [], true);
-    const deadline = Date.now() + 30000;
-    while (!looping.output().includes('{"state":') && Date.now() < deadline) await delay(25);
-    assert.ok(looping.output().includes('{"state":'));
-    looping.child.kill("SIGTERM");
-    assert.equal((await looping.done).code, 0);
+    for (const outcome of ["accepted", "unknown"]) {
+      assert.equal((await cli(outcome)).state, "idle-local");
+      assert.deepEqual(
+        await databaseFingerprints(db),
+        before,
+        "restart must preserve the interrupted attempt and review",
+      );
+      assert.equal((await readCampaignTaskStatus(p, manager, input)).counts.review, 4);
+    }
+    // TERM is acknowledged while the current result is still blocked; another slot is ready.
+    const graceful = await prepare(),
+      next = await prepare();
+    const termName = `term-${key}`;
+    const termBarrier = await createWorkerResultBarrier(db, graceful);
+    const looping = launch("accepted", { DATABASE_URL: workerURL(termName) }, [], true, true);
+    try {
+      const backend = await termBarrier.waitForBlocked(termName, looping.child);
+      assert.equal((await attempts(graceful))[0].state, "attempting");
+      assert.equal((await attempts(next)).length, 0);
+      assert.equal(looping.output().includes('{"state":'), false);
+      assert.equal(looping.child.kill("SIGTERM"), true);
+      await waitForWorkerCondition(
+        async () => looping.signalObserved(),
+        "SIGTERM acknowledgement while processing",
+        looping.child,
+        10000,
+      );
+      assert.equal(await termBarrier.waitForBlocked(termName, looping.child), backend);
+      assert.deepEqual(await audits(graceful), { "claim-mock-task": 1, "begin-mock-attempt": 1 });
+      await termBarrier.release();
+      await waitForWorkerCondition(
+        async () => {
+          const leases = await p.count({
+            collection: "subscription-campaign-mock-leases",
+            where: { slot: { equals: next } },
+          });
+          assert.equal(leases.totalDocs, 0, "SIGTERM must not claim the next task");
+          return looping.child.exitCode !== null || looping.child.signalCode !== null;
+        },
+        "SIGTERM must finish its current round and exit",
+        undefined,
+        10000,
+      );
+      const result = await looping.done;
+      assert.equal(result.code, 0, result.stderr);
+      assert.equal(result.signal, null);
+      assert.equal(result.reports.length, 1);
+      assert.equal(result.reports[0].state, "completed-local");
+      assert.equal(result.reports[0].slotId, graceful);
+      await waitForWorkerSessionsGone(db, termName);
+    } finally {
+      if (looping.child.exitCode === null && looping.child.signalCode === null)
+        looping.child.kill("SIGKILL");
+      await looping.done.catch(() => {});
+      await termBarrier.close();
+    }
     assert.equal((await attempts(graceful))[0].state, "completed");
+    assert.equal(((await attempts(graceful))[0].attemptedAt as string[]).length, 1);
+    assert.deepEqual(await audits(graceful), {
+      "claim-mock-task": 1,
+      "begin-mock-attempt": 1,
+      "outcome-mock-attempt": 1,
+    });
+    assert.equal((await attempts(next)).length, 0);
+    assert.equal(
+      (
+        await p.count({
+          collection: "subscription-campaign-mock-leases",
+          where: { slot: { equals: next } },
+        })
+      ).totalDocs,
+      0,
+    );
+    assert.deepEqual(await audits(next), {});
+    await fresh();
+    assert.equal((await cli()).slotId, next, "a new worker may process the untouched next task");
+    assert.equal((await attempts(next))[0].state, "completed");
     console.log(
       "PASS 独立本地worker：真实CLI、双进程竞争、五类模拟结果、等待凭证、权限与中断审计保护",
     );
   } finally {
     p.db.commitTransaction = originalCommit;
+    const closing = [...children].map((child) => once(child, "close").catch(() => {}));
     for (const child of children) child.kill("SIGKILL");
-    for (const child of children) await once(child, "exit").catch(() => {});
-    if (slowResult)
-      await db.query(
-        "DROP TRIGGER slow_worker_result ON audit_events; DROP FUNCTION slow_worker_result()",
-      );
+    await Promise.all(closing);
     if (rejectTrigger)
       await db.query(
         "DROP TRIGGER reject_worker_result ON audit_events; DROP FUNCTION reject_worker_result()",
