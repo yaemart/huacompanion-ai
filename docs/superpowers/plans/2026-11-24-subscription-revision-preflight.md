@@ -4,7 +4,7 @@
 
 **Goal:** 为本人当前活动提供原名单改版续发的安全只读评估与后台说明。
 
-**Architecture:** withCampaignDraft 内共享事务和锁读取；复用资格判断，并提取共享确认上下文计算供只读确认检查。
+**Architecture:** withCampaignDraft 内共享事务和锁读取；复用资格判断，并在原确认流程增加只读检查模式。
 新POST action和独立客户端刷新区域消费同一安全汇总，不改变现有跨版本执行门禁。
 
 **Tech Stack:** Next16.4、React19、Payload3/PostgreSQL、TypeScript、Node24.22.1。
@@ -34,7 +34,7 @@ tests/helpers/campaign-revision-preflight.ts、integration/subscription-campaign
 counts五项为attempted/cancelled/ineligible/leased/candidates，互斥且总和total。blockers使用固定枚举。
 
 - [ ] 写真实POST预检200断言，运行随机库订阅集成。Expected: 新action当前400≠200（RED）。
-- [ ] 实现只读确认、原名单分类与action read-revision-preflight-local；不调用可写状态服务。
+- [ ] 实现共享确认只读模式、原名单分类与action read-revision-preflight-local；不调用可写状态服务。
 - [ ] 扩展既有状态夹具：原10项=6历史/1取消/0失效/1领取/2候选；改版后旧确认不继承；
       新确认有效、配置/来源变化阻断且无写；失效/过期/新订阅/坏尝试证据；原角色和跨主管、旧版本、撤权/local/同源限制。
 - [ ] 运行npm run test:subscriptions。Expected: 全部33组通过，读前后全表指纹相同；记录并提交服务/接口/测试。
