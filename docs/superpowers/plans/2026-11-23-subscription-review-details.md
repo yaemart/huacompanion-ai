@@ -26,16 +26,16 @@
 **Files:** Create src/lib/subscription-campaign-review.ts、src/server/subscription-campaign-review.ts；Modify campaigns/route.ts、tests/integration/subscription-campaign-status.ts；Create tests/subscription-campaign-review.test.ts。
 **Interfaces:** campaignReviewReason(task,now)返回reason|null；readCampaignReviewDetails(p,actor,input)返回snapshot/asOf/page/total/rows，row含slotId/attemptedAt/lastOutcome/reason/events/hasOlderEvents。
 
-- [ ] 先在既有真实状态夹具请求新action，观察应200实际400的RED；纯规则测试先RED。
-- [ ] 实现原因推导、严格输入、分页及安全审计投影，禁止写入；接口接入新action。
-- [ ] 随机库覆盖五类原因/终态优先、权限/隐私/只读、分页与历史，完整GREEN后提交。
+- [x] 先在既有真实状态夹具请求新action，观察应200实际400的RED；纯规则测试先RED。
+- [x] 实现原因推导、严格输入、分页及安全审计投影，禁止写入；接口接入新action。
+- [x] 随机库覆盖五类原因/终态优先、权限/隐私/只读、分页与历史，完整GREEN后提交。
 
 ### Task 2：页面、刷新与交付
 
 **Files:** Create src/lib/subscription-campaign-review-client.ts、src/components/subscriptions/CampaignReviewDetails.tsx、tests/subscription-campaign-review-client.test.ts；Modify CampaignWorkspace.tsx、subscription-campaigns/page.tsx；中文小结与handoff/progress。
 **Interfaces:** loadCampaignReviewDetails(draft,page)只发送白名单；组件initial为Task1返回，failed不替换，翻页/刷新有界且无写操作。
 
-- [ ] 客户端响应与渲染行为先RED，再实现SSR初始及独立刷新/翻页，复用现有样式。
-- [ ] check、33组订阅、隔离生产桌面/390及失败保留验收，原站点仍200并清理随机库/副本。
+- [x] 客户端响应与渲染行为先RED，再实现SSR初始及独立刷新/翻页，复用现有样式。
+- [x] check、33组订阅、隔离生产桌面/390及失败保留验收，原站点仍200并清理随机库/副本。
 - [ ] 一次独立只读复核，重要项RED/GREEN及完整回归，不追加复审；保留中文历史，提交推送。
 - [ ] 精确远端SHA与PR触发CI成功，PR可审阅不合并；最终结果以PR实核记录为准。
