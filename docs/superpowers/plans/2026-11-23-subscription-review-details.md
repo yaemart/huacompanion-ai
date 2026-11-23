@@ -35,7 +35,7 @@
 **Files:** Create src/lib/subscription-campaign-review-client.ts、src/components/subscriptions/CampaignReviewDetails.tsx、tests/subscription-campaign-review-client.test.ts；Modify CampaignWorkspace.tsx、subscription-campaigns/page.tsx；中文小结与handoff/progress。
 **Interfaces:** loadCampaignReviewDetails(draft,page)只发送白名单；组件initial为Task1返回，failed不替换，翻页/刷新有界且无写操作。
 
-- [x] 客户端响应与渲染行为先RED，再实现SSR初始及独立刷新/翻页，复用现有样式。
+- [x] 客户端响应先RED，再实现SSR初始及独立刷新/翻页，真实Workspace补验渲染，复用现有样式。
 - [x] check、33组订阅、隔离生产桌面/390及失败保留验收，原站点仍200并清理随机库/副本。
-- [ ] 一次独立只读复核，重要项RED/GREEN及完整回归，不追加复审；保留中文历史，提交推送。
+- [x] 一次独立只读复核，3项重要RED/GREEN修正；2项轻微如实延期，不追加复审；保留中文历史。
 - [ ] 精确远端SHA与PR触发CI成功，PR可审阅不合并；最终结果以PR实核记录为准。

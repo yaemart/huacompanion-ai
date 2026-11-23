@@ -35,6 +35,32 @@ export async function assertCampaignReviewDetails(
     createdSlots: number[] = [],
     auditIds: number[] = [];
   try {
+    const annotated = "Mon, 23 Nov 2026 00:00:00 GMT (private@example.invalid)";
+    assert.equal(new Date(annotated).toISOString(), "2026-11-23T00:00:00.000Z");
+    const originalTimes = (
+      await db.query(
+        "SELECT attempted_at FROM subscription_campaign_mock_attempts WHERE slot_id=$1",
+        [slots[5]],
+      )
+    ).rows[0].attempted_at;
+    await db.query(
+      "UPDATE subscription_campaign_mock_attempts SET attempted_at=$2::jsonb WHERE slot_id=$1",
+      [slots[5], JSON.stringify([annotated])],
+    );
+    try {
+      const sanitized = await readCampaignReviewDetails(p, actor, input);
+      assert.deepEqual(
+        sanitized.rows.find((r) => r.slotId === slots[5])!.attemptedAt,
+        ["2026-11-23T00:00:00.000Z"],
+        "parseable date notes must never leave the server",
+      );
+      assert.doesNotMatch(JSON.stringify(sanitized), /private@example.invalid/);
+    } finally {
+      await db.query(
+        "UPDATE subscription_campaign_mock_attempts SET attempted_at=$2::jsonb WHERE slot_id=$1",
+        [slots[5], JSON.stringify(originalTimes)],
+      );
+    }
     const lease = (
       await db.query("SELECT id FROM subscription_campaign_mock_leases WHERE slot_id=$1", [
         slots[5],

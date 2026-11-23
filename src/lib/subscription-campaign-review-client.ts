@@ -23,7 +23,10 @@ export async function loadCampaignReviewDetails(
   }
   if (!response.ok) throw Error(typeof result?.error === "string" ? result.error : fallback);
   const data = result?.reviewDetails;
-  const date = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value));
+  const date = (value: unknown) =>
+    typeof value === "string" &&
+    Number.isFinite(Date.parse(value)) &&
+    new Date(value).toISOString() === value;
   const count = (value: unknown) =>
     typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
   const keys = (value: object, allowed: string[]) =>
@@ -46,7 +49,9 @@ export async function loadCampaignReviewDetails(
         !keys(data.snapshot, ["revision", "current"]) ||
         !count(data.snapshot.revision) ||
         data.snapshot.revision < 1 ||
-        typeof data.snapshot.current !== "boolean") ||
+        typeof data.snapshot.current !== "boolean" ||
+        data.snapshot.revision > draft.revision ||
+        data.snapshot.current !== (data.snapshot.revision === draft.revision)) ||
     !data.rows.every(
       (row, index) =>
         row &&
@@ -57,7 +62,10 @@ export async function loadCampaignReviewDetails(
         row.attemptedAt.length > 0 &&
         row.attemptedAt.length <= 5 &&
         row.attemptedAt.every(date) &&
-        (row.lastOutcome === null || Object.hasOwn(reviewOutcomes, row.lastOutcome)) &&
+        (row.lastOutcome === null ||
+          (typeof row.lastOutcome === "string" &&
+            Object.hasOwn(reviewOutcomes, row.lastOutcome))) &&
+        typeof row.reason === "string" &&
         Object.hasOwn(reviewReasons, row.reason) &&
         typeof row.hasOlderEvents === "boolean" &&
         Array.isArray(row.events) &&
@@ -66,6 +74,7 @@ export async function loadCampaignReviewDetails(
           (event) =>
             event &&
             keys(event, ["action", "at"]) &&
+            typeof event.action === "string" &&
             Object.hasOwn(reviewEvents, event.action) &&
             date(event.at),
         ),

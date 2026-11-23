@@ -106,7 +106,7 @@ export async function readCampaignReviewDetails(p: Payload, actor: Staff, input:
       `);
       result.rows.push({
         slotId: task.slotId,
-        attemptedAt: task.attemptedAt,
+        attemptedAt: task.attemptedAt.map((at) => new Date(at).toISOString()),
         lastOutcome: task.lastOutcome,
         reason: task.reason,
         hasOlderEvents: events.length > 20,

@@ -64,3 +64,14 @@ for (const [name, patch, want] of [
 ] as const) {
   test(name, () => assert.equal(campaignReviewReason({ ...base, ...patch }, now), want));
 }
+test("stored review never acquires a cause merely because more time has passed", () => {
+  const saved = { ...base, state: "review" as const, expires: now };
+  assert.equal(campaignReviewReason(saved, now), "unspecified");
+  assert.equal(campaignReviewReason(saved, now + 24 * 3600000), "unspecified");
+});
+test("a stored fifth interrupted attempt does not prove the retry limit caused review", () => {
+  assert.equal(
+    campaignReviewReason({ ...base, state: "review", attemptedAt: five, expires: now }, now),
+    "unspecified",
+  );
+});

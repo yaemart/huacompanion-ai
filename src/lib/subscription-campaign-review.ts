@@ -28,11 +28,10 @@ export const reviewEvents = {
 };
 export function campaignReviewReason(task: ReviewAttempt, now: number) {
   if (task.completed || task.state === "completed" || task.state === "failed") return null;
-  if (task.state === "review" && task.lastOutcome === "unknown") return "unknown";
-  if ((task.state === "review" || task.state === "retry") && task.attemptedAt.length >= 5)
-    return "attempt-limit";
+  if (task.state === "review") return task.lastOutcome === "unknown" ? "unknown" : "unspecified";
+  if (task.state === "retry" && task.attemptedAt.length >= 5) return "attempt-limit";
   if (now >= Date.parse(task.attemptedAt[0]) + 23 * 3600000) return "window-expired";
   if (task.state === "attempting" && (task.expires === null || task.expires <= now))
     return "interrupted";
-  return task.state === "review" ? "unspecified" : null;
+  return null;
 }

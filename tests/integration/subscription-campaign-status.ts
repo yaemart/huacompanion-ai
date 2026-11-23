@@ -30,6 +30,7 @@ import {
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 import { assertCampaignReviewDetails } from "../helpers/campaign-review-details";
 import { readCampaignReviewDetails } from "../../src/server/subscription-campaign-review";
+import { loadCampaignReviewDetails } from "../../src/lib/subscription-campaign-review-client";
 
 export async function testCampaignStatus(p: Payload, url: URL) {
   const env = { ...process.env };
@@ -289,6 +290,17 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.match(detailResponse.headers.get("x-robots-tag")!, /noindex/);
     assert.equal(detailResponse.headers.get("referrer-policy"), "no-referrer");
     assert.equal((await detailResponse.json()).reviewDetails.total, 4);
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => detail();
+      assert.equal(
+        (await loadCampaignReviewDetails(input, 1)).rows.length,
+        4,
+        "actual detail API is accepted by the strict refresh client",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
     assert.deepEqual(await databaseFingerprints(db), detailBefore);
     await setCampaignPause(p, manager.user, { ...input, paused: true, reason: "历史状态仍可读" });
     assert.equal((await post(manager.token, input)).status, 200);

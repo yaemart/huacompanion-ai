@@ -5,15 +5,15 @@ import { loadCampaignReviewDetails } from "../src/lib/subscription-campaign-revi
 const draft = { campaignKey: "00000000-0000-4000-8000-000000000000", revision: 1 };
 const row = {
   slotId: 7,
-  attemptedAt: ["2026-11-23T00:00:00Z"],
+  attemptedAt: ["2026-11-23T00:00:00.000Z"],
   lastOutcome: "unknown",
   reason: "unknown",
-  events: [{ action: "outcome-mock-attempt", at: "2026-11-23T00:00:01Z" }],
+  events: [{ action: "outcome-mock-attempt", at: "2026-11-23T00:00:01.000Z" }],
   hasOlderEvents: false,
 };
 const report = {
   snapshot: { revision: 1, current: true },
-  asOf: "2026-11-23T00:01:00Z",
+  asOf: "2026-11-23T00:01:00.000Z",
   page: 1,
   total: 1,
   rows: [row],
@@ -38,6 +38,26 @@ test("review pagination sends only the selected campaign, version and page", asy
   );
 });
 for (const [name, patch] of [
+  ["array cause cannot be coerced into a known cause", { rows: [{ ...row, reason: ["unknown"] }] }],
+  [
+    "array outcome cannot be coerced into a known result",
+    { rows: [{ ...row, lastOutcome: ["unknown"] }] },
+  ],
+  [
+    "array action cannot be coerced into an audit label",
+    { rows: [{ ...row, events: [{ action: ["outcome-mock-attempt"], at: report.asOf }] }] },
+  ],
+  ["a current version must be the requested version", { snapshot: { revision: 2, current: true } }],
+  [
+    "the requested version cannot be labelled an older snapshot",
+    { snapshot: { revision: 1, current: false } },
+  ],
+  [
+    "date comments cannot carry private notes into the client",
+    {
+      rows: [{ ...row, attemptedAt: ["Mon, 23 Nov 2026 00:00:00 GMT (private@example.invalid)"] }],
+    },
+  ],
   ["wrong page cannot replace the displayed page", { page: 2 }],
   ["inconsistent total cannot silently omit review tasks", { total: 2 }],
   ["missing snapshot cannot carry task details", { snapshot: null }],
@@ -65,6 +85,16 @@ for (const [name, patch] of [
     });
   });
 }
+test("a successful receipt for another current draft version is rejected", async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  globalThis.fetch = async () => Response.json({ reviewDetails: report });
+  await assert.rejects(loadCampaignReviewDetails({ ...draft, revision: 4 }, 1), {
+    message: "明细未更新，请稍后重试。",
+  });
+});
 for (const [name, respond] of [
   ["invalid JSON keeps a readable fallback", () => new Response("bad", { status: 503 })],
   [
