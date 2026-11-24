@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { sql } from "@payloadcms/db-postgres";
+import { executeSQL } from "./db-types";
 import type { Payload, PayloadRequest } from "payload";
 import type { SubscriptionCampaignCheck, SubscriptionCampaignDraft } from "../../payload-types";
 import { relationID, type Staff } from "../cms/access";
@@ -39,8 +41,11 @@ export async function withConfirmedCampaign<T>(
   actor: Staff,
   value: unknown,
   work: ConfirmedWork<T>,
+  options: { lockSettings?: boolean } = {},
 ) {
-  return (await runCampaignMockChecks(p, actor, "status", value, work)).output as T;
+  return (
+    await runCampaignMockChecks(p, actor, "status", value, work, undefined, options.lockSettings)
+  ).output as T;
 }
 
 export async function campaignMockChecks(
@@ -59,6 +64,7 @@ async function runCampaignMockChecks<T>(
   value: unknown,
   work?: ConfirmedWork<T>,
   inspect?: Inspection<T>,
+  lockSettings = false,
 ) {
   const fields = ["campaignKey", "revision"];
   if (action === "confirm") fields.push("testId", "readable");
@@ -80,6 +86,13 @@ async function runCampaignMockChecks<T>(
     input.revision,
     async (req, row, snapshot, readAudience) => {
       const grant = await requireCampaignGrant(p, actor, "policy-updates", req);
+      // Ordinary admin saves take ROW EXCLUSIVE, including a first-ever global INSERT.
+      if (lockSettings)
+        await executeSQL(
+          p,
+          (await req.transactionID)!,
+          sql`LOCK TABLE workflow_settings IN SHARE MODE`,
+        );
       const settings = await p.findGlobal({ slug: "workflow-settings", req, depth: 0 });
       const configuration = [
         "APP_URL",

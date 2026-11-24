@@ -183,6 +183,19 @@ export const subscriptionCollections: CollectionConfig[] = [
         options: ["ineligible", "consent-changed", "contact-changed", "campaign-cancelled"],
       },
       { name: "cancelledAt", type: "date" },
+      {
+        name: "continuationDraft",
+        type: "relationship",
+        relationTo: "subscription-campaign-drafts",
+        index: true,
+      },
+      {
+        name: "continuationConfirmation",
+        type: "relationship",
+        relationTo: "subscription-campaign-checks",
+        index: true,
+      },
+      { name: "continuedAt", type: "date" },
     ],
   },
   {

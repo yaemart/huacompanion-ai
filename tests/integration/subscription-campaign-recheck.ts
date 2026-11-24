@@ -1,3 +1,7 @@
+import {
+  up as upContinuation,
+  down as downContinuation,
+} from "../../src/migrations/20261124_090000_subscription_campaign_continuation";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload } from "payload";
@@ -122,6 +126,7 @@ export async function testCampaignRecheck(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downContinuation(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       assert.equal(
         (
@@ -132,6 +137,7 @@ export async function testCampaignRecheck(p: Payload, url: URL) {
         6,
       );
       await up(adapter as unknown as MigrateUpArgs);
+      await upContinuation(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

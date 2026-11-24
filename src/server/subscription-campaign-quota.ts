@@ -8,6 +8,7 @@ import { requireSubscriptionAdmin } from "./subscription-management";
 import { campaignAudience } from "./subscription-campaign-audience";
 import { campaignTaskReason } from "./subscription-campaign-recheck";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
+import { campaignBatchMatches, campaignJobDraft } from "./subscription-campaign-job-version";
 import type { CampaignPreview } from "./subscription-campaign-preview";
 import { requireCampaignRunning } from "./subscription-campaign-control";
 
@@ -159,13 +160,14 @@ export async function reserveMockCampaignSlot(
           where: { campaignKey: { equals: draft.campaignKey } },
         })
       ).docs[0];
-      if (!batch || relationID(batch.draft) !== draft.id)
+      if (!batch || !(await campaignBatchMatches(p, req, batch, draft)))
         throw new ContentError("请先冻结当前版本名单；改版续发尚未开放。", 409);
       const current = new Map((await campaignAudience(p, req)).map((row) => [row.id, row]));
       const preview = draft.preview as CampaignPreview;
       const eligible = (job: import("../../payload-types").SubscriptionCampaignJob) => {
         const live = current.get(relationID(job.subscription)!);
         return (
+          campaignJobDraft(job, batch) === draft.id &&
           job.status === "held" &&
           !campaignTaskReason(job, live, preview) &&
           !!live?.email.endsWith("@example.invalid")
