@@ -96,9 +96,10 @@ export async function campaignCounts(
   p: Payload,
   req: Partial<PayloadRequest>,
   preview: CampaignPreview,
+  audience?: Awaited<ReturnType<typeof campaignAudience>>,
 ) {
   const counts = { zh: 0, en: 0, excluded: 0 };
-  for (const row of await campaignAudience(p, req)) {
+  for (const row of audience ?? (await campaignAudience(p, req))) {
     if ((row.locale === "zh" || row.locale === "en") && preview[row.locale]) counts[row.locale]++;
     else counts.excluded++;
   }

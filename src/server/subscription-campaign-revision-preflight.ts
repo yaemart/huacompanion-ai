@@ -3,7 +3,6 @@ import type { Payload } from "payload";
 import { relationID, type Staff } from "../cms/access";
 import { ContentError } from "./content/error";
 import { executeSQL } from "./db-types";
-import { campaignAudience } from "./subscription-campaign-audience";
 import { campaignControl } from "./subscription-campaign-control";
 import { campaignTaskReason } from "./subscription-campaign-recheck";
 import { inspectCampaignMockChecks } from "./subscription-campaign-mock-checks";
@@ -11,7 +10,7 @@ import { preflightBlockers } from "../lib/subscription-campaign-revision-preflig
 
 export async function readCampaignRevisionPreflight(p: Payload, actor: Staff, input: unknown) {
   if (process.env.APP_ENV !== "local") throw new ContentError("仅支持本地改版续发预检。", 403);
-  return inspectCampaignMockChecks(p, actor, input, async (req, draft, saved, confirmed) => {
+  return inspectCampaignMockChecks(p, actor, input, async (req, draft, saved, confirmed, read) => {
     const blockers: (keyof typeof preflightBlockers)[] = [];
     const counts = { attempted: 0, cancelled: 0, ineligible: 0, leased: 0, candidates: 0 };
     const control = await campaignControl(p, req, draft.campaignKey);
@@ -54,7 +53,7 @@ export async function readCampaignRevisionPreflight(p: Payload, actor: Staff, in
           where: { batch: { equals: batch.id } },
         })
       ).docs;
-      const audience = new Map((await campaignAudience(p, req)).map((row) => [row.id, row]));
+      const audience = new Map((await read()).map((row) => [row.id, row]));
       const { rows } = await executeSQL(
         p,
         (await req.transactionID)!,

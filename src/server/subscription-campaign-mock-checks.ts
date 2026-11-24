@@ -5,6 +5,7 @@ import { relationID, type Staff } from "../cms/access";
 import { ContentError } from "./content/error";
 import { withCampaignDraft } from "./subscription-campaign-drafts";
 import { requireCampaignGrant } from "./subscription-campaign-access";
+import type { CampaignAudienceReader } from "./subscription-campaign-audience";
 
 const collection = "subscription-campaign-checks";
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -20,6 +21,7 @@ type Inspection<T> = (
   draft: SubscriptionCampaignDraft,
   snapshot: Awaited<ReturnType<typeof import("./subscription-campaign-drafts").readCampaignDraft>>,
   confirmed: boolean,
+  readAudience: CampaignAudienceReader,
 ) => Promise<T>;
 
 /** Read evidence in the existing transaction; never record a reset or permit execution. */
@@ -76,7 +78,7 @@ async function runCampaignMockChecks<T>(
     actor,
     input.campaignKey,
     input.revision,
-    async (req, row, snapshot) => {
+    async (req, row, snapshot, readAudience) => {
       const grant = await requireCampaignGrant(p, actor, "policy-updates", req);
       const settings = await p.findGlobal({ slug: "workflow-settings", req, depth: 0 });
       const configuration = [
@@ -221,6 +223,7 @@ async function runCampaignMockChecks<T>(
           row,
           snapshot,
           !!tested && relationID(confirmed?.test) === tested.id,
+          readAudience,
         );
       return {
         output,

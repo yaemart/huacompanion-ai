@@ -28,7 +28,7 @@ campaignCounts可接收已读取的服务端名单；其他调用默认重读。
 
 ### Task 1: 调用内复用与直接回归
 
-**Files:** server/subscription-campaign-{preview,drafts,mock-checks,revision-preflight}.ts；
+**Files:** server/subscription-campaign-{audience,preview,drafts,mock-checks,revision-preflight}.ts；
 tests/helpers/{observe-pg-queries,campaign-revision-preflight}.ts、integration/subscription-campaign-status.ts。
 
 **Interfaces:** CampaignAudienceReader=()=>Promise<Audience>，仅服务端回调追加参数；DTO不变。
@@ -45,7 +45,7 @@ tests/helpers/{observe-pg-queries,campaign-revision-preflight}.ts、integration/
 **Files:** tests/helpers/campaign-preflight-audience-performance.ts；campaign-revision-preflight.ts调用；
 docs/subscription-preflight-audience-reuse-summary.md、handoff.md、progress.md及前批小结遗留链接。
 
-**Interfaces:** assertPreflightAudiencePerformance(p,db,actor,input,expectedCounts)只在现有随机库夹具运行。
+**Interfaces:** assertPreflightAudiencePerformance(p,db,actor,input,expectedCounts,readHTTP)只在现有随机库夹具运行。
 
 - [ ] 先写100000条五类订阅/6哨兵、独立人数与原任务分类断言、单次SQL/只读及finally清理断言；运行验证。
 - [ ] 预热后5轮交错测旧2次/新1次名单读取归一化和当前完整服务；EXPLAIN统计扫描及共享缓冲，保留全部样本。

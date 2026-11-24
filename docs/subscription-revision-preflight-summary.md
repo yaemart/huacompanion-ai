@@ -1,5 +1,7 @@
 # 同一活动改版续发只读预检
 
+> 当前遗留更新：重复名单读取已在[后续优化批次](subscription-preflight-audience-reuse-summary.md)处理并验证大名单；下文保留本阶段的原始验收记录。
+
 本批基于PR110合并后的main `719099d3a52da1e189713ec8f86294478c5cfc5e`，分支
 `codex/subscription-revision-preflight`，早期草稿[PR111](https://github.com/yaemart/huacompanion-ai/pull/111)。
 
