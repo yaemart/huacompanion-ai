@@ -1,3 +1,5 @@
+import { resumeMockCampaignRevision } from "@/server/subscription-campaign-continuation";
+import { readCampaignContinuation } from "@/server/subscription-campaign-continuation-read";
 import { readNextCampaignMockSlot } from "@/server/subscription-campaign-scheduling";
 import { limitedJSON } from "@/server/content/auth";
 import { ContentError } from "@/server/content/error";
@@ -82,6 +84,30 @@ export async function POST(request: Request) {
             : null;
     if (taskAction)
       return Response.json({ task: await taskAction(p, user, body.input) }, { headers });
+    if (body.action === "read-continuation-local")
+      return Response.json(
+        { continuation: await readCampaignContinuation(p, user, body.input) },
+        { headers },
+      );
+    if (body.action === "continue-revision-local") {
+      const input = body.input;
+      if (
+        !input ||
+        typeof input !== "object" ||
+        Array.isArray(input) ||
+        Object.keys(input).some((key) => !["campaignKey", "revision", "confirmed"].includes(key)) ||
+        !("campaignKey" in input) ||
+        !("revision" in input) ||
+        !("confirmed" in input) ||
+        input.confirmed !== true
+      )
+        throw new ContentError("请明确确认仅为原名单中从未尝试且仍合资格的本地任务续发。", 400);
+      const continuation = await resumeMockCampaignRevision(p, user, {
+        campaignKey: input.campaignKey,
+        revision: input.revision,
+      });
+      return Response.json({ continuation }, { headers });
+    }
     if (body.action === "read-revision-preflight-local")
       return Response.json(
         { preflight: await readCampaignRevisionPreflight(p, user, body.input) },
