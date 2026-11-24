@@ -50,7 +50,7 @@ docs/subscription-campaign-local-continuation-summary.md、handoff.md、progress
 
 - [x] 写新版绑定后原slot可挑选/领取、首次正文是新版、旧已尝试slot不可领取的失败回归，运行看RED。
 - [x] 最小适配既有守卫与SQL过滤，不改限额、等待、优先级、重试或worker流程。
-- [ ] 增加多版本、两进程/并发、旧token、预算零/占位幂等、冷却/限速/邮件优先及真实指定版本CLI回归。
+- [x] 增加多版本、两进程/并发、旧token、预算零/占位幂等、冷却/限速/邮件优先及真实指定版本CLI回归。
 - [x] 完整npm run check与npm run test:subscriptions。Expected: 全部通过；保留前批463单元/33组，再新增续发组。
-- [ ] 中文交接记录真实结果/迁移说明，旧原文保留；一次独立复核，重要项一次RED→GREEN修正，轻微记录延期。
+- [x] 中文交接记录真实结果/迁移说明，旧原文保留；一次独立复核，重要项一次RED→GREEN修正，轻微记录延期。
 - [ ] 最终推送fetch同SHA、确认该提交PR触发CI两作业success，转ready，不合并。

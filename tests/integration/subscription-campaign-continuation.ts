@@ -294,6 +294,52 @@ export async function testCampaignContinuation(p: Payload, url: URL) {
       },
     });
     subscribers.push(later.id);
+    // A pending real admin settings save must invalidate confirmation before selection commits.
+    const jobsBeforeSettings = (
+      await db.query("SELECT * FROM subscription_campaign_jobs ORDER BY id")
+    ).rows;
+    const settingsTransaction = await p.db.beginTransaction();
+    assert.ok(settingsTransaction);
+    await p.updateGlobal({
+      slug: "workflow-settings",
+      user: admin,
+      req: { transactionID: settingsTransaction },
+      data: { emailEnabled: false },
+    });
+    const contact = await p.findByID({
+      collection: "subscriptions",
+      id: relationID(jobs[0].subscription)!,
+    });
+    await db.query("BEGIN");
+    await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
+      subscriptionLockKey(contact.email, contact.topic),
+    ]);
+    const settingsRace = observeWorkerCompletion(resume(current));
+    try {
+      await waitForWorkerCondition(
+        async () =>
+          !!(
+            await db.query(`SELECT 1 FROM pg_stat_activity
+        WHERE datname=current_database() AND cardinality(pg_blocking_pids(pid))>0`)
+          ).rowCount,
+        "continuation waits before the pending settings save commits",
+      );
+    } finally {
+      await p.db.commitTransaction(settingsTransaction);
+      await db.query("COMMIT");
+    }
+    await assert.rejects(settingsRace, { status: 409 });
+    assert.deepEqual(
+      (await db.query("SELECT * FROM subscription_campaign_jobs ORDER BY id")).rows,
+      jobsBeforeSettings,
+    );
+    assert.equal(
+      (await db.query("SELECT count(*)::int n FROM audit_events WHERE action='continue-local'"))
+        .rows[0].n,
+      0,
+    );
+    await p.updateGlobal({ slug: "workflow-settings", user: admin, data: { emailEnabled: true } });
+    await prepare(current);
     const before = await databaseFingerprints(db, template);
     const fullJobs = (await db.query("SELECT * FROM subscription_campaign_jobs ORDER BY id")).rows;
     // A deferred COMMIT failure must roll back both bindings and the receipt, not report success.
