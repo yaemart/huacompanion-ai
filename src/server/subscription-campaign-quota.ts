@@ -161,7 +161,7 @@ export async function reserveMockCampaignSlot(
         })
       ).docs[0];
       if (!batch || !(await campaignBatchMatches(p, req, batch, draft)))
-        throw new ContentError("请先冻结当前版本名单；改版续发尚未开放。", 409);
+        throw new ContentError("请先冻结当前版名单，或为本版保存原名单的本地续发范围。", 409);
       const current = new Map((await campaignAudience(p, req)).map((row) => [row.id, row]));
       const preview = draft.preview as CampaignPreview;
       const eligible = (job: import("../../payload-types").SubscriptionCampaignJob) => {

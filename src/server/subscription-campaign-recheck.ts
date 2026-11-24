@@ -43,7 +43,7 @@ export async function recheckCampaignRecipients(p: Payload, actor: Staff, input:
       })
     ).docs[0];
     if (!batch || relationID(batch.draft) !== draft.id)
-      throw new ContentError("请先冻结本人当前版本名单；改版续发尚未开放。", 409);
+      throw new ContentError("整批资格复核仅支持原冻结版；改版请使用本地续发入口。", 409);
     const jobs = (
       await p.find({
         collection: "subscription-campaign-jobs",

@@ -41,7 +41,7 @@ export async function freezeCampaignRecipients(p: Payload, actor: Staff, input: 
     ).docs[0];
     if (existing) {
       if (relationID(existing.draft) !== draft.id)
-        throw new ContentError("该活动已有冻结名单，改版续发尚未开放，原快照已保留。", 409);
+        throw new ContentError("该活动已有原冻结名单；请用本版本地续发入口，原快照保留。", 409);
       return { row: existing, auditId: null };
     }
     const preview = draft.preview as CampaignPreview;

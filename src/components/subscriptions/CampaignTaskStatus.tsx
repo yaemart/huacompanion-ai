@@ -69,7 +69,9 @@ export function CampaignTaskStatus({
             第 {status.snapshot.revision} 版名单，共 {status.total} 项任务，已开始 {status.attempts}{" "}
             次本地尝试。
           </p>
-          {!status.snapshot.current && <p>这是旧版名单的历史状态，不包含当前版本的新任务。</p>}
+          {!status.snapshot.current && (
+            <p>按原冻结名单汇总历史与本地续发记录；当前可执行范围以本版续发和任务演练为准。</p>
+          )}
           <dl className="campaign-task-counts">
             {(Object.keys(labels) as (keyof typeof labels)[]).map((key) => (
               <div key={key}>

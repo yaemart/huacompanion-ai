@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { CampaignContinuation } from "./CampaignContinuation";
+import type { ContinuationReceipt } from "@/lib/subscription-campaign-continuation-client";
 import { staffDate, staffDateTime } from "@/lib/staff-display";
 import type { readCampaignWorkspace } from "@/server/subscription-campaign-workspace";
 import type { readCampaignDraft } from "@/server/subscription-campaign-drafts";
@@ -31,7 +33,9 @@ export function CampaignWorkspace({
   revisionPreflight,
   taskSlots: initialTaskSlots,
   preparationBudget,
+  continuation,
 }: {
+  continuation?: ContinuationReceipt | null;
   workspace: Workspace;
   draft?: Draft;
   saved?: boolean;
@@ -56,11 +60,15 @@ export function CampaignWorkspace({
   const [taskSlots, setTaskSlots] = useState(initialTaskSlots);
   const [preparing, setPreparing] = useState(false);
   const [preparationUncertain, setPreparationUncertain] = useState(false);
+  const [continuing, setContinuing] = useState(false);
+  const [continuationUncertain, setContinuationUncertain] = useState(false);
+  const continuationBlocked = continuing || continuationUncertain;
   const preparationBlocked = preparing || preparationUncertain;
   const taskBlocked = taskBusy || taskUncertain;
-  const mockBusy = checkBusy || taskBlocked || preparationBlocked;
+  const mockBusy = checkBusy || taskBlocked || preparationBlocked || continuationBlocked;
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
+    if (busy || mockBusy || controlBusy || controlUncertain) return;
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
@@ -157,12 +165,19 @@ export function CampaignWorkspace({
           eligible={
             !!checks?.mockConfirmed &&
             checks.current &&
-            !!frozen?.current &&
+            (!!frozen?.current || !!continuation) &&
             !dirty &&
             !control?.paused &&
             !control?.cancelledAt
           }
-          disabled={busy || checkBusy || taskBlocked || controlBusy || controlUncertain}
+          disabled={
+            busy ||
+            checkBusy ||
+            taskBlocked ||
+            continuationBlocked ||
+            controlBusy ||
+            controlUncertain
+          }
           onReserved={(id) => setTaskSlots((previous) => [...new Set([...(previous ?? []), id])])}
           onBusyChange={setPreparing}
           onUncertainChange={setPreparationUncertain}
@@ -274,6 +289,7 @@ export function CampaignWorkspace({
                 busy ||
                 taskBlocked ||
                 preparationBlocked ||
+                continuationBlocked ||
                 controlBusy ||
                 controlUncertain ||
                 !!control?.cancelledAt
@@ -295,7 +311,14 @@ export function CampaignWorkspace({
                 !control?.paused &&
                 !control?.cancelledAt
               }
-              disabled={busy || checkBusy || preparationBlocked || controlBusy || controlUncertain}
+              disabled={
+                busy ||
+                checkBusy ||
+                preparationBlocked ||
+                continuationBlocked ||
+                controlBusy ||
+                controlUncertain
+              }
               onBusyChange={setTaskBusy}
               onUncertainChange={setTaskUncertain}
             />
@@ -312,6 +335,29 @@ export function CampaignWorkspace({
               draft={draft}
               initial={reviewDetails}
               blocked={busy || mockBusy || controlBusy}
+            />
+          )}
+          {draft && frozen && !frozen.current && checks?.enabled && (
+            <CampaignContinuation
+              draft={draft}
+              initial={continuation ?? null}
+              eligible={
+                checks.current &&
+                checks.mockConfirmed &&
+                !dirty &&
+                !control?.paused &&
+                !control?.cancelledAt
+              }
+              disabled={
+                busy ||
+                checkBusy ||
+                taskBlocked ||
+                preparationBlocked ||
+                controlBusy ||
+                controlUncertain
+              }
+              onBusyChange={setContinuing}
+              onUncertainChange={setContinuationUncertain}
             />
           )}
           {draft && revisionPreflight && (

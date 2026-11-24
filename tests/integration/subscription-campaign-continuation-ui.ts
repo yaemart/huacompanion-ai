@@ -1,3 +1,4 @@
+import { assertContinuationUI } from "../helpers/campaign-continuation-ui";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Payload, Where } from "payload";
@@ -187,6 +188,7 @@ export async function testCampaignContinuationUI(p: Payload, url: URL) {
       JSON.stringify(receipt),
       /@|subscription|job|token|hash|message|body|confirmationId/i,
     );
+    await assertContinuationUI(p, manager.user, current, receipt);
     const read = (token = manager.token, input: unknown = current) =>
       post(token, input, "read-continuation-local");
     const before = await databaseFingerprints(db);
