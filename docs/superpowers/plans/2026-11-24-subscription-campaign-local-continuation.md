@@ -1,6 +1,6 @@
 # 同活动改版本地续发实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 本地服务将合资格、从未尝试的原任务绑定到已重新确认的新版，保留历史并复用原执行守卫。
 
@@ -35,11 +35,11 @@
 **Interfaces:** resumeMockCampaignRevision(p,actor,{campaignKey,revision})返回安全版本/数量/时间/重放收据；
 campaignJobDraft(job,batch)、campaignBatchMatches(p,req,batch,draft)供任务2守卫使用。
 
-- [ ] 新增真实随机库schema断言三列，运行聚焦集成。Expected: 0≠3 RED。
-- [ ] 实现迁移/私有字段和生成类型，验证原表down/up保留数据；有绑定拒绝down，非授权通用CRUD/REST拒绝。
-- [ ] 写服务缺确认/无候选/有效租约/权限、仅选择合资格未尝试、重放/原表列保留及提交回滚回归，再实现最小事务服务。
-- [ ] 修订四个旧schema回滚/恢复夹具，把新增迁移按依赖顺序纳入；真实随机库验证。
-- [ ] 相关集成和check通过后提交本批后端模型与服务。
+- [x] 新增真实随机库schema断言三列，运行聚焦集成。Expected: 0≠3 RED。
+- [x] 实现迁移/私有字段和生成类型，验证原表down/up保留数据；有绑定拒绝down，非授权通用CRUD/REST拒绝。
+- [x] 写服务缺确认/无候选/有效租约/权限、仅选择合资格未尝试、重放/原表列保留及提交回滚回归，再实现最小事务服务。
+- [x] 修订四个旧schema回滚/恢复夹具，把新增迁移按依赖顺序纳入；真实随机库验证。
+- [x] 相关集成和check通过后提交本批后端模型与服务。
 
 ### Task 2: 原执行链版本适配与交付
 
@@ -48,9 +48,9 @@ docs/subscription-campaign-local-continuation-summary.md、handoff.md、progress
 
 **Interfaces:** 单任务有效draft=continuationDraft或原batch.draft；仅目标版本匹配者可占位/列表/领取/开始结果。
 
-- [ ] 写新版绑定后原slot可挑选/领取、首次正文是新版、旧已尝试slot不可领取的失败回归，运行看RED。
-- [ ] 最小适配既有守卫与SQL过滤，不改限额、等待、优先级、重试或worker流程。
+- [x] 写新版绑定后原slot可挑选/领取、首次正文是新版、旧已尝试slot不可领取的失败回归，运行看RED。
+- [x] 最小适配既有守卫与SQL过滤，不改限额、等待、优先级、重试或worker流程。
 - [ ] 增加多版本、两进程/并发、旧token、预算零/占位幂等、冷却/限速/邮件优先及真实指定版本CLI回归。
-- [ ] 完整npm run check与npm run test:subscriptions。Expected: 全部通过；保留前批463单元/33组，再新增续发组。
+- [x] 完整npm run check与npm run test:subscriptions。Expected: 全部通过；保留前批463单元/33组，再新增续发组。
 - [ ] 中文交接记录真实结果/迁移说明，旧原文保留；一次独立复核，重要项一次RED→GREEN修正，轻微记录延期。
 - [ ] 最终推送fetch同SHA、确认该提交PR触发CI两作业success，转ready，不合并。

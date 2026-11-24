@@ -1,3 +1,8 @@
+import { testCampaignContinuation } from "./subscription-campaign-continuation";
+import {
+  up as upContinuation,
+  down as downContinuation,
+} from "../../src/migrations/20261124_090000_subscription_campaign_continuation";
 import { testCampaignWorker } from "./subscription-campaign-worker";
 import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import { testLocalMailDispatch } from "./local-mail-dispatch";
@@ -134,6 +139,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downContinuation(adapter(db) as unknown as MigrateDownArgs);
     await downAttempts(adapter(db) as unknown as MigrateDownArgs);
     await downLeases(adapter(db) as unknown as MigrateDownArgs);
     await downQuota(adapter(db) as unknown as MigrateDownArgs);
@@ -171,6 +177,7 @@ try {
     await upQuota(adapter(db) as unknown as MigrateUpArgs);
     await upLeases(adapter(db) as unknown as MigrateUpArgs);
     await upAttempts(adapter(db) as unknown as MigrateUpArgs);
+    await upContinuation(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -459,6 +466,8 @@ try {
   await testCampaignScheduling(payload, url);
   await advanceDispatchClock(payload);
   await testCampaignWorker(payload, url);
+  await advanceDispatchClock(payload);
+  await testCampaignContinuation(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

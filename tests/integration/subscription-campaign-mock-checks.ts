@@ -1,4 +1,8 @@
 import {
+  up as upContinuation,
+  down as downContinuation,
+} from "../../src/migrations/20261124_090000_subscription_campaign_continuation";
+import {
   up as upAttempts,
   down as downAttempts,
 } from "../../src/migrations/20261121_213000_subscription_campaign_mock_attempts";
@@ -104,6 +108,7 @@ export async function testCampaignMockChecks(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downContinuation(adapter as unknown as MigrateDownArgs);
       await downAttempts(adapter as unknown as MigrateDownArgs);
       await downLeases(adapter as unknown as MigrateDownArgs);
       await downQuota(adapter as unknown as MigrateDownArgs);
@@ -116,6 +121,7 @@ export async function testCampaignMockChecks(p: Payload, url: URL) {
       await upQuota(adapter as unknown as MigrateUpArgs);
       await upLeases(adapter as unknown as MigrateUpArgs);
       await upAttempts(adapter as unknown as MigrateUpArgs);
+      await upContinuation(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

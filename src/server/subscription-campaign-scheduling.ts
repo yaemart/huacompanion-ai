@@ -11,6 +11,7 @@ import { requireCampaignRunning } from "./subscription-campaign-control";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
 import type { CampaignPreview } from "./subscription-campaign-preview";
 import { campaignTaskReason } from "./subscription-campaign-recheck";
+import { campaignBatchMatches, campaignJobDraft } from "./subscription-campaign-job-version";
 
 type Candidate = {
   id: number;
@@ -34,7 +35,7 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
         where: { campaignKey: { equals: draft.campaignKey } },
       })
     ).docs[0];
-    if (!batch || relationID(batch.draft) !== draft.id)
+    if (!batch || !(await campaignBatchMatches(p, req, batch, draft)))
       throw new ContentError("请先冻结本人当前版本名单；改版续发尚未开放。", 409);
     const { rows: clock } = await executeSQL(
       p,
@@ -51,9 +52,11 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
         a.state, a.attempted_at AS times,
         extract(epoch FROM a.next_attempt_at)::double precision*1000 AS next
       FROM subscription_campaign_mock_slots s
+      JOIN subscription_campaign_jobs j ON j.id=s.job_id AND j.batch_id=s.batch_id
       LEFT JOIN subscription_campaign_mock_leases l ON l.slot_id=s.id
       LEFT JOIN subscription_campaign_mock_attempts a ON a.slot_id=s.id
-      WHERE s.batch_id=${batch.id} ORDER BY s.id
+      WHERE s.batch_id=${batch.id} AND COALESCE(j.continuation_draft_id,${relationID(batch.draft)})=${draft.id}
+      ORDER BY s.id
     `,
     );
     const jobs = new Map(
@@ -106,6 +109,7 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
       const live = job && audience.get(relationID(job.subscription)!);
       if (
         !job ||
+        campaignJobDraft(job, batch) !== draft.id ||
         job.status !== "held" ||
         !live?.email.endsWith("@example.invalid") ||
         campaignTaskReason(job, live, draft.preview as CampaignPreview)

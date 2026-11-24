@@ -1700,6 +1700,9 @@ export interface SubscriptionCampaignJob {
   status: 'held' | 'cancelled';
   cancelReason?: ('ineligible' | 'consent-changed' | 'contact-changed' | 'campaign-cancelled') | null;
   cancelledAt?: string | null;
+  continuationDraft?: (number | null) | SubscriptionCampaignDraft;
+  continuationConfirmation?: (number | null) | SubscriptionCampaignCheck;
+  continuedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3179,6 +3182,9 @@ export interface SubscriptionCampaignJobsSelect<T extends boolean = true> {
   status?: T;
   cancelReason?: T;
   cancelledAt?: T;
+  continuationDraft?: T;
+  continuationConfirmation?: T;
+  continuedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

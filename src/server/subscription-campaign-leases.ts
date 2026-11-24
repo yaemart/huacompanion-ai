@@ -14,6 +14,7 @@ import { executeSQL } from "./db-types";
 import { campaignAudience } from "./subscription-campaign-audience";
 import { campaignTaskReason } from "./subscription-campaign-recheck";
 import { withConfirmedCampaign } from "./subscription-campaign-mock-checks";
+import { campaignJobDraft } from "./subscription-campaign-job-version";
 import type { CampaignPreview } from "./subscription-campaign-preview";
 import { subscriptionLockKey } from "./subscriptions";
 import { requireCampaignRunning } from "./subscription-campaign-control";
@@ -129,14 +130,14 @@ async function operate(
         req,
         depth: 0,
       });
-      if (relationID(batch.draft) !== draft.id)
-        throw new ContentError("该模拟任务不在当前活动中。", 404);
       const job = await p.findByID({
         collection: "subscription-campaign-jobs",
         id: relationID(slot.job)!,
         req,
         depth: 0,
       });
+      if (batch.campaignKey !== draft.campaignKey || campaignJobDraft(job, batch) !== draft.id)
+        throw new ContentError("该模拟任务不在当前活动中。", 404);
       const subscription = await p.findByID({
         collection: "subscriptions",
         id: relationID(job.subscription)!,

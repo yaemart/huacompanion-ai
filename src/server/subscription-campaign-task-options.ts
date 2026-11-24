@@ -23,7 +23,9 @@ export async function readCampaignMockSlots(p: Payload, actor: Staff, input: unk
       sql`
       SELECT s.id FROM subscription_campaign_mock_slots s
       JOIN subscription_campaign_batches b ON b.id=s.batch_id
-      WHERE b.draft_id=${draft.id} ORDER BY s.id
+      JOIN subscription_campaign_jobs j ON j.id=s.job_id AND j.batch_id=b.id
+      WHERE b.campaign_key=${draft.campaignKey} AND COALESCE(j.continuation_draft_id,b.draft_id)=${draft.id}
+      ORDER BY s.id
     `,
     );
     return rows.map((row) => Number(row.id));
