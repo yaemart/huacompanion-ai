@@ -31,6 +31,8 @@ import { databaseFingerprints } from "../helpers/database-fingerprints";
 import { assertCampaignReviewDetails } from "../helpers/campaign-review-details";
 import { readCampaignReviewDetails } from "../../src/server/subscription-campaign-review";
 import { loadCampaignReviewDetails } from "../../src/lib/subscription-campaign-review-client";
+import { assertCampaignRevisionPreflight } from "../helpers/campaign-revision-preflight";
+import { readCampaignRevisionPreflight } from "../../src/server/subscription-campaign-revision-preflight";
 
 export async function testCampaignStatus(p: Payload, url: URL) {
   const env = { ...process.env };
@@ -101,7 +103,14 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     const read = () => readCampaignTaskStatus(p, manager.user, input);
     const detail = (who = manager.token, value: unknown = input, patch = {}) =>
       post(who, value, { ...patch, action: "read-mock-review-local" });
+    const preflight = (who = manager.token, value: unknown = input, patch = {}) =>
+      post(who, value, { ...patch, action: "read-revision-preflight-local" });
     const empty = await read();
+    assert.equal(
+      (await post(manager.token, input, { action: "read-revision-preflight-local" })).status,
+      200,
+      "authorized owner can read revision preflight without a frozen list",
+    );
     assert.equal(empty.snapshot, null);
     assert.equal(empty.total, 0);
     assert.equal(empty.attempts, 0);
@@ -111,7 +120,15 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       "authorized owner can read an empty review detail list",
     );
     for (const token of ["", admin.token, operations.token, editor.token, reviewer.token])
-      for (const request of [post, detail]) assert.equal((await request(token, input)).status, 403);
+      for (const request of [post, detail, preflight])
+        assert.equal((await request(token, input)).status, 403);
+    assert.equal((await preflight(other.token)).status, 404);
+    assert.equal(
+      (await preflight(manager.token, input, { origin: "https://elsewhere.invalid" })).status,
+      403,
+    );
+    assert.equal((await preflight(manager.token, input, { type: "text/plain" })).status, 415);
+    assert.equal((await preflight(manager.token, input, { raw: "x".repeat(17000) })).status, 413);
     assert.equal((await post(other.token, input)).status, 404);
     assert.equal((await detail(other.token)).status, 404);
     assert.equal(
@@ -133,7 +150,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       { ...input, token: key },
       { ...input, reset: true },
     ])
-      for (const request of [post, detail])
+      for (const request of [post, detail, preflight])
         assert.equal((await request(manager.token, invalid)).status, 400);
     for (const page of [0, -1, 1.5, "1", 41, Number.MAX_SAFE_INTEGER])
       assert.equal((await detail(manager.token, { ...input, page })).status, 400);
@@ -141,6 +158,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     process.env.APP_ENV = "trial";
     assert.equal((await post(manager.token, input)).status, 403);
     assert.equal((await detail()).status, 403);
+    assert.equal((await preflight()).status, 403);
     process.env.APP_ENV = "local";
     for (let i = 0; i < 10; i++) {
       const sub = await p.create({
@@ -228,6 +246,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
         draft: await readCampaignDraft(p, manager.user, input.campaignKey),
         taskStatus: status,
         reviewDetails: await readCampaignReviewDetails(p, manager.user, input),
+        revisionPreflight: await readCampaignRevisionPreflight(p, manager.user, input),
       }),
     );
     assert.match(markup, /本地模拟任务状态/);
@@ -239,6 +258,10 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.match(markup, /结果不明/);
     assert.match(markup, /记录模拟结果/);
     assert.match(markup, /刷新待核对明细/);
+    assert.match(markup, /同一活动改版续发预检/);
+    assert.match(markup, /刷新改版预检/);
+    assert.match(markup, /不补入后来订阅的人/);
+    assert.match(markup, /实际改版续发尚未开放/);
     assert.doesNotMatch(markup, /@example.invalid|leaseTokenHash|PRIVATE|清除按钮/);
     assert.doesNotMatch(markup, /重置待核对|立即重试/);
     assert.deepEqual(status.snapshot, { revision: 1, current: true });
@@ -306,6 +329,9 @@ export async function testCampaignStatus(p: Payload, url: URL) {
         "source-invalid review history must remain readable",
       );
       const invalidHistory = await readCampaignReviewDetails(p, manager.user, input);
+      const invalidPreflight = await preflight();
+      assert.equal(invalidPreflight.status, 200);
+      assert.ok((await invalidPreflight.json()).preflight.blockers.includes("source-changed"));
       const invalidReceipt = (await invalidResponse.json()).reviewDetails;
       assert.deepEqual(invalidHistory.rows, expectedHistory.rows);
       assert.deepEqual(invalidReceipt.rows, expectedHistory.rows);
@@ -347,7 +373,17 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       globalThis.fetch = originalFetch;
     }
     assert.deepEqual(await databaseFingerprints(db), detailBefore);
+    input.revision = await assertCampaignRevisionPreflight(
+      p,
+      db,
+      manager.user,
+      input,
+      slots,
+      preflight,
+      subscribers,
+    );
     await setCampaignPause(p, manager.user, { ...input, paused: true, reason: "历史状态仍可读" });
+    assert.ok((await (await preflight()).json()).preflight.blockers.includes("paused"));
     assert.equal((await post(manager.token, input)).status, 200);
     process.env.SUBSCRIPTIONS_ENABLED = "false";
     assert.equal((await detail()).status, 200, "disabled and paused history remains readable");
@@ -358,6 +394,11 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     );
     process.env.SUBSCRIPTIONS_ENABLED = env.SUBSCRIPTIONS_ENABLED;
     await cancelMockCampaign(p, manager.user, { ...input, reason: "状态历史测试" });
+    const stoppedBefore = await databaseFingerprints(db);
+    const stoppedPreflight = (await (await preflight()).json()).preflight;
+    assert.ok(stoppedPreflight.blockers.includes("cancelled"));
+    assert.equal(stoppedPreflight.counts.candidates, 0);
+    assert.deepEqual(await databaseFingerprints(db), stoppedBefore);
     const cancelled = await read();
     assert.equal(cancelled.counts.completed, 1);
     assert.equal(cancelled.counts.failed, 1);
@@ -367,6 +408,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     const newer = await saveCampaignDraft(p, manager.user, { ...input, policies });
     const current = { ...input, revision: newer.revision };
     assert.equal((await detail()).status, 409);
+    assert.equal((await preflight()).status, 409);
     assert.deepEqual((await readCampaignReviewDetails(p, manager.user, current)).snapshot, {
       revision: 1,
       current: false,
@@ -381,6 +423,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
       enabled: false,
     });
     assert.equal((await detail(manager.token, current)).status, 403);
+    assert.equal((await preflight(manager.token, current)).status, 403);
     assert.equal(
       (await post(manager.token, current)).status,
       403,
@@ -400,6 +443,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     });
     assert.equal((await post(manager.token, current)).status, 403);
     assert.equal((await detail(manager.token, current)).status, 403);
+    assert.equal((await preflight(manager.token, current)).status, 403);
     console.log("PASS 本地模拟任务状态汇总、重试待核对边界、本人权限、只读刷新和历史保留");
   } finally {
     for (const collection of [

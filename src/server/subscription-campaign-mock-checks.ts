@@ -15,6 +15,23 @@ type ConfirmedWork<T> = (
   confirmation: SubscriptionCampaignCheck,
 ) => Promise<T>;
 
+type Inspection<T> = (
+  req: Partial<PayloadRequest>,
+  draft: SubscriptionCampaignDraft,
+  snapshot: Awaited<ReturnType<typeof import("./subscription-campaign-drafts").readCampaignDraft>>,
+  confirmed: boolean,
+) => Promise<T>;
+
+/** Read evidence in the existing transaction; never record a reset or permit execution. */
+export async function inspectCampaignMockChecks<T>(
+  p: Payload,
+  actor: Staff,
+  input: unknown,
+  inspect: Inspection<T>,
+) {
+  return (await runCampaignMockChecks(p, actor, "status", input, undefined, inspect)).output as T;
+}
+
 export async function withConfirmedCampaign<T>(
   p: Payload,
   actor: Staff,
@@ -39,6 +56,7 @@ async function runCampaignMockChecks<T>(
   action: "status" | "test" | "confirm",
   value: unknown,
   work?: ConfirmedWork<T>,
+  inspect?: Inspection<T>,
 ) {
   const fields = ["campaignKey", "revision"];
   if (action === "confirm") fields.push("testId", "readable");
@@ -132,7 +150,7 @@ async function runCampaignMockChecks<T>(
         })
       ).docs[0];
       let binding = latest?.contextHash === contextHash ? latest.binding : contextHash;
-      if (enabled && latest && latest.contextHash !== contextHash) {
+      if (!inspect && enabled && latest && latest.contextHash !== contextHash) {
         binding = digest([contextHash, latest.id]);
         await record("mock-reset", binding);
       }
@@ -149,8 +167,9 @@ async function runCampaignMockChecks<T>(
           ],
         },
       });
-      let tested = available ? checks.docs.find((check) => check.kind === "mock-test") : undefined;
-      let confirmed = available
+      const readable = available && (!inspect || latest?.contextHash === contextHash);
+      let tested = readable ? checks.docs.find((check) => check.kind === "mock-test") : undefined;
+      let confirmed = readable
         ? checks.docs.find((check) => check.kind === "mock-confirm")
         : undefined;
       let error: ContentError | undefined;
@@ -196,6 +215,13 @@ async function runCampaignMockChecks<T>(
           error = new ContentError("尚无有效模拟确认，请重新测试并逐语言确认。", 409);
         else output = await work(req, row, confirmed!);
       }
+      if (inspect)
+        output = await inspect(
+          req,
+          row,
+          snapshot,
+          !!tested && relationID(confirmed?.test) === tested.id,
+        );
       return {
         output,
         auditId,
