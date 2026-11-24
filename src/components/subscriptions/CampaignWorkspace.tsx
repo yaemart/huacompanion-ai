@@ -61,8 +61,8 @@ export function CampaignWorkspace({
   const [preparing, setPreparing] = useState(false);
   const [preparationUncertain, setPreparationUncertain] = useState(false);
   const [continuing, setContinuing] = useState(false);
-  const [continuationUncertain, setContinuationUncertain] = useState(false);
-  const continuationBlocked = continuing || continuationUncertain;
+  const [continuationPending, setContinuationPending] = useState(false);
+  const continuationBlocked = continuing || continuationPending;
   const preparationBlocked = preparing || preparationUncertain;
   const taskBlocked = taskBusy || taskUncertain;
   const mockBusy = checkBusy || taskBlocked || preparationBlocked || continuationBlocked;
@@ -357,7 +357,7 @@ export function CampaignWorkspace({
                 controlUncertain
               }
               onBusyChange={setContinuing}
-              onUncertainChange={setContinuationUncertain}
+              onBlockedChange={setContinuationPending}
             />
           )}
           {draft && revisionPreflight && (

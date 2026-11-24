@@ -32,7 +32,7 @@ export async function assertContinuationUI(
         eligible,
         disabled: false,
         onBusyChange: () => {},
-        onUncertainChange: () => {},
+        onBlockedChange: () => {},
       }),
     );
   const disabled = panel(false);

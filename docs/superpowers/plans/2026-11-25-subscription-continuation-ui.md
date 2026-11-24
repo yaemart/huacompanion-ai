@@ -38,7 +38,7 @@
 
 **Files:** 新增components/subscriptions/CampaignContinuation.tsx；修改CampaignWorkspace、CampaignRevisionPreflight、CampaignMockChecks、CampaignPreparation及page.tsx和quota/scheduling/freeze旧文案。中文summary/handoff/progress。
 
-**Interfaces:** 面板接收draft/receipt/eligible/disabled和onBusy/onUncertain，提交成功重开；工作台用receipt作为绑定事实并继续检查原资格。
+**Interfaces:** 面板接收draft/receipt/eligible/disabled和onBusyChange/onBlockedChange，正常提交成功重开；只读找到就地展示并需明确重开，导航至卸载持续锁定；工作台用receipt作为绑定事实并继续检查原资格。
 
 - [x] SSR门禁/新版续发区及恢复行为先RED；实现复用布局、显式确认、ref去重、确定/未知失败及只读核实；Expected:界面/集成通过。
 - [x] 隔离生产副本桌面与390视口真实操作：缺确认禁用、已确认提交、重开占位与领取、畸形/丢失响应只读核实、未保存与Enter保护，截图本机忽略；Expected:无控制台错误/横溢出，不动原站。

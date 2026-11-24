@@ -14,7 +14,7 @@ type Props = {
   eligible: boolean;
   disabled: boolean;
   onBusyChange: (value: boolean) => void;
-  onUncertainChange: (value: boolean) => void;
+  onBlockedChange: (value: boolean) => void;
 };
 export function CampaignContinuation({
   draft,
@@ -22,18 +22,31 @@ export function CampaignContinuation({
   eligible,
   disabled,
   onBusyChange,
-  onUncertainChange,
+  onBlockedChange,
 }: Props) {
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [notice, setNotice] = useState("");
+  const [recovered, setRecovered] = useState<ContinuationReceipt | null>(null);
+  const savedReceipt = initial ?? recovered;
   const pending = useRef(false);
+  const navigating = useRef(false);
+  function reopen() {
+    if (disabled || navigating.current) return;
+    pending.current = true;
+    navigating.current = true;
+    setBusy(true);
+    onBusyChange(true);
+    window.location.assign(
+      "/subscription-campaigns?campaign=" + encodeURIComponent(draft.campaignKey),
+    );
+  }
   async function run(readOnly = false) {
     if (
       pending.current ||
       disabled ||
-      (!readOnly && (!eligible || !confirmed || uncertain || initial))
+      (!readOnly && (!eligible || !confirmed || uncertain || savedReceipt))
     )
       return;
     pending.current = true;
@@ -44,23 +57,26 @@ export function CampaignContinuation({
     try {
       const receipt = await continuationRequest(draft, readOnly);
       setUncertain(false);
-      onUncertainChange(false);
+      onBlockedChange(false);
       if (receipt) {
-        window.location.assign(
-          "/subscription-campaigns?campaign=" + encodeURIComponent(draft.campaignKey),
-        );
+        if (readOnly) {
+          setRecovered(receipt);
+          onBlockedChange(true);
+        } else reopen();
         return;
       }
       setNotice("尚无本版已保存收据。本次仅查询，未再次提交；核对后可重新勾选确认。");
     } catch (error) {
       const unknown = readOnly || !(error instanceof MockTaskRequestError) || error.uncertain;
       setUncertain(unknown);
-      onUncertainChange(unknown);
+      onBlockedChange(unknown);
       setNotice(error instanceof Error ? error.message : "续发结果待核实。");
     } finally {
-      pending.current = false;
-      setBusy(false);
-      onBusyChange(false);
+      if (!navigating.current) {
+        pending.current = false;
+        setBusy(false);
+        onBusyChange(false);
+      }
     }
   }
   return (
@@ -73,10 +89,10 @@ export function CampaignContinuation({
       <p>
         本操作不发送、不领取或占位；后续准备与尝试仍按原权限、额度、预算、限速、邮件优先及重试规则执行。
       </p>
-      {initial ? (
+      {savedReceipt ? (
         <p role="status">
-          已保存本版续发范围：{initial.bound} 项，原第 {initial.originalRevision}{" "}
-          版。时间（北京时间）：{staffDateTime(initial.continuedAt, true)}
+          已保存本版续发范围：{savedReceipt.bound} 项，原第 {savedReceipt.originalRevision}{" "}
+          版。时间（北京时间）：{staffDateTime(savedReceipt.continuedAt, true)}
           。此为当时绑定数，执行前仍核资格与确认。
         </p>
       ) : (
@@ -106,6 +122,20 @@ export function CampaignContinuation({
             </button>
           </fieldset>
         </form>
+      )}
+      {recovered && (
+        <>
+          <p>收据已只读核实，其他写入暂锁。重新打开会核对当前条件，变化时原模拟确认会失效。</p>
+          <button
+            type="button"
+            className="button"
+            style={{ minHeight: 44 }}
+            disabled={disabled || busy}
+            onClick={reopen}
+          >
+            重新打开本版活动
+          </button>
+        </>
       )}
       {notice && <p role="status">{notice}</p>}
       {uncertain && (
