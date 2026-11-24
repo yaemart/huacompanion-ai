@@ -3,7 +3,10 @@ import type { Payload } from "payload";
 import type pg from "pg";
 import type { Staff } from "../../src/cms/access";
 import { readCampaignRevisionPreflight } from "../../src/server/subscription-campaign-revision-preflight";
-import { saveCampaignDraft } from "../../src/server/subscription-campaign-drafts";
+import {
+  readCampaignDraft,
+  saveCampaignDraft,
+} from "../../src/server/subscription-campaign-drafts";
 import { readCampaignWorkspace } from "../../src/server/subscription-campaign-workspace";
 import { campaignMockChecks } from "../../src/server/subscription-campaign-mock-checks";
 import { freezeCampaignRecipients } from "../../src/server/subscription-campaign-freeze";
@@ -12,6 +15,8 @@ import { claimMockCampaignTask } from "../../src/server/subscription-campaign-le
 import { loadCampaignRevisionPreflight } from "../../src/lib/subscription-campaign-revision-preflight-client";
 import { randomUUID } from "node:crypto";
 import { databaseFingerprints } from "./database-fingerprints";
+import { observeCampaignAudience } from "./campaign-audience-queries";
+import { assertPreflightAudiencePerformance } from "./campaign-preflight-audience-performance";
 
 export async function assertCampaignRevisionPreflight(
   p: Payload,
@@ -31,7 +36,15 @@ export async function assertCampaignRevisionPreflight(
     assert.match(response.headers.get("x-robots-tag")!, /noindex/);
     assert.equal(response.headers.get("referrer-policy"), "no-referrer");
     const result = (await response.json()).preflight;
-    const service = await readCampaignRevisionPreflight(p, actor, value);
+    const observed = await observeCampaignAudience(p, () =>
+      readCampaignRevisionPreflight(p, actor, value),
+    );
+    assert.equal(
+      observed.statements.length,
+      1,
+      "service reuses the report audience for original-job eligibility",
+    );
+    const service = observed.result;
     assert.deepEqual(result.counts, service.counts);
     assert.deepEqual(result.blockers, service.blockers);
     assert.equal(result.revision, value.revision);
@@ -57,6 +70,31 @@ export async function assertCampaignRevisionPreflight(
   assert.ok(original.blockers.includes("not-revised"));
   assert.ok(original.blockers.includes("active-lease"));
   assert.ok(!original.blockers.includes("confirmation-required"));
+  const publicDraft = await readCampaignDraft(p, actor, value.campaignKey);
+  assert.deepEqual(
+    Object.keys(publicDraft).sort(),
+    ["campaignKey", "revision", "topic", "policies", "preview", "current", "counts", "asOf"].sort(),
+    "private audience and its reader never enter the draft DTO",
+  );
+  const privacy = process.env.PRIVACY_VERSION;
+  try {
+    process.env.PRIVACY_VERSION = "different-privacy-version";
+    assert.deepEqual((await read()).counts, {
+      attempted: 6,
+      cancelled: 1,
+      ineligible: 3,
+      leased: 0,
+      candidates: 0,
+    });
+  } finally {
+    if (privacy === undefined) delete process.env.PRIVACY_VERSION;
+    else process.env.PRIVACY_VERSION = privacy;
+  }
+  assert.deepEqual(
+    (await read()).counts,
+    expected,
+    "an independent request never reuses a previous privacy audience",
+  );
   const mail = process.env.WORKFLOW_MAIL_FROM;
   try {
     process.env.WORKFLOW_MAIL_FROM = "changed@example.invalid";
@@ -227,5 +265,8 @@ export async function assertCampaignRevisionPreflight(
       [JSON.stringify(attempt.attempted_at), attempt.id],
     );
   }
+  await assertPreflightAudiencePerformance(p, db, actor, value, expected, () =>
+    post(undefined, value),
+  );
   return value.revision;
 }

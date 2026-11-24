@@ -2,7 +2,11 @@ import type { PostgresAdapter } from "@payloadcms/db-postgres";
 import type { Payload } from "payload";
 
 export type ObservedStatement = { text: string; values: unknown[] };
-export async function observePGQueries<T>(p: Payload, run: () => Promise<T>) {
+export async function observePGQueries<T>(
+  p: Payload,
+  run: () => Promise<T>,
+  matches: (text: string) => boolean = (text) => /\baudit_events\b/i.test(text),
+) {
   const prototype = (p.db as unknown as Pick<PostgresAdapter, "pg">).pg.Client.prototype;
   const original = prototype.query;
   const statements: ObservedStatement[] = [];
@@ -10,11 +14,7 @@ export async function observePGQueries<T>(p: Payload, run: () => Promise<T>) {
     apply(target, self, args) {
       const request = args[0] as string | { text?: unknown; values?: unknown };
       const text = typeof request === "string" ? request : request?.text;
-      if (
-        typeof text === "string" &&
-        /^\s*(SELECT|WITH)\b/i.test(text) &&
-        /\baudit_events\b/i.test(text)
-      ) {
+      if (typeof text === "string" && /^\s*(SELECT|WITH)\b/i.test(text) && matches(text)) {
         const values = Array.isArray(args[1])
           ? args[1]
           : typeof request === "object" && Array.isArray(request.values)

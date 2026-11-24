@@ -7,6 +7,7 @@ import { relationID, type Staff } from "../cms/access";
 import { contentTransaction, ContentError } from "./content/service";
 import { executeSQL } from "./db-types";
 import { requireCampaignGrant } from "./subscription-campaign-access";
+import { campaignAudience, type CampaignAudienceReader } from "./subscription-campaign-audience";
 import {
   campaignCounts,
   campaignPolicies,
@@ -52,7 +53,12 @@ async function latest(p: Payload, req: Scope, owner: number, key: string) {
   return docs[0];
 }
 
-async function report(p: Payload, req: Scope, row: SubscriptionCampaignDraft) {
+async function report(
+  p: Payload,
+  req: Scope,
+  row: SubscriptionCampaignDraft,
+  readAudience: CampaignAudienceReader = () => campaignAudience(p, req),
+) {
   const selection = row.selections as { policies: unknown; sourceVersion: string };
   const preview = row.preview as CampaignPreview;
   let current = false;
@@ -71,7 +77,7 @@ async function report(p: Payload, req: Scope, row: SubscriptionCampaignDraft) {
     policies: campaignPolicies(selection.policies),
     preview,
     current,
-    counts: await campaignCounts(p, req, preview),
+    counts: await campaignCounts(p, req, preview, await readAudience()),
     asOf: new Date().toISOString(),
   };
 }
@@ -91,12 +97,16 @@ export async function withCampaignDraft<T>(
     req: Scope,
     row: SubscriptionCampaignDraft,
     snapshot: Awaited<ReturnType<typeof report>>,
+    readAudience: CampaignAudienceReader,
   ) => Promise<T>,
 ) {
   return campaignTransaction(p, actor, async (req, owner) => {
     const row = await latest(p, req, owner, campaignKey(key));
     if (revision !== row.revision) throw new ContentError("草稿已有更新，请刷新后重新测试。", 409);
-    return run(req, row, await report(p, req, row));
+    // Only this invocation shares the read. Executable callers keep their own eligibility rechecks.
+    let reading: ReturnType<typeof campaignAudience> | undefined;
+    const readAudience = () => (reading ??= campaignAudience(p, req));
+    return run(req, row, await report(p, req, row, readAudience), readAudience);
   });
 }
 

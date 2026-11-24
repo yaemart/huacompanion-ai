@@ -33,6 +33,7 @@ import { readCampaignReviewDetails } from "../../src/server/subscription-campaig
 import { loadCampaignReviewDetails } from "../../src/lib/subscription-campaign-review-client";
 import { assertCampaignRevisionPreflight } from "../helpers/campaign-revision-preflight";
 import { readCampaignRevisionPreflight } from "../../src/server/subscription-campaign-revision-preflight";
+import { observeCampaignAudience } from "../helpers/campaign-audience-queries";
 
 export async function testCampaignStatus(p: Payload, url: URL) {
   const env = { ...process.env };
@@ -103,11 +104,23 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     const read = () => readCampaignTaskStatus(p, manager.user, input);
     const detail = (who = manager.token, value: unknown = input, patch = {}) =>
       post(who, value, { ...patch, action: "read-mock-review-local" });
-    const preflight = (who = manager.token, value: unknown = input, patch = {}) =>
-      post(who, value, { ...patch, action: "read-revision-preflight-local" });
+    const preflight = async (who = manager.token, value: unknown = input, patch = {}) => {
+      const observed = await observeCampaignAudience(p, () =>
+        post(who, value, { ...patch, action: "read-revision-preflight-local" }),
+      );
+      if (observed.result.status === 200)
+        assert.equal(observed.statements.length, 1, "HTTP preflight reads its audience once");
+      if ([400, 403, 404, 409, 413, 415].includes(observed.result.status))
+        assert.equal(
+          observed.statements.length,
+          0,
+          "rejected preflight never reads a private audience",
+        );
+      return observed.result;
+    };
     const empty = await read();
     assert.equal(
-      (await post(manager.token, input, { action: "read-revision-preflight-local" })).status,
+      (await preflight()).status,
       200,
       "authorized owner can read revision preflight without a frozen list",
     );

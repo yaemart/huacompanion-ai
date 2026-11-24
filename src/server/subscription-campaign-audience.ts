@@ -3,6 +3,8 @@ import type { Payload, PayloadRequest } from "payload";
 import { customerEmail } from "../lib/customer";
 import { executeSQL } from "./db-types";
 
+export type CampaignAudienceReader = () => ReturnType<typeof campaignAudience>;
+
 /** Server-only eligibility snapshot; never include these rows in a client response. */
 export async function campaignAudience(p: Payload, req: Partial<PayloadRequest>) {
   const privacy = process.env.PRIVACY_VERSION?.trim() || "";
