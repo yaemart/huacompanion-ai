@@ -33,6 +33,7 @@ export async function loadCampaignFeedbackSummary(draft: {
     ) ||
     typeof summary.asOf !== "string" ||
     !Number.isFinite(Date.parse(summary.asOf)) ||
+    new Date(summary.asOf).toISOString() !== summary.asOf ||
     (summary.snapshot === null
       ? summary.total !== 0
       : !summary.snapshot ||

@@ -37,6 +37,11 @@ for (const [label, response] of [
   ["count exceeds audience", () => Response.json({ feedbackSummary: { ...summary, total: 0 } })],
   ["invalid clock", () => Response.json({ feedbackSummary: { ...summary, asOf: "invalid" } })],
   [
+    "normalized impossible clock",
+    () => Response.json({ feedbackSummary: { ...summary, asOf: "2026-02-30T12:00:00.000Z" } }),
+  ],
+  ["parseable non-ISO clock", () => Response.json({ feedbackSummary: { ...summary, asOf: "1" } })],
+  [
     "wrong snapshot",
     () =>
       Response.json({ feedbackSummary: { ...summary, snapshot: { revision: 2, current: false } } }),

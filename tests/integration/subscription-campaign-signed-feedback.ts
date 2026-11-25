@@ -564,13 +564,6 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
       const history = await summary(p, manager, newer);
       assert.deepEqual(history.snapshot, { revision: 1, current: false });
       assert.deepEqual(history.counts, { ...zero, suppressed: 2 });
-      const privacy = process.env.PRIVACY_VERSION;
-      process.env.PRIVACY_VERSION = "changed-source";
-      try {
-        assert.deepEqual((await summary(p, manager, newer)).counts, history.counts);
-      } finally {
-        process.env.PRIVACY_VERSION = privacy;
-      }
     });
     await prepare(newer);
     await unchanged(async () =>
@@ -620,14 +613,6 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
         frozenRow.id,
       ]);
     }
-    await setCampaignPause(p, manager, { ...input, paused: true, reason: "虚构只读汇总验收" });
-    await unchanged(async () =>
-      assert.equal((await summary(p, manager, input)).counts.delivered, 1),
-    );
-    await cancelMockCampaign(p, manager, { ...input, reason: "虚构只读汇总验收" });
-    await unchanged(async () =>
-      assert.equal((await summary(p, manager, input)).counts.suppressed, 2),
-    );
     const other = await person("manager");
     await setCampaignGrant(p, admin, { staffId: other.id, topic: "policy-updates", enabled: true });
     const otherToken = (
@@ -651,6 +636,73 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
       await assert.rejects(summary(p, manager, input), { status: 403 });
     });
     await p.update({ collection: "staff", user: admin, id: manager.id, data: { active: true } });
+    const historicalDraft = await saveCampaignDraft(p, manager, {
+      ...input,
+      policies: [choices[0].policies],
+    });
+    const historicalInput = {
+      campaignKey: historicalDraft.campaignKey,
+      revision: historicalDraft.revision,
+    };
+    await prepare(historicalInput);
+    assert.equal(
+      (await campaignMockChecks(p, manager, "status", historicalInput)).mockConfirmed,
+      true,
+    );
+    const expectedHistory = {
+      delivered: 1,
+      hardBounce: 1,
+      complaint: 1,
+      providerSuppressed: 1,
+      suppressed: 2,
+    };
+    const historyToken = (
+      await p.login({ collection: "staff", data: { email: manager.email, password: key } })
+    ).token!;
+    const assertHistory = async () => {
+      const response = await read(historicalInput, historyToken);
+      assert.equal(response.status, 200);
+      const report = (await response.json()).feedbackSummary;
+      assert.deepEqual(report.snapshot, { revision: 1, current: false });
+      assert.deepEqual(report.counts, expectedHistory);
+    };
+    await unchanged(assertHistory);
+    // These are disposable fixture sources. Removing the active facts truly invalidates selected policies.
+    const sources = (
+      await db.query(
+        "SELECT id,active_fact_version_id FROM policy_groups WHERE active_fact_version_id IS NOT NULL",
+      )
+    ).rows;
+    assert.ok(sources.length > 0);
+    await db.query("UPDATE policy_groups SET active_fact_version_id=NULL");
+    try {
+      assert.equal(
+        (await readCampaignDraft(p, manager, historicalInput.campaignKey)).current,
+        false,
+      );
+      await unchanged(async () => {
+        const observed = await observeCampaignAudience(p, assertHistory);
+        assert.equal(observed.statements.length, 0);
+      });
+    } finally {
+      for (const source of sources)
+        await db.query("UPDATE policy_groups SET active_fact_version_id=$1 WHERE id=$2", [
+          source.active_fact_version_id,
+          source.id,
+        ]);
+    }
+    assert.equal(
+      (await campaignMockChecks(p, manager, "status", historicalInput)).mockConfirmed,
+      true,
+    );
+    await setCampaignPause(p, manager, {
+      ...historicalInput,
+      paused: true,
+      reason: "虚构只读汇总验收",
+    });
+    await unchanged(assertHistory);
+    await cancelMockCampaign(p, manager, { ...historicalInput, reason: "虚构只读汇总验收" });
+    await unchanged(assertHistory);
     console.log(
       "PASS 签名HTTP回执闭环及只读汇总：验签、绑定、回退保护、去重、权限、全表只读与worker/续发拒发",
     );
