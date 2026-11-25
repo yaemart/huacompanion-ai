@@ -51,3 +51,5 @@ PR117已合并，fetch后origin/main为`f639e692f98af05a97b5a483e095b055f5df717d
 
 独立设计检查未发现仍需澄清的重大问题，具体模块划分留给实施规划。
 2026-11-26用户明确回复“接受”，沿用原生实施方式，不重复请求相同授权。实现与实测结果由本批交接记录承载。
+
+2026-11-26实施复核补充：[官方退信分类](https://resend.com/docs/dashboard/emails/email-bounces)还列出Transient/Undetermined，连同Temporary均按已接受的“仅Permanent作硬退信”口径成功忽略，不扩大重试或发送权限。

@@ -1,6 +1,6 @@
 # 签名回执与模拟闭环实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 仅本地、默认关闭的签名HTTP入口通过私有邮件绑定记录反馈与抑制，完成整链路模拟。
 
@@ -30,15 +30,25 @@
 **Files:** src/lib/subscription-feedback-webhook.ts；tests/subscription-feedback-webhook.test.ts。
 **Interfaces:** verifyFeedbackSignature(body:Buffer,headers:Headers,secret:string,now?:number):string返回svix-id；parseFeedbackEvent(body:Buffer)返回安全归一化事件或null（忽略）。
 
-- [ ] 官方固定向量、正文篡改、错头/错密钥/时间、多签名、UTF-8、语义映射先RED，再以crypto实现；Expected: 全部GREEN，无新包。
+- [x] 官方固定向量、正文篡改、错头/错密钥/时间、多签名、UTF-8、语义映射先RED，再以crypto实现；Expected: 全部GREEN，无新包。
 
 ### Task 2: 绑定、共享持久化、HTTP及整链路
 
 **Files:** src/server/subscription-campaign-{feedback,mail-binding,signed-feedback}.ts、src/cms/subscriptions/collections.ts、src/app/(frontend)/api/subscriptions/campaign-feedback/route.ts、新迁移及index/payload-types.ts、.env.example；tests/integration/subscription-campaign-{signed-feedback,feedback}.ts及迁移回退用例。
 **Interfaces:** bindLocalCampaignMail(p,actor,{emailId,attemptId,email})只新增不可换目标的绑定；recordSignedCampaignFeedback(p,body,headers)自行验签后在事务内查绑定并写反馈。原recordLocalCampaignFeedback接口不扩权。
 
-- [ ] 动态服务/入口缺失先RED；绑定权限/冲突、有效签名错误目标、手工跨真实任务同ID冲突、JSON/体积/默认关闭/nonlocal/GET拒绝均比较指纹。
-- [ ] 迁移加入私有绑定，扩反馈kind/拒发reason=provider-suppressed及sourceHash，attempt可空仅限邮箱抑制；更新所有受依赖的逆序回退/正序恢复用例。
-- [ ] 实际HTTP→持久回执→营销资格/新活动/续发/worker及已开始结果保留；并发重放、先回调后绑定重试、审计失败回滚、无source_id及移除无清除。Expected: 新组及旧37组全通过。
-- [ ] npm run check与npm run test:subscriptions通过，记录真实失败/修正，更新一页说明/交接；一次独立复核，重要项一轮RED→GREEN。
-- [ ] 提交推送核对完整SHA、草稿PR及精确CI，声明仅本地模拟、旧演示库未升级及剩余H范围。
+- [x] 动态服务/入口缺失先RED；绑定权限/冲突、有效签名错误目标、手工跨真实任务同ID冲突、JSON/体积/默认关闭/nonlocal/GET拒绝均比较指纹。
+- [x] 迁移加入私有绑定，扩反馈kind/拒发reason=provider-suppressed及sourceHash，attempt可空仅限邮箱抑制；更新所有受依赖的逆序回退/正序恢复用例。
+- [x] 实际HTTP→持久回执→营销资格/新活动/续发/worker及已开始结果保留；并发重放、先回调后绑定重试、审计失败回滚、无source_id及移除无清除。Expected: 新组及旧37组全通过。
+- [x] npm run check与npm run test:subscriptions通过，记录真实失败/修正，更新一页说明/交接；一次独立复核，重要项一轮RED→GREEN。
+- [x] 提交推送核对完整SHA、草稿PR及精确CI，声明仅本地模拟、旧演示库未升级及剩余H范围。
+
+## 执行记录
+
+- 缺失验签/归一化和HTTP绑定服务先RED；官方固定向量及原始字节等25项GREEN。
+- 新路由数据库初始化早于验签先503≠401 RED，改为初始化前验签/解析后GREEN；非ISO事件时间先RED后限制ISO格式，27项聚焦通过。
+- 真实HTTP调用实际POST+PG聚焦及首轮完整check549/549、订阅38组通过；修正历史回退依赖/12表指纹，保持约束。
+- 单次独立复核0严重/3重要/3轻微。Temporary以外的官方Transient/Undetermined两例先RED，补成功忽略；强化worker可调度前置证明及首见消息错误绑定/误导字段，手工跨任务固定事件时间。
+- 单轮修正后聚焦29/29、真实HTTP/PG、完整check551/551和38组订阅集成再次退出0；lint0错误/445既有警告，831文件行长合格，无二次复核。
+- 轻微延期：异常日历日被JS规范化；GET405未在Next分发层专测；新迁移非空回退保护未专门用例覆盖。
+- 外部真实账户/传输/重投/公网/部署按设计后置；代价本批不证明生产投递就绪。最终SHA和精确CI见PR118，不自动合并。

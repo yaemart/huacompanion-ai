@@ -1,4 +1,8 @@
 import {
+  up as upSignedFeedback,
+  down as downSignedFeedback,
+} from "../../src/migrations/20261126_090000_subscription_signed_feedback";
+import {
   up as upFeedback,
   down as downFeedback,
 } from "../../src/migrations/20261125_120000_subscription_campaign_feedback";
@@ -138,10 +142,12 @@ export async function testCampaignRetries(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downSignedFeedback(adapter as unknown as MigrateDownArgs);
       await downFeedback(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       await up(adapter as unknown as MigrateUpArgs);
       await upFeedback(adapter as unknown as MigrateUpArgs);
+      await upSignedFeedback(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

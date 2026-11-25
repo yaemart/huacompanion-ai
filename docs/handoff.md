@@ -1,5 +1,25 @@
 # 当前开发交接
 
+## 签名回执接收与本地整链路模拟（2026-11-26）
+
+PR117已合并，fetch核对main `f639e692f98af05a97b5a483e095b055f5df717d`包含f0bc8f4，从干净工作区创建`codex/subscription-signed-feedback`。
+用户已接受设计并沿用原生实施；[草稿PR118](https://github.com/yaemart/huacompanion-ai/pull/118)，[一页中文说明](subscription-signed-feedback-summary.md)。先H后展会日历。
+新增仅local且默认关闭的POST签名入口，16KiB原始字节、三个svix头、HMAC-SHA256恒定时间比较、多v1候选和签名时间±300秒；验签及解析先于数据库初始化，保留试运行Basic/维护门禁，无非local匿名豁免。
+私有本地模拟邮件绑定仅现职管理员内部服务可建，按邮件ID/原attempt/邮箱摘要固定目标；回调不信tags或任务编号，未绑定相关事件503重试。签名服务自行验签，内部共享持久化不对HTTP暴露跳过鉴权参数。
+送达、永久退信、投诉及供应商抑制归一化；Temporary/Transient/Undetermined成功忽略，不自动当硬退信或触发发送。邮件级与无source_id邮箱级抑制区分，后者只匹配已绑定虚构地址、attempt为空；provider-suppressed不伪装退信/投诉。
+已处理消息以resend命名空间+svix-id摘要及归一化来源指纹去重，同ID改目标/类型/时间409；迟到送达/移除/重订/新活动/续发不解除拒发，打开/点击事件验签后忽略。系统来源审计actor为空，不冒充员工。
+内容→业务→邮箱锁、反馈/首次拒发/审计同事务，原手工管理员门禁、已开始结果记录、权限、只读、预算/冷却、限速、邮件优先及单封确认/资料邮件规则保留；无真实发送、费用、账号、隧道、公网接入或部署。
+新增SUBSCRIPTION_FEEDBACK_ENABLED=false和空SUBSCRIPTION_FEEDBACK_SIGNING_SECRET示例，不修改已有.env，无新依赖。新私有绑定集合、可空attempt邮箱级反馈、sourceHash、provider-suppressed枚举和20261126_090000_subscription_signed_feedback迁移/生成类型；仅随机库应用，原演示未升级，接入前配套备份停Web/worker迁移重建，勿reset。
+
+服务缺失断言先RED；27项协议/路由聚焦通过（含官方固定向量、原始体变化、非法UTF-8、ISO及±300秒）；无效签名原先getPayload先调用503≠401，新增实际路由vm断言数据库初始化0次后GREEN。
+真实HTTP调用实际POST+PG模拟闭环通过，覆盖绑定迟到重试、并发重放、系统审计、两类抑制、审计回滚、已开始结果、新冻结/续发/worker拒发和只读指纹；手工跨第二真实任务同ID冲突补上PR117延期项。
+初轮夹具预期误把同ID冲突409当未知绑定503、迟到送达追加合法回执当全表不变、零候选续发409当bound0，均按实际契约校正断言，不放宽产品门禁。历史迁移回退补新依赖逆序/正序及12表指纹。
+首轮完整check549/549、订阅38组退出0，lint0错误/445既有警告，831文件行长合格；单轮修正后完整check551/551、订阅38组再次退出0，lint仍0错误/445既有警告、831文件行长合格。
+末尾一次独立复核0严重/3重要/3轻微；三重要项单轮修正：官方Transient/Undetermined原400先RED再成功忽略；worker另备同邮箱未尝试可调度slot先实证再拒发，保持活动未改版/其他门禁可运行并比全表；错误归属改用首见消息ID、无绑定邮箱级事件及误导tags/attemptId，手工跨任务保持事件时间固定。
+修正后29项聚焦及真实HTTP/PG组通过，无二次复核。轻微延期：不存在日历日仍可被JS规范化；GET405断言在HTTP适配器而非Next分发层；新迁移非空回退保护已有实现但未专门用例覆盖。
+本批无UI，不虚构页面截图/真人或真实投递验收；日志仅.local/subscription-signed-feedback，无上传附件，并发PG驱动查询弃用警告保留未升级驱动。最终SHA及精确CI见PR118，不自动合并。
+真实服务账号、发件、供应商实际重投、公网接入与部署仍不在本地模拟验收范围；代价本批不证明生产投递就绪。后续先审阅H本地闭环证据与遗留项，再做展会日历。
+
 ## 本地投递回执与营销拒发基础（2026-11-25）
 
 PR116已合并，fetch核对最新main `ef7404e0126fd2897dc5233c583376565626b5ac`包含最终994db47；从干净工作区创建`codex/subscription-local-feedback`。
