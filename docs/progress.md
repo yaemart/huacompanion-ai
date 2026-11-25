@@ -1,5 +1,18 @@
 # 本地模拟活动暂停与恢复（2026-11-21）
 
+## 续发恢复流程提示补齐（2026-11-25）
+
+新电脑fetch确认PR115已合并，main `ae9634e79fb2aecad9409244f485b12d88a21ea4`包含16b29a4；配置独立Node24.22.1/PG15.20、锁定依赖和虚构演示环境。
+接手基线check522/522及订阅36组通过；从origin/main创建`codex/subscription-recovery-guidance`，早期[草稿PR116](https://github.com/yaemart/huacompanion-ai/pull/116)。
+用户明确授权按两处提示范围直接继续，原生实施；[一页中文说明](subscription-recovery-guidance-summary.md)，先H后展会日历。
+只改CampaignContinuation找回收据提示与CampaignPauseControls结果待核实提示：明确重开才同步预检说明，先核实控制成功后再刷新改版预检。
+状态、请求、禁用、写锁和自动导航均无改动；独立查询只读，明确重开仍沿用原mock-reset边界；权限额度预算限速邮件优先重试保留。
+按当前开发指令，低影响可逆文案不新增字符串镜像测试，运行已有行为回归21/21；完整check522/522、36组订阅集成退出0，lint0错误/445既有警告、821文件行长合格。
+实际组件隔离浏览器使用虚构模拟响应，验证丢回执后只读找回无导航、预检禁用，控制未知提示及核实后原因保留与手动刷新；非真实后台全链路或真人验收。
+桌面/390布局、client375=scroll375、console error/warn空；恢复视口并关闭本批tab，截图和原始日志仅.local/recovery-guidance-preview，无上传附件。
+无迁移、依赖、产品环境变量或.env变化，不复制旧库、不升级既有演示库、不reset；原3100仍为本机独立演示。
+末尾一次独立复核0严重/0重要/0轻微，无修复或二次复核；完整推送SHA与精确CI结果由PR116记录承载；保留旧交接正文，不自动合并。
+
 ## 本地续发收据补强（2026-11-25）
 
 PR114已合并，开工fetch确认最新main `b6271cae107867c5fc083ad7de4531f1112b4dbd` 包含最终5ed9e9e。
