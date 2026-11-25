@@ -2,7 +2,11 @@
 
 import { useRef, useState } from "react";
 import { staffDateTime } from "@/lib/staff-display";
-import { preflightCounts, preflightBlockers } from "@/lib/subscription-campaign-revision-preflight";
+import {
+  preflightCounts,
+  preflightBlockers,
+  preflightActionHint,
+} from "@/lib/subscription-campaign-revision-preflight";
 import {
   loadCampaignRevisionPreflight,
   type RevisionPreflight,
@@ -13,11 +17,21 @@ export function CampaignRevisionPreflight({
   initial,
   blocked,
   dirty,
+  continued,
+  paused,
+  cancelled,
+  controlChangedAt,
+  available,
 }: {
   draft: { campaignKey: string; revision: number };
   initial: RevisionPreflight;
   blocked?: boolean;
   dirty?: boolean;
+  continued?: boolean;
+  paused?: boolean;
+  cancelled?: boolean;
+  controlChangedAt?: string | null;
+  available?: boolean;
 }) {
   const [report, setReport] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -47,7 +61,18 @@ export function CampaignRevisionPreflight({
       <p>仅评估已保存的第 {report.revision} 版与原冻结名单，不补入后来订阅的人。</p>
       {dirty && <p>有未保存的政策选择，当前报告仍基于已保存版本。</p>}
       <p>
-        候选不代表可立即领取；本次查询不占额度，不修改任务、尝试、租约或审计。另用本版续发入口提交，且仅处理合资格虚构邮箱任务。
+        候选不代表可立即领取；本次查询不占额度，不修改任务、尝试、租约或审计。续发仅处理合资格虚构邮箱任务。
+      </p>
+      <p>
+        {preflightActionHint(report, {
+          continued,
+          dirty,
+          blocked,
+          paused,
+          cancelled,
+          controlChangedAt,
+          available,
+        })}
       </p>
       <p>
         后续执行仍须核对权限、余额与额度、同邮箱15分钟间隔和滚动24小时5次、全站每秒1次、确认/资料邮件优先及原重试规则。

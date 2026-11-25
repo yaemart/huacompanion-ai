@@ -88,6 +88,21 @@ export async function readCampaignDraft(p: Payload, actor: Staff, key: unknown) 
   );
 }
 
+/** Authorized current metadata only; callers needing eligibility/preview keep the full draft checks. */
+export function withCampaignRevision<T>(
+  p: Payload,
+  actor: Staff,
+  key: unknown,
+  revision: unknown,
+  run: (req: Scope, row: SubscriptionCampaignDraft) => Promise<T>,
+) {
+  return campaignTransaction(p, actor, async (req, owner) => {
+    const row = await latest(p, req, owner, campaignKey(key));
+    if (revision !== row.revision) throw new ContentError("草稿已有更新，请刷新后重新测试。", 409);
+    return run(req, row);
+  });
+}
+
 export async function withCampaignDraft<T>(
   p: Payload,
   actor: Staff,
@@ -100,9 +115,7 @@ export async function withCampaignDraft<T>(
     readAudience: CampaignAudienceReader,
   ) => Promise<T>,
 ) {
-  return campaignTransaction(p, actor, async (req, owner) => {
-    const row = await latest(p, req, owner, campaignKey(key));
-    if (revision !== row.revision) throw new ContentError("草稿已有更新，请刷新后重新测试。", 409);
+  return withCampaignRevision(p, actor, key, revision, async (req, row) => {
     // Only this invocation shares the read. Executable callers keep their own eligibility rechecks.
     let reading: ReturnType<typeof campaignAudience> | undefined;
     const readAudience = () => (reading ??= campaignAudience(p, req));
