@@ -12,6 +12,7 @@ import type { campaignMockChecks } from "@/server/subscription-campaign-mock-che
 import type { readCampaignPause } from "@/server/subscription-campaign-control";
 import { CampaignPauseControls } from "./CampaignPauseControls";
 import { CampaignTaskStatus } from "./CampaignTaskStatus";
+import { CampaignFeedbackSummary } from "./CampaignFeedbackSummary";
 import { CampaignReviewDetails } from "./CampaignReviewDetails";
 import { CampaignRevisionPreflight } from "./CampaignRevisionPreflight";
 import type { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
@@ -29,6 +30,7 @@ export function CampaignWorkspace({
   frozen,
   pause,
   taskStatus,
+  feedbackSummary,
   reviewDetails,
   revisionPreflight,
   taskSlots: initialTaskSlots,
@@ -43,6 +45,7 @@ export function CampaignWorkspace({
   frozen?: Awaited<ReturnType<typeof readCampaignFreeze>>;
   pause?: Awaited<ReturnType<typeof readCampaignPause>>;
   taskStatus?: Awaited<ReturnType<typeof readCampaignTaskStatus>>;
+  feedbackSummary?: Parameters<typeof CampaignFeedbackSummary>[0]["initial"];
   reviewDetails?: Parameters<typeof CampaignReviewDetails>[0]["initial"];
   revisionPreflight?: Parameters<typeof CampaignRevisionPreflight>[0]["initial"];
   taskSlots?: number[];
@@ -332,6 +335,9 @@ export function CampaignWorkspace({
               onBusyChange={setTaskBusy}
               onUncertainChange={setTaskUncertain}
             />
+          )}
+          {draft && feedbackSummary && (
+            <CampaignFeedbackSummary draft={draft} initial={feedbackSummary} />
           )}
           {draft && taskStatus && (
             <CampaignTaskStatus

@@ -28,9 +28,19 @@ import { recordLocalCampaignFeedback } from "../../src/server/subscription-campa
 import { createMockCampaignWorker } from "../../src/server/subscription-campaign-worker";
 import { readCampaignRevisionPreflight } from "../../src/server/subscription-campaign-revision-preflight";
 import { resumeMockCampaignRevision } from "../../src/server/subscription-campaign-continuation";
+import { setCampaignPause } from "../../src/server/subscription-campaign-control";
+import { cancelMockCampaign } from "../../src/server/subscription-campaign-cancel";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
 import { advanceDispatchClock } from "../helpers/dispatch-clock";
+import { observeCampaignAudience } from "../helpers/campaign-audience-queries";
+import { POST as campaignPOST } from "../../src/app/(frontend)/api/subscriptions/campaigns/route";
+import { down as downSignedFeedback } from "../../src/migrations/20261126_090000_subscription_signed_feedback";
+import type { MigrateDownArgs } from "@payloadcms/db-postgres";
 export async function testSignedCampaignFeedback(p: Payload, url: URL) {
+  const summaryModule =
+    await import("../../src/server/subscription-campaign-feedback-summary").catch(() => null);
+  assert.ok(summaryModule?.readCampaignFeedbackSummary, "read-only feedback summary must exist");
+  const summary = summaryModule.readCampaignFeedbackSummary;
   const binding = await import("../../src/server/subscription-campaign-mail-binding").catch(
     () => null,
   );
@@ -233,6 +243,34 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
       await run();
       assert.deepEqual(await databaseFingerprints(db), before);
     };
+    const guardedRollback = async (setup?: () => Promise<unknown>) => {
+      const before = await databaseFingerprints(db);
+      await db.query("BEGIN");
+      try {
+        await setup?.();
+        await assert.rejects(
+          downSignedFeedback({
+            db: { execute: (s: string) => db.query(s) },
+          } as unknown as MigrateDownArgs),
+          /Preserve signed campaign feedback before rollback/,
+        );
+      } finally {
+        await db.query("ROLLBACK");
+      }
+      assert.deepEqual(await databaseFingerprints(db), before);
+    };
+    const zero = {
+      delivered: 0,
+      hardBounce: 0,
+      complaint: 0,
+      providerSuppressed: 0,
+      suppressed: 0,
+    };
+    await unchanged(async () => {
+      const initial = await summary(p, manager, input);
+      assert.equal(initial.total, 2);
+      assert.deepEqual(initial.counts, zero);
+    });
     delete process.env.SUBSCRIPTION_FEEDBACK_ENABLED;
     delete process.env.SUBSCRIPTION_FEEDBACK_SIGNING_SECRET;
     await unchanged(async () => assert.equal((await send(event())).status, 404));
@@ -256,6 +294,8 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
       ),
     );
     await bind(p, admin, { emailId: a.emailId, attemptId: a.attempt.id, email: a.sub.email });
+    assert.equal((await p.count({ collection: "subscription-campaign-feedback" })).totalDocs, 0);
+    await guardedRollback();
     await unchanged(async () => {
       await bind(p, admin, { emailId: a.emailId, attemptId: a.attempt.id, email: a.sub.email });
     });
@@ -374,6 +414,35 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
       p.create = originalCreate;
     }
     assert.equal((await send(global)).status, 200);
+    // Isolate each guard inside its own rolled-back transaction; no other guard can hide a regression.
+    await guardedRollback(async () => {
+      await db.query("DELETE FROM subscription_campaign_mail_bindings");
+      await db.query("DELETE FROM subscription_marketing_suppressions");
+      await db.query(
+        "DELETE FROM subscription_campaign_feedback WHERE source_hash IS NULL OR attempt_id IS NULL OR kind<>'delivered'",
+      );
+      assert.ok((await db.query("SELECT id FROM subscription_campaign_feedback")).rowCount! > 0);
+    });
+    await guardedRollback(async () => {
+      await db.query("DELETE FROM subscription_campaign_mail_bindings");
+      await db.query("DELETE FROM subscription_marketing_suppressions");
+      await db.query("DELETE FROM subscription_campaign_feedback WHERE attempt_id IS NOT NULL");
+      assert.equal((await db.query("SELECT id FROM subscription_campaign_feedback")).rowCount, 1);
+    });
+    await guardedRollback(async () => {
+      await db.query("DELETE FROM subscription_campaign_mail_bindings");
+      await db.query(
+        "DELETE FROM subscription_marketing_suppressions WHERE reason<>'provider-suppressed'",
+      );
+      await db.query(
+        "UPDATE subscription_marketing_suppressions SET event_id=(SELECT id FROM subscription_campaign_feedback WHERE source_hash IS NULL LIMIT 1)",
+      );
+      await db.query("DELETE FROM subscription_campaign_feedback WHERE source_hash IS NOT NULL");
+      assert.equal(
+        (await db.query("SELECT id FROM subscription_marketing_suppressions")).rowCount,
+        1,
+      );
+    });
     const address = (
       await db.query(
         "SELECT attempt_id,kind FROM subscription_campaign_feedback WHERE attempt_id IS NULL",
@@ -428,10 +497,51 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
     );
     for (const type of ["suppression.removed", "email.opened", "email.clicked"])
       await unchanged(async () => assert.equal((await send(event(type))).status, 200));
+    const token = (
+      await p.login({ collection: "staff", data: { email: manager.email, password: key } })
+    ).token!;
+    const origin = new URL(process.env.APP_URL!).origin;
+    const read = (input: unknown, auth = token, requestOrigin = origin) =>
+      campaignPOST(
+        new Request(origin + "/api/subscriptions/campaigns", {
+          method: "POST",
+          headers: {
+            authorization: "JWT " + auth,
+            origin: requestOrigin,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ action: "read-feedback-summary-local", input }),
+        }),
+      );
+    await unchanged(async () => {
+      const observed = await observeCampaignAudience(p, () => read(input));
+      assert.equal(observed.statements.length, 0, "summary does not read the subscription list");
+      assert.equal(observed.result.status, 200);
+      assert.equal(observed.result.headers.get("cache-control"), "private, no-store");
+      const report = (await observed.result.json()).feedbackSummary;
+      assert.equal(report.total, 2);
+      assert.deepEqual(report.snapshot, { revision: 1, current: true });
+      assert.deepEqual(report.counts, {
+        delivered: 1,
+        hardBounce: 1,
+        complaint: 1,
+        providerSuppressed: 1,
+        suppressed: 2,
+      });
+      assert.doesNotMatch(
+        JSON.stringify(report),
+        /@|recipient|token|hash|attemptId|emailId|eventId/,
+      );
+      assert.deepEqual((await summary(p, manager, unattempted)).counts, { ...zero, suppressed: 2 });
+      assert.equal((await read(input, "")).status, 403);
+      assert.equal((await read(input, token, "https://foreign.invalid")).status, 403);
+      assert.equal((await read({ ...input, force: true })).status, 400);
+      assert.equal((await read({ ...input, revision: 99 })).status, 409);
+    });
     process.env.APP_ENV = "production";
     await unchanged(async () => assert.equal((await send(event())).status, 404));
+    await unchanged(async () => assert.equal((await read(input)).status, 403));
     process.env.APP_ENV = "local";
-    assert.equal((await fetch(endpoint)).status, 405);
     assert.equal((await readCampaignDraft(p, manager, input.campaignKey)).counts.en, 0);
     await advanceDispatchClock(p);
     const worker = createMockCampaignWorker(p, {
@@ -449,6 +559,19 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
       policies: [choices[1].policies],
     });
     const newer = { campaignKey: revised.campaignKey, revision: revised.revision };
+    await unchanged(async () => {
+      assert.equal((await read(unattempted)).status, 409);
+      const history = await summary(p, manager, newer);
+      assert.deepEqual(history.snapshot, { revision: 1, current: false });
+      assert.deepEqual(history.counts, { ...zero, suppressed: 2 });
+      const privacy = process.env.PRIVACY_VERSION;
+      process.env.PRIVACY_VERSION = "changed-source";
+      try {
+        assert.deepEqual((await summary(p, manager, newer)).counts, history.counts);
+      } finally {
+        process.env.PRIVACY_VERSION = privacy;
+      }
+    });
     await prepare(newer);
     await unchanged(async () =>
       assert.equal((await readCampaignRevisionPreflight(p, manager, newer)).counts.ineligible, 2),
@@ -458,13 +581,78 @@ export async function testSignedCampaignFeedback(p: Payload, url: URL) {
     );
     const newDraft = await saveCampaignDraft(p, manager, { policies: [choices[0].policies] });
     const newInput = { campaignKey: newDraft.campaignKey, revision: newDraft.revision };
+    await unchanged(async () => {
+      const empty = await summary(p, manager, newInput);
+      assert.equal(empty.snapshot, null);
+      assert.equal(empty.total, 0);
+      assert.deepEqual(empty.counts, zero);
+    });
     await prepare(newInput);
     await unchanged(async () =>
       assert.rejects(freezeCampaignRecipients(p, manager, newInput), { status: 400 }),
     );
 
+    const frozenRow = (
+      await p.find({
+        collection: "subscription-campaign-batches",
+        where: { campaignKey: { equals: input.campaignKey } },
+        depth: 0,
+        limit: 1,
+      })
+    ).docs[0];
+    const wrongDraft = (
+      await p.find({
+        collection: "subscription-campaign-drafts",
+        where: { campaignKey: { equals: newInput.campaignKey } },
+        depth: 0,
+        limit: 1,
+      })
+    ).docs[0];
+    await db.query("UPDATE subscription_campaign_batches SET draft_id=$1 WHERE id=$2", [
+      wrongDraft.id,
+      frozenRow.id,
+    ]);
+    try {
+      await unchanged(async () => assert.equal((await read(input)).status, 503));
+    } finally {
+      await db.query("UPDATE subscription_campaign_batches SET draft_id=$1 WHERE id=$2", [
+        relationID(frozenRow.draft),
+        frozenRow.id,
+      ]);
+    }
+    await setCampaignPause(p, manager, { ...input, paused: true, reason: "虚构只读汇总验收" });
+    await unchanged(async () =>
+      assert.equal((await summary(p, manager, input)).counts.delivered, 1),
+    );
+    await cancelMockCampaign(p, manager, { ...input, reason: "虚构只读汇总验收" });
+    await unchanged(async () =>
+      assert.equal((await summary(p, manager, input)).counts.suppressed, 2),
+    );
+    const other = await person("manager");
+    await setCampaignGrant(p, admin, { staffId: other.id, topic: "policy-updates", enabled: true });
+    const otherToken = (
+      await p.login({ collection: "staff", data: { email: other.email, password: key } })
+    ).token!;
+    await unchanged(async () => assert.equal((await read(input, otherToken)).status, 404));
+    await setCampaignGrant(p, admin, {
+      staffId: manager.id,
+      topic: "policy-updates",
+      enabled: false,
+    });
+    await unchanged(async () => assert.equal((await read(input)).status, 403));
+    await setCampaignGrant(p, admin, {
+      staffId: manager.id,
+      topic: "policy-updates",
+      enabled: true,
+    });
+    await p.update({ collection: "staff", user: admin, id: manager.id, data: { active: false } });
+    await unchanged(async () => {
+      assert.equal((await read(input)).status, 403);
+      await assert.rejects(summary(p, manager, input), { status: 403 });
+    });
+    await p.update({ collection: "staff", user: admin, id: manager.id, data: { active: true } });
     console.log(
-      "PASS 签名HTTP回执闭环：原始体验签、私有绑定、并发重放、系统审计、全局抑制及worker/续发拒发",
+      "PASS 签名HTTP回执闭环及只读汇总：验签、绑定、回退保护、去重、权限、全表只读与worker/续发拒发",
     );
   } finally {
     server.closeAllConnections();

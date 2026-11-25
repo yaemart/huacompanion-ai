@@ -49,6 +49,9 @@ for (const [label, frozen, draft, local, expected] of [
       "@/server/subscription-campaign-control": { readCampaignPause: async () => ({}) },
       "@/server/subscription-campaign-task-options": { readCampaignMockSlots: async () => [] },
       "@/server/subscription-campaign-status": { readCampaignTaskStatus: async () => ({}) },
+      "@/server/subscription-campaign-feedback-summary": {
+        readCampaignFeedbackSummary: async () => ({}),
+      },
       "@/server/subscription-campaign-review": { readCampaignReviewDetails: async () => ({}) },
       "@/server/subscription-campaign-revision-preflight": {
         readCampaignRevisionPreflight: async () => ({}),
