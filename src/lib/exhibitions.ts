@@ -9,7 +9,20 @@ export const exhibitionIndustries = [
   "consumer",
   "other",
 ] as const;
+export const exhibitionPhaseLimit = 12;
+export const exhibitionVisitorFields = [
+  "transport",
+  "buyerRegistration",
+  "stayAreas",
+  "firstVisitTips",
+] as const;
+export type ExhibitionPhase = { name: string; startDate: string; endDate: string; theme: string };
 export type Exhibition = {
+  phases?: ExhibitionPhase[];
+  transport?: string;
+  buyerRegistration?: string;
+  stayAreas?: string;
+  firstVisitTips?: string;
   edition: string;
   city: string;
   venue: string;
@@ -45,6 +58,11 @@ const textFields = [
   "unresolved",
 ] as const;
 export const emptyExhibition = (): Exhibition => ({
+  phases: [],
+  transport: "",
+  buyerRegistration: "",
+  stayAreas: "",
+  firstVisitTips: "",
   edition: "",
   city: "",
   venue: "",
@@ -93,6 +111,9 @@ export function validateExhibition(
   if (!e || typeof e !== "object") throw Error("请填写展会资料");
   for (const k of textFields)
     if (typeof e[k] !== "string" || e[k].length > 5000) throw Error("展会字段格式无效");
+  for (const k of exhibitionVisitorFields)
+    if (e[k] !== undefined && (typeof e[k] !== "string" || e[k].length > 5000))
+      throw Error("展会到访资料格式无效或超过5000字符");
   if (!["pending", "announced", "postponed", "cancelled", "ended"].includes(e.status))
     throw Error("展会状态无效");
   if (e.city && !catalogCities.some((c) => c.code === e.city)) throw Error("请选择有效城市");
@@ -121,6 +142,34 @@ export function validateExhibition(
     if (e[k] && !safeURL(e[k])) throw Error("展会链接必须为 http/https 且不含登录信息");
   if (e.verifiedAt && (!validExhibitionDate(e.verifiedAt) || e.verifiedAt > shanghaiToday()))
     throw Error("核验日期无效或晚于今天");
+  if (
+    e.phases !== undefined &&
+    (!Array.isArray(e.phases) || e.phases.length > exhibitionPhaseLimit)
+  )
+    throw Error("展会分期最多12期，请检查资料格式");
+  for (const phase of e.phases ?? []) {
+    if (!phase || typeof phase !== "object" || Array.isArray(phase))
+      throw Error("展会分期资料格式无效");
+    for (const [key, limit] of [
+      ["name", 200],
+      ["theme", 2000],
+      ["startDate", 10],
+      ["endDate", 10],
+    ] as const)
+      if (typeof phase[key] !== "string" || phase[key].length > limit)
+        throw Error("展会分期名称、题材或日期格式无效或过长");
+    if (phase.startDate || phase.endDate) {
+      if (
+        !validExhibitionDate(phase.startDate) ||
+        !validExhibitionDate(phase.endDate) ||
+        phase.startDate > phase.endDate ||
+        (e.startDate && e.endDate && (phase.startDate < e.startDate || phase.endDate > e.endDate))
+      )
+        throw Error("分期日期须完整有效且顺序正确，不能超出已知总体展期");
+    }
+    if (publishing && (!phase.name.trim() || !phase.theme.trim()))
+      throw Error("发布前请补齐每期名称及题材，或删除空白分期");
+  }
   if (publishing) {
     for (const k of [
       "edition",
@@ -145,6 +194,13 @@ export function validateExhibition(
 export function publicExhibition(e: Exhibition): Exhibition {
   const out = emptyExhibition();
   for (const k of textFields) out[k] = e[k];
+  for (const k of exhibitionVisitorFields) out[k] = e[k] ?? "";
+  out.phases = (e.phases ?? []).map(({ name, startDate, endDate, theme }) => ({
+    name,
+    startDate,
+    endDate,
+    theme,
+  }));
   out.status = e.status;
   out.industries = [...e.industries];
   out.projectKeys = [...e.projectKeys];
