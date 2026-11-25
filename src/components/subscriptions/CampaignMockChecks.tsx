@@ -77,7 +77,9 @@ export function CampaignMockChecks({
         {staffDateTime(frozen.frozenAt)}（北京时间）。
       </p>
       {dirty && <p>当前选择未保存，已保存的历史快照不会因此改变。</p>}
-      {!cancelled && !frozen.current && <p>这是旧版快照；改版续发尚未开放，原快照已保留。</p>}
+      {!cancelled && !frozen.current && (
+        <p>这是原版快照，保留原名单；新版请使用下方本地续发入口。</p>
+      )}
       <p>
         {cancelled
           ? "取消前的名单和人数保留，不代表实际送达；本活动不会继续处理。"

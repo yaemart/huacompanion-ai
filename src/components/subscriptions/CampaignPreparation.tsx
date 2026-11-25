@@ -166,7 +166,7 @@ export function CampaignPreparation({
         <fieldset disabled={disabled || busy || uncertain || !eligible}>
           <legend>为当前第 {draft.revision} 版准备一个任务占位</legend>
           <p>
-            须先保存、模拟确认并冻结当前名单；暂停或取消后不能占位。全站北京日2,000份、同邮箱滚动24小时1份等原规则保持。
+            须先保存、模拟确认，并冻结当前名单或保存本版续发范围；暂停或取消后不能占位。全站北京日2,000份、同邮箱滚动24小时1份等原规则保持。
           </p>
           <button
             type="button"

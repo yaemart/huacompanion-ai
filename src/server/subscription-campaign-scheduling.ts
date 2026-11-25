@@ -36,7 +36,7 @@ export async function readNextCampaignMockSlot(p: Payload, actor: Staff, input: 
       })
     ).docs[0];
     if (!batch || !(await campaignBatchMatches(p, req, batch, draft)))
-      throw new ContentError("请先冻结本人当前版本名单；改版续发尚未开放。", 409);
+      throw new ContentError("请先冻结本人当前版名单，或为本版保存原名单的本地续发范围。", 409);
     const { rows: clock } = await executeSQL(
       p,
       (await req.transactionID)!,

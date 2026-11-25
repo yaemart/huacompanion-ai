@@ -1,3 +1,4 @@
+import { readCampaignContinuation } from "@/server/subscription-campaign-continuation-read";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ContentError } from "@/server/content/error";
@@ -55,6 +56,14 @@ export default async function Page({
         checks={checks}
         frozen={frozen}
         pause={pause}
+        continuation={
+          draft && process.env.APP_ENV === "local"
+            ? await readCampaignContinuation(p, user, {
+                campaignKey: draft.campaignKey,
+                revision: draft.revision,
+              })
+            : undefined
+        }
         preparationBudget={
           workspace.grants && process.env.APP_ENV === "local"
             ? await readMockCampaignBudget(p, user, {})

@@ -274,7 +274,7 @@ export async function testCampaignStatus(p: Payload, url: URL) {
     assert.match(markup, /同一活动改版续发预检/);
     assert.match(markup, /刷新改版预检/);
     assert.match(markup, /不补入后来订阅的人/);
-    assert.match(markup, /实际改版续发尚未开放/);
+    assert.match(markup, /另用本版续发入口提交/);
     assert.doesNotMatch(markup, /@example.invalid|leaseTokenHash|PRIVATE|清除按钮/);
     assert.doesNotMatch(markup, /重置待核对|立即重试/);
     assert.deepEqual(status.snapshot, { revision: 1, current: true });

@@ -188,7 +188,7 @@ export async function testCampaignFreezeUI(p: Payload) {
     assert.ok(history);
     assert.equal(history.current, false);
     assert.equal(history.revision, 1);
-    assert.match(render(confirmed, history), /改版续发尚未开放/);
+    assert.match(render(confirmed, history), /新版请使用下方本地续发入口/);
     await assert.rejects(read(), { status: 409 });
     const newTest = await campaignMockChecks(p, manager.user, "test", nextInput);
     await campaignMockChecks(p, manager.user, "confirm", {
