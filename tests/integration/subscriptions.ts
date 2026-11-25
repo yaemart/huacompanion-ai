@@ -1,3 +1,4 @@
+import { testCampaignReceiptHardening } from "./subscription-campaign-receipt-hardening";
 import { testCampaignContinuationUI } from "./subscription-campaign-continuation-ui";
 import { testCampaignContinuation } from "./subscription-campaign-continuation";
 import {
@@ -471,6 +472,8 @@ try {
   await testCampaignContinuation(payload, url);
   await advanceDispatchClock(payload);
   await testCampaignContinuationUI(payload, url);
+  await advanceDispatchClock(payload);
+  await testCampaignReceiptHardening(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

@@ -57,7 +57,7 @@ export default async function Page({
         frozen={frozen}
         pause={pause}
         continuation={
-          draft && process.env.APP_ENV === "local"
+          draft && frozen && !frozen.current && process.env.APP_ENV === "local"
             ? await readCampaignContinuation(p, user, {
                 campaignKey: draft.campaignKey,
                 revision: draft.revision,

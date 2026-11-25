@@ -364,8 +364,11 @@ export function CampaignWorkspace({
             <CampaignRevisionPreflight
               draft={draft}
               initial={revisionPreflight}
+              continued={!!continuation}
+              paused={control?.paused}
+              cancelled={control && !!control.cancelledAt}
               dirty={dirty}
-              blocked={busy || mockBusy || controlBusy}
+              blocked={busy || mockBusy || controlBusy || controlUncertain}
             />
           )}
         </>
