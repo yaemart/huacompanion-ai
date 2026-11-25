@@ -55,7 +55,7 @@ export function CampaignPauseControls({
     : disabled
       ? "正在处理其他操作，请稍后再试。"
       : uncertain
-        ? "操作结果待核实，请先核实活动状态；原因和当前选择已保留。"
+        ? "操作结果待核实，改版预检刷新暂不可用。请先点击“核实活动状态”，核实成功后再刷新改版预检；原因和当前选择已保留。"
         : control.cancelledAt
           ? "本活动已取消，不能恢复或继续处理。"
           : control.paused && dirty

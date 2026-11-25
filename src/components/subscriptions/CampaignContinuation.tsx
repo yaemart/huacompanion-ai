@@ -125,7 +125,10 @@ export function CampaignContinuation({
       )}
       {recovered && (
         <>
-          <p>收据已只读核实，其他写入暂锁。重新打开会核对当前条件，变化时原模拟确认会失效。</p>
+          <p>
+            收据已只读核实，其他写入暂锁。请点击“重新打开本版活动”后再核对预检说明；本页预检说明尚未同步找回的收据。
+            重新打开会核对当前条件，变化时原模拟确认会失效。
+          </p>
           <button
             type="button"
             className="button"
