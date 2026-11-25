@@ -1,3 +1,8 @@
+import { testSignedCampaignFeedback } from "./subscription-campaign-signed-feedback";
+import {
+  up as upSignedFeedback,
+  down as downSignedFeedback,
+} from "../../src/migrations/20261126_090000_subscription_signed_feedback";
 import {
   up as upFeedback,
   down as downFeedback,
@@ -146,6 +151,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downSignedFeedback(adapter(db) as unknown as MigrateDownArgs);
     await downFeedback(adapter(db) as unknown as MigrateDownArgs);
     await downContinuation(adapter(db) as unknown as MigrateDownArgs);
     await downAttempts(adapter(db) as unknown as MigrateDownArgs);
@@ -158,12 +164,13 @@ try {
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 11);
+    assert.equal(former.length, before.length - 12);
     assert.deepEqual(
       former,
       before.filter(
         ({ table }) =>
           ![
+            "subscription_campaign_mail_bindings",
             "subscription_campaign_feedback",
             "subscription_marketing_suppressions",
             "subscriptions",
@@ -189,6 +196,7 @@ try {
     await upAttempts(adapter(db) as unknown as MigrateUpArgs);
     await upContinuation(adapter(db) as unknown as MigrateUpArgs);
     await upFeedback(adapter(db) as unknown as MigrateUpArgs);
+    await upSignedFeedback(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -485,6 +493,8 @@ try {
   await testCampaignReceiptHardening(payload, url);
   await advanceDispatchClock(payload);
   await testCampaignFeedback(payload, url);
+  await advanceDispatchClock(payload);
+  await testSignedCampaignFeedback(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

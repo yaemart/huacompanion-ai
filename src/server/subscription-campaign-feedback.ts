@@ -1,6 +1,7 @@
+import { verifyFeedbackSignature, parseFeedbackEvent } from "../lib/subscription-feedback-webhook";
 import { createHash } from "node:crypto";
 import { sql } from "@payloadcms/db-postgres";
-import type { Payload } from "payload";
+import type { Payload, PayloadRequest } from "payload";
 import { relationID, type Staff } from "../cms/access";
 import { customerEmail } from "../lib/customer";
 import { contentTransaction, ContentError } from "./content/service";
@@ -51,9 +52,25 @@ function inputFor(value: unknown): Feedback {
 export async function recordLocalCampaignFeedback(p: Payload, actor: Staff, value: unknown) {
   if (process.env.APP_ENV !== "local") throw new ContentError("仅支持本地模拟回执。", 403);
   const input = inputFor(value);
+  return recordFeedback(p, async (req) => ({
+    input,
+    actor: (await requireSubscriptionAdmin(p, actor, req)).id,
+  }));
+}
+type StoredFeedback = Omit<Feedback, "kind"> & {
+  kind: Feedback["kind"] | "provider-suppressed";
+  address?: true;
+  sourceHash?: string;
+};
+async function recordFeedback(
+  p: Payload,
+  prepare: (
+    req: Partial<PayloadRequest>,
+  ) => Promise<{ input: StoredFeedback; actor: number | null }>,
+) {
   const saved = await contentTransaction(p, async (req) => {
     await executeSQL(p, req.transactionID, sql`SELECT pg_advisory_xact_lock(726281)`);
-    const admin = await requireSubscriptionAdmin(p, actor, req);
+    const { input, actor } = await prepare(req);
     await executeSQL(
       p,
       req.transactionID,
@@ -71,13 +88,14 @@ export async function recordLocalCampaignFeedback(p: Payload, actor: Staff, valu
     ).docs[0];
     if (existing) {
       if (
-        relationID(existing.attempt) !== input.attemptId ||
+        relationID(existing.attempt) !== (input.address ? undefined : input.attemptId) ||
+        (existing.sourceHash ?? undefined) !== input.sourceHash ||
         existing.recipientHash !== recipientHash ||
         existing.kind !== input.kind ||
         new Date(existing.occurredAt).toISOString() !== input.occurredAt
       )
         throw new ContentError("该事件编号已有不同记录，请核实原反馈。", 409);
-      return { auditId: null, replayed: true };
+      return { auditId: null, replayed: true, input };
     }
     const attempt = await p.findByID({
       collection: "subscription-campaign-mock-attempts",
@@ -129,7 +147,8 @@ export async function recordLocalCampaignFeedback(p: Payload, actor: Staff, valu
     )
       throw new ContentError("原模拟尝试记录不完整，请联系管理员核对。", 503);
     if (
-      Date.parse(input.occurredAt) < Math.min(...times.map((t) => Date.parse(String(t)))) ||
+      (!input.address &&
+        Date.parse(input.occurredAt) < Math.min(...times.map((t) => Date.parse(String(t))))) ||
       Date.parse(input.occurredAt) > Number(rows[0].ms)
     )
       throw new ContentError("反馈时间必须在原尝试开始之后且不晚于当前时间。", 400);
@@ -139,7 +158,8 @@ export async function recordLocalCampaignFeedback(p: Payload, actor: Staff, valu
       depth: 0,
       data: {
         eventId: input.eventId,
-        attempt: attempt.id,
+        attempt: input.address ? null : attempt.id,
+        sourceHash: input.sourceHash,
         recipientHash,
         kind: input.kind,
         occurredAt: input.occurredAt,
@@ -169,13 +189,17 @@ export async function recordLocalCampaignFeedback(p: Payload, actor: Staff, valu
       data: {
         entity: "subscription-campaign-feedback",
         recordId: String(event.id),
-        actor: admin.id,
-        action: "feedback-local",
+        actor,
+        action: actor === null ? "feedback-webhook-local" : "feedback-local",
         fields: "kind,occurredAt",
-        after: { attemptId: attempt.id, kind: input.kind, occurredAt: input.occurredAt },
+        after: {
+          ...(!input.address ? { attemptId: attempt.id } : {}),
+          kind: input.kind,
+          occurredAt: input.occurredAt,
+        },
       },
     });
-    return { auditId: audit.id, replayed: false };
+    return { auditId: audit.id, replayed: false, input };
   });
   if (
     saved.auditId !== null &&
@@ -187,5 +211,68 @@ export async function recordLocalCampaignFeedback(p: Payload, actor: Staff, valu
     }))
   )
     throw new ContentError("反馈保存结果待核实，请使用原事件编号核对。", 503);
-  return { eventId: input.eventId, kind: input.kind, replayed: saved.replayed };
+  return { eventId: saved.input.eventId, kind: saved.input.kind, replayed: saved.replayed };
+}
+
+/** Authentication is performed here, never supplied by an HTTP caller as a boolean or actor. */
+export async function recordSignedCampaignFeedback(p: Payload, body: Buffer, headers: Headers) {
+  if (process.env.APP_ENV !== "local" || process.env.SUBSCRIPTION_FEEDBACK_ENABLED !== "true")
+    throw new ContentError("回执入口未开放。", 404);
+  const secret = process.env.SUBSCRIPTION_FEEDBACK_SIGNING_SECRET;
+  if (!secret) throw new ContentError("回执入口尚未配置。", 503);
+  let id: string;
+  try {
+    id = verifyFeedbackSignature(body, headers, secret);
+  } catch {
+    throw new ContentError("回执认证失败。", 401);
+  }
+  let event: ReturnType<typeof parseFeedbackEvent>;
+  try {
+    event = parseFeedbackEvent(body);
+  } catch {
+    throw new ContentError("回执内容无效。", 400);
+  }
+  if (!event) return;
+  const packet = event,
+    eventId = "resend:" + createHash("sha256").update(id).digest("hex");
+  const sourceHash = createHash("sha256").update(JSON.stringify(packet)).digest("hex");
+  return recordFeedback(p, async (req) => {
+    const previous = (
+      await p.find({
+        collection: "subscription-campaign-feedback",
+        req,
+        depth: 0,
+        limit: 1,
+        where: { eventId: { equals: eventId } },
+      })
+    ).docs[0];
+    if (previous && previous.sourceHash !== sourceHash)
+      throw new ContentError("回执编号已有不同记录。", 409);
+    const recipientHash = createHash("sha256").update(packet.email).digest("hex");
+    const mail = (
+      await p.find({
+        collection: "subscription-campaign-mail-bindings",
+        req,
+        depth: 0,
+        limit: 1,
+        where: packet.emailId
+          ? { emailId: { equals: packet.emailId } }
+          : { recipientHash: { equals: recipientHash } },
+      })
+    ).docs[0];
+    if (!mail) throw new ContentError("回执邮件绑定待核实，请重试。", 503);
+    if (mail.recipientHash !== recipientHash) throw new ContentError("回执收件任务不匹配。", 409);
+    return {
+      actor: null,
+      input: {
+        eventId,
+        attemptId: relationID(mail.attempt)!,
+        email: packet.email,
+        kind: packet.kind,
+        occurredAt: packet.occurredAt,
+        sourceHash,
+        ...(packet.emailId === null ? { address: true as const } : {}),
+      },
+    };
+  });
 }

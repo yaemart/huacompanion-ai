@@ -12,20 +12,35 @@ const internal = {
 export const subscriptionCollections: CollectionConfig[] = [
   {
     ...internal,
-    slug: "subscription-campaign-feedback",
+    slug: "subscription-campaign-mail-bindings",
     fields: [
-      { name: "eventId", type: "text", required: true, unique: true, maxLength: 36 },
+      { name: "emailId", type: "text", required: true, unique: true, maxLength: 36 },
       {
         name: "attempt",
         type: "relationship",
         relationTo: "subscription-campaign-mock-attempts",
         required: true,
+        unique: true,
+      },
+      { name: "recipientHash", type: "text", required: true, maxLength: 64, index: true },
+    ],
+  },
+  {
+    ...internal,
+    slug: "subscription-campaign-feedback",
+    fields: [
+      { name: "eventId", type: "text", required: true, unique: true, maxLength: 71 },
+      { name: "sourceHash", type: "text", maxLength: 64 },
+      {
+        name: "attempt",
+        type: "relationship",
+        relationTo: "subscription-campaign-mock-attempts",
       },
       { name: "recipientHash", type: "text", required: true, maxLength: 64 },
       {
         name: "kind",
         type: "select",
-        options: ["delivered", "hard-bounce", "complaint"],
+        options: ["delivered", "hard-bounce", "complaint", "provider-suppressed"],
         required: true,
       },
       { name: "occurredAt", type: "date", required: true },
@@ -36,7 +51,12 @@ export const subscriptionCollections: CollectionConfig[] = [
     slug: "subscription-marketing-suppressions",
     fields: [
       { name: "recipientHash", type: "text", required: true, unique: true, maxLength: 64 },
-      { name: "reason", type: "select", options: ["hard-bounce", "complaint"], required: true },
+      {
+        name: "reason",
+        type: "select",
+        options: ["hard-bounce", "complaint", "provider-suppressed"],
+        required: true,
+      },
       {
         name: "event",
         type: "relationship",
