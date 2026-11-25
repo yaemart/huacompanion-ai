@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import { createRequire } from "node:module";
 import {
   verifyFeedbackSignature,
   parseFeedbackEvent,
@@ -56,6 +57,17 @@ test("invalid signature cannot initialize a database or trigger local schema pus
     },
   };
   runInNewContext(code, ctx);
+  // Exercise the method table used by the installed Next app-route dispatcher, with this real route's exports.
+  const { autoImplementMethods } = createRequire(import.meta.url)(
+    "next/dist/server/route-modules/app-route/helpers/auto-implement-methods.js",
+  );
+  const methods = autoImplementMethods(ctx.exports);
+  for (const method of ["GET", "HEAD", "PUT", "DELETE"]) {
+    const denied = await methods[method](new Request("http://fictional.invalid", { method }));
+    assert.equal(denied.status, 405);
+    assert.equal(databases, 0);
+  }
+  assert.equal(methods.POST, ctx.exports.POST);
   const response = await (ctx.exports.POST as (r: Request) => Promise<Response>)(
     new Request("http://fictional.invalid", { method: "POST", body: "{}" }),
   );

@@ -121,3 +121,30 @@ for (const type of ["Transient", "Undetermined"])
   test("known non-permanent bounce is acknowledged without hard suppression: " + type, () =>
     assert.equal(api!.parseFeedbackEvent(payload("email.bounced", { bounce: { type } })), null),
   );
+
+for (const created_at of [
+  "2026-02-30T12:00:00.000Z",
+  "2026-02-29T12:00:00+09:00",
+  "1900-02-29T12:00:00Z",
+  "2026-04-31T12:00:00-08:00",
+  "2026-11-25T24:00:00Z",
+  "2026-11-25T12:00:00+24:00",
+])
+  test("rejects impossible source instant " + created_at, () => {
+    const event = JSON.parse(payload("email.delivered").toString());
+    assert.throws(() =>
+      api!.parseFeedbackEvent(Buffer.from(JSON.stringify({ ...event, created_at }))),
+    );
+  });
+for (const [created_at, occurredAt] of [
+  ["2024-02-29T12:00:00.123456789+09:00", "2024-02-29T03:00:00.123Z"],
+  ["2000-02-29T12:00:00Z", "2000-02-29T12:00:00.000Z"],
+  ["2026-03-01T00:30:00+14:00", "2026-02-28T10:30:00.000Z"],
+  ["2026-12-31T23:30:00-02:00", "2027-01-01T01:30:00.000Z"],
+])
+  test("preserves valid local date and offset " + created_at, () => {
+    const event = JSON.parse(payload("email.delivered").toString());
+    const result = api!.parseFeedbackEvent(Buffer.from(JSON.stringify({ ...event, created_at })));
+    assert.equal(result!.sourceTime, created_at);
+    assert.equal(result!.occurredAt, occurredAt);
+  });

@@ -11,6 +11,7 @@ import { campaignMockChecks } from "@/server/subscription-campaign-mock-checks";
 import { cancelMockCampaign } from "@/server/subscription-campaign-cancel";
 import { readCampaignPause, setCampaignPause } from "@/server/subscription-campaign-control";
 import { readCampaignTaskStatus } from "@/server/subscription-campaign-status";
+import { readCampaignFeedbackSummary } from "@/server/subscription-campaign-feedback-summary";
 import { readCampaignReviewDetails } from "@/server/subscription-campaign-review";
 import { readCampaignRevisionPreflight } from "@/server/subscription-campaign-revision-preflight";
 import { readCampaignMockSlots } from "@/server/subscription-campaign-task-options";
@@ -116,6 +117,11 @@ export async function POST(request: Request) {
     if (body.action === "read-mock-review-local")
       return Response.json(
         { reviewDetails: await readCampaignReviewDetails(p, user, body.input) },
+        { headers },
+      );
+    if (body.action === "read-feedback-summary-local")
+      return Response.json(
+        { feedbackSummary: await readCampaignFeedbackSummary(p, user, body.input) },
         { headers },
       );
     if (body.action === "read-mock-status-local") {
