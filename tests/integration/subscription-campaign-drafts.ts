@@ -1,4 +1,8 @@
 import {
+  up as upFeedback,
+  down as downFeedback,
+} from "../../src/migrations/20261125_120000_subscription_campaign_feedback";
+import {
   up as upContinuation,
   down as downContinuation,
 } from "../../src/migrations/20261124_090000_subscription_campaign_continuation";
@@ -50,6 +54,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
     try {
       const before = await databaseFingerprints(db);
       await downContinuation(adapter as unknown as MigrateDownArgs);
+      await downFeedback(adapter as unknown as MigrateDownArgs);
       await downAttempts(adapter as unknown as MigrateDownArgs);
       await downLeases(adapter as unknown as MigrateDownArgs);
       await downQuota(adapter as unknown as MigrateDownArgs);
@@ -62,6 +67,8 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
         before.filter(
           (r) =>
             ![
+              "subscription_campaign_feedback",
+              "subscription_marketing_suppressions",
               "subscription_campaign_drafts",
               "subscription_campaign_checks",
               "subscription_campaign_batches",
@@ -80,6 +87,7 @@ export async function testCampaignDraftSchema(payload: Payload, url: URL) {
       await upQuota(adapter as unknown as MigrateUpArgs);
       await upLeases(adapter as unknown as MigrateUpArgs);
       await upAttempts(adapter as unknown as MigrateUpArgs);
+      await upFeedback(adapter as unknown as MigrateUpArgs);
       await upContinuation(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {

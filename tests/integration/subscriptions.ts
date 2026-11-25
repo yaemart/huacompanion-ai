@@ -1,3 +1,8 @@
+import {
+  up as upFeedback,
+  down as downFeedback,
+} from "../../src/migrations/20261125_120000_subscription_campaign_feedback";
+import { testCampaignFeedback } from "./subscription-campaign-feedback";
 import { testCampaignReceiptHardening } from "./subscription-campaign-receipt-hardening";
 import { testCampaignContinuationUI } from "./subscription-campaign-continuation-ui";
 import { testCampaignContinuation } from "./subscription-campaign-continuation";
@@ -141,6 +146,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downFeedback(adapter(db) as unknown as MigrateDownArgs);
     await downContinuation(adapter(db) as unknown as MigrateDownArgs);
     await downAttempts(adapter(db) as unknown as MigrateDownArgs);
     await downLeases(adapter(db) as unknown as MigrateDownArgs);
@@ -152,12 +158,14 @@ try {
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 9);
+    assert.equal(former.length, before.length - 11);
     assert.deepEqual(
       former,
       before.filter(
         ({ table }) =>
           ![
+            "subscription_campaign_feedback",
+            "subscription_marketing_suppressions",
             "subscriptions",
             "subscription_credentials",
             "subscription_mail_jobs",
@@ -180,6 +188,7 @@ try {
     await upLeases(adapter(db) as unknown as MigrateUpArgs);
     await upAttempts(adapter(db) as unknown as MigrateUpArgs);
     await upContinuation(adapter(db) as unknown as MigrateUpArgs);
+    await upFeedback(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
@@ -474,6 +483,8 @@ try {
   await testCampaignContinuationUI(payload, url);
   await advanceDispatchClock(payload);
   await testCampaignReceiptHardening(payload, url);
+  await advanceDispatchClock(payload);
+  await testCampaignFeedback(payload, url);
 } finally {
   const own = (await find()).docs;
   for (const subscription of own) {

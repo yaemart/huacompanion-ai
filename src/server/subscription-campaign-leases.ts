@@ -168,7 +168,9 @@ async function operate(
           (await req.transactionID)!,
           sql`SELECT pg_advisory_xact_lock(hashtextextended(${key},0))`,
         );
-      const live = (await campaignAudience(p, req)).find(
+      // Feedback blocks new attempts, not evidence of an already started attempt.
+      // The result path still requires the original live consent, activity and lease token below.
+      const live = (await campaignAudience(p, req, attempt === "result")).find(
         (row) => row.id === relationID(job.subscription),
       );
       if (
