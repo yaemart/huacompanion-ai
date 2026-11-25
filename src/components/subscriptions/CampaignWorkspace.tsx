@@ -66,6 +66,16 @@ export function CampaignWorkspace({
   const preparationBlocked = preparing || preparationUncertain;
   const taskBlocked = taskBusy || taskUncertain;
   const mockBusy = checkBusy || taskBlocked || preparationBlocked || continuationBlocked;
+  const continuationEligible = !!(
+    frozen &&
+    !frozen.current &&
+    checks?.enabled &&
+    checks.current &&
+    checks.mockConfirmed &&
+    !dirty &&
+    !control?.paused &&
+    !control?.cancelledAt
+  );
   async function submit(event: FormEvent<HTMLFormElement>, action: "grant" | "save") {
     event.preventDefault();
     if (busy || mockBusy || controlBusy || controlUncertain) return;
@@ -341,13 +351,7 @@ export function CampaignWorkspace({
             <CampaignContinuation
               draft={draft}
               initial={continuation ?? null}
-              eligible={
-                checks.current &&
-                checks.mockConfirmed &&
-                !dirty &&
-                !control?.paused &&
-                !control?.cancelledAt
-              }
+              eligible={continuationEligible}
               disabled={
                 busy ||
                 checkBusy ||
@@ -366,6 +370,8 @@ export function CampaignWorkspace({
               initial={revisionPreflight}
               continued={!!continuation}
               paused={control?.paused}
+              controlChangedAt={control?.changedAt}
+              available={continuationEligible}
               cancelled={control && !!control.cancelledAt}
               dirty={dirty}
               blocked={busy || mockBusy || controlBusy || controlUncertain}
