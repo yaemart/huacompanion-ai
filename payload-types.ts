@@ -116,6 +116,8 @@ export interface Config {
     'customer-challenges': CustomerChallenge;
     'customer-sessions': CustomerSession;
     'customer-inquiry-links': CustomerInquiryLink;
+    'subscription-campaign-feedback': SubscriptionCampaignFeedback;
+    'subscription-marketing-suppressions': SubscriptionMarketingSuppression;
     'local-mail-dispatch': LocalMailDispatch;
     'subscription-campaign-mock-attempts': SubscriptionCampaignMockAttempt;
     'subscription-campaign-controls': SubscriptionCampaignControl;
@@ -186,6 +188,8 @@ export interface Config {
     'customer-challenges': CustomerChallengesSelect<false> | CustomerChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     'customer-inquiry-links': CustomerInquiryLinksSelect<false> | CustomerInquiryLinksSelect<true>;
+    'subscription-campaign-feedback': SubscriptionCampaignFeedbackSelect<false> | SubscriptionCampaignFeedbackSelect<true>;
+    'subscription-marketing-suppressions': SubscriptionMarketingSuppressionsSelect<false> | SubscriptionMarketingSuppressionsSelect<true>;
     'local-mail-dispatch': LocalMailDispatchSelect<false> | LocalMailDispatchSelect<true>;
     'subscription-campaign-mock-attempts': SubscriptionCampaignMockAttemptsSelect<false> | SubscriptionCampaignMockAttemptsSelect<true>;
     'subscription-campaign-controls': SubscriptionCampaignControlsSelect<false> | SubscriptionCampaignControlsSelect<true>;
@@ -1627,13 +1631,15 @@ export interface CustomerInquiryLink {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "local-mail-dispatch".
+ * via the `definition` "subscription-campaign-feedback".
  */
-export interface LocalMailDispatch {
+export interface SubscriptionCampaignFeedback {
   id: number;
-  key: string;
-  owner?: string | null;
-  nextAt: string;
+  eventId: string;
+  attempt: number | SubscriptionCampaignMockAttempt;
+  recipientHash: string;
+  kind: 'delivered' | 'hard-bounce' | 'complaint';
+  occurredAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1814,6 +1820,30 @@ export interface SubscriptionCampaignMockBudget {
   expiresAt: string;
   actor: number | Staff;
   reason: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-marketing-suppressions".
+ */
+export interface SubscriptionMarketingSuppression {
+  id: number;
+  recipientHash: string;
+  reason: 'hard-bounce' | 'complaint';
+  event: number | SubscriptionCampaignFeedback;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "local-mail-dispatch".
+ */
+export interface LocalMailDispatch {
+  id: number;
+  key: string;
+  owner?: string | null;
+  nextAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -3071,6 +3101,30 @@ export interface CustomerInquiryLinksSelect<T extends boolean = true> {
   revocationReason?: T;
   active?: T;
   dedupe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-campaign-feedback_select".
+ */
+export interface SubscriptionCampaignFeedbackSelect<T extends boolean = true> {
+  eventId?: T;
+  attempt?: T;
+  recipientHash?: T;
+  kind?: T;
+  occurredAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-marketing-suppressions_select".
+ */
+export interface SubscriptionMarketingSuppressionsSelect<T extends boolean = true> {
+  recipientHash?: T;
+  reason?: T;
+  event?: T;
   updatedAt?: T;
   createdAt?: T;
 }

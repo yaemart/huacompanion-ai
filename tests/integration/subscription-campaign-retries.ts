@@ -1,3 +1,7 @@
+import {
+  up as upFeedback,
+  down as downFeedback,
+} from "../../src/migrations/20261125_120000_subscription_campaign_feedback";
 import { advanceDispatchClock } from "../helpers/dispatch-clock";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -134,8 +138,10 @@ export async function testCampaignRetries(p: Payload, url: URL) {
     await db.query("BEGIN");
     try {
       const before = await databaseFingerprints(db);
+      await downFeedback(adapter as unknown as MigrateDownArgs);
       await down(adapter as unknown as MigrateDownArgs);
       await up(adapter as unknown as MigrateUpArgs);
+      await upFeedback(adapter as unknown as MigrateUpArgs);
       assert.deepEqual(await databaseFingerprints(db), before);
     } finally {
       await db.query("ROLLBACK");

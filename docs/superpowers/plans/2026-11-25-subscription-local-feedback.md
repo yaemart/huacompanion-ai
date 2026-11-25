@@ -1,6 +1,6 @@
 # 本地回执与营销拒发实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 只在local记录管理员模拟反馈，硬退信/投诉跨活动拒发，重复与乱序不改变历史。
 
@@ -31,8 +31,19 @@
 
 **Interfaces:** recordLocalCampaignFeedback(p,actor,input:unknown)返回{eventId,kind,replayed}；input为{eventId(UUID),attemptId(正整数),email,kind(delivered|hard-bounce|complaint),occurredAt(标准ISO)}。拒发按规范化邮箱sha256唯一，记录首条拒发，后续事件保留但不清除。
 
-- [ ] 集成用例先动态加载服务并断言存在，再验证合法反馈、重复/冲突、乱序、实时权限、local/邮箱/原任务及时间校验。Expected: 缺少服务断言RED。
-- [ ] 创建私有集合及迁移/生成类型，实现事务守卫、事件幂等与拒发，接入campaignAudience批量读取。Expected: 聚焦真实PG用例GREEN。
-- [ ] 验证全表只读指纹、审计失败回滚、并发事件和开始尝试、重订/新活动/续发拒发、旧单封表与历史不变及迁移回退保护。Expected: 新组与既有36组退出0。
-- [ ] npm run check、相关迁移与完整订阅集成，更新一页小结和交接并独立复核。Expected: 全部通过，警告≤445，无严重/重要遗留。
-- [ ] 提交推送并fetch核对SHA，草稿PR记录精确CI及剩余H边界，不自动合并。
+- [x] 集成用例先动态加载服务并断言存在，再验证合法反馈、重复/冲突、乱序、实时权限、local/邮箱/原任务及时间校验。Expected: 缺少服务断言RED。
+- [x] 创建私有集合及迁移/生成类型，实现事务守卫、事件幂等与拒发，接入campaignAudience批量读取。Expected: 聚焦真实PG用例GREEN。
+- [x] 验证全表只读指纹、审计失败回滚、并发事件和开始尝试、重订/新活动/续发拒发、旧单封表与历史不变及迁移回退保护。Expected: 新组与既有36组退出0。
+- [x] npm run check、相关迁移与完整订阅集成，更新一页小结和交接并独立复核。Expected: 全部通过，警告≤445，无严重/重要遗留。
+- [x] 提交推送并fetch核对SHA，草稿PR记录精确CI及剩余H边界，不自动合并。
+
+## 执行记录
+
+- 缺失服务断言RED；无效邮箱通用Error≠400真实PG RED后转中文400。
+- 修正泛型测试缩窄及独立夹具，完整迁移回退补新外键依赖和表指纹；不放宽约束。
+- 独立复核0严重/3重要/1轻微；一轮修正结果丢失、最后管理员夹具、并发/续发验证不足；无二次复核。
+- 已开始→拒发→result原ineligible≠failed-local RED，结果专用豁免新增营销拒发且保留其他守卫后GREEN；新begin仍ineligible，无尝试旧活动同意不变仍不续发。
+- 完整check522/522、37组订阅集成退出0，lint0错误/445既有警告，824文件行长合格。
+- 轻微延期：补跨第二真实任务的同事件ID冲突专门用例；服务已有目标/摘要匹配409。
+- 外部验签/实际传输按已接受设计后置；代价本批没有真实回执入口与真实投递验收。
+- 最终远程完整SHA及对应CI以PR117记录承载，不自动合并。
