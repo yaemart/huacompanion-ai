@@ -29,8 +29,11 @@
 
 **Files:** src/components/subscriptions/{CampaignContinuation,CampaignPauseControls}.tsx；docs/subscription-recovery-guidance-summary.md、docs/{handoff,progress}.md。
 
-- [ ] 在两处现有提示中补充同步时机和操作顺序。Expected: 业务差异仅JSX/字符串，无控制流变化。
-- [ ] 运行已有续发UI和预检提示回归。Expected: 全部通过，找回无导航、重开持锁仍成立。
-- [ ] 运行npm run check与npm run test:subscriptions。Expected: 522/522、36组退出0，lint0错误/445既有警告。
-- [ ] 验证桌面/手机提示与禁用状态，更新中文小结和交接，独立末尾复核。Expected: 无严重/重要遗留。
-- [ ] 提交推送并fetch比较完整SHA，建立并更新草稿PR，核对对应CI。Expected: 远程一致、草稿未合并。
+- [x] 在两处现有提示中补充同步时机和操作顺序。Expected: 业务差异仅JSX/字符串，无控制流变化。
+- [x] 运行已有续发UI和预检提示回归。Expected: 全部通过，找回无导航、重开持锁仍成立。
+- [x] 运行npm run check与npm run test:subscriptions。Expected: 522/522、36组退出0，lint0错误/445既有警告。
+- [x] 验证桌面/手机提示与禁用状态，更新中文小结和交接，独立末尾复核。Expected: 无严重/重要遗留。
+- [x] 提交推送并fetch比较完整SHA，建立并更新草稿PR，核对对应CI。Expected: 远程一致、草稿未合并；最终SHA和CI实核结果见PR116。
+
+实施记录：21项既有聚焦回归、完整check522/522和36组订阅集成均退出0；桌面/390实际组件隔离预览为模拟响应。
+一次独立复核0严重/0重要/0轻微，业务代码仅两处文案，无额外裁决或延期轻微项。
