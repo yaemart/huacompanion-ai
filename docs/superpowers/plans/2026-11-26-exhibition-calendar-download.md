@@ -40,12 +40,12 @@
 **Files:** Create `src/app/(frontend)/api/public/exhibitions/calendar/route.ts`, `tests/exhibition-calendar-route.test.ts`, `tests/helpers/exhibition-calendar-http.ts`; Modify `src/components/exhibitions/ExhibitionPage.tsx`, `tests/integration/exhibition-filters-render.tsx`, `tests/integration/exhibitions-http.ts`, `docs/handoff.md`, `docs/progress.md`; Create `docs/exhibition-calendar-download-summary.md`.
 **Interfaces:** Consumes Task1两个函数；HTTP helper `assertExhibitionCalendarHTTP({p, admin, draftId, body, base, publish})`在现有独立库和真实生产服务器执行，不另建管理员、不改原库。
 
-- [ ] 实际组件补七语言下载路径与提示、不适用状态断言；编译实际Route Handler仅替换存储初始化边界，断言400不初始化、404/409/503/附件响应、Host不污染URL。先运行聚焦测试确认RED。
-- [ ] 实施GET路由和详情链接，先验证参数、复用listPublished、仅返回符合资格的本语言展会，no-store/nosniff与安全附件名；不新增其他写方法。
-- [ ] 同一聚焦测试GREEN；真实HTTP helper验证草稿不泄漏、改版UID保持、日期变更、全表指纹只读、撤下404、取消409和Next POST405。
-- [ ] 完整`npm run check`、既有展会/内容、详情渲染、生产build及展会HTTP通过；沿用已接入CI的exhibitions-http执行新helper。
-- [ ] 真实浏览器查看桌面/390详情与下载/提示，虚构数据，截图仅本机；停止本任务server并清理独立随机库。
-- [ ] 更新交接和中文小结，记录失败/修正及限制；提交推送并建立草稿PR。
+- [x] 实际组件补七语言下载路径与提示、不适用状态断言；编译实际Route Handler仅替换存储初始化边界，断言400不初始化、404/409/503/附件响应、Host不污染URL。先运行聚焦测试确认RED。
+- [x] 实施GET路由和详情链接，先验证参数、复用listPublished、仅返回符合资格的本语言展会，no-store/nosniff与安全附件名；不新增其他写方法。
+- [x] 同一聚焦测试GREEN；真实HTTP helper验证草稿不泄漏、改版UID保持、日期变更、全表指纹只读、撤下404、取消409和Next POST405。
+- [x] 完整`npm run check`、既有展会/内容、详情渲染、生产build及展会HTTP通过；沿用已接入CI的exhibitions-http执行新helper。
+- [x] 真实浏览器查看桌面/390详情与下载/提示，虚构数据，截图仅本机；停止本任务server并清理独立随机库。
+- [x] 更新交接和中文小结，记录失败/修正及限制；提交推送并建立草稿PR。
 - [ ] 末尾唯一独立复核，重要项单轮RED→GREEN修正，轻微项记录；核对最终SHA的CI与远端一致，不自动合并。
 
 ## 执行判定

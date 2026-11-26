@@ -152,6 +152,17 @@ assert.match(editor, /推荐住宿区域/);
 assert.match(editor, /首次参展提示/);
 assert.match(editor, /Fictional buyer registration/);
 const detail = render(<ExhibitionPage locale="en" items={[visitor]} detail={visitor} />);
+assert.match(
+  detail,
+  /href="\/api\/public\/exhibitions\/calendar\?locale=en&amp;key=future-fixture"/,
+);
+assert.match(detail, /One-time import/);
+for (const status of ["pending", "postponed", "cancelled"] as const) {
+  const unavailable = { ...visitor, exhibition: { ...visitor.exhibition!, status } };
+  const html = render(<ExhibitionPage locale="en" items={[unavailable]} detail={unavailable} />);
+  assert.doesNotMatch(html, /href="\/api\/public\/exhibitions\/calendar/);
+  assert.match(html, /Calendar download is unavailable/);
+}
 assert.match(detail, /Phase &lt;one&gt;/);
 assert.match(detail, /Fictional lodging area/);
 assert.match(detail, /Tools\n&lt;script&gt;PRIVATE_SCRIPT&lt;\/script&gt;/);
@@ -188,6 +199,10 @@ for (const [locale, label] of [
   );
   assert.ok(page.includes(label), locale + " visitor label");
   assert.ok(page.includes(`Only ${locale} transit`));
+  assert.ok(
+    page.includes(`/api/public/exhibitions/calendar?locale=${locale}&amp;key=future-fixture`),
+  );
+  if (locale !== "en") assert.ok(!page.includes("One-time import"));
   assert.ok(!page.includes("Fictional transit"), "no other locale's visitor content");
 }
 console.log(
