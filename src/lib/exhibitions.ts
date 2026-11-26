@@ -1,5 +1,6 @@
 import { catalogCities } from "./catalog-options.ts";
 import { StaffFormError } from "./staff-form-feedback.ts";
+import { isContentIdentifier } from "./content-identifiers.ts";
 
 export const exhibitionIndustries = [
   "hardware",
@@ -25,6 +26,7 @@ const visitorLabels = {
 };
 export type ExhibitionPhase = { name: string; startDate: string; endDate: string; theme: string };
 export type Exhibition = {
+  nextEditionKey?: string;
   phases?: ExhibitionPhase[];
   transport?: string;
   buyerRegistration?: string;
@@ -65,6 +67,7 @@ const textFields = [
   "unresolved",
 ] as const;
 export const emptyExhibition = (): Exhibition => ({
+  nextEditionKey: "",
   phases: [],
   transport: "",
   buyerRegistration: "",
@@ -116,6 +119,12 @@ export function validateExhibition(
   publishing = false,
 ): asserts e is Exhibition {
   if (!e || typeof e !== "object") throw Error("请填写展会资料");
+  if (
+    e.nextEditionKey !== undefined &&
+    e.nextEditionKey !== "" &&
+    !isContentIdentifier(e.nextEditionKey)
+  )
+    throw new StaffFormError("下一届展会编号无效，请重新选择或清空后保存。");
   for (const k of textFields)
     if (typeof e[k] !== "string" || e[k].length > 5000) throw Error("展会字段格式无效");
   for (const k of exhibitionVisitorFields)
@@ -210,6 +219,7 @@ export function validateExhibition(
 }
 export function publicExhibition(e: Exhibition): Exhibition {
   const out = emptyExhibition();
+  out.nextEditionKey = e.nextEditionKey ?? "";
   for (const k of textFields) out[k] = e[k];
   for (const k of exhibitionVisitorFields) out[k] = e[k] ?? "";
   out.phases = (e.phases ?? []).map(({ name, startDate, endDate, theme }) => ({
@@ -224,7 +234,7 @@ export function publicExhibition(e: Exhibition): Exhibition {
   return out;
 }
 export function effectiveExhibitionStatus(
-  e: Exhibition,
+  e: Pick<Exhibition, "status" | "endDate">,
   today = shanghaiToday(),
 ): Exhibition["status"] {
   if (["cancelled", "postponed"].includes(e.status)) return e.status;

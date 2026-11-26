@@ -137,7 +137,11 @@ export function validateContent(value: unknown): asserts value is ContentBody {
   if (d.kind === "page" && !fixedContentPages.some((page) => page.slug === d.slug))
     throw new StaffFormError("请在「网站页面」选择已有页面，再保存草稿。");
   if (isCatalog(d.kind)) validateCatalog(d.kind, d.catalog);
-  if (d.kind === "exhibition") validateExhibition(d.exhibition);
+  if (d.kind === "exhibition") {
+    validateExhibition(d.exhibition);
+    if (d.exhibition.nextEditionKey === d.contentKey)
+      throw new StaffFormError("下一届展会不能选择自己，请重新选择或清空后保存。");
+  }
   if (isLife(d.kind)) validateLifestyle(d.lifestyle, d.kind);
   if (d.kind === "institution") validateInstitution(d.institution);
   checkBlocks(d.blocks);
