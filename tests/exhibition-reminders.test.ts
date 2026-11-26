@@ -170,3 +170,57 @@ test("1001 eligible recipients fails entirely", () => {
   }));
   assert.throws(() => plan({ ...state, subscriptions }), /1000/);
 });
+test("fractional PostgreSQL timestamps use chronological newest consent", () => {
+  const s = structuredClone(state);
+  s.subscriptions[0].consentedAt = "2026-11-26 00:00:00+00";
+  s.subscriptions.push({
+    ...s.subscriptions[0],
+    id: 2,
+    email: " a@EXAMPLE.invalid ",
+    status: "unsubscribed",
+    consentedAt: "2026-11-26 00:00:00.1+00",
+  });
+  assert.equal(plan(s).create.length, 0);
+});
+test("scope property order cannot change reminder identity or fingerprint", () => {
+  const a = plan();
+  const b = planExhibitionReminder(state, { locale: "zh", key: scope.key }, "2027-02-08", "v1");
+  assert.equal(a.create[0].key, b.create[0].key);
+  assert.equal(a.fingerprint, b.fingerprint);
+});
+
+test("PostgreSQL fractional timestamps sort by instant, latest withdrawal wins", () => {
+  const s = structuredClone(state);
+  s.subscriptions[0].consentedAt = "2026-11-26 12:00:00+00";
+  s.subscriptions.push({
+    ...s.subscriptions[0],
+    id: 2,
+    email: " a@example.invalid ",
+    status: "unsubscribed",
+    consentedAt: "2026-11-26 12:00:00.001+00",
+  });
+  assert.equal(plan(s).create.length, 0);
+});
+test("expired/unavailable/terminal records are not currently eligible and cancellation survives 1001 subscribers", () => {
+  const first = plan();
+  const held = { id: 1, ...first.create[0] };
+  const unavailable = { ...state, source: undefined, jobs: [held] };
+  const result = plan(unavailable);
+  assert.equal(result.counts.eligible, 0);
+  assert.equal(result.counts.cancel, 1);
+  const many = {
+    ...unavailable,
+    subscriptions: Array.from({ length: 1001 }, (_, i) => ({
+      ...state.subscriptions[0],
+      id: i + 1,
+      email: `${i}@example.invalid`,
+    })),
+  };
+  assert.equal(plan(many).counts.cancel, 1);
+  assert.equal(plan({ ...state, jobs: [held] }, "2027-02-09").counts.eligible, 0);
+  assert.equal(
+    plan({ ...state, jobs: [{ ...held, body: { ...held.body, status: "local-cancelled" } }] })
+      .counts.eligible,
+    0,
+  );
+});

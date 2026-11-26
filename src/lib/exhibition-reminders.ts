@@ -49,6 +49,7 @@ export function planExhibitionReminder(
   today: string,
   privacy: string,
 ) {
+  scope = { key: scope.key, locale: scope.locale };
   if (!validExhibitionDate(today)) throw Error("提醒业务日期无效");
   const s = state.source,
     b = s?.body,
@@ -85,7 +86,7 @@ export function planExhibitionReminder(
   const eligible: { subscription: number; recipientHash: string; consentVersion: number }[] = [];
   const ordered = [...state.subscriptions]
     .filter((s) => s.topic === `exhibition:${scope.key}`)
-    .sort((a, b) => b.consentedAt.localeCompare(a.consentedAt) || b.id - a.id);
+    .sort((a, b) => Date.parse(b.consentedAt) - Date.parse(a.consentedAt) || b.id - a.id);
   for (const row of ordered) {
     let email: string;
     try {
@@ -118,7 +119,6 @@ export function planExhibitionReminder(
         consentVersion: row.consentVersion,
       });
   }
-  if (eligible.length > 1000) throw Error("合资格订阅超过1000，本次未生成");
   const desired =
     snapshot && offset
       ? eligible.map((row) => ({
@@ -144,7 +144,9 @@ export function planExhibitionReminder(
       : [];
   const wanted = new Set(desired.map((row) => row.key)),
     existing = new Map(state.jobs.map((row) => [row.key, row]));
-  const create = desired.filter((row) => !existing.has(row.key));
+  const current = desired.filter((row) => existing.get(row.key)?.body.status !== "local-cancelled");
+  if (current.length > 1000) throw Error("合资格订阅超过1000，本次未生成");
+  const create = current.filter((row) => !existing.has(row.key));
   const cancel = state.jobs
     .filter((row) => row.body.status === "local-held" && !wanted.has(row.key))
     .map((row) => ({
@@ -163,9 +165,11 @@ export function planExhibitionReminder(
     create,
     cancel,
     counts: {
-      eligible: eligible.length,
+      subscribers: eligible.length,
+      eligible: current.length,
+      terminal: desired.length - current.length,
       create: create.length,
-      existing: desired.filter((row) => existing.get(row.key)?.body.status === "local-held").length,
+      existing: current.length - create.length,
       cancel: cancel.length,
       excluded,
     },

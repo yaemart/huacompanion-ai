@@ -21,6 +21,7 @@ import {
   previewExhibitionReminders,
   applyExhibitionReminders,
 } from "../../src/server/exhibition-reminders";
+import { testExhibitionReminderPool } from "./exhibition-reminder-pool";
 import { databaseFingerprints } from "./database-fingerprints";
 
 export async function testExhibitionReminders(p: Payload) {
@@ -372,26 +373,61 @@ export async function testExhibitionReminders(p: Payload) {
     const authorityPreview = await previewFor();
     const authorityID = await p.db.beginTransaction();
     assert.ok(authorityID);
+    const authorityDB = transactionSession(p, authorityID).db,
+      authorityExecute = authorityDB.execute.bind(authorityDB);
+    let releaseAuthority!: () => void, reachedAuthority!: () => void;
+    const release = new Promise<void>((resolve) => {
+      releaseAuthority = resolve;
+    });
+    const reached = new Promise<void>((resolve) => {
+      reachedAuthority = resolve;
+    });
+    authorityDB.execute = (async (...query: Parameters<typeof authorityExecute>) => {
+      if (typeof query[0] === "string" && query[0].includes("726272")) {
+        reachedAuthority();
+        await release;
+      }
+      return authorityExecute(...query);
+    }) as unknown as typeof authorityDB.execute;
     try {
-      await transactionSession(p, authorityID).db.execute("SELECT pg_advisory_xact_lock(726272)");
+      // Native p.update naturally acquires business first; no test-preacquired authority lock.
+      const revoking = p
+        .update({
+          collection: "staff",
+          id: admin.user.id,
+          user: lockKeeper.user,
+          req: { transactionID: authorityID },
+          data: { active: false },
+        })
+        .then(
+          async () => {
+            await p.db.commitTransaction(authorityID);
+            return null;
+          },
+          (error) => error,
+        );
+      await Promise.race([
+        reached,
+        revoking.then((error) => {
+          throw error || Error("Authority hook not reached");
+        }),
+      ]);
       const waiting = applyExhibitionReminders(p, admin.headers, authorityPreview.receipt).then(
         () => null,
         (e) => e,
       );
       await waitFor(
-        "SELECT pid FROM pg_locks WHERE locktype='advisory' AND NOT granted AND classid=0 AND objid=726272",
+        "SELECT pid FROM pg_locks WHERE locktype='advisory' AND NOT granted AND classid=0 AND objid=726281",
         [],
       );
-      await p.update({
-        collection: "staff",
-        id: admin.user.id,
-        user: lockKeeper.user,
-        req: { transactionID: authorityID },
-        data: { active: false },
-      });
-      await p.db.commitTransaction(authorityID);
-      await unchanged(async () => assert.equal((await waiting)?.status, 403));
+      releaseAuthority();
+      const [revoked, generated] = await Promise.all([revoking, waiting]);
+      assert.equal(revoked, null, "Native revocation must commit without deadlock");
+      assert.equal(generated?.status, 403);
+      assert.equal((await p.findByID({ collection: "staff", id: admin.user.id })).active, false);
     } finally {
+      releaseAuthority();
+      authorityDB.execute = authorityExecute;
       await p.db.rollbackTransaction(authorityID);
     }
     await p.update({
@@ -401,6 +437,26 @@ export async function testExhibitionReminders(p: Payload) {
       data: { active: true },
     });
     await relogin();
+    // PostgreSQL's variable fractional-second text format must preserve newest withdrawal.
+    const duplicate = (
+      await db.query(
+        `INSERT INTO subscriptions(email,topic,locale,status,consent_version,privacy_version,consented_at,confirmed_at,source_path)
+      SELECT ' '||upper(email)||' ',topic,locale,'unsubscribed',consent_version,privacy_version,consented_at+interval '0.001 seconds',confirmed_at,source_path
+      FROM subscriptions WHERE id=$1 RETURNING id`,
+        [sub.id],
+      )
+    ).rows[0].id;
+    try {
+      await unchanged(async () => assert.equal((await previewFor()).counts.create, 0));
+    } finally {
+      await db.query("DELETE FROM subscriptions WHERE id=$1", [duplicate]);
+    }
+    await unchanged(async () =>
+      assert.equal(
+        (await previewExhibitionReminders(p, admin.headers, { locale: "zh", key })).receipt,
+        (await previewFor()).receipt,
+      ),
+    );
     const sessionHolder = new pg.Client({ connectionString: process.env.DATABASE_URL! });
     await sessionHolder.connect();
     try {
@@ -694,6 +750,25 @@ export async function testExhibitionReminders(p: Payload) {
       await holder2.query("ROLLBACK");
       await holder2.end();
     }
+    await db.query(
+      `INSERT INTO subscriptions(email,topic,locale,status,consent_version,privacy_version,consented_at,confirmed_at,source_path)
+      SELECT 'cancelcap-'||n||'-'||$1||'@example.invalid',$2,'zh','confirmed',1,'reminder-v1',now(),now(),'/zh' FROM generate_series(1,1000) n`,
+      [key, sub.topic],
+    );
+    try {
+      const cancelling = await previewFor();
+      assert.equal(cancelling.counts.subscribers, 1001);
+      assert.equal(cancelling.counts.eligible, 0);
+      assert.equal(cancelling.counts.cancel, 1);
+      const frozenOldTables = others(await databaseFingerprints(db));
+      await applyExhibitionReminders(p, admin.headers, cancelling.receipt);
+      assert.deepEqual(others(await databaseFingerprints(db)), frozenOldTables);
+    } finally {
+      await db.query("DELETE FROM subscriptions WHERE email LIKE $1", [
+        "cancelcap-%-" + key + "@example.invalid",
+      ]);
+    }
+    await testExhibitionReminderPool(p);
     assert.equal(outbound, 0);
     console.log(
       "PASS exhibition reminder core: authenticated read-only preview, 30-day local generation, terminal cancellation, history replay and old tables unchanged",

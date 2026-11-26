@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { sql } from "@payloadcms/db-postgres";
-import type { Payload } from "payload";
+import { createLocalReq, type Payload } from "payload";
 import { isContentIdentifier } from "../lib/content-identifiers";
 import { customerEmail } from "../lib/customer";
 import { parseSiteLocales } from "../lib/site-locales";
@@ -32,8 +32,9 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
   const { user } = await p.auth({ headers });
   if (user?.collection !== "staff") throw new ContentError("请使用管理员账号登录。", 403);
   await requireSubscriptionAdmin(p, user);
-  const currentSession = async () => {
-    const current = (await p.auth({ headers })).user;
+  const currentSession = async (transactionID?: string | number) => {
+    const req = transactionID ? await createLocalReq({ req: { transactionID } }, p) : undefined;
+    const current = (await p.auth({ headers, req })).user;
     if (current?.collection !== "staff" || current.id !== user.id)
       throw new ContentError("登录会话已失效，请重新登录。", 403);
   };
@@ -56,15 +57,16 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
       throw new ContentError("预检凭证无效，请重新预检。", 409);
     }
   }
-  const scope = (write ? { key: seal?.key, locale: seal?.locale } : value) as ReminderScope;
+  const input = (write ? { key: seal?.key, locale: seal?.locale } : value) as ReminderScope;
   if (
-    !scope ||
-    typeof scope !== "object" ||
-    Object.keys(scope).sort().join() !== "key,locale" ||
-    !isContentIdentifier(scope.key) ||
-    !["zh", "en"].includes(scope.locale)
+    !input ||
+    typeof input !== "object" ||
+    Object.keys(input).sort().join() !== "key,locale" ||
+    !isContentIdentifier(input.key) ||
+    !["zh", "en"].includes(input.locale)
   )
     throw new ContentError("请选择有效的展会和语言。");
+  const scope = { key: input.key, locale: input.locale };
   const scopeKey = JSON.stringify([scope.key, scope.locale]);
   const digest = reminderHash(value),
     id = await p.db.beginTransaction();
@@ -93,10 +95,10 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
   try {
     if (!write) await db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     else
-      for (const lock of [726271, 726272, 726281])
+      for (const lock of [726271, 726281, 726272])
         await executeSQL(p, id, sql`SELECT pg_advisory_xact_lock(${lock})`);
     await requireSubscriptionAdmin(p, user, req);
-    await currentSession();
+    await currentSession(id);
     const saved = write ? await history() : undefined;
     if (saved) {
       const after = saved.after as { scope: string; report: Record<string, unknown> };
@@ -151,7 +153,7 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
         "SELECT (statement_timestamp() AT TIME ZONE 'Asia/Shanghai')::date::text AS today, statement_timestamp()::text AS now /* exhibition-reminder-clock */",
       )
     ).rows[0] as { today: string; now: string };
-    await currentSession();
+    await currentSession(id);
     const at = new Date(clock.now).toISOString(),
       privacy = process.env.PRIVACY_VERSION?.trim() || "";
     let ready = false;
@@ -221,9 +223,9 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
         ).toString("base64url");
         report.receipt = encoded + "." + mac(encoded);
       }
+      await p.db.rollbackTransaction(id);
       await currentSession();
       await requireSubscriptionAdmin(p, user);
-      await p.db.rollbackTransaction(id);
       return report;
     }
     for (const job of plan.create)
