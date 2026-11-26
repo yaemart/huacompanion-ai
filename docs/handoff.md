@@ -1,5 +1,9 @@
 # 当前开发交接
 
+## 管理员本地提醒命令实施中（2026-11-26）
+
+PR124已合并，最新origin/main `fa1b8bde99b341621607ac09b763cd082ef8829f`包含`c6d83f9`。本批分支`codex/exhibition-reminder-command`，沿已接受CLI设计原生实施，自动调度/真实发送后批，不自动合并。命令与私有文件/报告边界已完成；35项新增先RED后GREEN，完整check790/790、lint0/445、869文件行长通过。实际CLI与独立PG验收正在继续，原库未升级，无新依赖/迁移/环境变量。其他5份未跟踪草稿保留。
+
 ## 单展会30/7天本地待发内核（2026-11-26）
 
 PR123合并后基于origin/main `80dac92c662ad4cc304a198856d302590d8f21d4`，继续同任务分支`codex/exhibition-reminder-design`；[草稿PR124](https://github.com/yaemart/huacompanion-ai/pull/124)，不自动合并。[正式设计](superpowers/specs/2026-11-26-exhibition-reminders-design.md)、[实施计划](superpowers/plans/2026-11-26-exhibition-reminders.md)、[一页小结](exhibition-reminders-summary.md)。
