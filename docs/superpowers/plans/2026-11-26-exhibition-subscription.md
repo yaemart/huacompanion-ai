@@ -38,12 +38,12 @@
 **Files:** Modify `src/components/content/PublicSubscription.tsx`, `src/components/content/SubscriptionForm.tsx`, `src/server/subscriptions.ts`, `src/app/(frontend)/api/subscriptions/request/route.ts`, `src/app/(frontend)/globals.css` (仅需要时窄屏换行), `tests/integration/subscription-form.tsx`, `tests/integration/subscriptions.ts`, `tests/integration/exhibitions-http.ts`; Create `tests/helpers/exhibition-subscription-lifecycle.ts`, `tests/helpers/exhibition-subscription-http.ts`; update spec/handoff/progress/summary.
 **Interfaces:** Consume Task1 helpers; `SubscriptionConsent.exhibitionKey?:string`仅瞬时校验；`SubscriptionForm.exhibition?:{contentKey:string;title:string;status?:Exhibition["status"]}`固定主题并提交标记。原请求输入和邮件任务/凭证接口不变。新增PG helper `testExhibitionSubscription(payload:Payload)`在原独立订阅集成驱动调用；新增HTTP helper在现有生产展会HTTP脚本调用，使用当前独立数据库守卫。
 
-- [ ] 实际PublicSubscription/SubscriptionForm增加固定名称/范围/无下拉/未知日延期/不回退/列表通用断言；先运行并确认旧通用选项失败RED，再接固定模式GREEN。
-- [ ] 实际API专用伪造标记/类型/额外字段先RED拒绝；在原请求校验后、Payload读前检查标记。queueSubscription中复用Task1，所有单展会申请在原事务先锁726271，再复读同语言同key公开body及资格；专用路径须等于当前exhibitionPath，不持邮箱锁反向取内容锁；验证字段不存入原data。
-- [ ] 在现有独立随机订阅测试库真实审核发布虚构目标，跑完整申请/模拟确认/只读预取/确认/退订/再同意，核对旧凭证、跨主题/下一届不串联、跨语言已确认语言不变、失效后确认/退订、目标改稿隔离/撤下/重发、管理员/普通编辑/撤权及CSV。
-- [ ] 用独立PG连接持原内容锁，按pg_locks观察真实申请阻塞；分别先提交撤下/取消或先让申请提交再撤下，核对拒绝零订阅/零队列和允许pending历史；正常限流计数单独核对，服务拒绝与GET完整表指纹不变。先用真实旧缺锁行为获得RED，再实现GREEN，不以sleep猜锁。
-- [ ] 生产构建后真实HTTP验证详情固定本届/列表通用/配置及语言隐藏、转义/状态/目标改稿与撤下、旧日历和下一届回归；实际浏览器中英文申请/模拟确认/退订、失效错误保留输入和390宽度。任务服务/虚构库独立清理，原3100保留。
-- [ ] 完整check、订阅全部回归、相关展会/content/实际渲染、重新生产build/HTTP通过，Task完成命令`npm test`，Expected全量通过；更新文档与一页小结，提交推送并尽早建草稿PR。
+- [x] 实际PublicSubscription/SubscriptionForm增加固定名称/范围/无下拉/未知日延期/不回退/列表通用断言；先运行并确认旧通用选项失败RED，再接固定模式GREEN。
+- [x] 实际API专用伪造标记/类型/额外字段先RED拒绝；在原请求校验后、Payload读前检查标记。queueSubscription中复用Task1，所有单展会申请在原事务先锁726271，再复读同语言同key公开body及资格；专用路径须等于当前exhibitionPath，不持邮箱锁反向取内容锁；验证字段不存入原data。
+- [x] 在现有独立随机订阅测试库真实审核发布虚构目标，跑完整申请/模拟确认/只读预取/确认/退订/再同意，核对旧凭证、跨主题/下一届不串联、跨语言已确认语言不变、失效后确认/退订、目标改稿隔离/撤下/重发、管理员/普通编辑/撤权及CSV。
+- [x] 用独立PG连接持原内容锁，按pg_locks观察真实申请阻塞；分别先提交撤下/取消或先让申请提交再撤下，核对拒绝零订阅/零队列和允许pending历史；正常限流计数单独核对，服务拒绝与GET完整表指纹不变。先用真实旧缺锁行为获得RED，再实现GREEN，不以sleep猜锁。
+- [x] 生产构建后真实HTTP验证详情固定本届/列表通用/配置及语言隐藏、转义/状态/目标改稿与撤下、旧日历和下一届回归；实际浏览器中英文申请/模拟确认/退订、失效错误保留输入和390宽度。任务服务/虚构库独立清理，原3100保留。
+- [x] 完整check、订阅全部回归、相关展会/content/实际渲染、重新生产build/HTTP通过，Task完成命令`npm test`，Expected全量通过；更新文档与一页小结，提交推送并尽早建草稿PR。
 - [ ] 唯一末尾全分支复核，重要项单轮RED→GREEN及完整suite，轻微记录延期；确认最终HEAD远端一致、对应CI两作业及日志，不自动合并。
 
 ## 实施判断

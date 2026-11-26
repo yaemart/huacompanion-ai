@@ -8,7 +8,13 @@ import { isLocale } from "../lib/locales";
 import { isSubscriptionToken, type SubscriptionAction } from "../lib/subscription-action";
 import { subscriptionTopics } from "../lib/subscription-topics";
 import { executeSQL } from "./db-types";
-import { effectiveExhibitionStatus, type Exhibition } from "../lib/exhibitions";
+import { exhibitionPath } from "../lib/exhibitions";
+import {
+  isExhibitionSubscribable,
+  validExhibitionSubscriptionRequest,
+  type ExhibitionSubscriptionTarget,
+} from "../lib/exhibition-subscription";
+import { isSiteLocale } from "./site-config";
 import { isPolicySelection, type PolicySelection } from "./policy-subscription";
 
 const day = 24 * 60 * 60 * 1000;
@@ -22,11 +28,14 @@ export type SubscriptionConsent = {
   privacyVersion: string;
   sourcePath: string;
   partnerCode?: string;
+  exhibitionKey?: string;
 };
 
 export class SubscriptionInputError extends Error {}
 
 function validateConsent(input: SubscriptionConsent) {
+  if (!validExhibitionSubscriptionRequest(input))
+    throw new SubscriptionInputError("Invalid dedicated exhibition request");
   let email: string;
   try {
     email = customerEmail(input.email);
@@ -133,17 +142,22 @@ export async function queueSubscription(
   const data = validateConsent(input);
   const key = await subscriptionTransaction(payload, async (req) => {
     if (data.topic.startsWith("exhibition:")) {
+      await executeSQL(payload, req.transactionID, sql`SELECT pg_advisory_xact_lock(726271)`);
       const live = await executeSQL(
         payload,
         req.transactionID,
         sql`
-        SELECT body->'exhibition' AS exhibition
+        SELECT body
         FROM content_published WHERE active = true AND body->>'kind' = 'exhibition'
           AND body->>'locale' = ${data.locale} AND body->>'contentKey' = ${data.topic.slice(11)} LIMIT 1
       `,
       );
-      const exhibition = live.rows[0]?.exhibition as Exhibition | undefined;
-      if (!exhibition || ["cancelled", "ended"].includes(effectiveExhibitionStatus(exhibition)))
+      const body = live.rows[0]?.body as ExhibitionSubscriptionTarget | undefined;
+      if (
+        !isExhibitionSubscribable(body, data.locale) ||
+        (input.exhibitionKey !== undefined &&
+          (!isSiteLocale(data.locale) || !body || data.sourcePath !== exhibitionPath(body)))
+      )
         throw new SubscriptionInputError("Exhibition unavailable for subscription");
     }
     // The empty topic is reserved for the email-wide quota lock.

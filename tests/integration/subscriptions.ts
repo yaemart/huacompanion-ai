@@ -72,6 +72,7 @@ import {
 } from "../../src/migrations/20261118_090000_subscription_delivery";
 import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
+import { testExhibitionSubscription } from "../helpers/exhibition-subscription-lifecycle";
 import { testPolicyEmail } from "./policy-email";
 import { testSubscriptionManagement } from "./subscription-management";
 import { testSubscriptionCsv } from "./subscription-csv";
@@ -432,6 +433,8 @@ try {
   await testSubscriptionDelivery(payload, url);
   await advanceDispatchClock(payload);
   await testSubscriptionForm(payload);
+  await advanceDispatchClock(payload);
+  await testExhibitionSubscription(payload);
   await advanceDispatchClock(payload);
   await testPolicyEmail(payload, url);
   await advanceDispatchClock(payload);

@@ -13,6 +13,7 @@ import {
   type PolicySelection,
 } from "@/server/policy-subscription";
 import { visaToolPath } from "@/lib/visa-search";
+import { validExhibitionSubscriptionRequest } from "@/lib/exhibition-subscription";
 
 export const runtime = "nodejs";
 
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
       typeof input.sourcePath !== "string" ||
       (input.partnerCode !== undefined && typeof input.partnerCode !== "string") ||
       input.consent !== true ||
-      input.privacyVersion !== privacyVersion
+      input.privacyVersion !== privacyVersion ||
+      !validExhibitionSubscriptionRequest(input)
     )
       return reply(400);
 

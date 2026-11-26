@@ -94,14 +94,47 @@ export async function testSubscriptionForm(payload: Payload) {
     assert.doesNotMatch(zh, /checked=|fixture-only/);
     const exhibitionPath = "/en/exhibitions/sample-fair";
     const en = await render("en", exhibitionPath, [privacy, exhibition]);
-    assert.match(
-      en,
-      /<option value="exhibition:sample-fair-key" selected="">Sample fair<\/option>/,
-    );
+    assert.match(en, /Subscribe to this edition/);
+    assert.match(en, /Sample fair/);
+    assert.match(en, /name="exhibitionKey"[^>]+value="sample-fair-key"/);
+    assert.doesNotMatch(en, /<select|<option/);
+    assert.match(en, /next edition|later editions/i);
+    assert.match(en, /not enabled/i);
     assert.match(en, /href="\/en\/privacy"/);
-    assert.doesNotMatch(
-      await render("en", exhibitionPath, [privacy]),
-      /exhibition:sample-fair-key/,
+    assert.equal(await render("en", exhibitionPath, [privacy]), "");
+    for (const status of ["cancelled", "ended"] as const)
+      assert.equal(
+        await render("en", exhibitionPath, [
+          privacy,
+          { ...exhibition, exhibition: { ...exhibition.exhibition!, status } },
+        ]),
+        "",
+      );
+    const pending = await render("en", exhibitionPath, [
+      privacy,
+      {
+        ...exhibition,
+        title: "Fair <script> & title",
+        exhibition: { ...exhibition.exhibition!, status: "pending" },
+      },
+    ]);
+    assert.match(pending, /Fair &lt;script&gt; &amp; title/);
+    assert.match(pending, /Dates to be announced/);
+    assert.doesNotMatch(pending, /<script>/);
+    const postponed = await render("zh", "/zh/exhibitions/sample-fair", [
+      fictionalSubscriptionPrivacy("zh"),
+      {
+        ...exhibition,
+        locale: "zh",
+        exhibition: { ...exhibition.exhibition!, status: "postponed", endDate: "2020-01-01" },
+      },
+    ]);
+    assert.match(postponed, /订阅本届展会/);
+    assert.match(postponed, /延期，日期待确认/);
+    assert.doesNotMatch(postponed, /2020-01-01|<select/);
+    assert.match(
+      await render("en", "/en/exhibitions", [privacy, exhibition]),
+      /<option value="exhibition-alerts" selected="">/,
     );
     const appEnv = process.env.APP_ENV;
     const appURL = process.env.APP_URL;

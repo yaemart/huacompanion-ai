@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import type { Exhibition } from "@/lib/exhibitions";
 
 const copy = {
   en: {
@@ -50,6 +51,26 @@ const policyCopy = {
       "Request received. Follow the confirmation email first. If the reference remains published, it will follow in a separate email.",
   },
 };
+const exhibitionCopy = {
+  zh: {
+    title: "订阅本届展会",
+    agree: "我同意接收本届展会相关邮件。",
+    scope: "只订阅本届展会，不包含全部展会或下一届。提醒功能尚未启用。",
+    language: "每个邮箱每届一份订阅；重复申请不会更改已确认订阅的接收语言。",
+    pending: "日期待公布",
+    postponed: "延期，日期待确认",
+  },
+  en: {
+    title: "Subscribe to this edition",
+    agree: "I agree to receive emails about this edition.",
+    scope:
+      "This edition only, excluding all-exhibition updates and the next edition. Reminders are not enabled.",
+    language:
+      "One subscription per email per edition. Reapplying does not change the language of a confirmed subscription.",
+    pending: "Dates to be announced",
+    postponed: "Postponed; dates to be confirmed",
+  },
+};
 
 export function SubscriptionForm({
   locale,
@@ -58,6 +79,7 @@ export function SubscriptionForm({
   topics,
   preset,
   policyReference,
+  exhibition,
 }: {
   locale: keyof typeof copy;
   sourcePath: string;
@@ -65,8 +87,14 @@ export function SubscriptionForm({
   topics: { value: string; label: string }[];
   preset: string;
   policyReference?: string;
+  exhibition?: { contentKey: string; title: string; status?: Exhibition["status"] };
 }) {
-  const text = { ...copy[locale], ...(policyReference ? policyCopy[locale] : {}) };
+  const editionText = exhibitionCopy[locale];
+  const text = {
+    ...copy[locale],
+    ...(policyReference ? policyCopy[locale] : {}),
+    ...(exhibition ? editionText : {}),
+  };
   const heading = useId();
   const busy = useRef(false);
   const ready = useSyncExternalStore(
@@ -87,7 +115,12 @@ export function SubscriptionForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: fields.get("email"),
-          topic: policyReference ? "policy-updates" : fields.get("topic"),
+          topic: exhibition
+            ? `exhibition:${exhibition.contentKey}`
+            : policyReference
+              ? "policy-updates"
+              : fields.get("topic"),
+          ...(exhibition ? { exhibitionKey: exhibition.contentKey } : {}),
           ...(policyReference ? { policyReference } : {}),
           contactFax: fields.get("contactFax"),
           consent: true,
@@ -111,6 +144,17 @@ export function SubscriptionForm({
   return (
     <section className="subscription-panel" aria-labelledby={heading}>
       <h2 id={heading}>{text.title}</h2>
+      {exhibition && (
+        <div className="subscription-edition">
+          <p>
+            <strong>{exhibition.title}</strong>
+          </p>
+          <p>{editionText.scope}</p>
+          <p>{editionText.language}</p>
+          {exhibition.status === "pending" && <p>{editionText.pending}</p>}
+          {exhibition.status === "postponed" && <p>{editionText.postponed}</p>}
+        </div>
+      )}
       {status !== "received" && (
         <form
           className="subscription-form"
@@ -129,7 +173,8 @@ export function SubscriptionForm({
               required
             />
           </label>
-          {!policyReference && (
+          {exhibition && <input type="hidden" name="exhibitionKey" value={exhibition.contentKey} />}
+          {!policyReference && !exhibition && (
             <label className="subscription-field">
               {text.topic}
               <select name="topic" required defaultValue={preset}>
