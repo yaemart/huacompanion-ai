@@ -81,7 +81,7 @@ const kinds = {
 };
 const reviewLabels = {
   catalog: "已核验公开资料、图片权利及服务范围，不含内部联系方式。",
-  exhibition: "已核验官方来源、总体及分期展期、题材、地址、报名和已填写的到访资料。",
+  exhibition: "已核验官方来源、总体及分期展期、题材、地址、报名、到访资料及已选下一届关系。",
   life: "已人工核实来源、营业或活动时间、收费、语言和参加要求。",
   institution: "已核验官方来源、资质说明、接待条件及服务语言。",
 };
@@ -1346,6 +1346,8 @@ export function ContentCenter({
                 <>
                   <ExhibitionFields
                     value={body.exhibition || emptyExhibition()}
+                    editionSource={body}
+                    editionChoices={data.exhibitionChoices || []}
                     onChange={(v) => field("exhibition", v)}
                     locale={body.locale}
                     choices={data.drafts.filter(

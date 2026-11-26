@@ -29,6 +29,7 @@ import {
 } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
 import { canExportExhibitionCalendar } from "../../lib/exhibition-calendar";
+import { validateNextEditionPublication } from "../../lib/exhibition-next-edition";
 import { eligibleProvider, allSnapshots, suspendProjectsForKey } from "../catalog/eligibility";
 import type { Payload, PayloadRequest } from "payload";
 import type { ContentDraft, ContentPublished } from "../../../payload-types";
@@ -455,8 +456,11 @@ export async function mutateContent(p: Payload, user: ContentUser, input: Conten
       }
       if (clean.kind === "guide" && !clean.sources.length)
         throw new ContentError("指南发布前需添加资料来源");
-      if (clean.kind === "exhibition")
+      if (clean.kind === "exhibition") {
         validateExhibitionPublication(clean.exhibition, clean.sources, input.exhibitionReviewed);
+        if (clean.exhibition?.nextEditionKey)
+          validateNextEditionPublication(clean, await listPublished(p, clean.locale, req));
+      }
       if (isLife(clean.kind))
         validateLifePublication(clean.lifestyle, clean.kind, clean.sources, input.lifeReviewed);
       if (clean.kind === "institution")

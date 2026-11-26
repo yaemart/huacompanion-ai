@@ -3,6 +3,9 @@ import type { Locale } from "./locales.ts";
 import { exhibitionIndustries } from "./exhibitions.ts";
 export { exhibitionIndustries } from "./exhibitions.ts";
 const en = {
+  nextEdition: "Next edition",
+  viewNextEdition: "View next edition",
+  nextEditionPending: "Dates to be announced",
   calendar: "Download calendar (.ics)",
   calendarNotice:
     "One-time import. Download again if dates change, and check official information before travelling.",
@@ -78,6 +81,9 @@ export type ExhibitionCopyKey = keyof typeof en;
 export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> = {
   en,
   zh: {
+    nextEdition: "下一届展会",
+    viewNextEdition: "查看下一届",
+    nextEditionPending: "日期待公布",
     calendar: "下载日历（.ics）",
     calendarNotice: "一次性导入，改期后请重新下载；出行前请核对官方信息。",
     calendarUnavailable: "当前日期或状态暂不支持日历下载。",
@@ -147,6 +153,9 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "其他",
   },
   es: {
+    nextEdition: "Próxima edición",
+    viewNextEdition: "Ver próxima edición",
+    nextEditionPending: "Fechas por anunciar",
     calendar: "Descargar calendario (.ics)",
     calendarNotice:
       "Importación única. Descárguelo de nuevo si cambian las fechas y consulte la información oficial antes de viajar.",
@@ -219,6 +228,9 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Otros",
   },
   fr: {
+    nextEdition: "Prochaine édition",
+    viewNextEdition: "Voir la prochaine édition",
+    nextEditionPending: "Dates à annoncer",
     calendar: "Télécharger le calendrier (.ics)",
     calendarNotice:
       "Importation ponctuelle. Téléchargez à nouveau si les dates changent et vérifiez les informations officielles avant de voyager.",
@@ -291,6 +303,9 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Autres",
   },
   de: {
+    nextEdition: "Nächste Ausgabe",
+    viewNextEdition: "Nächste Ausgabe ansehen",
+    nextEditionPending: "Termine werden noch bekannt gegeben",
     calendar: "Kalender herunterladen (.ics)",
     calendarNotice:
       "Einmaliger Import. Bei Terminänderungen erneut herunterladen und vor der Reise die offiziellen Angaben prüfen.",
@@ -363,6 +378,9 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Sonstige",
   },
   it: {
+    nextEdition: "Prossima edizione",
+    viewNextEdition: "Vedi la prossima edizione",
+    nextEditionPending: "Date da annunciare",
     calendar: "Scarica calendario (.ics)",
     calendarNotice:
       "Importazione singola. Scarica di nuovo se cambiano le date e verifica le informazioni ufficiali prima del viaggio.",
@@ -435,6 +453,9 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Altro",
   },
   ar: {
+    nextEdition: "الدورة القادمة",
+    viewNextEdition: "عرض الدورة القادمة",
+    nextEditionPending: "سيتم الإعلان عن التواريخ",
     calendar: "تنزيل التقويم (.ics)",
     calendarNotice:
       "استيراد لمرة واحدة. أعد التنزيل إذا تغيرت التواريخ، وتحقق من المعلومات الرسمية قبل السفر.",

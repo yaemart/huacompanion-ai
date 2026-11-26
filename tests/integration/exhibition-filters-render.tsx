@@ -11,6 +11,7 @@ import { PublicNavigationProvider } from "../../src/components/PublicNavigation"
 import { emptyExhibition } from "../../src/lib/exhibitions";
 import type { ContentBody } from "../../src/lib/content-model";
 import { assertExhibitionPreview } from "../helpers/exhibition-preview-render";
+import { renderExhibitionPreview } from "../helpers/exhibition-preview-render";
 const router = {
   bfcacheId: "test",
   back() {},
@@ -210,3 +211,89 @@ console.log(
 );
 await assertExhibitionPreview(visitor);
 console.log("PASS real draft preview renders saved phase and visitor facts with escaping");
+
+const history = event("old-edition", "2020-01-01", "2020-01-03");
+history.exhibition!.nextEditionKey = "new-edition";
+const successor = event("new-edition", "2099-01-01", "2099-01-03");
+successor.title = "Published successor <title>";
+const nextPage = render(
+  <ExhibitionPage locale="en" items={[history, successor]} detail={history} />,
+);
+assert.match(nextPage, /href="\/en\/exhibitions\/new-edition"/);
+assert.match(nextPage, /Published successor &lt;title&gt;/);
+assert.doesNotMatch(nextPage, /<title>.*<\/title>/);
+for (const [locale, label] of [
+  ["en", "Next edition"],
+  ["zh", "下一届展会"],
+  ["es", "Próxima edición"],
+  ["fr", "Prochaine édition"],
+  ["de", "Nächste Ausgabe"],
+  ["it", "Prossima edizione"],
+  ["ar", "الدورة القادمة"],
+] as const) {
+  const old = { ...history, locale };
+  const target = {
+    ...successor,
+    locale,
+    exhibition: {
+      ...successor.exhibition!,
+      status: "pending" as const,
+      startDate: "",
+      endDate: "",
+    },
+  };
+  const page = render(<ExhibitionPage locale={locale} items={[old, target]} detail={old} />);
+  assert.ok(page.includes(label));
+  assert.ok(page.includes(`href="/${locale}/exhibitions/new-edition"`));
+  assert.ok(!page.includes("2099-01-01"), "unannounced dates are not presented as confirmed");
+}
+const pendingTarget = {
+  ...successor,
+  exhibition: { ...successor.exhibition!, status: "pending" as const, startDate: "", endDate: "" },
+};
+assert.match(
+  render(<ExhibitionPage locale="en" items={[history, pendingTarget]} detail={history} />),
+  /Dates to be announced/,
+);
+for (const targets of [
+  [],
+  [{ ...successor, locale: "zh" as const }],
+  [{ ...successor, exhibition: { ...successor.exhibition!, status: "cancelled" as const } }],
+]) {
+  const page = render(
+    <ExhibitionPage locale="en" items={[history, ...targets]} detail={history} />,
+  );
+  assert.doesNotMatch(page, /class="[^"]*exhibition-next-edition/);
+}
+const privateNext = await renderExhibitionPreview(history, [successor]);
+assert.match(privateNext, /Published successor &lt;title&gt;/);
+assert.match(privateNext, /href="\/en\/exhibitions\/new-edition"/);
+assert.doesNotMatch(
+  await renderExhibitionPreview({ ...history, locale: "es" }, [{ ...successor, locale: "es" }]),
+  /href="\/es\/exhibitions\/new-edition"/,
+);
+const { ExhibitionNextEditionField } =
+  await import("../../src/components/content/ExhibitionNextEditionField");
+const chosen = render(
+  <ExhibitionNextEditionField
+    source={history}
+    choices={[successor]}
+    value="new-edition"
+    onChange={() => {}}
+  />,
+);
+assert.match(chosen, /下一届展会（当前语言）/);
+assert.match(chosen, /<option value="new-edition" selected="">Published successor &lt;title&gt;/);
+const missingChoice = render(
+  <ExhibitionNextEditionField
+    source={history}
+    choices={[]}
+    value="new-edition"
+    onChange={() => {}}
+  />,
+);
+assert.match(missingChoice, /<option value="new-edition" selected="">/);
+assert.match(missingChoice, /原关联目标当前不可用/);
+console.log(
+  "PASS next-edition editor, seven-language public links, pending dates, missing targets and actual private preview",
+);

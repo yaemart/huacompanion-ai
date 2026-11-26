@@ -4,6 +4,8 @@ import type { Exhibition } from "@/lib/exhibitions";
 import { exhibitionExamples } from "@/lib/content-field-examples-copy";
 import { ContentTextField } from "./ContentTextField";
 import { ExhibitionPhaseFields } from "./ExhibitionPhaseFields";
+import { ExhibitionNextEditionField } from "./ExhibitionNextEditionField";
+import type { ExhibitionEdition } from "@/lib/exhibition-next-edition";
 
 export const exhibitionIndustryLabels = {
   hardware: "五金",
@@ -40,11 +42,15 @@ export function ExhibitionFields({
   onChange,
   choices,
   locale,
+  editionSource,
+  editionChoices = [],
 }: {
   value: Exhibition;
   onChange: (v: Exhibition) => void;
   choices: { contentKey: string; title: string }[];
   locale: string;
+  editionSource?: ExhibitionEdition;
+  editionChoices?: ExhibitionEdition[];
 }) {
   function set<K extends keyof Exhibition>(key: K, next: Exhibition[K]) {
     onChange({ ...value, [key]: next });
@@ -102,6 +108,12 @@ export function ExhibitionFields({
         value={value.phases ?? []}
         onChange={(phases) => set("phases", phases)}
         locale={locale}
+      />
+      <ExhibitionNextEditionField
+        source={editionSource ? { ...editionSource, exhibition: value } : undefined}
+        choices={editionChoices}
+        value={value.nextEditionKey ?? ""}
+        onChange={(key) => set("nextEditionKey", key)}
       />
       <fieldset>
         <legend>所属行业（可多选）</legend>

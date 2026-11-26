@@ -38,12 +38,12 @@
 **Files:** Modify `src/server/content/service.ts`, `src/app/(frontend)/api/content-center/route.ts`, `src/components/content/ContentCenter.tsx`, `src/components/content/ExhibitionFields.tsx`, `src/components/exhibitions/ExhibitionPage.tsx`, `src/app/(frontend)/content-preview/[id]/page.tsx`, `src/lib/exhibition-copy.ts`, `tests/helpers/exhibition-preview-render.ts`, `tests/integration/exhibition-filters-render.tsx`, `tests/integration/exhibitions.ts`, `tests/integration/exhibitions-http.ts`; Create `src/components/content/ExhibitionNextEditionField.tsx`, `src/components/exhibitions/ExhibitionNextEdition.tsx`, `tests/helpers/exhibition-next-edition-lifecycle.ts`, `tests/helpers/exhibition-next-edition-http.ts`.
 **Interfaces:** Consume Task1；新增content-center响应`exhibitionChoices: ExhibitionEdition[]`，只在有展会板块权限时返回同集合已公开精简数据；helper复用现有独立PG/HTTP配置和人员，入口数据库守卫保持。
 
-- [ ] 实际组件补选择/旧选项丢失/七语言公开链接与未知日期/无效目标隐藏断言，实际预览存储边界供公开目标，先运行确认RED；PG在来源审核前写关联并断言真实发布服务拒绝错误关系。
-- [ ] 在原contentTransaction发布阶段调用validateNextEditionPublication；复用已计算visible输出精简候选，不取草稿标题，不依赖草稿1000上限；选择走原field取消核验。
-- [ ] 新原生选择字段与共享公开/预览关联展示，七语言三项标签；预览鉴权后仅在站点语言启用且存在引用时读取公开目标。
-- [ ] 运行真实PG关系生命周期：合法/未知日期、缺人工核验/错板块/编辑者/跨语言/回环拒绝、两任务并发互链至少一拒绝且最终无环、目标草稿不泄漏/变更/撤下、来源版本恢复与旧字段兼容，全表指纹拒绝/读取保持。
-- [ ] 生产HTTP验证来源ended路径200无重定向、目标原公开标题、目标改稿隔离/下架与取消/结束隐藏、再发布恢复、pending日期提示及旧.ics回归；接入已在CI运行的展会脚本。
-- [ ] 完整check/相关展会与内容/渲染/生产build及HTTP，实际浏览器保存/审核提示、公开桌面/390宽度、缺目标旧值恢复验证；仅清理本任务server/随机库。
+- [x] 实际组件补选择/旧选项丢失/七语言公开链接与未知日期/无效目标隐藏断言，实际预览存储边界供公开目标，先运行确认RED；PG在来源审核前写关联并断言真实发布服务拒绝错误关系。
+- [x] 在原contentTransaction发布阶段调用validateNextEditionPublication；复用已计算visible输出精简候选，不取草稿标题，不依赖草稿1000上限；选择走原field取消核验。
+- [x] 新原生选择字段与共享公开/预览关联展示，七语言三项标签；预览鉴权后仅在站点语言启用且存在引用时读取公开目标。
+- [x] 运行真实PG关系生命周期：合法/未知日期、缺人工核验/错板块/编辑者/跨语言/回环拒绝、两任务并发互链至少一拒绝且最终无环、目标草稿不泄漏/变更/撤下、来源版本恢复与旧字段兼容，全表指纹拒绝/读取保持。
+- [x] 生产HTTP验证来源ended路径200无重定向、目标原公开标题、目标改稿隔离/下架与取消/结束隐藏、再发布恢复、pending日期提示及旧.ics回归；接入已在CI运行的展会脚本。
+- [x] 完整check/相关展会与内容/渲染/生产build及HTTP，实际浏览器保存/审核提示、公开桌面/390宽度、缺目标旧值恢复验证；仅清理本任务server/随机库。
 - [ ] 更新docs/handoff.md、docs/progress.md及一页中文小结，提交推送草稿PR；末尾唯一独立复核，重要项单轮RED→GREEN修正，核对最终SHA对应CI，不自动合并。
 
 ## 实施判定
