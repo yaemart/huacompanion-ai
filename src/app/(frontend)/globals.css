@@ -723,6 +723,9 @@ img {
   margin: 0 0 16px;
   font-size: 1.35rem;
 }
+.subscription-edition {
+  overflow-wrap: anywhere;
+}
 .subscription-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));

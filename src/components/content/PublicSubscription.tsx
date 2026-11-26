@@ -1,10 +1,11 @@
 import { getPayload } from "payload";
 import config from "@/payload.config";
 import type { ContentBody } from "@/lib/content-model";
-import { effectiveExhibitionStatus } from "@/lib/exhibitions";
+import { isExhibitionSubscribable } from "@/lib/exhibition-subscription";
 import type { Locale } from "@/lib/locales";
 import { subscriptionTopics } from "@/lib/subscription-topics";
 import { subscriptionRequestConfig } from "@/server/subscription-readiness";
+import { isSiteLocale } from "@/server/site-config";
 import { SubscriptionForm } from "./SubscriptionForm";
 
 export async function PublicSubscription({
@@ -17,7 +18,7 @@ export async function PublicSubscription({
   contents: ContentBody[];
 }) {
   const ready = subscriptionRequestConfig();
-  if (!ready || (locale !== "en" && locale !== "zh")) return null;
+  if (!ready || (locale !== "en" && locale !== "zh") || !isSiteLocale(locale)) return null;
   if (
     !contents.some((doc) => doc.locale === locale && doc.kind === "page" && doc.slug === "privacy")
   )
@@ -29,22 +30,15 @@ export async function PublicSubscription({
     return null;
   }
   const [, , section, slug] = sourcePath.split("/");
+  const dedicated = section === "exhibitions" && !!slug;
   const exhibit =
-    section === "exhibitions" &&
-    contents.find(
-      (doc) =>
-        doc.locale === locale &&
-        doc.kind === "exhibition" &&
-        doc.slug === slug &&
-        doc.exhibition &&
-        !["cancelled", "ended"].includes(effectiveExhibitionStatus(doc.exhibition)),
-    );
+    dedicated &&
+    contents.find((doc) => doc.locale === locale && doc.kind === "exhibition" && doc.slug === slug);
+  if (dedicated && (!exhibit || !isExhibitionSubscribable(exhibit, locale))) return null;
   const topics = Object.entries(subscriptionTopics).map(([value, label]) => ({
     value,
     label: label[locale],
   }));
-  const exhibitTopic = exhibit ? `exhibition:${exhibit.contentKey}` : "";
-  if (exhibit) topics.push({ value: exhibitTopic, label: exhibit.title });
   const presets: Record<string, string> = {
     tools: "policy-updates",
     exhibitions: "exhibition-alerts",
@@ -56,7 +50,16 @@ export async function PublicSubscription({
       sourcePath={sourcePath}
       privacyVersion={ready.privacyVersion}
       topics={topics}
-      preset={exhibitTopic || presets[section] || ""}
+      preset={presets[section] || ""}
+      exhibition={
+        exhibit
+          ? {
+              contentKey: exhibit.contentKey,
+              title: exhibit.title,
+              status: exhibit.exhibition?.status,
+            }
+          : undefined
+      }
     />
   );
 }
