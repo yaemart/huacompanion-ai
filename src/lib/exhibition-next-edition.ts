@@ -77,11 +77,11 @@ export function validateNextEditionPublication(
       .map((d) => [d.contentKey, d]),
   );
   const visited = new Set([source.contentKey]);
-  let current: ExhibitionEdition | undefined = target;
-  while (current) {
-    if (visited.has(current.contentKey))
+  let currentKey: string | undefined = target.contentKey;
+  while (currentKey) {
+    if (visited.has(currentKey))
       throw new StaffFormError("下一届展会关系存在回环，请检查关联后重新提交审核。");
-    visited.add(current.contentKey);
-    current = byKey.get(current.exhibition?.nextEditionKey || "");
+    visited.add(currentKey);
+    currentKey = byKey.get(currentKey)?.exhibition?.nextEditionKey;
   }
 }

@@ -307,6 +307,52 @@ export async function assertExhibitionNextEditionLifecycle(
     const rejected = results.findIndex((r) => r.status === "rejected");
     const loser = rejected === 0 ? a : b;
     await unchanged(() => assert.rejects(() => publish(loser), /回环/));
+    const reopenBody = body("reopen-a", {
+      status: "pending",
+      startDate: "",
+      endDate: "",
+      unresolved: "Fictional withdrawn source",
+    });
+    let reopen = await release(reopenBody);
+    const backBody = body("reopen-b", {
+      status: "pending",
+      startDate: "",
+      endDate: "",
+      unresolved: "Fictional back reference",
+      nextEditionKey: reopenBody.contentKey,
+    });
+    await release(backBody);
+    await mutateContent(p, admin, {
+      action: "unpublish",
+      id: reopen.id,
+      revision: reopen.revision,
+      overrideReason: "Fictional withdrawn-cycle reproduction",
+    });
+    reopen = await submit(
+      await save(
+        {
+          ...reopenBody,
+          exhibition: { ...reopenBody.exhibition!, nextEditionKey: backBody.contentKey },
+        },
+        reopen.id,
+      ),
+    );
+    await unchanged(async () => {
+      await assert.rejects(() => publish(reopen), /回环/);
+      assert.ok(
+        !(await listPublished(p, "en")).some((d) => d.contentKey === reopenBody.contentKey),
+      );
+      const snapshots = await p.find({
+        collection: "content-published",
+        where: { draftId: { equals: reopen.id } },
+        limit: 1,
+      });
+      assert.equal(
+        snapshots.docs[0].active,
+        false,
+        "failed republication keeps the source withdrawn",
+      );
+    });
     console.log(
       "PASS next-edition lifecycle: publish guards, permissions, approved choices beyond draft truncation, draft isolation, withdrawal, unknown dates, restore and concurrent cycle rollback",
     );

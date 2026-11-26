@@ -132,3 +132,21 @@ test("publication permits a forward unknown-date chain without following it for 
   );
   assert.equal(api.resolveNextEdition(source(), [target], today)?.contentKey, "next-fair");
 });
+test("republication cannot close a cycle through the currently withdrawn source", () => {
+  assert.ok(api);
+  const a = {
+    ...source(),
+    exhibition: { ...source().exhibition, status: "pending" as const, startDate: "", endDate: "" },
+  };
+  const b = {
+    ...next(),
+    exhibition: {
+      ...next().exhibition!,
+      status: "pending" as const,
+      startDate: "",
+      endDate: "",
+      nextEditionKey: a.contentKey,
+    },
+  };
+  assert.throws(() => api.validateNextEditionPublication(a, [b]), /回环/);
+});
