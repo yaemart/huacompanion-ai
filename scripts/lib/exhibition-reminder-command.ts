@@ -11,6 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { validExhibitionDate } from "../../src/lib/exhibitions.ts";
 import { isContentIdentifier } from "../../src/lib/content-identifiers.ts";
 import type { previewExhibitionReminders } from "../../src/server/exhibition-reminders.ts";
 export class ReminderCommandError extends Error {}
@@ -131,6 +132,19 @@ export function formatReminderReport(report: Report, mode: "preview" | "apply") 
     `本地${mode === "preview" ? "预检" : "核实结果"}（未发送邮件）`,
     `展会：${safeTitle}（${report.scope.locale}）`,
   ];
+  const snapshot = report.snapshot;
+  const version = Number.isSafeInteger(snapshot?.revision)
+    ? `第${snapshot!.revision}版`
+    : "版本待核实";
+  const dates =
+    snapshot &&
+    typeof snapshot.startDate === "string" &&
+    typeof snapshot.endDate === "string" &&
+    validExhibitionDate(snapshot.startDate) &&
+    validExhibitionDate(snapshot.endDate)
+      ? `${snapshot.startDate} 至 ${snapshot.endDate}`
+      : "当前无完整公开日期";
+  lines.push(`本届标识：${report.scope.key}；资料快照：${version}；总体日期：${dates}`);
   const c = report.counts;
   if (report.replayed || report.currentEligibility === "not-checked") {
     lines.push(

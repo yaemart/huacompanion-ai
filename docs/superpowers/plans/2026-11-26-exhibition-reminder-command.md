@@ -42,11 +42,11 @@
 **Files:** Create `tests/helpers/exhibition-reminder-command.ts`, `tests/helpers/exhibition-reminder-command-session.ts`, `docs/exhibition-reminder-command-summary.md`; Modify `tests/integration/subscriptions.ts`, `docs/handoff.md`, `docs/progress.md`及本计划。
 **Interfaces:** `testExhibitionReminderCommand(p:Payload)`纳入现有随机订阅库/CI驱动。子进程命令使用真实管理员JWT私有文件；会话辅助进程仅测试库新密钥真实登录并私下写JWT，无产品新登录入口。日期以数据库北京时间today+30/+7构造审核展会，不改变产品/机器时钟。
 
-- [ ] 写真实已审核展会、虚构已确认/待确认/退订、管理员与非管理员夹具。实际preview回执0600/报告脱敏/全表只读、apply生成真实held记录/旧表不变、两进程同凭证仅一次审计/历史结果，先RED。
-- [ ] 真实CLI验证30/7档、改版取消/重建、非窗口纯取消、历史重放与当前计数区分；撤权/登出、source/名单/配置变化拒绝，全表不变且原回执字节保留。新密钥/新JWT查询已提交历史；未提交旧封套单独密钥变化拒绝。
-- [ ] 缺失库不能自动创建、已有库结构不变；错误日志不含URL/密钥/凭证；断言旧邮件/活动/尝试/租约/预算无增量及子进程外发禁止。真实0→held→清理0探针。
-- [ ] 完整check、全部订阅回归（预期原41＋CLI一组）、生产build通过。无新UI，不虚构浏览器或真实送达验收；相关HTTP由最终CI沿原脚本核实。
-- [ ] 中文说明给出安全准备JWT文件的方法、preview/apply示例、只读历史标签、过期/未知结果先原回执核实，以及已有库备份迁移门禁。更新交接/进度/小结，提交推送；任务完成命令`npm test`。
+- [x] 写真实已审核展会、虚构已确认/待确认/退订、管理员与非管理员夹具。实际preview回执0600/报告脱敏/全表只读、apply生成真实held记录/旧表不变、两进程同凭证仅一次审计/历史结果，先RED。
+- [x] 真实CLI验证30/7档、改版取消/重建、非窗口纯取消、历史重放与当前计数区分；撤权/登出、source/名单/配置变化拒绝，全表不变且原回执字节保留。新密钥/新JWT查询已提交历史；未提交旧封套单独密钥变化拒绝。
+- [x] 缺失库不能自动创建、已有库结构不变；错误日志不含URL/密钥/凭证；断言旧邮件/活动/尝试/租约/预算无增量及子进程外发禁止。真实0→held→清理0探针。
+- [x] 完整check、全部订阅回归（预期原41＋CLI一组）、生产build通过。无新UI，不虚构浏览器或真实送达验收；相关HTTP由最终CI沿原脚本核实。
+- [x] 中文说明给出安全准备JWT文件的方法、preview/apply示例、只读历史标签、过期/未知结果先原回执核实，以及已有库备份迁移门禁。更新交接/进度/小结，提交推送；任务完成命令`npm test`。
 
 ## 实施判断
 

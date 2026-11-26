@@ -132,7 +132,7 @@ test("new receipt is 0600, durable and cannot overwrite an existing file or link
 });
 const report = {
   scope: { key: "spring-fair", locale: "zh" as const },
-  snapshot: { title: "已审核展会", revision: 3 },
+  snapshot: { title: "已审核展会", revision: 3, startDate: "2027-03-10", endDate: "2027-03-12" },
   today: "2027-02-08",
   asOf: "2027-02-08T04:00:00.000Z",
   offset: 30 as const,
@@ -155,6 +155,9 @@ test("Chinese report distinguishes subscribers, current window and explicit loca
   for (const phrase of [
     /未发送/,
     /已审核展会/,
+    /本届标识：spring-fair/,
+    /第3版/,
+    /2027-03-10.*2027-03-12/,
     /订阅合资格：5/,
     /本档待发：3/,
     /取消终态：1/,
