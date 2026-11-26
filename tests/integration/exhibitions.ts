@@ -10,7 +10,8 @@ import { resolveCatalogSource } from "../../src/server/catalog/source";
 import { saveIntake } from "../../src/server/intake";
 import { assertExhibitionVisitorLifecycle } from "../helpers/exhibition-visitor-lifecycle";
 import type { ContentBody } from "../../src/lib/content-model";
-if (process.env.APP_ENV !== "local") throw Error("Local only");
+import { assertExhibitionTestDatabase } from "../helpers/exhibition-test-environment";
+assertExhibitionTestDatabase();
 const p = await getPayload({ config });
 const drafts: number[] = [];
 try {

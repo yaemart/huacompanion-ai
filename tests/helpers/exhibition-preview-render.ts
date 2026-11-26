@@ -40,7 +40,7 @@ export async function assertExhibitionPreview(body: ContentBody) {
   for (const [, name] of code.matchAll(/require\("(@\/[^"]+)"\)/g)) {
     if (name in modules) continue;
     const base = new URL("../../src/" + name.slice(2), import.meta.url);
-    const file = new URL(base.href + (existsSync(base.pathname + ".ts") ? ".ts" : ".tsx"));
+    const file = new URL(base.href + (existsSync(new URL(base.href + ".ts")) ? ".ts" : ".tsx"));
     modules[name] = await import(file.href);
   }
   const ctx = {
@@ -49,11 +49,7 @@ export async function assertExhibitionPreview(body: ContentBody) {
     },
     require: (name: string) => {
       if (name in modules) return modules[name];
-      return require(
-        name.startsWith("@/")
-          ? new URL("../../src/" + name.slice(2), import.meta.url).pathname
-          : name,
-      );
+      return require(name);
     },
   };
   runInNewContext(code, ctx);

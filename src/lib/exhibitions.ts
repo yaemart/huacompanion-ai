@@ -1,4 +1,5 @@
 import { catalogCities } from "./catalog-options.ts";
+import { StaffFormError } from "./staff-form-feedback.ts";
 
 export const exhibitionIndustries = [
   "hardware",
@@ -16,6 +17,12 @@ export const exhibitionVisitorFields = [
   "stayAreas",
   "firstVisitTips",
 ] as const;
+const visitorLabels = {
+  transport: "交通",
+  buyerRegistration: "外国买家登记",
+  stayAreas: "推荐住宿区域",
+  firstVisitTips: "首次参展提示",
+};
 export type ExhibitionPhase = { name: string; startDate: string; endDate: string; theme: string };
 export type Exhibition = {
   phases?: ExhibitionPhase[];
@@ -113,7 +120,7 @@ export function validateExhibition(
     if (typeof e[k] !== "string" || e[k].length > 5000) throw Error("展会字段格式无效");
   for (const k of exhibitionVisitorFields)
     if (e[k] !== undefined && (typeof e[k] !== "string" || e[k].length > 5000))
-      throw Error("展会到访资料格式无效或超过5000字符");
+      throw new StaffFormError(`「${visitorLabels[k]}」请填写文字，最多5000字符；请缩短后再保存。`);
   if (!["pending", "announced", "postponed", "cancelled", "ended"].includes(e.status))
     throw Error("展会状态无效");
   if (e.city && !catalogCities.some((c) => c.code === e.city)) throw Error("请选择有效城市");
@@ -146,18 +153,21 @@ export function validateExhibition(
     e.phases !== undefined &&
     (!Array.isArray(e.phases) || e.phases.length > exhibitionPhaseLimit)
   )
-    throw Error("展会分期最多12期，请检查资料格式");
-  for (const phase of e.phases ?? []) {
+    throw new StaffFormError("展会分期最多12期，请删除多余分期或检查资料格式。");
+  for (const [index, phase] of (e.phases ?? []).entries()) {
+    const label = `第${index + 1}期`;
     if (!phase || typeof phase !== "object" || Array.isArray(phase))
-      throw Error("展会分期资料格式无效");
-    for (const [key, limit] of [
-      ["name", 200],
-      ["theme", 2000],
-      ["startDate", 10],
-      ["endDate", 10],
+      throw new StaffFormError(`${label}格式无效，请删除此行后重新填写。`);
+    for (const [key, field, limit] of [
+      ["name", "名称", 200],
+      ["theme", "题材", 2000],
+      ["startDate", "开始日期", 10],
+      ["endDate", "结束日期", 10],
     ] as const)
       if (typeof phase[key] !== "string" || phase[key].length > limit)
-        throw Error("展会分期名称、题材或日期格式无效或过长");
+        throw new StaffFormError(
+          `${label}的${field}请填写文字，最多${limit}字符；请检查后再保存。`,
+        );
     if (phase.startDate || phase.endDate) {
       if (
         !validExhibitionDate(phase.startDate) ||
@@ -165,10 +175,17 @@ export function validateExhibition(
         phase.startDate > phase.endDate ||
         (e.startDate && e.endDate && (phase.startDate < e.startDate || phase.endDate > e.endDate))
       )
-        throw Error("分期日期须完整有效且顺序正确，不能超出已知总体展期");
+        throw new StaffFormError(
+          `${label}日期须同时留空或完整有效、顺序正确，且不能超出已知总体展期；请核对后再保存。`,
+        );
     }
-    if (publishing && (!phase.name.trim() || !phase.theme.trim()))
-      throw Error("发布前请补齐每期名称及题材，或删除空白分期");
+    if (publishing)
+      for (const [key, field] of [
+        ["name", "名称"],
+        ["theme", "题材"],
+      ] as const)
+        if (!phase[key].trim())
+          throw new StaffFormError(`发布前请填写${label}的${field}，或删除此分期。`);
   }
   if (publishing) {
     for (const k of [

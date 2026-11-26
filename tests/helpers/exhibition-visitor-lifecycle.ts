@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import pg from "pg";
 import type { Payload } from "payload";
 import type { ContentDraft, Staff } from "../../payload-types";
@@ -18,6 +18,7 @@ export async function assertExhibitionVisitorLifecycle(p: Payload, fixture: Cont
     role: "admin" | "editor",
     contentKinds: NonNullable<Staff["contentKinds"]> = ["exhibition"],
   ) => {
+    const password = randomBytes(32).toString("base64url");
     const user = await p.create({
       collection: "staff",
       context: { allowLocalStaffSetup: true },
@@ -26,14 +27,18 @@ export async function assertExhibitionVisitorLifecycle(p: Payload, fixture: Cont
         contentKinds,
         name: "Fictional visitor fixture",
         email: `${people.length}-${key}@example.invalid`,
-        password: key,
+        password,
         active: true,
       },
     });
     people.push(user.id);
+    await assert.rejects(
+      p.login({ collection: "staff", data: { email: user.email, password: key } }),
+      "the public exhibition key must never authenticate a fixture employee",
+    );
     const login = await p.login({
       collection: "staff",
-      data: { email: user.email, password: key },
+      data: { email: user.email, password },
     });
     return { user, token: login.token! };
   };
@@ -97,6 +102,24 @@ export async function assertExhibitionVisitorLifecycle(p: Payload, fixture: Cont
       false,
     );
     const savedRevision = draft.revision;
+    for (const [exhibition, message] of [
+      [{ ...body.exhibition!, endDate: "2090-01-30" }, /第1期.*总体展期/],
+      [{ ...body.exhibition!, transport: "t".repeat(5001) }, /交通.*5000/],
+      [
+        { ...body.exhibition!, phases: [{ ...body.exhibition!.phases![0], endDate: "" }] },
+        /第1期.*日期/,
+      ],
+    ] as const)
+      await unchanged(async () => {
+        const invalid = await post(editor.token, {
+          action: "save",
+          id: draft.id,
+          revision: draft.revision,
+          body: { ...body, exhibition },
+        });
+        assert.equal(invalid.status, 400);
+        assert.match((await invalid.json()).error, message);
+      });
     response = await post(editor.token, {
       action: "submit",
       id: draft.id,
@@ -185,7 +208,7 @@ export async function assertExhibitionVisitorLifecycle(p: Payload, fixture: Cont
         {
           exhibition: {
             ...body.exhibition!,
-            phases: [{ name: "", theme: "", startDate: "", endDate: "" }],
+            phases: [{ name: "Fictional named phase", theme: "", startDate: "", endDate: "" }],
           },
         },
       ],
@@ -200,17 +223,17 @@ export async function assertExhibitionVisitorLifecycle(p: Payload, fixture: Cont
         id: invalid.id,
         revision: invalid.revision,
       });
-      await unchanged(async () =>
-        assert.rejects(
-          mutateContent(p, admin!.user, {
-            action: "publish",
-            id: invalid.id,
-            revision: invalid.revision,
-            overrideReason: "Fictional local review",
-            exhibitionReviewed: true,
-          }),
-        ),
-      );
+      await unchanged(async () => {
+        const failed = await post(admin!.token, {
+          action: "publish",
+          id: invalid.id,
+          revision: invalid.revision,
+          overrideReason: "Fictional local review",
+          exhibitionReviewed: true,
+        });
+        assert.equal(failed.status, 400);
+        if (suffix === "blank-phase") assert.match((await failed.json()).error, /第1期.*题材/);
+      });
     }
     draft = await mutateContent(p, admin.user, {
       action: "unpublish",

@@ -116,6 +116,7 @@ jobs:
           node --import tsx tests/integration/quote-templates.ts
           npm run test:integration
           npm run test:content
+          npm run test:exhibitions
           node --import tsx tests/integration/content-identifiers.ts
           node --import tsx tests/integration/guide-translation.ts
           node --import tsx tests/integration/quote-line-migration.ts
@@ -170,6 +171,7 @@ jobs:
           node --import tsx tests/integration/public-footer-http.ts
           node --import tsx tests/integration/support-http.ts
           node --import tsx tests/integration/exhibition-filters-http.ts
+          node --import tsx tests/integration/exhibitions-http.ts
           node --import tsx tests/integration/public-company-http.ts
           node --import tsx tests/integration/intake-receipt-http.ts
           node --import tsx tests/integration/intake-followups-http.ts

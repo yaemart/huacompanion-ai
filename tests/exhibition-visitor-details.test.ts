@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { StaffFormError, staffFormMessage } from "../src/lib/staff-form-feedback.ts";
 import assert from "node:assert/strict";
 import {
   emptyExhibition,
@@ -165,3 +166,29 @@ test("unknown phase dates, valid leap days, overlapping phases and input order a
   );
   assert.throws(() => validateExhibition({ ...event, endDate: "2028-02-29" }));
 });
+const correctionCases: [string, Exhibition, boolean, RegExp][] = [
+  ["out of range", { ...details(), endDate: "2090-01-30" }, false, /第1期.*总体展期/],
+  ["partial date", { ...details(), phases: [{ ...phase(), endDate: "" }] }, false, /第1期.*日期/],
+  [
+    "blank second theme",
+    { ...details(), phases: [phase(), { ...phase(), theme: "" }] },
+    true,
+    /第2期.*题材/,
+  ],
+  ["long transit", { ...details(), transport: "t".repeat(5001) }, false, /交通.*5000/],
+  [
+    "long buyer instructions",
+    { ...details(), buyerRegistration: "b".repeat(5001) },
+    false,
+    /外国买家登记.*5000/,
+  ],
+];
+for (const [label, event, publishing, expected] of correctionCases)
+  test("staff can correct " + label + " without exposing unexpected errors", () => {
+    assert.throws(
+      () => validateExhibition(event, publishing),
+      (error) =>
+        error instanceof StaffFormError &&
+        expected.test(staffFormMessage(error, "Unexpected failure")),
+    );
+  });

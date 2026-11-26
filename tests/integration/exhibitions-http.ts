@@ -6,22 +6,9 @@ import { emptyExhibition, shanghaiToday } from "../../src/lib/exhibitions";
 import { mutateContent } from "../../src/server/content/service";
 import { locales } from "../../src/lib/locales";
 import { parseSiteLocales } from "../../src/lib/site-locales";
+import { assertExhibitionTestDatabase } from "../helpers/exhibition-test-environment";
 
-const database = new URL(process.env.DATABASE_URL || "http://invalid");
-if (
-  process.env.APP_ENV !== "local" ||
-  database.hostname !== "127.0.0.1" ||
-  !(
-    (database.port === "55438" && database.pathname === "/hua_companion") ||
-    (database.port === "55442" &&
-      database.username === "hua_demo" &&
-      /^\/hua_exhibitions_[a-f0-9]{32}$/.test(database.pathname))
-  )
-) {
-  throw Error(
-    "Refusing to test outside the dedicated local database at 127.0.0.1:55438/hua_companion",
-  );
-}
+assertExhibitionTestDatabase();
 const base = process.env.APP_URL || "http://127.0.0.1:3000";
 if (!/^http:\/\/127\.0\.0\.1:(3000|3188)$/.test(base))
   throw Error("Exhibition HTTP tests require a loopback fixture server");
