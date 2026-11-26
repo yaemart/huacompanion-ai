@@ -9,6 +9,7 @@ import { mutateContent, listPublished } from "../../src/server/content/service";
 import { resolveCatalogSource } from "../../src/server/catalog/source";
 import { saveIntake } from "../../src/server/intake";
 import { assertExhibitionVisitorLifecycle } from "../helpers/exhibition-visitor-lifecycle";
+import { assertExhibitionNextEditionLifecycle } from "../helpers/exhibition-next-edition-lifecycle";
 import type { ContentBody } from "../../src/lib/content-model";
 import { assertExhibitionTestDatabase } from "../helpers/exhibition-test-environment";
 assertExhibitionTestDatabase();
@@ -271,6 +272,7 @@ try {
     "Already accepted retries remain idempotent after withdrawal",
   );
   await assertExhibitionVisitorLifecycle(p, body);
+  await assertExhibitionNextEditionLifecycle(p, body, admin);
   console.log(
     "PASS exhibition permissions, privacy, locale isolation, publication/source checks, authoritative snapshots, revision, status, compatibility and idempotency",
   );

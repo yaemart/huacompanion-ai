@@ -8,6 +8,7 @@ import { locales } from "../../src/lib/locales";
 import { parseSiteLocales } from "../../src/lib/site-locales";
 import { assertExhibitionTestDatabase } from "../helpers/exhibition-test-environment";
 import { assertExhibitionCalendarHTTP } from "../helpers/exhibition-calendar-http";
+import { assertExhibitionNextEditionHTTP } from "../helpers/exhibition-next-edition-http";
 import type { ContentBody } from "../../src/lib/content-model";
 
 assertExhibitionTestDatabase();
@@ -188,6 +189,7 @@ try {
       assert.equal(switcher.includes(`value="${option}"`), activeLocales.includes(option));
   }
   await assertExhibitionCalendarHTTP({ p, admin, draftId: draftId!, body, base, publish });
+  await assertExhibitionNextEditionHTTP(p, admin, base, body);
   await publish({ ...body, exhibition: { ...event, status: "cancelled" } });
   const cancelled = await html(`/en/request?exhibition=${key}`);
   assert.ok(cancelled.includes("The selected exhibition is unavailable"));

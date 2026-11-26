@@ -1,4 +1,7 @@
 import { ExhibitionVisitorDetails } from "@/components/exhibitions/ExhibitionVisitorDetails";
+import { ExhibitionNextEdition } from "@/components/exhibitions/ExhibitionNextEdition";
+import { listPublished } from "@/server/content/service";
+import { isSiteLocale } from "@/server/site-config";
 import { staffVersion } from "@/lib/staff-display";
 import { policyLabels } from "@/lib/immigration-policy-editor";
 import { readContentPreview } from "@/server/content/preview";
@@ -27,6 +30,10 @@ export default async function Preview({ params }: { params: Promise<{ id: string
     notFound(),
   );
   const body = d.body as unknown as ContentBody;
+  const nextEditions =
+    body.kind === "exhibition" && body.exhibition?.nextEditionKey && isSiteLocale(body.locale)
+      ? await listPublished(auth.p, body.locale)
+      : [];
   return (
     <main className="section article" lang={body.locale} dir={body.locale === "ar" ? "rtl" : "ltr"}>
       <p>
@@ -73,6 +80,7 @@ export default async function Preview({ params }: { params: Promise<{ id: string
             ))}
           </dl>
           <ExhibitionVisitorDetails value={body.exhibition} locale={body.locale} />
+          <ExhibitionNextEdition source={body} published={nextEditions} />
         </section>
       )}
       {body.lifestyle && (

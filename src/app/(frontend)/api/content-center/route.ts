@@ -109,6 +109,23 @@ export async function GET(req: Request) {
           userId: user.id,
         },
         providers,
+        exhibitionChoices: canAccessContentKind(user, "exhibition")
+          ? visible
+              .filter((d) => d.kind === "exhibition" && d.exhibition)
+              .map((d) => ({
+                kind: d.kind,
+                locale: d.locale,
+                contentKey: d.contentKey,
+                title: d.title,
+                slug: d.slug,
+                exhibition: {
+                  status: d.exhibition!.status,
+                  startDate: d.exhibition!.startDate,
+                  endDate: d.exhibition!.endDate,
+                  nextEditionKey: d.exhibition!.nextEditionKey,
+                },
+              }))
+          : [],
         drafts: drafts.docs,
         draftsTruncated: drafts.hasNextPage,
         published: published.docs

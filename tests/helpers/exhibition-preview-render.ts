@@ -5,9 +5,10 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ContentBody } from "../../src/lib/content-model";
+import { parseSiteLocales } from "../../src/lib/site-locales";
 
 /** Render the real preview page; replace only request authentication/storage, not the page's UI. */
-export async function assertExhibitionPreview(body: ContentBody) {
+export async function renderExhibitionPreview(body: ContentBody, published: ContentBody[] = []) {
   const require = createRequire(import.meta.url);
   const code = ts.transpileModule(
     readFileSync(
@@ -36,6 +37,13 @@ export async function assertExhibitionPreview(body: ContentBody) {
     "@/server/content/preview": {
       readContentPreview: async () => ({ draft: { revision: 2, body }, policy: undefined }),
     },
+    "@/server/content/service": {
+      listPublished: async (_p: unknown, locale: string) =>
+        published.filter((d) => d.locale === locale),
+    },
+    "@/server/site-config": {
+      isSiteLocale: (locale: string) => parseSiteLocales("en,zh").some((value) => value === locale),
+    },
   };
   for (const [, name] of code.matchAll(/require\("(@\/[^"]+)"\)/g)) {
     if (name in modules) continue;
@@ -53,9 +61,11 @@ export async function assertExhibitionPreview(body: ContentBody) {
     },
   };
   runInNewContext(code, ctx);
-  const html = renderToStaticMarkup(
-    await ctx.exports.default!({ params: Promise.resolve({ id: "1" }) }),
-  );
+  return renderToStaticMarkup(await ctx.exports.default!({ params: Promise.resolve({ id: "1" }) }));
+}
+
+export async function assertExhibitionPreview(body: ContentBody) {
+  const html = await renderExhibitionPreview(body);
   assert.ok(
     html.includes(body.exhibition!.transport!),
     "authenticated draft preview must include visitor text",

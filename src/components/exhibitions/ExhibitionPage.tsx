@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExhibitionVisitorDetails } from "./ExhibitionVisitorDetails";
+import { ExhibitionNextEdition } from "./ExhibitionNextEdition";
 import { canExportExhibitionCalendar } from "@/lib/exhibition-calendar";
 import { Header } from "../Header";
 import { ContentBlocks } from "../content/ContentBlocks";
@@ -179,6 +180,7 @@ export function ExhibitionPage({
                 ))}
             </dl>
             <ExhibitionVisitorDetails value={e} locale={locale} />
+            <ExhibitionNextEdition source={selected} published={localItems} />
             <div className="exhibition-actions">
               {e.officialURL && (
                 <a href={e.officialURL} target="_blank" rel="noopener noreferrer">
