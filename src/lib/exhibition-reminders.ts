@@ -3,10 +3,44 @@ import type { ContentBody } from "./content-model.ts";
 import type { Subscription } from "../../payload-types.ts";
 import { customerEmail, customerHash } from "./customer.ts";
 import { exhibitionPath, validExhibitionDate, type Exhibition } from "./exhibitions.ts";
+import { isContentIdentifier } from "./content-identifiers.ts";
 
 export const reminderHash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 export type ReminderScope = { key: string; locale: "zh" | "en" };
+export type ReminderEnvelope = ReminderScope & {
+  actor: number;
+  today: string;
+  at: string;
+  fingerprint: string;
+};
+export function parseReminderEnvelope(value: unknown): ReminderEnvelope {
+  if (typeof value !== "string" || value.length > 2048 || !/^[\w-]+\.[a-f0-9]{64}$/.test(value))
+    throw Error("Invalid reminder envelope");
+  const encoded = value.split(".")[0];
+  const json = Buffer.from(encoded, "base64url").toString("utf8");
+  const seal = JSON.parse(json) as ReminderEnvelope;
+  if (
+    Buffer.from(json).toString("base64url") !== encoded ||
+    !seal ||
+    typeof seal !== "object" ||
+    Array.isArray(seal) ||
+    Object.keys(seal).sort().join() !== "actor,at,fingerprint,key,locale,today" ||
+    !Number.isSafeInteger(seal.actor) ||
+    seal.actor < 1 ||
+    !isContentIdentifier(seal.key) ||
+    !["zh", "en"].includes(seal.locale) ||
+    typeof seal.today !== "string" ||
+    !validExhibitionDate(seal.today) ||
+    typeof seal.at !== "string" ||
+    !Number.isFinite(Date.parse(seal.at)) ||
+    new Date(seal.at).toISOString() !== seal.at ||
+    typeof seal.fingerprint !== "string" ||
+    !/^[a-f0-9]{64}$/.test(seal.fingerprint)
+  )
+    throw Error("Invalid reminder envelope");
+  return seal;
+}
 type Snapshot = Pick<ContentBody, "contentKey" | "locale" | "title"> &
   Pick<Exhibition, "startDate" | "endDate" | "venue" | "address"> & {
     id: number;

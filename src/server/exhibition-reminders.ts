@@ -8,6 +8,8 @@ import { trialAccess } from "../lib/trial-access";
 import {
   planExhibitionReminder,
   reminderHash,
+  parseReminderEnvelope,
+  type ReminderEnvelope as Seal,
   type ReminderScope,
   type ReminderState,
 } from "../lib/exhibition-reminders";
@@ -21,7 +23,6 @@ export const previewExhibitionReminders = (p: Payload, headers: Headers, input: 
   operate(p, headers, input, false);
 export const applyExhibitionReminders = (p: Payload, headers: Headers, receipt: unknown) =>
   operate(p, headers, receipt, true);
-type Seal = ReminderScope & { actor: number; today: string; at: string; fingerprint: string };
 const mac = (value: string) =>
   createHmac("sha256", process.env.PAYLOAD_SECRET!)
     .update("exhibition-reminder-v1:" + value)
@@ -41,18 +42,7 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
   let seal: Seal | undefined;
   if (write) {
     try {
-      if (typeof value !== "string" || value.length > 2048 || !/^[\w-]+\.[a-f0-9]{64}$/.test(value))
-        throw Error();
-      seal = JSON.parse(Buffer.from(value.split(".")[0], "base64url").toString("utf8")) as Seal;
-      if (
-        !seal ||
-        Object.keys(seal).sort().join() !== "actor,at,fingerprint,key,locale,today" ||
-        !Number.isSafeInteger(seal.actor) ||
-        typeof seal.at !== "string" ||
-        typeof seal.today !== "string" ||
-        !/^[a-f0-9]{64}$/.test(seal.fingerprint)
-      )
-        throw Error();
+      seal = parseReminderEnvelope(value);
     } catch {
       throw new ContentError("预检凭证无效，请重新预检。", 409);
     }

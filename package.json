@@ -106,7 +106,8 @@
     "test:policies:notes:editor": "node --import tsx tests/integration/policy-language-editor.ts",
     "test:policies:notes:editor:render": "node --import tsx tests/integration/policy-note-editor-render.tsx",
     "test:policies:notes:editor:http": "node --import tsx tests/integration/policy-note-editor-http.ts",
-    "subscriptions:mock-worker": "tsx scripts/subscription-mock-worker.ts"
+    "subscriptions:mock-worker": "tsx scripts/subscription-mock-worker.ts",
+    "exhibition:reminders": "tsx scripts/exhibition-reminders.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
