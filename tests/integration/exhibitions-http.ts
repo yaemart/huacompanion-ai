@@ -6,19 +6,12 @@ import { emptyExhibition, shanghaiToday } from "../../src/lib/exhibitions";
 import { mutateContent } from "../../src/server/content/service";
 import { locales } from "../../src/lib/locales";
 import { parseSiteLocales } from "../../src/lib/site-locales";
+import { assertExhibitionTestDatabase } from "../helpers/exhibition-test-environment";
 
-const database = new URL(process.env.DATABASE_URL || "http://invalid");
-if (
-  process.env.APP_ENV !== "local" ||
-  database.hostname !== "127.0.0.1" ||
-  database.port !== "55438" ||
-  database.pathname !== "/hua_companion"
-) {
-  throw Error(
-    "Refusing to test outside the dedicated local database at 127.0.0.1:55438/hua_companion",
-  );
-}
-const base = "http://127.0.0.1:3000";
+assertExhibitionTestDatabase();
+const base = process.env.APP_URL || "http://127.0.0.1:3000";
+if (!/^http:\/\/127\.0\.0\.1:(3000|3188)$/.test(base))
+  throw Error("Exhibition HTTP tests require a loopback fixture server");
 const activeLocales = parseSiteLocales(process.env.SITE_LOCALES);
 const p = await getPayload({ config });
 let draftId: number | undefined;
@@ -28,6 +21,18 @@ const title = "Fictional HTTP exhibition <test> & source";
 const escapedTitle = "Fictional HTTP exhibition &lt;test&gt; &amp; source";
 const event = {
   ...emptyExhibition(),
+  phases: [
+    {
+      name: "Fictional phase <A>",
+      startDate: "2090-01-31",
+      endDate: "2090-02-01",
+      theme: "Fictional tools\n<script>visitor</script>",
+    },
+  ],
+  transport: "Fictional HTTP transit",
+  buyerRegistration: "Fictional HTTP overseas buyer entry",
+  stayAreas: "Fictional HTTP lodging",
+  firstVisitTips: "Fictional HTTP tips",
   edition: "HTTP fixture 2090",
   city: "shanghai",
   venue: "Fictional test venue",
@@ -120,6 +125,19 @@ try {
   assert.ok(detail.includes(escapedTitle));
   assert.ok(!detail.includes(title), "Raw title must not enter HTML or JSON-LD");
   assert.ok(detail.includes("application/ld+json"));
+  assert.ok(detail.includes("Fictional phase &lt;A&gt;"));
+  assert.ok(detail.includes("&lt;script&gt;visitor&lt;/script&gt;"));
+  for (const value of [
+    event.transport,
+    event.buyerRegistration,
+    event.stayAreas,
+    event.firstVisitTips,
+  ])
+    assert.ok(detail.includes(value));
+  assert.equal(
+    (await fetch(base + "/api/public/exhibitions", { method: "POST", body: "{}" })).status,
+    405,
+  );
   assert.ok(detail.includes("\\u003ctest>"), "JSON-LD escapes less-than characters");
   const api = await json(`/api/public/exhibitions?locale=en&key=${key}`);
   assert.equal(api.total, 1);
@@ -130,6 +148,8 @@ try {
   assert.equal(api.items[0].sources[0].checkedAt, event.verifiedAt);
   assert.equal(api.items[0].exhibition.startDate, event.startDate);
   assert.equal(api.items[0].exhibition.endDate, event.endDate);
+  assert.deepEqual(api.items[0].exhibition.phases, event.phases);
+  assert.equal(api.items[0].exhibition.transport, event.transport);
   const content = await json("/api/public/content?locale=en");
   assert.equal(
     content.items.find((d: any) => d.contentKey === key)?.path,

@@ -3,6 +3,13 @@ import type { Locale } from "./locales.ts";
 import { exhibitionIndustries } from "./exhibitions.ts";
 export { exhibitionIndustries } from "./exhibitions.ts";
 const en = {
+  phases: "Exhibition phases",
+  phaseTheme: "Theme",
+  visitorInfo: "Visitor information",
+  transport: "Transport",
+  buyerRegistration: "Overseas buyer registration",
+  stayAreas: "Where to stay",
+  firstVisitTips: "First visit tips",
   title: "Exhibitions in China",
   intro:
     "Explore exhibitions and plan your visit with Hua. Dates and admission requirements may change; check the official source before travelling.",
@@ -67,6 +74,13 @@ export type ExhibitionCopyKey = keyof typeof en;
 export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> = {
   en,
   zh: {
+    phases: "展会分期",
+    phaseTheme: "本期题材",
+    visitorInfo: "到访资料",
+    transport: "交通",
+    buyerRegistration: "外国买家登记",
+    stayAreas: "推荐住宿区域",
+    firstVisitTips: "首次参展提示",
     title: "中国展会",
     intro: "了解展会信息，与 Hua 一起安排参访。日期和入场要求可能调整，出行前请核对官方来源。",
     search: "搜索",
@@ -126,6 +140,13 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "其他",
   },
   es: {
+    phases: "Fases de la feria",
+    phaseTheme: "Temática",
+    visitorInfo: "Información para visitantes",
+    transport: "Transporte",
+    buyerRegistration: "Registro para compradores extranjeros",
+    stayAreas: "Zonas donde alojarse",
+    firstVisitTips: "Consejos para la primera visita",
     title: "Ferias en China",
     intro:
       "Descubra ferias y prepare su visita con Hua. Las fechas y los requisitos de acceso pueden cambiar; consulte la fuente oficial antes de viajar.",
@@ -187,6 +208,13 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Otros",
   },
   fr: {
+    phases: "Phases du salon",
+    phaseTheme: "Thématique",
+    visitorInfo: "Informations pour les visiteurs",
+    transport: "Transports",
+    buyerRegistration: "Inscription des acheteurs étrangers",
+    stayAreas: "Quartiers où séjourner",
+    firstVisitTips: "Conseils pour une première visite",
     title: "Salons en Chine",
     intro:
       "Découvrez les salons et préparez votre visite avec Hua. Les dates et conditions d’accès peuvent changer ; consultez la source officielle avant de voyager.",
@@ -248,6 +276,13 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Autres",
   },
   de: {
+    phases: "Messephasen",
+    phaseTheme: "Schwerpunkte",
+    visitorInfo: "Besucherinformationen",
+    transport: "Anreise",
+    buyerRegistration: "Registrierung für ausländische Einkäufer",
+    stayAreas: "Übernachtungsgebiete",
+    firstVisitTips: "Tipps für den ersten Besuch",
     title: "Messen in China",
     intro:
       "Entdecken Sie Messen und planen Sie Ihren Besuch mit Hua. Termine und Einlassbedingungen können sich ändern. Prüfen Sie vor der Reise die offizielle Quelle.",
@@ -309,6 +344,13 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Sonstige",
   },
   it: {
+    phases: "Fasi della fiera",
+    phaseTheme: "Tema",
+    visitorInfo: "Informazioni per i visitatori",
+    transport: "Trasporti",
+    buyerRegistration: "Registrazione per acquirenti stranieri",
+    stayAreas: "Zone dove soggiornare",
+    firstVisitTips: "Consigli per la prima visita",
     title: "Fiere in Cina",
     intro:
       "Scopri le fiere e organizza la visita con Hua. Date e requisiti di accesso possono cambiare: consulta la fonte ufficiale prima di partire.",
@@ -370,6 +412,13 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Altro",
   },
   ar: {
+    phases: "مراحل المعرض",
+    phaseTheme: "موضوع المرحلة",
+    visitorInfo: "معلومات الزوار",
+    transport: "المواصلات",
+    buyerRegistration: "تسجيل المشترين الأجانب",
+    stayAreas: "مناطق الإقامة",
+    firstVisitTips: "نصائح للزيارة الأولى",
     title: "المعارض في الصين",
     intro:
       "اكتشف المعارض وخطط لزيارتك مع هوا. قد تتغير المواعيد وشروط الدخول؛ راجع المصدر الرسمي قبل السفر.",

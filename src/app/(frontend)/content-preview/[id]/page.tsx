@@ -1,3 +1,4 @@
+import { ExhibitionVisitorDetails } from "@/components/exhibitions/ExhibitionVisitorDetails";
 import { staffVersion } from "@/lib/staff-display";
 import { policyLabels } from "@/lib/immigration-policy-editor";
 import { readContentPreview } from "@/server/content/preview";
@@ -71,6 +72,7 @@ export default async function Preview({ params }: { params: Promise<{ id: string
               </div>
             ))}
           </dl>
+          <ExhibitionVisitorDetails value={body.exhibition} locale={body.locale} />
         </section>
       )}
       {body.lifestyle && (
