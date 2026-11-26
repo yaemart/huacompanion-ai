@@ -95,6 +95,13 @@ test("historical ended events and legacy bodies without optional phase keys stil
   assert.match(unfold(build(body)), /SUMMARY:虚构日历展会/);
   assert.equal(JSON.stringify(body), before);
 });
+test("calendar refuses an ended display projection whose published dates were unconfirmed", () => {
+  assert.ok(api);
+  const body = { ...fixture(), calendarExportable: false };
+  body.exhibition!.status = "ended";
+  assert.equal(api.canExportExhibitionCalendar(body), false);
+  assert.equal(api.buildExhibitionCalendar(body, origin, stamp), null);
+});
 test("calendar does not export another content type or missing exhibition", () => {
   assert.ok(api);
   assert.equal(api.canExportExhibitionCalendar({ ...fixture(), kind: "guide" }), false);

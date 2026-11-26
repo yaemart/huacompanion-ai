@@ -33,6 +33,7 @@ function load(
   items: ContentBody[] = [fixture],
   fail = false,
   origin = "https://site.example.invalid",
+  siteLocales = "en,zh",
 ) {
   assert.ok(existsSync(file), "actual calendar route must exist");
   let initialized = 0;
@@ -42,7 +43,7 @@ function load(
     "@/lib/content-identifiers": { isContentIdentifier },
     "@/lib/locales": { isLocale },
     "@/server/site-config": {
-      isSiteLocale: (v: unknown) => isLocale(v) && parseSiteLocales("en,zh").includes(v),
+      isSiteLocale: (v: unknown) => isLocale(v) && parseSiteLocales(siteLocales).includes(v),
     },
     "@/payload.config": {},
     payload: {
@@ -137,3 +138,16 @@ test("calendar route refuses invalid configured origin rather than using request
   assert.equal(response.status, 503);
   assert.doesNotMatch(await response.text(), /untrusted.example.invalid/);
 });
+for (const config of ["en,en,zh", "en", "unknown,en,zh"])
+  test(
+    "calendar route contains invalid language configuration before storage: " + config,
+    async () => {
+      const route = load([fixture], false, "https://site.example.invalid", config);
+      const response = await route.get(request());
+      assert.equal(response.status, 503);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+      assert.equal(route.initialized(), 0);
+      assert.doesNotMatch(await response.text(), /SITE_LOCALES|PRIVATE|stack/);
+    },
+  );

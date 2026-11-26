@@ -12,9 +12,11 @@ export async function GET(request: Request) {
   const locale = query.get("locale");
   const key = query.get("key");
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
-  if (!isLocale(locale) || !isSiteLocale(locale) || !isContentIdentifier(key))
+  if (!isLocale(locale) || !isContentIdentifier(key))
     return Response.json({ error: "Invalid locale or exhibition key" }, { status: 400, headers });
   try {
+    if (!isSiteLocale(locale))
+      return Response.json({ error: "Invalid locale or exhibition key" }, { status: 400, headers });
     const published = await listPublished(await getPayload({ config }), locale);
     const body = published.find((d) => d.kind === "exhibition" && d.contentKey === key);
     if (!body)

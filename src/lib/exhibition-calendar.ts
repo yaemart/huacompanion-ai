@@ -9,6 +9,7 @@ export function canExportExhibitionCalendar(body: ContentBody): boolean {
   const e = body.exhibition;
   return !!(
     body.kind === "exhibition" &&
+    body.calendarExportable !== false &&
     isLocale(body.locale) &&
     isContentIdentifier(body.contentKey) &&
     isContentIdentifier(body.slug) &&

@@ -132,6 +132,47 @@ export async function assertExhibitionCalendarHTTP({
         await read(409);
       });
     }
+    const history = {
+      ...body.exhibition!,
+      startDate: "2020-01-01",
+      endDate: "2020-01-02",
+      phases: [],
+    };
+    await publish({
+      ...body,
+      calendarExportable: true,
+      exhibition: {
+        ...history,
+        status: "pending",
+        unresolved: "Fictional unconfirmed historical dates",
+      },
+    });
+    await unchanged(async () => {
+      const stored = await p.findByID({ collection: "content-drafts", id: draftId });
+      assert.ok(stored.body && typeof stored.body === "object");
+      assert.equal(Object.hasOwn(stored.body, "calendarExportable"), false);
+      const projected = await (
+        await fetch(base + "/api/public/exhibitions?locale=en&key=" + body.contentKey)
+      ).json();
+      assert.equal(
+        projected.items[0].exhibition.status,
+        "ended",
+        "existing display status stays unchanged",
+      );
+      assert.equal(
+        projected.items[0].calendarExportable,
+        false,
+        "derive eligibility before display status",
+      );
+      await read(409);
+      const response = await fetch(base + "/en/exhibitions/" + body.slug);
+      assert.equal(response.status, 200);
+      const html = await response.text();
+      assert.doesNotMatch(html, /href="\/api\/public\/exhibitions\/calendar/);
+      assert.match(html, /Calendar download is unavailable/);
+    });
+    await publish({ ...body, exhibition: { ...history, status: "announced" } });
+    assert.match(await read(), /DTEND;VALUE=DATE:20200103\r\n/);
     await publish({
       ...body,
       exhibition: {
