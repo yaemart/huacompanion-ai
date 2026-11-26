@@ -1,5 +1,10 @@
 import { testSignedCampaignFeedback } from "./subscription-campaign-signed-feedback";
 import {
+  up as upReminders,
+  down as downReminders,
+} from "../../src/migrations/20261126_130000_exhibition_reminders";
+import { testExhibitionReminderMigration } from "../helpers/exhibition-reminders-migration";
+import {
   up as upSignedFeedback,
   down as downSignedFeedback,
 } from "../../src/migrations/20261126_090000_subscription_signed_feedback";
@@ -152,6 +157,7 @@ const adapter = (db: pg.Client) => ({
 try {
   await checkMigration(async (db) => {
     const before = await databaseFingerprints(db);
+    await downReminders(adapter(db) as unknown as MigrateDownArgs);
     await downSignedFeedback(adapter(db) as unknown as MigrateDownArgs);
     await downFeedback(adapter(db) as unknown as MigrateDownArgs);
     await downContinuation(adapter(db) as unknown as MigrateDownArgs);
@@ -165,12 +171,13 @@ try {
     await downMailQueue(adapter(db) as unknown as MigrateDownArgs);
     await down(adapter(db) as unknown as MigrateDownArgs);
     const former = await databaseFingerprints(db);
-    assert.equal(former.length, before.length - 12);
+    assert.equal(former.length, before.length - 13);
     assert.deepEqual(
       former,
       before.filter(
         ({ table }) =>
           ![
+            "exhibition_reminder_jobs",
             "subscription_campaign_mail_bindings",
             "subscription_campaign_feedback",
             "subscription_marketing_suppressions",
@@ -198,9 +205,11 @@ try {
     await upContinuation(adapter(db) as unknown as MigrateUpArgs);
     await upFeedback(adapter(db) as unknown as MigrateUpArgs);
     await upSignedFeedback(adapter(db) as unknown as MigrateUpArgs);
+    await upReminders(adapter(db) as unknown as MigrateUpArgs);
     assert.deepEqual(await databaseFingerprints(db), before);
   });
   console.log("PASS 空表回退及重迁移，既有表指纹一致");
+  await testExhibitionReminderMigration(payload);
 
   await assert.rejects(startSubscription(payload, { ...input, topic: "exhibition:" }));
   await assert.rejects(startSubscription(payload, { ...input, privacyVersion: " " }));
