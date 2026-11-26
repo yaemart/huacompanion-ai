@@ -32,6 +32,8 @@ export type Source = {
   checkedAt?: string;
 };
 export type ContentBody = {
+  /** Read-only public projection metadata, never accepted from saved content. */
+  readonly calendarExportable?: boolean;
   qualityReview?: { checkedAt?: string; nextReviewAt?: string };
   contentKey: string;
   kind:

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExhibitionVisitorDetails } from "./ExhibitionVisitorDetails";
+import { canExportExhibitionCalendar } from "@/lib/exhibition-calendar";
 import { Header } from "../Header";
 import { ContentBlocks } from "../content/ContentBlocks";
 import type { ContentBody } from "@/lib/content-model";
@@ -188,6 +189,20 @@ export function ExhibitionPage({
                 <a href={e.registrationURL} target="_blank" rel="noopener noreferrer">
                   {t("registration")} ↗
                 </a>
+              )}
+            </div>
+            <div className="exhibition-calendar">
+              {canExportExhibitionCalendar(selected) ? (
+                <>
+                  <a
+                    href={`/api/public/exhibitions/calendar?${new URLSearchParams({ locale, key: selected.contentKey })}`}
+                  >
+                    {t("calendar")}
+                  </a>
+                  <p>{t("calendarNotice")}</p>
+                </>
+              ) : (
+                <p>{t("calendarUnavailable")}</p>
               )}
             </div>
             <ContentBlocks

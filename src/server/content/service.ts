@@ -28,6 +28,7 @@ import {
   shanghaiToday,
 } from "../../lib/exhibitions";
 import { isCatalog, validateCatalog } from "../../lib/catalog";
+import { canExportExhibitionCalendar } from "../../lib/exhibition-calendar";
 import { eligibleProvider, allSnapshots, suspendProjectsForKey } from "../catalog/eligibility";
 import type { Payload, PayloadRequest } from "payload";
 import type { ContentDraft, ContentPublished } from "../../../payload-types";
@@ -122,6 +123,9 @@ export async function listPublished(p: Payload, locale: string, req?: Partial<Pa
     .filter((s) => (s.body as ContentBody).locale === locale)
     .map((s) => {
       const b = publicBody(s.body as ContentBody);
+      // Preserve confirmation eligibility before the existing display-only "ended" projection.
+      const calendarExportable =
+        b.kind === "exhibition" ? canExportExhibitionCalendar(b) : undefined;
       if (b.kind === "exhibition" && b.exhibition) {
         b.exhibition.status = effectiveExhibitionStatus(b.exhibition);
         b.acceptingInquiries = !["ended", "cancelled"].includes(b.exhibition.status);
@@ -150,6 +154,7 @@ export async function listPublished(p: Payload, locale: string, req?: Partial<Pa
       }
       return {
         ...b,
+        ...(b.kind === "exhibition" ? { calendarExportable } : {}),
         publicationRevision: s.revision,
         publishedAt: s.publishedAt,
         qualityReview: publicQualityMetadata(s.qualityReview, s.revision),

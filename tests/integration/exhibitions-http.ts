@@ -7,6 +7,8 @@ import { mutateContent } from "../../src/server/content/service";
 import { locales } from "../../src/lib/locales";
 import { parseSiteLocales } from "../../src/lib/site-locales";
 import { assertExhibitionTestDatabase } from "../helpers/exhibition-test-environment";
+import { assertExhibitionCalendarHTTP } from "../helpers/exhibition-calendar-http";
+import type { ContentBody } from "../../src/lib/content-model";
 
 assertExhibitionTestDatabase();
 const base = process.env.APP_URL || "http://127.0.0.1:3000";
@@ -47,7 +49,7 @@ const event = {
   industries: ["hardware"],
   status: "announced" as const,
 };
-const body = {
+const body: ContentBody = {
   kind: "exhibition",
   locale: "en",
   contentKey: key,
@@ -185,6 +187,7 @@ try {
     for (const option of locales)
       assert.equal(switcher.includes(`value="${option}"`), activeLocales.includes(option));
   }
+  await assertExhibitionCalendarHTTP({ p, admin, draftId: draftId!, body, base, publish });
   await publish({ ...body, exhibition: { ...event, status: "cancelled" } });
   const cancelled = await html(`/en/request?exhibition=${key}`);
   assert.ok(cancelled.includes("The selected exhibition is unavailable"));
