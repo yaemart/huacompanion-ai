@@ -56,3 +56,35 @@
 ## 最终交付
 
 全部任务完成后唯一最强独立全分支复核，重要项一轮RED→GREEN及全套绿色，轻微延期；精确HEAD与origin任务分支一致，两CI作业和关键日志实核；草稿不自动合并。本计划scratch独立归档后只清理自身目录。
+
+## 唯一最终复核与完整实施判断
+
+唯一复核1严重/2重要/2轻微；前三项7个反例RED→GREEN，完整check797/797、订阅42组及生产build再次通过，无第二次复核。业务源码增删387≤400。严重项为初始化前拒绝既有清库开关，重要项为初始化前结构解析及回执暂存完成后独占发布。轻微延期为排除原因分类计数和标题U+2028/U+2029清理。
+
+Ruling: user already approved the formal CLI contract and now explicitly requests implementation with native execution; preserve prior in-place/native choice, no repeated design/plan approval — cost if wrong: routine interface choices need later adjustment/shared paths coordinated.
+
+Ruling: preserve five unrelated untracked drafts and verify tracked+own files in a no-.env source copy — cost: other chat remains responsible for its changes; no claim whole root is clean.
+
+Ruling: help is inert documentation, allowed without local database mode; actual operations always local-only before initialization — cost: operators still must configure local before any action.
+
+Ruling: raw JWT/receipt private text files, exact0600 owned regular single-link inputs, bounded reads; output only exclusive0600 receipt, fixed safe error text — cost: stricter Unix file requirements and no arbitrary JSON/password input.
+
+Ruling: no new migration/dependency/date override; real CLI PG fixtures use actual DB Shanghai date+30/+7, service reused intact — cost: CLI tests must construct reviewed current-relative fictional dates.
+
+Ruling: document npm --silent entry so npm does not echo command arguments; direct script stdout remains only safe Chinese report — cost: operators should keep --silent in documented examples.
+
+Ruling: process assertions initially ran after a first entry draft; discarded that own draft, observed ten process assertions RED for missing entry, then rewrote from the tests — cost: extra test/rewrite cycle; no other files removed.
+
+Ruling: Task2 adds acceptance of Task1 product, not new functionality; do not fabricate failing assertions when existing behavior is correct, but new defects need RED before fixes and missing-DB safety gets a real negative control — cost: positive acceptance is not claimed as a separate product TDD cycle.
+
+Ruling: final old retry regression hit lease-invalid409 instead of injected-audit503 because its 60s lease was acquired before lengthy migration/permission probes. In this isolated fixture, explicitly expire/reclaim the unattempted lease via the existing native service immediately before the audit scenario; keep product TTL/guards and expected503/full rollback unchanged — cost: one extra fixture lease audit and test-only expiry, no live lease changes. Missing-DB cleanup now only drops its random probe after proving it was absent before the command.
+
+Ruling: withdraw the preceding retry-fixture change after power-log evidence: repeated 77-second Maintenance Sleep intervals line up with 04:05 lease failure and 04:10 worker abort; a subsequent lease had 59740ms remaining before the artificial renewal. Restore original tests and run Node24.22.1 acceptance under process-scoped caffeinate -is; no production/test timeouts changed — cost: local acceptance requires an awake computer; interrupted runs remain failed evidence, not product failures.
+
+Final: minor (deferred): report merges exclusion reasons into total; category-level Chinese counts later.
+
+Final: minor (deferred): title strips category C controls but U+2028/U+2029 remain; single-line log polish later.
+
+Ruling: structural preflight accepts current Payload HS256 staff/session JWT shape; cryptographic validity, time and active authorization stay native. Shared envelope parser validates syntax without current MAC/time to retain old committed history — cost: future auth format changes require adapting this local command.
+
+Ruling: stage/sync/close then exclusive link publication; if post-link stage unlink fails, retain the private second link so CLI input rejects it instead of silently yielding a usable failure receipt — cost: failed saves may leave a private staging directory requiring careful manual cleanup; never overwrite a target.

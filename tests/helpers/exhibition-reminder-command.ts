@@ -313,6 +313,24 @@ export async function testExhibitionReminderCommand(p: Payload) {
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /拟新增：1/);
     });
+    await unchanged(async () => {
+      const target = join(files, "forbidden-reset.receipt");
+      const result = await cli(previewArgs(target), {
+        NODE_ENV: "development",
+        PAYLOAD_DROP_DATABASE: "true",
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /清理|重置|删除/);
+      assert.equal(existsSync(target), false);
+      assert.equal(
+        (
+          await db.query(
+            "SELECT 1 FROM information_schema.columns WHERE table_name='exhibition_reminder_jobs' AND column_name='cli_preserve_probe'",
+          )
+        ).rowCount,
+        1,
+      );
+    });
     const beforeGeneration = await databaseFingerprints(db);
     const outcomes = await Promise.all([cli(applyArgs(first)), cli(applyArgs(first))]);
     assert.ok(

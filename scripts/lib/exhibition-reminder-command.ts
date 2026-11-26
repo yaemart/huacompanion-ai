@@ -5,12 +5,17 @@ import {
   fstatSync,
   fsyncSync,
   lstatSync,
+  linkSync,
+  mkdtempSync,
   openSync,
   readSync,
   statSync,
+  rmdirSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
+import { parseReminderEnvelope } from "../../src/lib/exhibition-reminders.ts";
 import { validExhibitionDate } from "../../src/lib/exhibitions.ts";
 import { isContentIdentifier } from "../../src/lib/content-identifiers.ts";
 import type { previewExhibitionReminders } from "../../src/server/exhibition-reminders.ts";
@@ -50,10 +55,46 @@ export function parseReminderCommand(args: string[]) {
   };
 }
 function valid(value: string, kind: "auth" | "receipt") {
-  return (
-    value.length <= (kind === "auth" ? 8192 : 2048) &&
-    (kind === "auth" ? /^[\w-]+\.[\w-]+\.[\w-]+$/ : /^[\w-]+\.[a-f0-9]{64}$/).test(value)
-  );
+  try {
+    if (kind === "receipt") {
+      parseReminderEnvelope(value);
+      return true;
+    }
+    if (value.length > 8192 || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(value)) return false;
+    const parts = value.split(".");
+    const object = (part: string) => {
+      const json = Buffer.from(part, "base64url").toString("utf8");
+      const parsed = JSON.parse(json) as Record<string, unknown>;
+      if (
+        Buffer.from(json).toString("base64url") !== part ||
+        !parsed ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed)
+      )
+        throw Error();
+      return parsed;
+    };
+    const header = object(parts[0]),
+      claims = object(parts[1]);
+    const signature = Buffer.from(parts[2], "base64url");
+    return (
+      header.alg === "HS256" &&
+      (header.typ === undefined || header.typ === "JWT") &&
+      Number.isSafeInteger(claims.id) &&
+      Number(claims.id) > 0 &&
+      claims.collection === "staff" &&
+      typeof claims.sid === "string" &&
+      claims.sid.length > 0 &&
+      typeof claims.iat === "number" &&
+      Number.isFinite(claims.iat) &&
+      typeof claims.exp === "number" &&
+      Number.isFinite(claims.exp) &&
+      signature.length === 32 &&
+      signature.toString("base64url") === parts[2]
+    );
+  } catch {
+    return false;
+  }
 }
 export function readReminderFile(path: string, kind: "auth" | "receipt") {
   let fd: number | undefined;
@@ -105,22 +146,52 @@ export function assertNewReminderReceipt(path: string) {
 }
 export function saveReminderReceipt(path: string, receipt: string) {
   let fd: number | undefined;
+  let staging: string | undefined;
+  let published = false;
   try {
     if (!valid(receipt, "receipt")) throw Error();
+    staging = mkdtempSync(join(dirname(path), ".reminder-"));
+    const privateFile = join(staging, "receipt");
     fd = openSync(
-      path,
+      privateFile,
       constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
       0o600,
     );
     fchmodSync(fd, 0o600);
     writeFileSync(fd, receipt + "\n", "utf8");
     fsyncSync(fd);
+    closeSync(fd);
+    fd = undefined;
+    linkSync(privateFile, path);
+    published = true;
+    unlinkSync(privateFile);
   } catch {
     throw new ReminderCommandError(
       "回执文件未能新建或完整保存；不覆盖已有文件，请选择新路径重新预检。",
     );
   } finally {
-    if (fd !== undefined) closeSync(fd);
+    if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* Preserve the safe save error. */
+      }
+    }
+    if (staging) {
+      // Failed publication cleanup must not turn a rejected multi-link input into a usable receipt.
+      if (!published) {
+        try {
+          unlinkSync(join(staging, "receipt"));
+        } catch {
+          /* Private temporary file only. */
+        }
+      }
+      try {
+        rmdirSync(staging);
+      } catch {
+        /* Never fail after successful publication. */
+      }
+    }
   }
 }
 type Report = Awaited<ReturnType<typeof previewExhibitionReminders>>;

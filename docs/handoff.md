@@ -3,15 +3,15 @@
 ## 管理员受控本地提醒命令（2026-11-27）
 
 已核实PR124合并，origin/main `fa1b8bde99b341621607ac09b763cd082ef8829f`包含`c6d83f9`；从最新main建立`codex/exhibition-reminder-command`，[草稿PR125](https://github.com/yaemart/huacompanion-ai/pull/125)，不自动合并。[实施计划](superpowers/plans/2026-11-26-exhibition-reminder-command.md)、[一页使用与小结](exhibition-reminder-command-summary.md)，沿用已接受正式设计和原生方式。
-入口`npm run --silent exhibition:reminders -- preview --key KEY --locale zh|en --auth-file PATH --receipt-file NEW_PATH`或`apply --auth-file PATH --receipt-file PATH`；可直接`node --import tsx scripts/exhibition-reminders.ts`。只有local实际操作，--help惰性不连接库；JWT/回执均当前uid、0600、常规单链接、有界文件。拒绝token/裸staffId/日期/发送/强制参数、链接/特殊文件；回执独占新建不覆盖，apply不改原回执。
-Payload延迟初始化前完成参数/文件校验；强制关闭schema push、自动建库、自动类型生成和遥测，日志静默，普通完成/失败finally销毁。完全复用PR124真实JWT/现职管理员、原审核、内容→业务→权限→邮箱→主题锁；命令不发布资料、不扩政策群发权限、不改H真实试发门禁。
+入口`npm run --silent exhibition:reminders -- preview --key KEY --locale zh|en --auth-file PATH --receipt-file NEW_PATH`或`apply --auth-file PATH --receipt-file PATH`；可直接`node --import tsx scripts/exhibition-reminders.ts`。只有local实际操作，--help惰性不连接库；JWT/回执均当前uid、0600、常规单链接、有界文件。拒绝token/裸staffId/日期/发送/强制参数、链接/特殊文件；回执先私有暂存写入、同步并关闭，再以不覆盖的独占链接发布；暂存清理失败时双链接输入仍拒绝，apply不改原回执。
+Payload延迟初始化前完成参数/文件/结构校验并明确拒绝PAYLOAD_DROP_DATABASE=true；强制关闭schema push、自动建库、自动类型生成和遥测，日志静默，普通完成/失败finally销毁。完全复用PR124真实JWT/现职管理员、原审核、内容→业务→权限→邮箱→主题锁；命令不发布资料、不扩政策群发权限、不改H真实试发门禁。
 报告仅已审核标题/本届标识/语言/资料版本/总体日期及业务日与数量，标题去终端控制符并限长；区分订阅合资格、本档待发、取消终态、拟/本次新增取消。历史明确当时数量/原时间/当前资格未检查，不能冒称当前可发。退出1不能据此断言未提交，保留原回执先查询/核实，再决定新预检；不强制重试、清除历史或覆盖回执。
-35项新增参数/真实fs/真实启动/脱敏断言先RED后GREEN；完整check790/790、lint0错误/445既有警告、871文件行长通过。新main基线755/755；本批手写业务源码264行≤400。独立随机库订阅完整42组（原41＋实际CLI闭环）通过，生产build通过；原HTTP由最终精确提交CI沿原脚本核实。
+42项新增参数/真实fs/真实启动/脱敏断言先RED后GREEN；完整check797/797、lint0错误/445既有警告、871文件行长通过。新main基线755/755；本批手写业务源码387行≤400。独立随机库订阅完整42组（原41＋实际CLI闭环）通过，生产build通过；原HTTP由最终精确提交CI沿原脚本核实。
 实际CLI使用真实JWT与审核展会，按数据库北京时间today+30/+7构造虚构日期，无产品或机器时钟覆盖。验证实际npm静默入口、0600回执、预检全表只读、两真实进程同封套只一审计/一held、改稿隔离、30→7改版取消重建、非窗口纯取消、旧历史原计数、撤权/登出/编辑/有政策授权主管拒绝、独立维护配置阻止、状态变化/正确签名的过期封套拒绝并保留文件、新密钥新JWT历史可查及未提交旧封套拒绝（同旧密钥正向对照可应用），0→真实记录→清理0。
 每次CLI核对所有原表不变（仅新记录与审计可变），子进程fetch/http/https被禁止且最终0调用；类型文件内容/mtime不变、额外schema列保留、子进程连接离开。缺失库不自动创建，独立负对照只删该守卫时实际建出1库而断言期望0失败，自己的随机库已清理；不把exit1当无副作用证明。
 验收纠正记录：同时prepare副本触发mtime误差，改为不可变副本检查；HTTP守卫捕获测试会话辅助进程默认Payload遥测，给它同样关闭遥测/schema/类型/建库后0调用，生产CLI未放宽。并行构建/检查与验收曾有CLI子进程非正常返回且无stderr，原因未证实；增加仅code/signal/killed元数据并独立复核通过，不称已证明超时/OOM。系统电源日志证实失败时反复休眠77秒，覆盖既有60秒租约和45秒worker等待；撤回未经证实的租约夹具调整，原测试/产品时限不变，使用进程范围caffeinate临时防休眠后完整重跑通过。
 无新依赖、字段、迁移或必需环境变量，原演示库未升级/reset；已有库接入前停对应Web/worker、配套备份迁移再构建，命令不自动修复schema。其他5份草稿保留未纳入。原始日志仅.local/exhibition-reminder-command未上传，无新页面或浏览器/真人/真实送达/系统级抓包声称。CLI是一次性人工操作，自动调度、提醒发送和运营页面继续后批。
-唯一末尾独立全分支复核与最终精确SHA/两CI作业结果以PR125实核记录为准，当前不预称云端通过。
+唯一末尾独立复核发现1严重/2重要/2轻微；前三项一轮7个反例RED→GREEN：初始化前拒绝清库开关、JWT头/载荷及共用纯封套结构校验、暂存完成后独占发布回执（真实fsync/close/unlink失败注入）。复核后check797/797、lint0/445、871文件行长、订阅42组与生产构建均重新通过；无第二次复核。轻微延期：排除原因目前仅总数；标题U+2028/U+2029尚未清理。最终精确SHA/两CI作业结果以PR125实核记录为准，不把旧提交CI冒称最终。
 
 ## 单展会30/7天本地待发内核（2026-11-26）
 

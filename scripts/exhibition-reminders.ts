@@ -25,6 +25,8 @@ try {
   } else {
     if (process.env.APP_ENV !== "local")
       throw new ReminderCommandError("此命令仅限 APP_ENV=local；其他环境不能操作本地提醒。");
+    if (process.env.PAYLOAD_DROP_DATABASE === "true")
+      throw new ReminderCommandError("本地提醒禁止数据库清理或重置，请先移除重置开关再操作。");
     const options = parseReminderCommand(args);
     const headers = new Headers({
       authorization: "JWT " + readReminderFile(options.authFile, "auth"),

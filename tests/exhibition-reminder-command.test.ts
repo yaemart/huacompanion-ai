@@ -11,6 +11,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { spawnSync, execFileSync } from "node:child_process";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,8 +23,24 @@ const command = () => {
 };
 const dir = mkdtempSync(join(tmpdir(), "hua-reminder-command-"));
 after(() => rmSync(dir, { recursive: true, force: true }));
-const receipt = "eyJmaWxlIjoxfQ." + "a".repeat(64);
-const file = (name: string, content = "header.payload.signature", mode = 0o600) => {
+const encoded = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+const claims = { id: 1, collection: "staff", sid: "fictional-session", iat: 1, exp: 9999999999 };
+const jwt =
+  encoded({ alg: "HS256", typ: "JWT" }) +
+  "." +
+  encoded(claims) +
+  "." +
+  Buffer.alloc(32).toString("base64url");
+const seal = {
+  key: "spring-fair",
+  locale: "zh",
+  actor: 1,
+  today: "2027-02-08",
+  at: "2027-02-08T04:00:00.000Z",
+  fingerprint: "b".repeat(64),
+};
+const receipt = encoded(seal) + "." + "a".repeat(64);
+const file = (name: string, content = jwt, mode = 0o600) => {
   const path = join(dir, name);
   writeFileSync(path, content, { mode });
   chmodSync(path, mode);
@@ -70,10 +88,7 @@ for (const args of [
     assert.throws(() => command().parseReminderCommand(args));
   });
 test("reads raw existing JWT and opaque receipt from owned private regular files", () => {
-  assert.equal(
-    command().readReminderFile(file("valid.jwt", "header.payload.signature\n"), "auth"),
-    "header.payload.signature",
-  );
+  assert.equal(command().readReminderFile(file("valid.jwt", jwt + "\n"), "auth"), jwt);
   assert.equal(
     command().readReminderFile(file("valid.receipt", receipt + "\r\n"), "receipt"),
     receipt,
@@ -130,6 +145,53 @@ test("new receipt is 0600, durable and cannot overwrite an existing file or link
   symlinkSync(join(dir, "absent-target"), join(dir, "dangling-output"));
   assert.throws(() => command().assertNewReminderReceipt(join(dir, "dangling-output")));
 });
+test("structured credential files reject non-JSON and incorrect JWT/receipt fields", () => {
+  const cases = [
+    ["header.payload.signature", "auth"],
+    [encoded([]) + "." + encoded(claims) + "." + Buffer.alloc(32).toString("base64url"), "auth"],
+    [
+      encoded({ alg: "HS256" }) + "." + encoded({}) + "." + Buffer.alloc(32).toString("base64url"),
+      "auth",
+    ],
+    [
+      encoded({ alg: "none" }) +
+        "." +
+        encoded(claims) +
+        "." +
+        Buffer.alloc(32).toString("base64url"),
+      "auth",
+    ],
+    ["not-json." + "a".repeat(64), "receipt"],
+    [encoded({ file: 1 }) + "." + "a".repeat(64), "receipt"],
+    [encoded({ ...seal, key: "../bad" }) + "." + "a".repeat(64), "receipt"],
+    [encoded({ ...seal, actor: "1" }) + "." + "a".repeat(64), "receipt"],
+    [encoded({ ...seal, today: "not-a-date" }) + "." + "a".repeat(64), "receipt"],
+  ] as const;
+  for (const [i, [value, kind]] of cases.entries())
+    assert.throws(() => command().readReminderFile(file("structure-" + i, value), kind));
+});
+for (const operation of ["fsyncSync", "closeSync", "unlinkSync"] as const)
+  test(`receipt ${operation} failure never leaves an applicable output`, () => {
+    const target = join(dir, "failure-" + operation);
+    const original = fs[operation];
+    let injected = false;
+    Reflect.set(fs, operation, (...args: unknown[]) => {
+      if (!injected) {
+        injected = true;
+        throw Error("fictional write failure");
+      }
+      return Reflect.apply(original, fs, args);
+    });
+    syncBuiltinESMExports();
+    try {
+      assert.throws(() => command().saveReminderReceipt(target, receipt));
+    } finally {
+      Reflect.set(fs, operation, original);
+      syncBuiltinESMExports();
+    }
+    assert.equal(injected, true);
+    assert.throws(() => command().readReminderFile(target, "receipt"));
+  });
 const report = {
   scope: { key: "spring-fair", locale: "zh" as const },
   snapshot: { title: "已审核展会", revision: 3, startDate: "2027-03-10", endDate: "2027-03-12" },
@@ -192,7 +254,8 @@ test("report whitelists fields and removes terminal control characters from publ
     } as typeof report,
     "preview",
   );
-  assert.doesNotMatch(text, /private@example|83719|private-hash|eyJmaWxl|\u202e|\r/);
+  assert.doesNotMatch(text, /private@example|83719|private-hash|\u202e|\r/);
+  assert.equal(text.includes(receipt), false);
   assert.equal(text.includes(String.fromCodePoint(27)), false);
   assert.doesNotMatch(text, /\n伪造/);
   assert.match(command().formatReminderReport({ ...report, blocked: true }, "preview"), /阻止/);
@@ -246,6 +309,33 @@ test("real command rejects invalid private files before initialization", () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /0600常规文件/);
   assert.equal(result.stdout, "");
+});
+for (const kind of ["auth", "receipt"] as const)
+  test(`real command rejects malformed ${kind} before configuration`, () => {
+    const auth = file(
+      "structural-auth-" + kind,
+      kind === "auth" ? "header.payload.signature" : jwt,
+    );
+    const args =
+      kind === "auth"
+        ? argumentsFor(auth, join(dir, "malformed-auth-output"))
+        : [
+            "apply",
+            "--auth-file",
+            auth,
+            "--receipt-file",
+            file("malformed-receipt", encoded({ file: 1 }) + "." + "a".repeat(64)),
+          ];
+    const result = run(args);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /0600常规文件/);
+  });
+test("real command rejects database reset before configuration", () => {
+  const reset = run(argumentsFor(file("reset-auth"), join(dir, "reset-output")), {
+    PAYLOAD_DROP_DATABASE: "true",
+  });
+  assert.equal(reset.status, 1);
+  assert.match(reset.stderr, /清理|重置|删除/);
 });
 test("real command rejects an existing receipt before configuration and preserves its bytes", () => {
   const target = file("already.receipt", "keep-original");
