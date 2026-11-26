@@ -3,6 +3,10 @@ import type { Locale } from "./locales.ts";
 import { exhibitionIndustries } from "./exhibitions.ts";
 export { exhibitionIndustries } from "./exhibitions.ts";
 const en = {
+  calendar: "Download calendar (.ics)",
+  calendarNotice:
+    "One-time import. Download again if dates change, and check official information before travelling.",
+  calendarUnavailable: "Calendar download is unavailable for the current dates or status.",
   phases: "Exhibition phases",
   phaseTheme: "Theme",
   visitorInfo: "Visitor information",
@@ -74,6 +78,9 @@ export type ExhibitionCopyKey = keyof typeof en;
 export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> = {
   en,
   zh: {
+    calendar: "下载日历（.ics）",
+    calendarNotice: "一次性导入，改期后请重新下载；出行前请核对官方信息。",
+    calendarUnavailable: "当前日期或状态暂不支持日历下载。",
     phases: "展会分期",
     phaseTheme: "本期题材",
     visitorInfo: "到访资料",
@@ -140,6 +147,10 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "其他",
   },
   es: {
+    calendar: "Descargar calendario (.ics)",
+    calendarNotice:
+      "Importación única. Descárguelo de nuevo si cambian las fechas y consulte la información oficial antes de viajar.",
+    calendarUnavailable: "La descarga no está disponible con las fechas o el estado actuales.",
     phases: "Fases de la feria",
     phaseTheme: "Temática",
     visitorInfo: "Información para visitantes",
@@ -208,6 +219,10 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Otros",
   },
   fr: {
+    calendar: "Télécharger le calendrier (.ics)",
+    calendarNotice:
+      "Importation ponctuelle. Téléchargez à nouveau si les dates changent et vérifiez les informations officielles avant de voyager.",
+    calendarUnavailable: "Le téléchargement est indisponible pour les dates ou le statut actuels.",
     phases: "Phases du salon",
     phaseTheme: "Thématique",
     visitorInfo: "Informations pour les visiteurs",
@@ -276,6 +291,10 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Autres",
   },
   de: {
+    calendar: "Kalender herunterladen (.ics)",
+    calendarNotice:
+      "Einmaliger Import. Bei Terminänderungen erneut herunterladen und vor der Reise die offiziellen Angaben prüfen.",
+    calendarUnavailable: "Für die aktuellen Termine oder den Status ist kein Download verfügbar.",
     phases: "Messephasen",
     phaseTheme: "Schwerpunkte",
     visitorInfo: "Besucherinformationen",
@@ -344,6 +363,10 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Sonstige",
   },
   it: {
+    calendar: "Scarica calendario (.ics)",
+    calendarNotice:
+      "Importazione singola. Scarica di nuovo se cambiano le date e verifica le informazioni ufficiali prima del viaggio.",
+    calendarUnavailable: "Download non disponibile per le date o lo stato attuali.",
     phases: "Fasi della fiera",
     phaseTheme: "Tema",
     visitorInfo: "Informazioni per i visitatori",
@@ -412,6 +435,10 @@ export const exhibitionCopy: Record<Locale, Record<ExhibitionCopyKey, string>> =
     other: "Altro",
   },
   ar: {
+    calendar: "تنزيل التقويم (.ics)",
+    calendarNotice:
+      "استيراد لمرة واحدة. أعد التنزيل إذا تغيرت التواريخ، وتحقق من المعلومات الرسمية قبل السفر.",
+    calendarUnavailable: "تنزيل التقويم غير متاح للتواريخ أو الحالة الحالية.",
     phases: "مراحل المعرض",
     phaseTheme: "موضوع المرحلة",
     visitorInfo: "معلومات الزوار",
