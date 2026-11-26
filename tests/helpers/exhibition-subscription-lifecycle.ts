@@ -423,12 +423,92 @@ export async function testExhibitionSubscription(p: Payload) {
       id: admin.user.id,
       data: { active: true },
     });
-    assert.equal(
-      (await p.find({ collection: "subscription-campaign-jobs", pagination: false })).docs.some(
-        (j) => j.subscription === stable.id,
-      ),
-      false,
-    );
+    const noCampaign = async () => {
+      assert.equal(
+        (
+          await p.count({
+            collection: "subscription-campaign-jobs",
+            where: { subscription: { equals: stable.id } },
+          })
+        ).totalDocs,
+        0,
+      );
+    };
+    await noCampaign();
+    const beforeProbe = await databaseFingerprints(db);
+    const probes: {
+      collection:
+        | "subscription-campaign-drafts"
+        | "subscription-campaign-checks"
+        | "subscription-campaign-batches"
+        | "subscription-campaign-jobs";
+      id: number;
+    }[] = [];
+    try {
+      const d = await p.create({
+        collection: "subscription-campaign-drafts",
+        data: {
+          campaignKey: prefix,
+          owner: admin.user.id,
+          topic: "policy-updates",
+          revision: 1,
+          selections: [],
+          preview: {},
+        },
+      });
+      probes.push({ collection: "subscription-campaign-drafts", id: d.id });
+      const check = await p.create({
+        collection: "subscription-campaign-checks",
+        data: {
+          draft: d.id,
+          kind: "mock-confirm",
+          binding: "a".repeat(64),
+          contextHash: "b".repeat(64),
+          actor: admin.user.id,
+          languages: ["zh"],
+        },
+      });
+      probes.push({ collection: "subscription-campaign-checks", id: check.id });
+      const batch = await p.create({
+        collection: "subscription-campaign-batches",
+        data: {
+          campaignKey: prefix,
+          draft: d.id,
+          confirmation: check.id,
+          frozenAt: new Date().toISOString(),
+          counts: {},
+        },
+      });
+      probes.push({ collection: "subscription-campaign-batches", id: batch.id });
+      const job = await p.create({
+        collection: "subscription-campaign-jobs",
+        data: {
+          campaignKey: prefix,
+          batch: batch.id,
+          subscription: stable.id,
+          consentVersion: stable.consentVersion,
+          locale: "zh",
+          recipientHash: "c".repeat(64),
+          status: "held",
+        },
+      });
+      probes.push({ collection: "subscription-campaign-jobs", id: job.id });
+      const populated = await p.findByID({
+        collection: "subscription-campaign-jobs",
+        id: job.id,
+        depth: 2,
+      });
+      assert.equal(
+        typeof populated.subscription,
+        "object",
+        "Probe exercises a real populated relationship",
+      );
+      await assert.rejects(noCampaign, { code: "ERR_ASSERTION" });
+    } finally {
+      for (const probe of probes.reverse()) await p.delete(probe);
+    }
+    assert.deepEqual(await databaseFingerprints(db), beforeProbe);
+    await noCampaign();
     console.log(
       "PASS single-edition subscription: request contract, real lock ordering, consent/withdrawal, language, edition isolation and administrator management",
     );
