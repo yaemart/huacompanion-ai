@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { locales } from "../../lib/locales";
+import { exhibitionReminderCollection } from "./exhibition-reminders";
 
 const deny = () => false;
 const internal = {
@@ -381,4 +382,5 @@ export const subscriptionCollections: CollectionConfig[] = [
       { name: "deliverPolicy", type: "checkbox", required: true, defaultValue: false },
     ],
   },
+  exhibitionReminderCollection,
 ];

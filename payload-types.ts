@@ -133,6 +133,7 @@ export interface Config {
     subscriptions: Subscription;
     'subscription-credentials': SubscriptionCredential;
     'subscription-mail-jobs': SubscriptionMailJob;
+    'exhibition-reminder-jobs': ExhibitionReminderJob;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -206,6 +207,7 @@ export interface Config {
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
     'subscription-credentials': SubscriptionCredentialsSelect<false> | SubscriptionCredentialsSelect<true>;
     'subscription-mail-jobs': SubscriptionMailJobsSelect<false> | SubscriptionMailJobsSelect<true>;
+    'exhibition-reminder-jobs': ExhibitionReminderJobsSelect<false> | ExhibitionReminderJobsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1959,6 +1961,27 @@ export interface SubscriptionMailJob {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exhibition-reminder-jobs".
+ */
+export interface ExhibitionReminderJob {
+  id: number;
+  key: string;
+  scope: string;
+  subscription: number | Subscription;
+  body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3361,6 +3384,18 @@ export interface SubscriptionMailJobsSelect<T extends boolean = true> {
   nextAt?: T;
   policySelection?: T;
   deliverPolicy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exhibition-reminder-jobs_select".
+ */
+export interface ExhibitionReminderJobsSelect<T extends boolean = true> {
+  key?: T;
+  scope?: T;
+  subscription?: T;
+  body?: T;
   updatedAt?: T;
   createdAt?: T;
 }

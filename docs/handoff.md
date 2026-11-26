@@ -1,5 +1,20 @@
 # 当前开发交接
 
+## 单展会30/7天本地待发内核（2026-11-26）
+
+PR123合并后基于origin/main `80dac92c662ad4cc304a198856d302590d8f21d4`，继续同任务分支`codex/exhibition-reminder-design`；[草稿PR124](https://github.com/yaemart/huacompanion-ai/pull/124)，不自动合并。[正式设计](superpowers/specs/2026-11-26-exhibition-reminders-design.md)、[实施计划](superpowers/plans/2026-11-26-exhibition-reminders.md)、[一页小结](exhibition-reminders-summary.md)。
+用户接受本批业务源码上限400→550行，实际518行（含迁移/注册，不含生成类型、测试和文档），CLI完整留后批。本PR提供真实JWT鉴权的内部previewExhibitionReminders/applyExhibitionReminders服务，无新UI、公开入口、自动worker或操作命令；公开“提醒尚未启用”保持。先在PR合并后另批补薄命令，真实发送仍须单独门禁。
+北京时间恰好30/7天，仅本届本语言原始announced公开资料；最新规范邮箱记录优先，确认/隐私/拒发复核，1001整次拒绝。隐藏私表local-held/local-cancelled，终态不复活；改版/退订/过日只读算拟取消，显式应用才留取消历史。held不等于当前可发。
+预检REPEATABLE READ READ ONLY，全表不变；生成同事务内容726271→业务726281→权限726272→排序邮箱→主题锁，包含pending、退订和历史引用邮箱，复读封套，变化409零写。真实JWT在锁等待后重新检查，撤权/旧会话403。生成只写新私表和脱敏审计，提交后核实审计落库。
+同凭证按原值摘要/操作者/范围优先查已提交历史，返回原时间和计数、replayed/当前资格未检查；跨日、当前总开关关闭或密钥轮换不能补写。新进程以新密钥、新真实登录验证旧已提交回执可查、未提交旧凭证拒绝。
+完整check755/755、lint0错误/445既有警告、866文件行长通过；独立随机库完整订阅41组（原39＋新迁移＋提醒闭环）通过。含30/7窗口、实际审核发布/草稿隔离、实际确认/退订、拒发/1001上限、过期/跨日/篡改/配置/权限/会话、并发同凭证、撤权及双向内容锁等待、审计失败和吞COMMIT回滚、全表只读与原表不变、0→真实记录→清理0探针。独立负对照删除末次会话复核时，登出竞争断言实际RED（undefined≠403），现实现GREEN；不修改产品时钟，仅受守卫测试库clock I/O。
+相关展会/content、七语言和真实预览/示例渲染、生产build及原展会HTTP通过；无新页面，不声称浏览器提醒操作验收或真实送达。所有fetch被禁止并断言调用0；原H回执、真实试发、审核和写锁边界保持。
+新增迁移20261126_130000_exhibition_reminders仅新增私表，空表可down，有任何历史拒绝down。只在随机虚构库实际迁移并清理；原演示库未升级/reset，无依赖、环境变量或.env变更。接入原库前必须停Web/worker、配套备份、按迁移升级再构建，不靠local自动schema push。三份其他任务未跟踪文档原样保留，完整检查使用无.env的本任务副本；原始报告仅.local/exhibition-reminders，未上传附件。
+末尾唯一独立全分支复核及最终精确提交/CI以PR124后续核实记录为准，当前不预称云端通过。
+
+唯一末尾独立复核0严重/5重要/3轻微。重要项均一轮RED→GREEN：按时间点排序分数秒退订；scope属性顺序规范化；生成锁序与原员工业务→权限钩子一致；subscribers与当前eligible/terminal分开，1001份订阅时仍可纯取消；JWT复核复用事务连接，预检释放快照后外部授权。真实原生撤权旧顺序出现非403失败反例，修正后撤权成功且生成403；十并发旧实现池耗尽RED，新实现预检/应用GREEN（适配器保留1监控连接，可用9槽位）。复核后完整check755/755、订阅41组、相关展会/content/build/HTTP再次通过。主进程fetch禁止并计数0，不称系统级抓包。
+轻微延期：全站无关拒发摘要变化会使本范围预检过期；blocked仅布尔值无分门禁原因；证据仅同进程跨连接竞争/跨进程历史恢复，未单独证明双进程同时生成、有效试运行配置的维护用例、或旧未提交封套在密钥/日期/开关分别变化时的独立原因。完整实施判断及成本见实施计划，不追加第二次复核。会话在最后锁后授权决策点有效；之后登出不追溯中止已批准提交，权限变更仍锁至提交。最终精确SHA和两CI作业以PR124实核记录为准。
+
 ## 单展会专用订阅区（2026-11-26）
 
 PR122已合并，fetch核对main `04a18038f79b88107a09e93e4523cceab813479e`包含0740e80；分支`codex/exhibition-subscription`。用户接受[正式设计](superpowers/specs/2026-11-26-exhibition-subscription-design.md)，沿原生方式实施；[草稿PR123](https://github.com/yaemart/huacompanion-ai/pull/123)，[一页小结](exhibition-subscription-summary.md)，[实施计划](superpowers/plans/2026-11-26-exhibition-subscription.md)。不自动合并。
