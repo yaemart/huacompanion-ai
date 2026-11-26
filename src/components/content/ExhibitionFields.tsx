@@ -3,6 +3,7 @@ import { catalogCities } from "@/lib/catalog-options";
 import type { Exhibition } from "@/lib/exhibitions";
 import { exhibitionExamples } from "@/lib/content-field-examples-copy";
 import { ContentTextField } from "./ContentTextField";
+import { ExhibitionPhaseFields } from "./ExhibitionPhaseFields";
 
 export const exhibitionIndustryLabels = {
   hardware: "五金",
@@ -28,6 +29,10 @@ const textFields = {
   audience: "适合观众",
   exhibits: "展品范围",
   admission: "门票／报名条件",
+  transport: "交通",
+  buyerRegistration: "外国买家登记",
+  stayAreas: "推荐住宿区域",
+  firstVisitTips: "首次参展提示",
   unresolved: "待确认事项（将公开展示）",
 };
 export function ExhibitionFields({
@@ -93,6 +98,11 @@ export function ExhibitionFields({
         </label>
       </div>
       <small>只有待公布或延期可以将两个日期同时留空；日期已知时请完整填写。</small>
+      <ExhibitionPhaseFields
+        value={value.phases ?? []}
+        onChange={(phases) => set("phases", phases)}
+        locale={locale}
+      />
       <fieldset>
         <legend>所属行业（可多选）</legend>
         {Object.entries(exhibitionIndustryLabels).map(([code, label]) => (
@@ -118,7 +128,7 @@ export function ExhibitionFields({
         <ContentTextField
           key={key}
           label={textFields[key]}
-          value={value[key]}
+          value={value[key] ?? ""}
           onChange={(next) => set(key, next)}
           examples={exhibitionExamples[key]}
           locale={key === "address" ? "zh" : key === "addressEn" ? "en" : locale}

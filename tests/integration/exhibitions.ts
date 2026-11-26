@@ -8,6 +8,8 @@ import { emptyCatalog, parseCatalogSource, inquiryFormKey } from "../../src/lib/
 import { mutateContent, listPublished } from "../../src/server/content/service";
 import { resolveCatalogSource } from "../../src/server/catalog/source";
 import { saveIntake } from "../../src/server/intake";
+import { assertExhibitionVisitorLifecycle } from "../helpers/exhibition-visitor-lifecycle";
+import type { ContentBody } from "../../src/lib/content-model";
 if (process.env.APP_ENV !== "local") throw Error("Local only");
 const p = await getPayload({ config });
 const drafts: number[] = [];
@@ -39,7 +41,7 @@ try {
     status: "announced" as const,
     projectKeys: [`${run}-project`],
   };
-  const body = {
+  const body: ContentBody = {
     kind: "exhibition",
     contentKey: run,
     slug: run,
@@ -267,6 +269,7 @@ try {
     true,
     "Already accepted retries remain idempotent after withdrawal",
   );
+  await assertExhibitionVisitorLifecycle(p, body);
   console.log(
     "PASS exhibition permissions, privacy, locale isolation, publication/source checks, authoritative snapshots, revision, status, compatibility and idempotency",
   );

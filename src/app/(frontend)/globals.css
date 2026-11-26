@@ -2408,6 +2408,10 @@ html[dir="rtl"] .guide-copy {
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+.exhibition-phases :is(h3, p) {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 .exhibition-actions {
   margin-block: 1.5rem;
 }

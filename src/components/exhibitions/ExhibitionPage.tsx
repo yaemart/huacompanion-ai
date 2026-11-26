@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExhibitionVisitorDetails } from "./ExhibitionVisitorDetails";
 import { Header } from "../Header";
 import { ContentBlocks } from "../content/ContentBlocks";
 import type { ContentBody } from "@/lib/content-model";
@@ -176,6 +177,7 @@ export function ExhibitionPage({
                   </div>
                 ))}
             </dl>
+            <ExhibitionVisitorDetails value={e} locale={locale} />
             <div className="exhibition-actions">
               {e.officialURL && (
                 <a href={e.officialURL} target="_blank" rel="noopener noreferrer">

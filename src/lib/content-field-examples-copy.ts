@@ -2,6 +2,50 @@ type Example = { example: string; template?: string };
 export type ContentFieldExamples = { zh: Example; en: Example };
 
 export const exhibitionExamples = {
+  transport: {
+    zh: {
+      example: "从示例站步行至示例展馆入口，具体路线请按核实资料填写。",
+      template: "由〔交通站点〕至〔场馆入口〕：〔已核实路线〕。",
+    },
+    en: {
+      example:
+        "Walk from Example Station to the example hall entrance; replace with verified details.",
+      template: "From 〔transport stop〕 to 〔hall entrance〕: 〔verified route〕.",
+    },
+  },
+  buyerRegistration: {
+    zh: {
+      example: "通过示例官方入口登记，所需凭证及时间以核实条件为准。",
+      template: "外国买家请通过〔官方渠道〕登记；所需凭证：〔核实要求〕；办理时间：〔核实说明〕。",
+    },
+    en: {
+      example: "Register through the example official channel; confirm documents and timing.",
+      template:
+        "Overseas buyers register via 〔official channel〕. Documents: 〔verified requirements〕. Timing: 〔verified details〕.",
+    },
+  },
+  stayAreas: {
+    zh: {
+      example: "可了解示例站周边区域，需核实通勤与个人需求，不代表酒店可订。",
+      template: "可考虑〔住宿区域〕，选择依据：〔已核实交通与适用需求〕。",
+    },
+    en: {
+      example:
+        "Consider the example station area after checking travel needs; availability is not confirmed.",
+      template: "Consider 〔area〕 based on 〔verified transport and visitor needs〕.",
+    },
+  },
+  firstVisitTips: {
+    zh: {
+      example: "出发前核对示例报名凭证和入场时间。",
+      template: "首次到访前请核对〔凭证〕、〔入场时间〕及〔已核实注意事项〕。",
+    },
+    en: {
+      example: "Check the example registration confirmation and entry hours before travelling.",
+      template:
+        "Before your first visit, check 〔documents〕, 〔entry hours〕 and 〔verified visitor guidance〕.",
+    },
+  },
   edition: {
     zh: { example: "2027 年春季（第 3 届）" },
     en: { example: "Spring 2027 (3rd edition)" },
