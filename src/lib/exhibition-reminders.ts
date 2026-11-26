@@ -22,6 +22,7 @@ export type ReminderBody = {
   recipientHash: string;
   actor?: number;
   cancelledAt?: string;
+  cancelledBy?: number;
   reason?: string;
 };
 export type ReminderState = {

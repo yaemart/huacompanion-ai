@@ -14,7 +14,7 @@
 - APP_ENV=local及现职管理员，写入需订阅总开关/有效隐私/语言/维护条件；不要求打开申请、邮件或供应商配置，不改变旧发送门禁。
 - 同一事务内容726271→权限726272→业务726281→确定性邮箱锁→主题锁；预检全表只读，状态变化409零写入。
 - 一张local-held/local-cancelled私表，历史取消不复活；无邮件/活动/尝试/租约写入，无UI/自动worker/外发。
-- 一个PR手写业务源码增删≤400；原运行库不升级/reset，新表只在独立随机虚构库迁移；三份其他任务文档保留。
+- 用户已接受本PR手写业务源码增删≤550（原400调整，仅本批）；原运行库不升级/reset，新表只在独立随机虚构库迁移；三份其他任务文档保留。
 
 ## Review Focus
 
@@ -39,19 +39,19 @@
 **Files:** Create `src/server/exhibition-reminders.ts`, `tests/helpers/exhibition-reminders-lifecycle.ts`; Modify `tests/integration/subscriptions.ts`，接入既有独立随机库/CI驱动及新迁移回退验收。
 **Interfaces:** Consume Task1; produce `previewExhibitionReminders(p:Payload, headers:Headers, input:unknown)` and `applyExhibitionReminders(p:Payload, headers:Headers, receipt:unknown)`；输入仅`{key,locale}`或封套，返回无邮箱/订阅ID/摘要的公开资料与counts、blocked、时间，预检另返receipt。当前真实JWT认证后再于同事务复核管理员，读取时REPEATABLE READ READ ONLY，写入按Global Constraints锁序。数据库时钟单独SELECT，验收仅在隔离库测试工具替换此I/O边界，不增加命令/产品日期参数。
 
-- [ ] 独立PG真实审核发布、本届确认/退订及营销拒发，先写预检只读/生成local记录/无外发断言；迁移与规则之外服务缺失或未建记录为RED。
-- [ ] 实现私有状态读取、有效门禁和签名封套（scope/actor/业务日/10分钟/状态指纹）；生成前锁全部匹配主题及历史涉及邮箱、复读和比较。超1000/变更/未提交旧封套拒绝且全表不变。
-- [ ] 生成原子新建/取消/审计，receipt原值摘要作审计身份、提交后验证落库。已提交历史先查询，只读重放不依赖当前签名时效/开关；未提交验证当前签名和门禁。
-- [ ] 真实PG验证权限/撤权/会话、全部30/7窗口、公开草稿隔离、source变化、终态历史、全表只读/拒绝回滚、重复/并发、两个锁等待顺序、1001上限、0→真实记录→清理0负对照；受控数据库clock边界覆盖跨日/过期及历史恢复，不改机器时钟。
-- [ ] 完整check及全部订阅回归、相关展会/content和生产build通过。确认原邮件/活动/尝试/租约/预算表无增量、网络调用0；更新中文小结/交接，提交推送并建草稿PR。Task完成命令`npm test`，Expected全量通过。
+- [x] 独立PG真实审核发布、本届确认/退订及营销拒发，先写预检只读/生成local记录/无外发断言；迁移与规则之外服务缺失或未建记录为RED。
+- [x] 实现私有状态读取、有效门禁和签名封套（scope/actor/业务日/10分钟/状态指纹）；生成前锁全部匹配主题及历史涉及邮箱、复读和比较。超1000/变更/未提交旧封套拒绝且全表不变。
+- [x] 生成原子新建/取消/审计，receipt原值摘要作审计身份、提交后验证落库。已提交历史先查询，只读重放不依赖当前签名时效/开关；未提交验证当前签名和门禁。
+- [x] 真实PG验证权限/撤权/会话、全部30/7窗口、公开草稿隔离、source变化、终态历史、全表只读/拒绝回滚、重复/并发、两个锁等待顺序、1001上限、0→真实记录→清理0负对照；受控数据库clock边界覆盖跨日/过期及历史恢复，不改机器时钟。
+- [x] 完整check及全部订阅回归、相关展会/content和生产build通过。确认原邮件/活动/尝试/租约/预算表无增量、网络调用0；更新中文小结/交接，提交推送并建草稿PR。Task完成命令`npm test`，Expected全量通过。
 
-### Task 3: 受控本地命令（按正式设计的400行边界）
+### Task 3: 受控本地命令（用户接受后批）
 
 **Files:** Create `scripts/exhibition-reminders.ts`, `tests/exhibition-reminder-command.test.ts`, CLI真实进程验收helper；仅在本PR累计业务增删≤400时纳入，否则完整内核与PG作为首个增量、命令在该PR合并后下一批。
 **Interfaces:** Consume Task2服务；`preview --key KEY --locale zh|en --auth-file PATH --receipt-file PATH`、`apply --auth-file PATH --receipt-file PATH`。两文件须当前用户私有0600常规文件，认证仅既有JWT，receipt文件新建不可覆盖。启动前local/参数校验，强制schema push/type自动生成/自动建库/telemetry关闭，静默日志、finally销毁Payload；stdout仅中文脱敏报告，不打印封套。
 
 - [ ] 若预算允许：真实CLI错误模式/权限文件/非local在Payload初始化前拒绝RED，正常预检/生成/重放和秘密不输出RED；实现薄包装GREEN，完整check与PG/CLI通过。
-- [ ] 若超预算：在ledger和交接说明实际行数、内核已完成与CLI未交付，明确设计允许拆分；不压缩代码或放宽样式/测试凑数，不建立叠加PR。
+- [ ] 已按用户接受的范围后批：在ledger和交接说明实际行数、内核已完成与CLI未交付，明确设计允许拆分；不压缩代码或放宽样式/测试凑数，不建立叠加PR。
 
 ## 末尾交付
 
@@ -60,3 +60,7 @@
 ## 实施判断
 
 设计已明确允许按实际估算拆分内核与命令，以首PR至少提供PG中可预检/生成的内部服务为下限；不能交付空表后称提醒已完成。原生执行、原地分支及其他草稿保留沿既有选择，任务完成前不重复审批。具体封套编码、最小JSON存储和内部clock I/O验收工具按本文接口实施，不增加公开时间覆盖入口或真实发送路径。
+
+## 执行范围调整记录
+
+用户回复方案1，接受本批上限550行；CLI不纳入本PR，合并后再批次交付。成本：当前只有经真实鉴权的内部预检/生成服务可供集成验收，运营尚无命令入口；不以压缩代码或跳过安全门禁凑400行。完整计划的CLI接口约定仍保留作为后续交接。
