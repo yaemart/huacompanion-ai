@@ -1,4 +1,11 @@
 import "dotenv/config";
+import type { PostgresAdapter } from "@payloadcms/db-postgres";
+import {
+  readScheduleManifest,
+  assertNewScheduleDirectory,
+  ScheduleFileError,
+} from "./lib/exhibition-schedule-input";
+import { createScheduleStop, drainScheduleSignals } from "./lib/exhibition-schedule-stop";
 import type { Config, Payload } from "payload";
 import {
   ReminderCommandError,
@@ -10,6 +17,7 @@ import {
 } from "./lib/exhibition-reminder-command";
 let payload: Payload | undefined;
 let exitCode = 0;
+let stop: ReturnType<typeof createScheduleStop> | undefined;
 try {
   const args = process.argv.slice(2);
   if (args.length === 1 && args[0] === "--help") {
@@ -21,6 +29,7 @@ try {
         "inspect --auth-file PATH --receipt-file PATH（真正只读核实）",
         "scheduler-resolve --auth-file PATH --revision N --reason TEXT（仅核实结束，不代执行）",
         "scheduler-status --auth-file PATH（只读持久状态，不启动调度）",
+        "schedule --auth-file PATH --manifest-file PATH --state-dir NEW_PATH --once（实际单轮生成/核实取消；未发送邮件）",
         "文件须为当前用户私有0600常规文件；认证文件只含现有管理员JWT。",
         "使用 npm run --silent exhibition:reminders -- 加上述参数。应用保留原回执，结果未知先核实。",
       ].join("\n"),
@@ -39,6 +48,15 @@ try {
         ? readReminderFile(options.receiptFile, "receipt")
         : undefined;
     if (options.mode === "preview") assertNewReminderReceipt(options.receiptFile);
+    const schedule =
+      options.mode === "schedule"
+        ? {
+            manifest: readScheduleManifest(options.manifestFile),
+            stateDir: assertNewScheduleDirectory(options.stateDir),
+          }
+        : undefined;
+    if (schedule) stop = createScheduleStop();
+    if (stop?.reason) throw stop;
     process.env.HUA_DEMO_SCHEMA_PUSH = "false";
     process.env.DISABLE_PAYLOAD_HMR = "true";
     const { getPayload } = await import("payload");
@@ -52,12 +70,38 @@ try {
     } satisfies Pick<Config, "telemetry" | "logger" | "typescript">;
     const db = {
       ...resolved.db,
-      init: (args: Parameters<typeof resolved.db.init>[0]) =>
-        Object.assign(resolved.db.init(args), { disableCreateDatabase: true, push: false }),
+      init: (args: Parameters<typeof resolved.db.init>[0]) => {
+        const adapter = resolved.db.init(args) as PostgresAdapter;
+        if (schedule)
+          adapter.poolOptions = {
+            ...adapter.poolOptions,
+            statement_timeout: 10000,
+            lock_timeout: 10000,
+          };
+        return Object.assign(adapter, { disableCreateDatabase: true, push: false });
+      },
     };
     const localConfig = Object.assign({}, resolved, safety, { db });
+    if (stop?.reason) throw stop;
     payload = await getPayload({ config: localConfig });
-    if (options.mode === "scheduler-resolve") {
+    if (stop?.reason) throw stop;
+    if (options.mode === "schedule") {
+      const { runScheduleOnce } = await import("./lib/exhibition-schedule-runner");
+      const r = await runScheduleOnce(
+        payload,
+        headers,
+        schedule!.manifest,
+        schedule!.stateDir,
+        stop!,
+        (r) => console.log(formatReminderReport(r.report, r.mode)),
+      );
+      exitCode = r.exitCode;
+      console.log(
+        r.exitCode === 0
+          ? "本轮本地处理完成，未发送邮件。"
+          : "已停止新工作；请用 scheduler-status 核对是否存在未决操作。",
+      );
+    } else if (options.mode === "scheduler-resolve") {
       const { withExhibitionScheduler } =
         await import("../src/server/exhibition-reminder-scheduler-control");
       const r = await withExhibitionScheduler(payload, headers, (s) =>
@@ -107,7 +151,19 @@ try {
 } catch (error) {
   exitCode = 1;
   const code = error && typeof error === "object" && "status" in error ? error.status : undefined;
-  if (
+  if (stop && error === stop) {
+    exitCode = stop.reason === "sigint" ? 130 : 143;
+    console.log("已停止新工作；请用 scheduler-status 核对是否存在未决操作。");
+  } else if (error instanceof ScheduleFileError && !payload) console.error(error.message);
+  else if (
+    process.argv[2] === "schedule" &&
+    code !== 403 &&
+    !(error instanceof ReminderCommandError)
+  )
+    console.error(
+      "本地单轮未完成，请保留目录证据并用 scheduler-status/inspect 核实；有未决时用独立 scheduler-resolve 结束，不重新应用原操作。",
+    );
+  else if (
     process.argv[2] === "scheduler-resolve" &&
     code !== 403 &&
     !(error instanceof ReminderCommandError)
@@ -133,5 +189,8 @@ try {
     exitCode = 1;
     console.error("本地提醒数据库连接关闭失败，请核对本地进程并保留原回执。");
   }
+  if (stop) await drainScheduleSignals();
+  if (exitCode === 0 && stop?.reason) exitCode = stop.reason === "sigint" ? 130 : 143;
+  stop?.dispose();
 }
 process.exit(exitCode);

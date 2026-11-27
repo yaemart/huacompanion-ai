@@ -79,6 +79,8 @@ import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
 import { testExhibitionReminderCommand } from "../helpers/exhibition-reminder-command";
 import { testExhibitionReminderInspection } from "../helpers/exhibition-reminder-inspection";
+import { testExhibitionScheduleSignals } from "../helpers/exhibition-schedule-signals";
+import { testExhibitionScheduleOnce } from "../helpers/exhibition-schedule-once";
 import { testExhibitionSchedulerReview } from "../helpers/exhibition-reminder-review";
 import { testExhibitionSchedulerControl } from "../helpers/exhibition-reminder-scheduler-control";
 import { testExhibitionSchedulerRaces } from "../helpers/exhibition-reminder-scheduler-races";
@@ -461,6 +463,14 @@ try {
   );
   await testExhibitionSchedulerRaces(payload);
   await testExhibitionSchedulerReview(payload);
+  await testExhibitionScheduleOnce(payload);
+  await testExhibitionScheduleSignals(payload);
+  console.log(
+    "PASS actual schedule CLI signals: private initialization, native authority, snapshots and stop boundaries",
+  );
+  console.log(
+    "PASS controlled schedule once: durable evidence, native generation and commit uncertainty gates",
+  );
   console.log(
     "PASS scheduler recovery: controlled resolve, stale seals, role boundaries and real process fencing",
   );

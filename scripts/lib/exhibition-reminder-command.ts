@@ -22,24 +22,32 @@ import type { previewExhibitionReminders } from "../../src/server/exhibition-rem
 export class ReminderCommandError extends Error {}
 const invalid = () =>
   new ReminderCommandError(
-    "参数无效：preview/apply/inspect需--auth-file和--receipt-file；preview另需--key、--locale；scheduler-status仅需--auth-file；scheduler-resolve需--auth-file、--revision、--reason。",
+    "参数无效，请使用 --help 核对本地命令。schedule 必须显式 --once，不支持发送、日期、连续运行或强制重试参数。",
   );
 export function parseReminderCommand(args: string[]) {
   const [mode, ...rest] = args;
+  if (mode === "schedule") {
+    if (rest.filter((v) => v === "--once").length !== 1) throw invalid();
+    rest.splice(rest.indexOf("--once"), 1);
+  }
   if (
-    !["preview", "apply", "inspect", "scheduler-status", "scheduler-resolve"].includes(mode) ||
+    !["preview", "apply", "inspect", "scheduler-status", "scheduler-resolve", "schedule"].includes(
+      mode,
+    ) ||
     rest.length % 2
   )
     throw invalid();
   const fields: Record<string, string> = {};
   const allowed =
-    mode === "preview"
-      ? ["--key", "--locale", "--auth-file", "--receipt-file"]
-      : mode === "scheduler-resolve"
-        ? ["--auth-file", "--revision", "--reason"]
-        : mode === "scheduler-status"
-          ? ["--auth-file"]
-          : ["--auth-file", "--receipt-file"];
+    mode === "schedule"
+      ? ["--auth-file", "--manifest-file", "--state-dir"]
+      : mode === "preview"
+        ? ["--key", "--locale", "--auth-file", "--receipt-file"]
+        : mode === "scheduler-resolve"
+          ? ["--auth-file", "--revision", "--reason"]
+          : mode === "scheduler-status"
+            ? ["--auth-file"]
+            : ["--auth-file", "--receipt-file"];
   for (let i = 0; i < rest.length; i += 2) {
     if (
       !allowed.includes(rest[i]) ||
@@ -52,6 +60,14 @@ export function parseReminderCommand(args: string[]) {
   }
   if (Object.keys(fields).length !== allowed.length) throw invalid();
   const files = { authFile: fields["--auth-file"], receiptFile: fields["--receipt-file"] };
+  if (mode === "schedule")
+    return {
+      mode: "schedule" as const,
+      authFile: files.authFile,
+      manifestFile: fields["--manifest-file"],
+      stateDir: fields["--state-dir"],
+      once: true as const,
+    };
   if (mode === "scheduler-resolve") {
     const revision = Number(fields["--revision"]),
       reason = fields["--reason"].trim();

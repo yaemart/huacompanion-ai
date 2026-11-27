@@ -46,7 +46,7 @@
 - 返回/清理：明确当前run、当前授权有效、已知无pending时才stop；stop确认后可stopped。没有started成功也不能假装begin未提交，记住已明确返回的run再决定正常stop。任何prepare/apply/finish未知或本地保存失败都停止，不重试/跳目标/自resolve；只有关闭自己的资源。目录close与session/Payload finally幂等。只读核实不隐式清pending。
 - finish实际成功但响应/本地文件失败：退出1并留证；DB可为running无pending。不得宣称全库必blocked、不得自动begin或用resolve重试。失效授权仅关资源不补finish/stop。
 
-- [ ] **1. 写PG RED。** `valid single round produces exactly one local held with durable receipt`：原生真实审核/确认订阅夹具，调用缺失runScheduleOnce应失败。关键GREEN断言：
+- [x] **1. 写PG RED。** `valid single round produces exactly one local held with durable receipt`：原生真实审核/确认订阅夹具，调用缺失runScheduleOnce应失败。关键GREEN断言：
 
   ```ts
   assert.equal(result.exitCode, 0);
@@ -55,9 +55,9 @@
   assert.equal(readReminderFile(receiptPath, "receipt"), originalReceipt);
   ```
 
-- [ ] **2. 观察RED并实现顺序。** Run `npm run test:subscriptions`（新组先接入）；Expected：目标缺API失败；随后实现接口，不增加隐藏定时器或可写恢复路径。目录路径由测试读取本次新目录中的实际文件，不伪造成功阶段。
-- [ ] **3. 真正故障验收。** planned保存失败→0pending/0held；prepare约束/吞COMMIT/响应丢失→拒绝并核对实际DB（不是只exit1）；prepared/applying文件失败→blocked/0held；apply未知→留pending并inspect只读；finish回滚→blocked；finish已提交响应丢失/finished保存失败→无pending也仍退出1。新目录begin不绕pending。对receipt/事件/held/旧表作0→实际变化探针，自己的记录清理。
-- [ ] **4. GREEN与提交。** 完整`npm run check`及新PG组，Expected：全绿、旧46组保留，实际新组/单元计数写交接。提交本任务并task-done `npm test`；此时未接实际CLI/信号不宣称本PR交付完成。
+- [x] **2. 观察RED并实现顺序。** Run `npm run test:subscriptions`（新组先接入）；Expected：目标缺API失败；随后实现接口，不增加隐藏定时器或可写恢复路径。目录路径由测试读取本次新目录中的实际文件，不伪造成功阶段。
+- [x] **3. 真正故障验收。** planned保存失败→0pending/0held；prepare约束/吞COMMIT/响应丢失→拒绝并核对实际DB（不是只exit1）；prepared/applying文件失败→blocked/0held；apply未知→留pending并inspect只读；finish回滚→blocked；finish已提交响应丢失/finished保存失败→无pending也仍退出1。新目录begin不绕pending。对receipt/事件/held/旧表作0→实际变化探针，自己的记录清理。
+- [x] **4. GREEN与提交。** 完整`npm run check`及新PG组，Expected：全绿、旧46组保留，实际新组/单元计数写交接。提交本任务并task-done `npm test`；此时未接实际CLI/信号不宣称本PR交付完成。
 
 ### Task 2: 受控命令与信号生命周期
 
@@ -71,9 +71,17 @@
 - 最早在首次异步初始化前安装stop，停止已请求时不再初始化/开始新工作；已开始的初始化可收尾再检查。Payload销毁、stop.dispose和目录close各自finally；不改别的进程/后端。
 - 输出只调用现有formatReminderReport及固定中文停止/核实提示。正常0；SIGINT130、SIGTERM143；身份失效/任何未知1优先。403提示有效现职管理员；未决/提交未知指向status/inspect/独立resolve，不引导重新apply或换目录绕过。--help不初始化。
 
-- [ ] **1. 写子进程RED。** `schedule without once refuses before config`、坏JWT/manifest/已存在目录/非local/reset/未知参数均在故意缺配置进程中得到预期边界错误，不泄露参数内容；真正缺schedule实现时断言失败。原help/命令回归保持。
-- [ ] **2. 实现命令/stop，验证实际初始化。** 用虚构已迁移库运行真实--once；额外列、payload-types内容/mtime不变，无自动建库/schema、无对外调用；私有auth/manifest字节不变。坏输入不能因先读错另一个文件而掩盖，分别用结构正确的JWT/manifest正向对照。
-- [ ] **3. 实际信号验收。** 每个信号覆盖初始化后未begin、preview后、prepare前/后、apply已持锁和finish/文件收尾；测试IPC仅在测试进程设置屏障，无生产故障开关。信号后无新目标；无pending有效会话可stop；已pending未apply保持blocked；已批准apply可成功且仅正常finish收尾；中途失效不补审计；重复信号只有一次清理/正常停止标记。用实际DB与目录结果断言，关键unsafe反例移除检查必须检出写入。
-- [ ] **4. 身份/范围/竞争。** 运行中替换输入不换actor/清单；真实会话过期/登出/撤权/停用、主管仅政策授权/编辑等403；锁等待后撤权拒绝；两实际进程单实例拒绝。锁观察与测试终止都以子进程确认PID＋当前DB OID＋锁键限定，另一随机库同名锁不受影响。
-- [ ] **5. 全套与提交。** 完整check、全订阅（前批46＋本批once/signals2组，期望48；实际输出为准）、content/exhibitions/权限及生产build；random虚构库清理，0HTTP/fetch/SMTP与旧邮件/预算/租约/尝试表指纹不变。更新中文小结/handoff/progress，源码实际≤400，提交并task-done `npm test`。
+- [x] **1. 写子进程RED。** `schedule without once refuses before config`、坏JWT/manifest/已存在目录/非local/reset/未知参数均在故意缺配置进程中得到预期边界错误，不泄露参数内容；真正缺schedule实现时断言失败。原help/命令回归保持。
+- [x] **2. 实现命令/stop，验证实际初始化。** 用虚构已迁移库运行真实--once；额外列、payload-types内容/mtime不变，无自动建库/schema、无对外调用；私有auth/manifest字节不变。坏输入不能因先读错另一个文件而掩盖，分别用结构正确的JWT/manifest正向对照。
+- [x] **3. 实际信号验收。** 每个信号覆盖初始化后未begin、preview后、prepare前/后、apply已持锁和finish/文件收尾；测试IPC仅在测试进程设置屏障，无生产故障开关。信号后无新目标；无pending有效会话可stop；已pending未apply保持blocked；已批准apply可成功且仅正常finish收尾；中途失效不补审计；重复信号只有一次清理/正常停止标记。用实际DB与目录结果断言，关键unsafe反例移除检查必须检出写入。
+- [x] **4. 身份/范围/竞争。** 运行中替换输入不换actor/清单；真实会话过期/登出/撤权/停用、主管仅政策授权/编辑等403；锁等待后撤权拒绝；两实际进程单实例拒绝。锁观察与测试终止都以子进程确认PID＋当前DB OID＋锁键限定，另一随机库同名锁不受影响。
+- [x] **5. 全套与提交。** 完整check、全订阅（前批46＋本批once/signals2组，期望48；实际输出为准）、content/exhibitions/权限及生产build；random虚构库清理，0HTTP/fetch/SMTP与旧邮件/预算/租约/尝试表指纹不变。更新中文小结/handoff/progress，源码实际≤400，提交并task-done `npm test`。
 - [ ] **6. 分支收尾。** 唯一全PR独立复核，重要/严重单轮RED→GREEN及全套复跑、轻微留记录；精确HEAD两CI及关键日志、fetch推送一致，草稿不合并。未完成连续等待，不开放无--once；本PR合并后才执行loop计划。
+
+## 实施核实（2026-11-27）
+
+PR128已合并，基于main351f7ef，草稿PR129，沿原生方式执行。Task1缺API及Task2参数/真实信号先RED再GREEN；文件故障/真实提交未知、锁屏障和输入/目录替换均核对实际DB，不用成功响应代替提交核实。停止检查需要让真实OS信号得到处理；收尾单timer仍偶现0，改为统一check及后继timer/poll周期后真实双信号通过。上游Payload.destroy不结束池且保留初始化连接，沿原独立CLI在finally后process.exit关闭自身连接，不等待会挂起的Pool.end。
+
+完整check901/901，lint0错误/445既有警告、897文件行长；完整订阅48组（原46＋once/signals），30个真实CLI场景＋双进程拒绝，content/exhibitions/内容权限和生产build通过。业务源码实际增删232≤400；保守估算取350，未放宽硬上限。无新依赖/迁移/.env/原库操作；测试独立虚构库已清理。唯一末尾独立复核0严重/2重要/2轻微，重要项单轮RED→GREEN、无二次复核：实际npm组信号下必须有子进程finally证据，入口改为node --import tsx；已提交pending时原生撤权且真实信号已送达，停止路径只读核实当前身份，403优先且原控制版本/0held不变。收尾检查跨check及后继timer/poll周期，修复单timer偶现退出0。两轻微后批：--once错位仍可被解析；启动时尚未一次显示完整固定清单，实际范围仍被冻结。Step6的远端CI结果不预填，最终以PR129精确提交核实记录为准；连续循环及真实发送尚未实施。
+
+CI588单元作业通过，数据库作业因Linux外层npm以SIGINT终止而非数值130的测试断言失败。仅适配外层表示，实际调度子进程必须留下130/143收尾证据，DB仍须blocked/0held；没有放宽业务退出或权限。补跑完整check901/901及实际npm双信号退出0。产品源码、命令配置和构建入口相对9e50952未变，沿用该提交的本地48组/content/exhibitions/内容权限/build全绿证据；最终精确提交两CI以PR记录为准。
