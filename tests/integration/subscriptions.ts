@@ -79,6 +79,7 @@ import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
 import { testExhibitionReminderCommand } from "../helpers/exhibition-reminder-command";
 import { testExhibitionReminderInspection } from "../helpers/exhibition-reminder-inspection";
+import { testExhibitionSchedulerReadBoundary } from "../helpers/exhibition-reminder-scheduler-state";
 import { testExhibitionReminders } from "../helpers/exhibition-reminders-lifecycle";
 import { testExhibitionSubscription } from "../helpers/exhibition-subscription-lifecycle";
 import { testPolicyEmail } from "./policy-email";
@@ -450,6 +451,7 @@ try {
   await testExhibitionReminders(payload);
   await testExhibitionReminderCommand(payload);
   await testExhibitionReminderInspection(payload);
+  await testExhibitionSchedulerReadBoundary(payload);
   await advanceDispatchClock(payload);
   await testPolicyEmail(payload, url);
   await advanceDispatchClock(payload);

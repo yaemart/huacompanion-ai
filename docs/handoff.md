@@ -1,8 +1,14 @@
 # 当前开发交接
 
-## 1A只读核实实施中（2026-11-27）
+## 1A只读回执与状态查询（2026-11-27）
 
-用户确认原生执行1A，继续PR126分支codex/exhibition-reminder-scheduler-design。任务1原生只读权限/审计历史已实现，完整check797/797、lint0/445、订阅43组通过；有效未提交回执只返not-found，历史仅原计数且当前资格未检查，当前原管理员新会话可查旧密钥/旧日回执，登出/撤权拒绝。下一任务补严格状态读模型和inspect/scheduler-status入口；1B持久控制、实际循环及真实发送尚未实施。原库/.env/依赖/迁移不变，五份其他草稿保留。
+继续`codex/exhibition-reminder-scheduler-design`、[草稿PR126](https://github.com/yaemart/huacompanion-ai/pull/126)，基于main80f14bf；[一页使用小结](exhibition-reminder-recovery-summary.md)、[已接受1A计划](superpowers/plans/2026-11-27-exhibition-reminder-recovery-read.md)。不自动合并。
+新增`exhibition:reminders -- inspect --auth-file PATH --receipt-file PATH`及`scheduler-status --auth-file PATH`（npm run --silent入口）。inspect真正只读，有效未提交回执也只返未找到；历史仅原数量/asOf/当前资格未检查，支持旧密钥/旧日过期封套及原管理员新有效会话，JWT过期/原生登出/撤权仍拒绝。
+status只读数据库最新控制事件；无记录未登记，坏行/未知版本/孤立事件拒绝，不回退。私有输入目录变化不改变数据库结论；CLI按既有约定从项目根目录运行。未登记/空闲不表示可发，运行登记不证明进程在线，not-found不证明绝对未执行，不自动apply或清理历史。
+原生p.auth与req事务连接、REPEATABLE READ READ ONLY完成后释放再新视图复核；真实25006拒写、十并发、快照工作中登出、私有字段白名单/坏审计503及新进程历史已验证。原apply仅复用历史匹配，原锁序/日期/同意/MAC/写入及H真实试发门禁保持。
+缺模块/规则/实际启动反例RED→GREEN；完整check819/819、lint0错误/445既有警告、880文件行长、订阅44组、content/exhibitions及生产build通过。CLI输入字节/全表不变、0外部HTTP/fetch、开发模式额外列/types内容与mtime保持。独立随机虚构库已清理，无新依赖/迁移/必需环境变量/.env，原库未升级，其他5份草稿保留。
+本批只有只读接口，1B持久控制/受控结束/旧运行防写待1A合并后，实际循环与真实发送另批，不宣称启动阻断或调度已完成。一次状态读草稿纠正为PG缺API RED后重写；JWT测试保留真实authVersion并设正向对照，未放宽生产规则。唯一末尾独立复核与最终精确CI以PR126核实记录为准，当前不预称云端通过；日志仅.local/exhibition-reminder-recovery-read，未上传，无新UI/真实送达声称。
+实际业务源码增删374≤400，原270估算失准，未压缩语句或删校验。
 
 ## 受控本地展会提醒调度（2026-11-27，设计已接受、实施计划待审）
 

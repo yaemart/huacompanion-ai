@@ -89,8 +89,8 @@
 - `readExhibitionSchedulerStatus(p,headers):Promise<{status:'unregistered'|'idle'|'running'|'blocked';revision:number;scope?:ReminderScope}>`：使用Task1只读包装器，输出不含runId/owner/digest/封套/原因原文；不写控制状态。
 - CLI：`exhibition:reminders -- inspect --auth-file PATH --receipt-file PATH`；`scheduler-status --auth-file PATH`。前者found复用formatReminderReport的历史路径；not-found固定中文“未找到可确认提交；当前资格未检查；未生成或取消记录”。后者打印状态、状态版本及必要范围，不把idle称可发。
 
-- [ ] **1. 写纯规则/真实进程RED。** `tests/exhibition-reminder-recovery.test.ts`覆盖idle/active/pending合法值；未来版本、额外字段、坏UUID/owner、0/21/重复范围、pending越界、非hex、未知最新action均拒绝。idle只允许runId/owner=null、targets=[]、pending=null；active必须有UUID、正整数owner、1–20个合法唯一范围，pending.scope必须在targets内。真实缺配置进程的inspect坏文件/status额外参数必须返回边界错误，不得落入初始化错误。
-- [ ] **2. 运行RED。** `node --import tsx --test tests/exhibition-reminder-recovery.test.ts`；Expected：新解析/查询命令未实现，目标断言失败。
+- [x] **1. 写纯规则/真实进程RED。** `tests/exhibition-reminder-recovery.test.ts`覆盖idle/active/pending合法值；未来版本、额外字段、坏UUID/owner、0/21/重复范围、pending越界、非hex、未知最新action均拒绝。idle只允许runId/owner=null、targets=[]、pending=null；active必须有UUID、正整数owner、1–20个合法唯一范围，pending.scope必须在targets内。真实缺配置进程的inspect坏文件/status额外参数必须返回边界错误，不得落入初始化错误。
+- [x] **2. 运行RED。** `node --import tsx --test tests/exhibition-reminder-recovery.test.ts`；Expected：新解析/查询命令未实现，目标断言失败。
 
   前一步用例`unsupported control version never becomes idle`至少含以下字面断言；最新坏global行的PG用例另断言503，不回退旧合法行：
 
@@ -101,10 +101,10 @@
   assert.throws(() => parseSchedulerLedger({ revision: 1, state: { ...state, owner: 1 } }));
   ```
 
-- [ ] **3. 实现模型、只读状态及命令。** 保持preview/apply原分支类型收窄；status不索取receipt文件。所有新参数/文件在动态加载配置前校验；不接受token/staffId/now/force/send。沿原日志脱敏和finally销毁。
-- [ ] **4. PG与CLI验收。** 新`testExhibitionSchedulerReadBoundary(p)`组在隔离库记录并仅清理自己创建的控制审计ID；真实状态命令验证最新坏行不回退、无行/孤立事件、无文件/不同目录不改变数据库结论、任一现职管理员能看脱敏状态但不能读取他人回执。命令前后全表及输入文件字节不变，HTTP/fetch计数0。
-- [ ] **5. 交付验证与文档。** 完整`npm run check`、`npm run test:subscriptions`完整回归（原42＋2新组=44）、相关`npm run test:content`和`npm run test:exhibitions`及生产build；只在随机库。CLI不自动建库/推schema/改types的现有反例继续PASS。更新交接/进度/小结，写清1A只读、1B门禁尚未实现，未运行调度/真实发送。
-- [ ] **6. 提交与PR126。** 本任务完成命令`npm test`；原生方式仅一次末尾全PR独立复核，重要项一轮RED→GREEN及完整回归，轻微列明。核对实际业务增删≤400、精确HEAD两CI及日志、fetch后远端一致；保持草稿，PR标题/正文改成最终1A范围，不自动合并。
+- [x] **3. 实现模型、只读状态及命令。** 保持preview/apply原分支类型收窄；status不索取receipt文件。所有新参数/文件在动态加载配置前校验；不接受token/staffId/now/force/send。沿原日志脱敏和finally销毁。
+- [x] **4. PG与CLI验收。** 新`testExhibitionSchedulerReadBoundary(p)`组在隔离库记录并仅清理自己创建的控制审计ID；真实状态命令验证最新坏行不回退、无行/孤立事件、无文件/不同目录不改变数据库结论、任一现职管理员能看脱敏状态但不能读取他人回执。命令前后全表及输入文件字节不变，HTTP/fetch计数0。
+- [x] **5. 交付验证与文档。** 完整`npm run check`、`npm run test:subscriptions`完整回归（原42＋2新组=44）、相关`npm run test:content`和`npm run test:exhibitions`及生产build；只在随机库。CLI不自动建库/推schema/改types的现有反例继续PASS。更新交接/进度/小结，写清1A只读、1B门禁尚未实现，未运行调度/真实发送。
+- [x] **6. 提交任务2。** 完整本地验证后提交；完成命令`npm test`。独立全PR复核、精确HEAD两CI及fetch交接是任务完成后的最终分支门禁。
 
 ## 自检与后继边界
 
@@ -112,4 +112,18 @@
 
 类型/属性名以本计划Interfaces为后继契约；1B不得把state读模型改成另一套协议。自检已核对Spec对应项、每步期望、跨任务接口、五项Review Focus与计划比例，不派额外计划审阅代理。
 
-**执行门禁：** 目前只写计划。用户确认本计划后沿原生执行；1A合并是1B开始条件，合并由用户决定。
+**最终分支门禁：** 一次独立全PR复核，重要项一轮RED→GREEN及全套回归；精确HEAD两CI/日志及fetch一致后交接，草稿不自动合并。1A合并后才能开始1B。
+
+## 实施结果与判断
+
+本地check819/819、lint0/445、880文件行长、订阅44组、content/exhibitions及生产build通过；实际业务源码374≤400，270为失准预算。原库/.env/依赖/迁移不变，最终复核/精确CI见PR126记录。
+
+Ruling: preserve accepted in-place/native workflow and existing PR126 branch; use an isolated no-.env source copy for tests and preserve five unrelated drafts — cost: shared checkout still needs coordination; do not claim whole root clean.
+
+Ruling: literal READ ONLY snapshot plus fresh external authorization after release; no new writes, scheduler control or loop — cost: multiple live auth reads per query; no history from stale/revoked sessions.
+
+Ruling: different-directory recovery means changing private input/state locations, not running an existing cwd-relative Payload configuration outside the repository. CLI remains documented from project root; test moves its valid auth into a fresh private directory and confirms the same DB blocked state — cost: operators still cd into the project; no unrelated configuration-path refactor.
+
+Ruling: estimated270 source lines was low; actual374 remains below approved hard400. Retain strict validation instead of compressing statements — cost: larger review than estimate, no scope/cap increase.
+
+Ruling: task-done records implementation, tests and commit; independent full-PR review and exact-head CI remain final branch gates — cost: explicitly pending until verified, no premature completion claim.
