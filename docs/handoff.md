@@ -1,5 +1,10 @@
 # 当前开发交接
 
+## 受控本地连续循环实施中（2026-11-27）
+
+已实核PR129合并，origin/main b8e5dea6c6d5e7054f86e63a87fa3cb87763d253包含最终3fb539d。从最新main建立codex/exhibition-reminder-local-loop，按已接受[loop计划](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)原生实施。单会话/目录立即一轮、完成后60秒、等待最长5秒发起现职核实；只生成本地待发，真实发送和系统驻留/自动续期后批。保留审核、写锁、持久恢复及试发门禁，不自动合并。当前实施中，不预称验收完成。
+本机演示已在上一轮配套备份、恢复验证后完成56→59增量迁移，34草稿/32正式记录等保留；本批不操作演示库或更新3100运行副本，测试仅新随机虚构库。五份其他草稿保留，无.env或依赖变化。日志仅.local/exhibition-reminder-local-loop。
+
 ## 受控单轮与信号停止（2026-11-27）
 
 已实核PR128合并，基于最新main351f7ef，分支`codex/exhibition-reminder-single-round`，[草稿PR129](https://github.com/yaemart/huacompanion-ai/pull/129)，不自动合并。[一页使用小结](exhibition-reminder-single-round-summary.md)、[实施计划](superpowers/plans/2026-11-27-exhibition-reminder-single-round.md)。
