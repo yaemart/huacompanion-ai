@@ -1,5 +1,19 @@
 # 当前开发交接
 
+## 第一批固定清单与独占目录（2026-11-27）
+
+用户已确认原生实施第一批；PR128仍未合并，沿codex/exhibition-reminder-loop-design继续，基于main a193600，保留5份其他草稿。[一页小结](exhibition-reminder-run-directory-summary.md)、[实施计划](superpowers/plans/2026-11-27-exhibition-reminder-run-directory.md)。不自动合并。
+本批新增纯Node固定清单/有界私有输入及独占目录日志库；规范快照不可变，读前后身份校验，0700/0600、NOFOLLOW/单链接/可信父路径、文件及目录同步、只追加原回执/阶段、不覆盖/不续跑。活动证据坏版本/损坏/替换/权限异常拒绝，失败不继续后继阶段。目录不是DB权威或运行许可。
+新增68项，完整check891/891、lint0/445既有警告；真实文件与子进程故障验收通过。业务源码当前392≤400，原360估算偏低但未放宽。无新依赖/迁移/.env或原库操作；PG/调度/信号功能未新增，唯一复核0严重/3重要/1轻微，重要项已单轮RED→GREEN及全套回归，无二次复核；直接JS稀疏数组解析轻微项后批（文件JSON入口不受影响）。精确最终CI见PR记录。日志仅.local/exhibition-reminder-run-directory未上传。
+不开放schedule或生成待发；后续只有本PR用户合并后才做受控--once/信号，再做连续循环。保留原审核/写锁/持久恢复/H试发门禁，真实发送后批。
+
+## 受控调度循环计划（2026-11-27，设计已接受、计划待审）
+
+已核实PR127合并，fetch后origin/main a19360055cea5231f24f11e14a7581c36c368bff包含1B最终16ae13a。从该main创建codex/exhibition-reminder-loop-design；[正式设计](superpowers/specs/2026-11-27-exhibition-reminder-loop-design.md)、[一页小结](exhibition-reminder-loop-summary.md)。本批仅设计，未写业务代码或启动调度，不自动合并。
+用户明确选择每次启动新建独占私有目录，旧目录仅核实/留存。沿已接受原生前台串行、固定清单1–20/16KiB、立即一轮/完成后60秒、等待最长5秒发起身份复查；原审核/日期/写锁/持久恢复/H试发门禁保持。只生成本地待发/核实取消，真实发送后批。
+设计补齐目录/文件独占与同步、不可覆盖阶段文件、原prepare/apply/finish串行、信号停止及提交未知边界。finish已实际提交但本地保存/响应丢失时本进程停止，DB可能无pending，不假报全库仍阻断；不自动续跑或隐式resolve。仅现职管理员明确新恢复会话核实，旧目录不续跑。
+唯一独立可实施性检查无重要未决问题；用户已接受设计并选择原生方式。三份顺序计划：[私有目录](superpowers/plans/2026-11-27-exhibition-reminder-run-directory.md)→合并后[受控单轮/信号](superpowers/plans/2026-11-27-exhibition-reminder-single-round.md)→合并后[连续循环](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)，保守预算360/350/280，实际每PR硬≤400。计划待用户审阅，未开始业务实施。拟沿已有入口增加schedule及--once，无隐藏定时器/公开API/真实投递。无新依赖/迁移/.env/原库操作，五份其他草稿保留。新循环/目录/信号PG验收尚未实施，不能用已有检查冒称通过；日志仅.local/exhibition-reminder-loop-design。
+
 ## 1B持久恢复门禁（2026-11-27）
 
 已核实PR126合并，最新origin/main40d9910包含1A最终ff3dea1。从该main建立codex/exhibition-reminder-recovery-control，[草稿PR127](https://github.com/yaemart/huacompanion-ai/pull/127)，不自动合并。[使用小结](exhibition-reminder-control-summary.md)。
