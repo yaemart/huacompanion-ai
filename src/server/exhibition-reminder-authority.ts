@@ -54,6 +54,7 @@ export async function withLockedReminderAuthority<T>(
   const id = await p.db.beginTransaction();
   if (!id) throw Error("Reminder transaction required");
   try {
+    await transactionSession(p, id).db.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
     await transactionSession(p, id).db.execute("SET LOCAL statement_timeout='10s'");
     for (const lock of [726271, 726281, 726272])
       await executeSQL(p, id, sql`SELECT pg_advisory_xact_lock(${lock})`);
