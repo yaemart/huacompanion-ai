@@ -22,7 +22,7 @@ import { findExhibitionReminderAudit } from "./exhibition-reminder-history";
 import {
   assertSchedulerReceiptWritable,
   type SchedulerWritePermit,
-} from "./exhibition-reminder-scheduler-guard";
+} from "./exhibition-reminder-scheduler-control";
 
 const collection = "exhibition-reminder-jobs";
 export const previewExhibitionReminders = (p: Payload, headers: Headers, input: unknown) =>
@@ -82,6 +82,7 @@ async function operate(
   const rows = async <T>(query: ReturnType<typeof sql>) =>
     (await executeSQL(p, id, query)).rows as T[];
   try {
+    if (write) await db.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
     if (permit) await db.execute("SET LOCAL statement_timeout='10s'");
     if (!write) await db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     else

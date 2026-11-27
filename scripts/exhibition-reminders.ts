@@ -107,7 +107,15 @@ try {
 } catch (error) {
   exitCode = 1;
   const code = error && typeof error === "object" && "status" in error ? error.status : undefined;
-  if (error instanceof ReminderCommandError) console.error(error.message);
+  if (
+    process.argv[2] === "scheduler-resolve" &&
+    code !== 403 &&
+    !(error instanceof ReminderCommandError)
+  ) {
+    console.error(
+      "受控结束未确认；请先停止原运行，再用 scheduler-status 核对当前状态与版本，不要重新应用原操作。",
+    );
+  } else if (error instanceof ReminderCommandError) console.error(error.message);
   else if (code === 403)
     console.error("管理员登录或权限无效，请通过原登录链路取得有效会话后核实。");
   else if (code === 409)

@@ -2235,3 +2235,9 @@ PR125合并核实，最新main80f14bfae60c47bcfa56524cddee72ceea6bc84d包含971d
 ## 1B持久恢复门禁（2026-11-27）
 
 PR126已核实合并，main40d9910包含ff3dea1；新分支codex/exhibition-reminder-recovery-control、草稿PR127。实现持久控制/受控结束及原三锁内旧封套许可防护，原权限/写锁/H门禁保持。基线822，新CLI规则后823/823、lint0/445、885文件行长；完整订阅46组、content/exhibitions和生产build通过。真实pending/global约束与吞COMMIT、响应丢失保留状态；两进程终止自己的单实例连接、实际PG锁两先后顺序、DB独立拒旧写；guard移除负对照真实新增恰好1条held，目标断言RED后恢复GREEN；原管理员停用后其他现职管理员CLI仅结束且不输出原历史、私有文件不变、HTTP0；锁等待撤权及同版本并发恢复覆盖。源码当前385≤400。独立复核/最终CI在PR核实；无原库/.env/依赖/迁移变化，虚构库清理，5份草稿保留。实际循环和真实发送后批。
+
+## 1B同库持久恢复门禁（2026-11-27）
+
+PR126已核实合并，main40d9910包含ff3dea1；分支codex/exhibition-reminder-recovery-control，草稿PR127。提供持久控制内核与scheduler-resolve，保持原手工/历史、审核/写锁和H试发门禁；循环/私有目录/信号/真实发送后批。
+唯一全PR独立复核1严重/5重要/0新增轻微，均单轮RED→GREEN：跨库锁观测先RED2≠1，子进程回报专用PID后核对PID/当前DB/锁键才终止；可外部签发许可断言RED后签发私有化、真实旧session/伪造对象拒绝；RR旧快照实际等待prepare锁，RED后写事务固定RC；同活会话resolve先RED后409；CLI旧版本提示先RED后指向status且不要求原回执；真实新pending旧版本断言移除比较后RED、恢复后GREEN。两实际进程在活性通知/SELECT1故意滞后时仍由数据库防护拒旧写。
+最终check823/823、lint0/445既有警告、885文件行长、完整订阅46组与content/exhibitions通过；重新生产build通过；精确最终CI以PR127核实记录为准。业务源码393≤400。无新依赖/迁移/必需环境变量/.env，原库未动，自己的随机虚构库清理。五份其他草稿保留；原始日志仅本机.local/exhibition-reminder-control未上传。继承配置依赖/排除分类/U+2028标题清理轻微项后批，原CMS审计集合访问权限保持；新恢复返回不含他人数量。

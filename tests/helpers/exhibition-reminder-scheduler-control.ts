@@ -30,7 +30,7 @@ export async function testExhibitionSchedulerControl(p: Payload) {
       { status: 409 },
     );
     const held = await p.db.pool.query(
-      "SELECT pid FROM pg_locks WHERE locktype='advisory' AND objid=726291 AND granted",
+      "SELECT pid FROM pg_locks WHERE database=(SELECT oid FROM pg_database WHERE datname=current_database()) AND locktype='advisory' AND objid=726291 AND granted",
     );
     assert.equal(held.rowCount, 1);
     await s.prepare(run, f.receipt);

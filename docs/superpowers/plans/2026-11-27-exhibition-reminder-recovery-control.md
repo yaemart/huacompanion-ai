@@ -113,4 +113,16 @@
 
 ## 实施记录
 
-基于main40d9910，分支codex/exhibition-reminder-recovery-control，草稿PR127。业务源码当前385≤400；复用审计追加函数降低重复，保持鉴权/锁/回执/明确恢复。基线822，新增CLI校验单元后完整check823/823、lint0/445、885文件行长通过；真实旧封套RED及guard移除恰好新增1条held的负对照已观察。两进程/连接终止与原锁两先后顺序、跳过本地活性检查仍由DB拒旧写、控制约束/吞COMMIT/响应丢失与当前管理员CLI已验收。完整46组、content/exhibitions与生产build已通过；唯一末尾复核/精确CI仍为分支交付门禁。
+基于main40d9910，分支codex/exhibition-reminder-recovery-control，草稿PR127。业务源码当前393≤400；复用审计追加函数降低重复，保持鉴权/锁/回执/明确恢复。基线822，新增CLI校验单元后完整check823/823、lint0/445、885文件行长通过；真实旧封套RED及guard移除恰好新增1条held的负对照已观察。两进程/连接终止与原锁两先后顺序、跳过本地活性检查仍由DB拒旧写、控制约束/吞COMMIT/响应丢失与当前管理员CLI已验收。完整46组、content/exhibitions与生产build已通过；唯一末尾复核/精确CI仍为分支交付门禁。
+
+许可注册表和守卫收拢在control模块内，签发函数不导出；apply动态导入原生成服务，避免运行时循环。原文件地图中的独立guard模块由此替代。复核修正后完整823/823、46组、content/exhibitions及重新生产build通过；精确CI尚待核实。
+
+Ruling: preserve accepted native in-place workflow, isolate tests in a no-.env tracked-source copy and preserve five drafts — cost: shared checkout still needs coordination.
+Final: Ruling: combine private permit registry and guard in control module, with generation loaded dynamically only by apply — exported factories allowed a genuine bypass; no callable factory remains — cost: one runtime import and larger control module; native generation/runtime type cycles avoided.
+Final: Ruling: loop, private state directory, signals and real delivery remain later — this PR implements persistence/fencing/explicit resolve only — cost: no scheduling process is delivered yet.
+Final: Ruling: existing CMS audit-events administrator collection browsing remains unchanged — user explicitly retains current permissions; the new resolve service/CLI projects no historical counts — cost: administrators with existing collection access still have that original audit access.
+Final: minor (deferred): inherited authority/config dependency decoupling.
+Final: minor (deferred): inherited exclusion-reason taxonomy.
+Final: minor (deferred): inherited U+2028/U+2029 title cleanup.
+Final: fixed Critical backend ownership — independent random DB same-lock RED→GREEN; child PID+DB+key scoped termination; both process orders GREEN.
+Final: fixed five Important findings — factory/self-resolve/isolation/CLI independent RED→GREEN; stale-version comparison removed against real new pending RED→GREEN. Full suite823/823, subscription46/46, content/exhibitions/build0, source393<=400. No second review.

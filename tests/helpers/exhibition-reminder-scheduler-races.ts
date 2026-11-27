@@ -200,8 +200,10 @@ export async function testExhibitionSchedulerRaces(p: Payload) {
       ["--import", "tsx", "tests/helpers/exhibition-reminder-control-process.ts", input],
       { stdio: ["ignore", "pipe", "pipe", "ipc"] },
     );
-    const messages: { phase: string; revision?: number }[] = [];
-    child.on("message", (m) => messages.push(m as { phase: string; revision?: number }));
+    const messages: { phase: string; revision?: number; lockPid?: number }[] = [];
+    child.on("message", (m) =>
+      messages.push(m as { phase: string; revision?: number; lockPid?: number }),
+    );
     let errors = "";
     child.stderr?.on("data", (b) => {
       errors += b.toString();
@@ -222,21 +224,39 @@ export async function testExhibitionSchedulerRaces(p: Payload) {
           { status: 409 },
         );
       });
-      const lock = (
-        await p.db.pool.query(
-          "SELECT pid FROM pg_locks WHERE locktype='advisory' AND objid=726291 AND granted",
-        )
-      ).rows[0].pid;
+      const lock = messages.find((m) => m.phase === "prepared")!.lockPid!;
+      assert.ok(Number.isSafeInteger(lock) && lock > 0);
+      assert.equal(
+        (
+          await p.db.pool.query(
+            `SELECT 1 FROM pg_locks WHERE pid=$1
+               AND database=(SELECT oid FROM pg_database WHERE datname=current_database())
+               AND locktype='advisory' AND objid=726291 AND granted`,
+            [lock],
+          )
+        ).rowCount,
+        1,
+      );
       if (order === "generate-first") {
         child.send("apply");
         await until(async () => messages.some((m) => m.phase === "write-locked"));
       }
-      await p.db.pool.query("SELECT pg_terminate_backend($1)", [lock]);
+      assert.equal(
+        (
+          await p.db.pool.query(
+            `SELECT pg_terminate_backend(pid) FROM pg_locks WHERE pid=$1
+               AND database=(SELECT oid FROM pg_database WHERE datname=current_database())
+               AND locktype='advisory' AND objid=726291 AND granted`,
+            [lock],
+          )
+        ).rowCount,
+        1,
+      );
       await until(
         async () =>
           !(
             await p.db.pool.query(
-              "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726291 AND granted",
+              "SELECT 1 FROM pg_locks WHERE database=(SELECT oid FROM pg_database WHERE datname=current_database()) AND locktype='advisory' AND objid=726291 AND granted",
             )
           ).rowCount,
       );
@@ -248,7 +268,8 @@ export async function testExhibitionSchedulerRaces(p: Payload) {
           Boolean(
             (
               await p.db.pool.query(
-                "SELECT 1 FROM pg_locks l WHERE locktype='advisory' AND objid=726271 AND NOT granted AND cardinality(pg_blocking_pids(l.pid))>0",
+                `SELECT 1 FROM pg_locks l WHERE database=(SELECT oid FROM pg_database WHERE datname=current_database())
+                 AND locktype='advisory' AND objid=726271 AND NOT granted AND cardinality(pg_blocking_pids(l.pid))>0`,
               )
             ).rowCount,
           ),
@@ -300,7 +321,7 @@ export async function testExhibitionSchedulerRaces(p: Payload) {
       while (
         !(
           await p.db.pool.query(
-            "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726271 AND NOT granted",
+            "SELECT 1 FROM pg_locks WHERE database=(SELECT oid FROM pg_database WHERE datname=current_database()) AND locktype='advisory' AND objid=726271 AND NOT granted",
           )
         ).rowCount
       ) {

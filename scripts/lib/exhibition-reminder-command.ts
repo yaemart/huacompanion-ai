@@ -22,7 +22,7 @@ import type { previewExhibitionReminders } from "../../src/server/exhibition-rem
 export class ReminderCommandError extends Error {}
 const invalid = () =>
   new ReminderCommandError(
-    "参数无效，请使用 preview/apply/inspect、scheduler-status/resolve；均需 --auth-file，status不需回执，其他需 --receipt-file；预检另需 --key、--locale。不支持发送、日期或强制重试参数。",
+    "参数无效：preview/apply/inspect需--auth-file和--receipt-file；preview另需--key、--locale；scheduler-status仅需--auth-file；scheduler-resolve需--auth-file、--revision、--reason。",
   );
 export function parseReminderCommand(args: string[]) {
   const [mode, ...rest] = args;
