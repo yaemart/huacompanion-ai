@@ -79,6 +79,7 @@ import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
 import { testExhibitionReminderCommand } from "../helpers/exhibition-reminder-command";
 import { testExhibitionReminderInspection } from "../helpers/exhibition-reminder-inspection";
+import { testExhibitionSchedulerControl } from "../helpers/exhibition-reminder-scheduler-control";
 import { testExhibitionSchedulerReadBoundary } from "../helpers/exhibition-reminder-scheduler-state";
 import { testExhibitionReminders } from "../helpers/exhibition-reminders-lifecycle";
 import { testExhibitionSubscription } from "../helpers/exhibition-subscription-lifecycle";
@@ -452,6 +453,10 @@ try {
   await testExhibitionReminderCommand(payload);
   await testExhibitionReminderInspection(payload);
   await testExhibitionSchedulerReadBoundary(payload);
+  await testExhibitionSchedulerControl(payload);
+  console.log(
+    "PASS persistent scheduler control: native singleton, atomic pending, verified completion, commit uncertainty and poisoned sessions",
+  );
   await advanceDispatchClock(payload);
   await testPolicyEmail(payload, url);
   await advanceDispatchClock(payload);

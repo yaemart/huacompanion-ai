@@ -1,6 +1,7 @@
 import { createLocalReq, type Payload, type PayloadRequest } from "payload";
+import { sql } from "@payloadcms/db-postgres";
 import { requireSubscriptionAdmin } from "./subscription-management";
-import { transactionSession } from "./db-types";
+import { executeSQL, transactionSession } from "./db-types";
 import { ContentError } from "./content/error";
 
 export async function authenticateReminderAdmin(
@@ -42,5 +43,27 @@ export async function withReminderReadOnly<T>(
     return result;
   } finally {
     if (id) await p.db.rollbackTransaction(id);
+  }
+}
+export async function withLockedReminderAuthority<T>(
+  p: Payload,
+  headers: Headers,
+  work: Parameters<typeof withReminderReadOnly<T>>[2],
+) {
+  await authenticateReminderAdmin(p, headers);
+  const id = await p.db.beginTransaction();
+  if (!id) throw Error("Reminder transaction required");
+  try {
+    await transactionSession(p, id).db.execute("SET LOCAL statement_timeout='10s'");
+    for (const lock of [726271, 726281, 726272])
+      await executeSQL(p, id, sql`SELECT pg_advisory_xact_lock(${lock})`);
+    const req = { transactionID: id };
+    const user = await authenticateReminderAdmin(p, headers, req);
+    const result = await work({ req, user });
+    await p.db.commitTransaction(id);
+    return result;
+  } catch (error) {
+    await p.db.rollbackTransaction(id);
+    throw error;
   }
 }
