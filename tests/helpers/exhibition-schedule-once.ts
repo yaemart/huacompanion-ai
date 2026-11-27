@@ -12,12 +12,28 @@ import { recoveryFixture } from "./exhibition-reminder-recovery-fixture";
 import { databaseFingerprints } from "./database-fingerprints";
 import { createScheduleStop } from "../../scripts/lib/exhibition-schedule-stop";
 
-export const scheduleStopFixture = (): ScheduleStop => ({
-  reason: null,
-  request(reason) {
-    this.reason ||= reason;
-  },
-});
+export function scheduleStopFixture(): ScheduleStop {
+  const listeners = new Set<() => void>();
+  return {
+    reason: null,
+    request(reason) {
+      if (this.reason) return;
+      this.reason = reason;
+      for (const listener of [...listeners]) listener();
+      listeners.clear();
+    },
+    onRequest(listener) {
+      if (this.reason) {
+        listener();
+        return () => {};
+      }
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
 export function scheduleTestDirectory() {
   const local = join(fs.realpathSync(process.cwd()), ".local");
   fs.mkdirSync(local, { recursive: true, mode: 0o700 });

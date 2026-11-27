@@ -8,6 +8,7 @@ import { drainScheduleSignals } from "./exhibition-schedule-stop";
 export type ScheduleStop = {
   reason: null | "sigint" | "sigterm";
   request(reason: "sigint" | "sigterm"): void;
+  onRequest(listener: () => void): () => void;
 };
 export type ScheduleReport = { mode: "preview" | "apply"; report: ReminderReport };
 export async function runScheduleOnce(
