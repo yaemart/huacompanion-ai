@@ -13,7 +13,7 @@
 
 ## Global Constraints
 
-- 仅计划，尚未执行任何复选框；用户批准实施设计前不写代码。
+- 仅计划，尚未执行任何复选框；2026-11-28用户仅批准A1a实施，其余按合并顺序后置。
 - 不切换或提交当前展会任务，不编辑其交接与源码；实施时从最新origin/main建立codex/crm-phase-a-core。
 - A1合并后才从最新main建立codex/crm-phase-a-ui，不叠加PR；均早建草稿PR，不自动合并。
 - 实施前读AGENTS、handoff、多电脑指南及node_modules/next/dist/docs的路由／缓存／认证相关文档。

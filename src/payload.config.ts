@@ -1,3 +1,4 @@
+import { crmCollections } from "./cms/crm/collections";
 import { applyStaffDateColumns } from "./cms/staff-date-columns";
 import { PublicCompanySettings } from "./cms/company";
 import { businessCollections } from "./cms/business/collections";
@@ -59,6 +60,7 @@ export default buildConfig({
   ],
   collections: [
     ...collections,
+    ...crmCollections,
     inquiryReplyTemplates,
     ...contentCollections,
     ImmigrationPolicies,

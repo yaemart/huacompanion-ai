@@ -74,6 +74,9 @@ export interface Config {
     notifications: Notification;
     'audit-events': AuditEvent;
     'intake-limits': IntakeLimit;
+    'crm-clients': CrmClient;
+    'crm-contacts': CrmContact;
+    'crm-operations': CrmOperation;
     'inquiry-reply-templates': InquiryReplyTemplate;
     'content-drafts': ContentDraft;
     'content-published': ContentPublished;
@@ -148,6 +151,9 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'audit-events': AuditEventsSelect<false> | AuditEventsSelect<true>;
     'intake-limits': IntakeLimitsSelect<false> | IntakeLimitsSelect<true>;
+    'crm-clients': CrmClientsSelect<false> | CrmClientsSelect<true>;
+    'crm-contacts': CrmContactsSelect<false> | CrmContactsSelect<true>;
+    'crm-operations': CrmOperationsSelect<false> | CrmOperationsSelect<true>;
     'inquiry-reply-templates': InquiryReplyTemplatesSelect<false> | InquiryReplyTemplatesSelect<true>;
     'content-drafts': ContentDraftsSelect<false> | ContentDraftsSelect<true>;
     'content-published': ContentPublishedSelect<false> | ContentPublishedSelect<true>;
@@ -534,6 +540,65 @@ export interface IntakeLimit {
   bucket: number;
   clientKey: string;
   count: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-clients".
+ */
+export interface CrmClient {
+  id: number;
+  reference: string;
+  kind: 'individual' | 'company';
+  displayName: string;
+  language: 'en' | 'zh';
+  countryCode?: string | null;
+  team: number | Team;
+  owner?: (number | null) | Staff;
+  status: 'active' | 'archived';
+  revision: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-contacts".
+ */
+export interface CrmContact {
+  id: number;
+  client: number | CrmClient;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  jobTitle?: string | null;
+  isPrimary: boolean;
+  status: 'active' | 'archived';
+  revision: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-operations".
+ */
+export interface CrmOperation {
+  id: number;
+  actor: number | Staff;
+  key: string;
+  operationKey: string;
+  action: string;
+  inputDigest: string;
+  epoch: string;
+  result:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2395,6 +2460,54 @@ export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
   clientKey?: T;
   count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-clients_select".
+ */
+export interface CrmClientsSelect<T extends boolean = true> {
+  reference?: T;
+  kind?: T;
+  displayName?: T;
+  language?: T;
+  countryCode?: T;
+  team?: T;
+  owner?: T;
+  status?: T;
+  revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-contacts_select".
+ */
+export interface CrmContactsSelect<T extends boolean = true> {
+  client?: T;
+  name?: T;
+  email?: T;
+  phone?: T;
+  jobTitle?: T;
+  isPrimary?: T;
+  status?: T;
+  revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-operations_select".
+ */
+export interface CrmOperationsSelect<T extends boolean = true> {
+  actor?: T;
+  key?: T;
+  operationKey?: T;
+  action?: T;
+  inputDigest?: T;
+  epoch?: T;
+  result?: T;
   updatedAt?: T;
   createdAt?: T;
 }

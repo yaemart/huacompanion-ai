@@ -16,7 +16,7 @@
 [正式设计](superpowers/specs/2026-11-26-customer-provider-platform-design.md)
 [分阶段计划](superpowers/plans/2026-11-26-customer-provider-roadmap.md)
 
-文档在当前展会分支本地新增，原有未提交展会设计稿保留；未建立本方案分支、提交、推送或PR。
+2026-11-26原稿仅本地保存；2026-11-28已复制到独立CRM worktree，原件和备份保留，草稿PR131承载本批。
 本轮无环境变量、依赖、数据库或业务代码变更；未运行应用测试，不据此声称CI通过。
 
 独立只读审阅已完成；补充联系人跨企业隔离、关联撤销收权、授权粒度、暂停权限及认领凭证约束。

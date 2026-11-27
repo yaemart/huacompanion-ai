@@ -232,3 +232,32 @@ jobs:
         run: node --import tsx tests/integration/staff-monthly-csv.ts
       - name: Verify private subscription consent and credentials
         run: npm run test:subscriptions
+
+  crm:
+    name: CRM isolated PostgreSQL regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      crm-postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: crm_owner
+          POSTGRES_PASSWORD: crm-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 55443:5432
+        options: >-
+          --health-cmd "pg_isready -U crm_owner -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:crm
