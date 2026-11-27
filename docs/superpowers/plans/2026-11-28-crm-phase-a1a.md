@@ -25,24 +25,26 @@ epoch为当前秘密独立派生摘要标识，秘密轮换后旧键409，明确
 
 ## Task 1: 隔离与文档
 
-- [ ] 独立worktree/Node24.22.1/npm ci；新PG15集群55443，仅回环地址。
-- [ ] 校验目标host/port/库名/用户及危险环境后才初始化；无demo环境导入。
-- [ ] 单元基线及设计格式校验；早建main草稿PR。
+- [x] 独立worktree/Node24.22.1/npm ci；新PG15集群55443，仅回环地址。
+- [x] 校验目标host/port/库名/用户及危险环境后才初始化；无demo环境导入。
+- [x] 单元基线及设计格式校验；早建main草稿PR。
 
 ## Task 2: 模型、规则、迁移
 
-- [ ] tests/crm.test.ts先RED再实现src/lib/crm.ts严格联合校验。
-- [ ] src/cms/crm/collections.ts、配置、根payload-types.ts与新迁移，关闭通用CRUD/GraphQL。
-- [ ] 迁移旧虚构库升级指纹、空表往返和三类非空保护。
+- [x] tests/crm.test.ts先RED再实现src/lib/crm.ts严格联合校验。
+- [x] src/cms/crm/collections.ts、配置、根payload-types.ts与新迁移，关闭通用CRUD/GraphQL。
+- [x] 迁移旧虚构库升级指纹、空表往返和三类非空保护。
 
 ## Task 3: 服务与权限
 
-- [ ] 真实PG测试先RED：角色／范围／联系人父ID／版本／主联系人唯一／存档／幂等。
-- [ ] src/server/crm/service.ts及read.ts，事务权限检查、白名单DTO和同事务审计。
-- [ ] 并发幂等、停职／撤权屏障、审计故障回滚、GET全表指纹及旧表不变。
+- [x] 真实PG测试先RED：角色／范围／联系人父ID／版本／主联系人唯一／存档／幂等。
+- [x] src/server/crm/service.ts及read.ts，事务权限检查、白名单DTO和同事务审计。
+- [x] 并发幂等、停职／撤权屏障、审计故障回滚、GET全表指纹及旧表不变。
 
 ## Task 4: 交付
 
-- [ ] npm run check、CRM集成、客户／报价／业务权限回归和生产build。
-- [ ] 一次独立整分支审阅，重要问题一轮修正及验证；progress/交接/中文小结。
-- [ ] 提交推送、远端SHA与CI实核、main草稿PR，不合并。
+- [x] npm run check、CRM集成、客户／报价／业务权限回归和生产build。
+- [x] 一次独立整分支审阅，重要问题一轮修正及验证；progress/交接/中文小结。
+- [x] 提交推送、远端SHA与CI实核、main草稿PR，不合并。
+
+本地实现、验证、复核及推送已完成；精确最终提交与CI结果由PR131记录，CI核对完成前不称云端验收通过。
