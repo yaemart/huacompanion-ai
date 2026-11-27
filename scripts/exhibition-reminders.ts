@@ -19,6 +19,7 @@ try {
         "preview --key KEY --locale zh|en --auth-file PATH --receipt-file NEW_PATH",
         "apply --auth-file PATH --receipt-file PATH",
         "inspect --auth-file PATH --receipt-file PATH（真正只读核实）",
+        "scheduler-resolve --auth-file PATH --revision N --reason TEXT（仅核实结束，不代执行）",
         "scheduler-status --auth-file PATH（只读持久状态，不启动调度）",
         "文件须为当前用户私有0600常规文件；认证文件只含现有管理员JWT。",
         "使用 npm run --silent exhibition:reminders -- 加上述参数。应用保留原回执，结果未知先核实。",
@@ -56,7 +57,16 @@ try {
     };
     const localConfig = Object.assign({}, resolved, safety, { db });
     payload = await getPayload({ config: localConfig });
-    if (options.mode === "inspect") {
+    if (options.mode === "scheduler-resolve") {
+      const { withExhibitionScheduler } =
+        await import("../src/server/exhibition-reminder-scheduler-control");
+      const r = await withExhibitionScheduler(payload, headers, (s) =>
+        s.resolve(options.revision, options.reason),
+      );
+      console.log(
+        `已核实结束（未生成或发送邮件）；结果：${r.outcome === "committed" ? "已有提交" : "结束未提交操作"}；状态版本：${r.revision}；范围：${r.scope.key}（${r.scope.locale}）`,
+      );
+    } else if (options.mode === "inspect") {
       const { inspectExhibitionReminder } =
         await import("../src/server/exhibition-reminder-history");
       const result = await inspectExhibitionReminder(payload, headers, receipt);
@@ -97,7 +107,15 @@ try {
 } catch (error) {
   exitCode = 1;
   const code = error && typeof error === "object" && "status" in error ? error.status : undefined;
-  if (error instanceof ReminderCommandError) console.error(error.message);
+  if (
+    process.argv[2] === "scheduler-resolve" &&
+    code !== 403 &&
+    !(error instanceof ReminderCommandError)
+  ) {
+    console.error(
+      "受控结束未确认；请先停止原运行，再用 scheduler-status 核对当前状态与版本，不要重新应用原操作。",
+    );
+  } else if (error instanceof ReminderCommandError) console.error(error.message);
   else if (code === 403)
     console.error("管理员登录或权限无效，请通过原登录链路取得有效会话后核实。");
   else if (code === 409)

@@ -79,6 +79,9 @@ import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
 import { testExhibitionReminderCommand } from "../helpers/exhibition-reminder-command";
 import { testExhibitionReminderInspection } from "../helpers/exhibition-reminder-inspection";
+import { testExhibitionSchedulerReview } from "../helpers/exhibition-reminder-review";
+import { testExhibitionSchedulerControl } from "../helpers/exhibition-reminder-scheduler-control";
+import { testExhibitionSchedulerRaces } from "../helpers/exhibition-reminder-scheduler-races";
 import { testExhibitionSchedulerReadBoundary } from "../helpers/exhibition-reminder-scheduler-state";
 import { testExhibitionReminders } from "../helpers/exhibition-reminders-lifecycle";
 import { testExhibitionSubscription } from "../helpers/exhibition-subscription-lifecycle";
@@ -452,6 +455,15 @@ try {
   await testExhibitionReminderCommand(payload);
   await testExhibitionReminderInspection(payload);
   await testExhibitionSchedulerReadBoundary(payload);
+  await testExhibitionSchedulerControl(payload);
+  console.log(
+    "PASS persistent scheduler control: native lock, atomic pending, commit verification and no continuation after errors",
+  );
+  await testExhibitionSchedulerRaces(payload);
+  await testExhibitionSchedulerReview(payload);
+  console.log(
+    "PASS scheduler recovery: controlled resolve, stale seals, role boundaries and real process fencing",
+  );
   await advanceDispatchClock(payload);
   await testPolicyEmail(payload, url);
   await advanceDispatchClock(payload);

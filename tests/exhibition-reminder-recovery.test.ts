@@ -167,3 +167,71 @@ test("new commands retain nonlocal and reset refusal and offer inert help", () =
   assert.match(help.stdout, /inspect/);
   assert.match(help.stdout, /scheduler-status/);
 });
+test("controlled resolve requires a positive revision and bounded reason before initialization", () => {
+  for (const revision of ["0", "-1", "1.5", "01", "9007199254740992"])
+    assert.throws(() =>
+      parseReminderCommand([
+        "scheduler-resolve",
+        "--auth-file",
+        "private.jwt",
+        "--revision",
+        revision,
+        "--reason",
+        "verified",
+      ]),
+    );
+  assert.deepEqual(
+    parseReminderCommand([
+      "scheduler-resolve",
+      "--auth-file",
+      "private.jwt",
+      "--revision",
+      "23",
+      "--reason",
+      " verified ",
+    ]),
+    { mode: "scheduler-resolve", authFile: "private.jwt", revision: 23, reason: "verified" },
+  );
+  for (const reason of [" ", "x".repeat(501)])
+    assert.throws(() =>
+      parseReminderCommand([
+        "scheduler-resolve",
+        "--auth-file",
+        "private.jwt",
+        "--revision",
+        "23",
+        "--reason",
+        reason,
+      ]),
+    );
+  const badRevision = run([
+    "scheduler-resolve",
+    "--auth-file",
+    shapedAuth,
+    "--revision",
+    "0",
+    "--reason",
+    "private-reason-marker",
+  ]);
+  assert.equal(badRevision.status, 1);
+  assert.match(badRevision.stderr, /参数无效/);
+  assert.doesNotMatch(
+    badRevision.stderr + badRevision.stdout,
+    /private-reason-marker|PAYLOAD_SECRET|Error:/,
+  );
+  const badAuth = run([
+    "scheduler-resolve",
+    "--auth-file",
+    bad,
+    "--revision",
+    "23",
+    "--reason",
+    "private-reason-marker",
+  ]);
+  assert.equal(badAuth.status, 1);
+  assert.match(badAuth.stderr, /0600/);
+  assert.doesNotMatch(
+    badAuth.stderr + badAuth.stdout,
+    /private-reason-marker|PAYLOAD_SECRET|Error:/,
+  );
+});

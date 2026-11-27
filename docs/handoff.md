@@ -1,5 +1,13 @@
 # 当前开发交接
 
+## 1B持久恢复门禁（2026-11-27）
+
+已核实PR126合并，最新origin/main40d9910包含1A最终ff3dea1。从该main建立codex/exhibition-reminder-recovery-control，[草稿PR127](https://github.com/yaemart/huacompanion-ai/pull/127)，不自动合并。[使用小结](exhibition-reminder-control-summary.md)。
+控制内核使用既有audit-events追加持久global/pending/结束事件；单实例726291，原三锁内容726271→业务726281→权限726272内重新原生授权。无未决时可明确新建运行；未决同库阻断后续begin，不因目录/清单/进程改变而解除。持久提交核实失败停止该会话，不用失效凭证补停止审计。
+新增scheduler-resolve --auth-file PATH --revision N --reason TEXT；必须停止原进程、取得单实例锁、核对实际状态版本和原因。另一现职管理员可在原账号撤权/回执文件遗失时仅核实结束，不返回他人历史数量、不代执行。无匹配生成审计则作废旧未提交封套；生成先持锁则恢复等待核实，恢复先持锁则旧写拒绝。普通新手工回执及原已提交历史保持，关联调度封套无有效许可不可新写。
+真实控制约束/吞COMMIT/响应丢失、两进程/连接失效/两先后顺序、跳过本地活性检查仍被DB拒旧写、移除guard反例恰好新增1条held、原账号停用后的实际CLI、锁等待撤权与同版本并发结束已覆盖。完整check823/823、lint0/445、885文件行长；完整订阅46组、content/exhibitions及生产build通过。唯一独立复核1严重/5重要/0新增轻微，单轮RED→GREEN并重跑完整46组/823及生产构建，无二次复核；详见进度与实施计划。精确最终提交两CI以PR127核实记录为准。
+业务源码当前393≤400。无新依赖/迁移/必需环境变量/.env，原库未动，随机虚构库清理，5份其他草稿保留。原始日志仅.local/exhibition-reminder-control，未上传。实际循环/manifest与state-dir持久文件/信号停止/真实发送均未实施；不开放begin/prepare/apply/finish命令，不宣称自动调度已启用。1B合并后才开始下一批。
+
 ## 1A只读回执与状态查询（2026-11-27）
 
 继续`codex/exhibition-reminder-scheduler-design`、[草稿PR126](https://github.com/yaemart/huacompanion-ai/pull/126)，基于main80f14bf；[一页使用小结](exhibition-reminder-recovery-summary.md)、[已接受1A计划](superpowers/plans/2026-11-27-exhibition-reminder-recovery-read.md)。不自动合并。
@@ -682,7 +690,7 @@ Node24.22.1完整 `npm run check` 377/377通过，lint0错误/445既有警告持
 在允许localhost监听的环境重跑通过。新覆盖管理员无主题授权/降权旧会话、主管无余额权限、
 严格输入/同源/JSON/大小/非local、只读全库指纹、实际余额、0份/到期、同键竞争/重放、跨活动邮箱限制、
 HTTP审计延迟COMMIT失败503后全库回滚。原额度套件继续覆盖真实2000份日上限。
-新增9项客户端单测覆盖未知余额只读、未知占位同键及畸形回执。业务385新增/6删除，共391行≤400。
+新增9项客户端单测覆盖未知余额只读、未知占位同键及畸形回执。业务393新增/6删除，共391行≤400。
 
 初始测试生成夹具误取内层finally，修正外层清理后再确认缺少只读导出RED；页面渲染RED缺准备区域。
 客户端非字符串状态回执用例先RED，再禁止数组字符串化后GREEN，未放宽原规则。

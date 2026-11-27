@@ -1,6 +1,6 @@
 # Exhibition Reminder Persistent Recovery Control Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 在1A合并后交付同库持久未决、带原因受控结束，以及原写事务中对旧运行/封套的拒绝；本PR仍不实现定时循环。
 
@@ -14,7 +14,7 @@
 
 公共参数p:Payload、headers:Headers、req:Partial<PayloadRequest>、user:Staff与1A一致；ReminderReport/SchedulerState/ReminderScope以1A及原库导出为准。
 
-- 当前只编写计划。必须用户合并1A后，fetch确认包含1A最终提交，从最新origin/main创建codex/exhibition-reminder-recovery-control；不叠加PR、不自动合并。
+- 已核实用户合并1A；从包含ff3dea1的origin/main40d9910创建本计划分支。原要求：必须用户合并1A后，fetch确认包含1A最终提交，从最新origin/main创建codex/exhibition-reminder-recovery-control；不叠加PR、不自动合并。
 - 沿已选原生方式；本PR保守预算≤390业务源码增删，实际≤400。估算不是承诺已实现行数，若超限按已接受设计再切可独立验收增量，不能删锁/鉴权/回执来凑数。
 - 只写既有audit-events和经原服务批准的exhibition-reminder-jobs；无新表、迁移、依赖或必需环境变量，原库不变。原5份其他草稿保留。
 - local-only、原生现职管理员及7200秒会话、私有文件规则、初始化前拒绝清库、禁schema/建库/types/遥测与普通日志沿1A/PR125；失效凭证不能补写停止审计。
@@ -61,8 +61,8 @@
 - `session.finish(runId:string,receipt:string):Promise<{revision:number}>`：只在原生成审计已匹配时追加pending=null；不写待发。`session.stop(runId:string):Promise<void>`只在无pending且仍有效授权时追加idle。
 - `SchedulerSession`后继还提供Task2的apply/resolve；本任务先实现上述内核，接口不能开放未完成的写路径。
 
-- [ ] **1. 编写RED。** 新真实PG组导入API失败明确报错；真实管理员、真实审核/预检封套夹具。断言第二进程拿不到单实例锁；prepare后同库另一连接/新目录读取blocked，第二次begin/prepare拒绝；无生成审计的finish拒绝且pending保留。
-- [ ] **2. 运行RED并实现最小控制内核。** 全新状态begin→prepare，记录真实审计字段/原actor、无封套/JWT/邮箱；global和关联原子。每个写步骤锁后重新认证并核对状态/owner/run；新目录不参与授权或解除。
+- [x] **1. 编写RED。** 新真实PG组导入API失败明确报错；真实管理员、真实审核/预检封套夹具。断言第二进程拿不到单实例锁；prepare后同库另一连接/新目录读取blocked，第二次begin/prepare拒绝；无生成审计的finish拒绝且pending保留。
+- [x] **2. 运行RED并实现最小控制内核。** 全新状态begin→prepare，记录真实审计字段/原actor、无封套/JWT/邮箱；global和关联原子。每个写步骤锁后重新认证并核对状态/owner/run；新目录不参与授权或解除。
 
   前一步用例`pending cannot finish without its generation audit`的关键断言如下；session来自真实withExhibitionScheduler，scope/receipt来自原生审核/预检夹具：
 
@@ -73,9 +73,9 @@
   assert.equal((await readExhibitionSchedulerStatus(p, headers)).status, "blocked");
   ```
 
-- [ ] **3. 故障与反向断言。** 对pending/global/正常完成审计分别注入数据库约束失败及吞COMMIT；assert.rejects且不能进入后继apply。对实际已提交但调用方未收到成功的状态，重开连接仍blocked，原回执保留；测试不能仅靠exit1证明无写。
-- [ ] **4. 保留实际记录对照。** 记录0→真实pending/global→成功完成或受控结束→私有清理的可检测变化；稳定状态读取全表不变。只清本测试记录ID，验证旧邮件/活动/尝试/租约/预算不变。锁占用由pg_locks/pg_blocking_pids确认，不用sleep猜顺序。
-- [ ] **5. 检查并提交。** `npm run check`及新控制组GREEN；任务完成命令`npm test`。此时未完成Task2，不提供运营生成入口、不把私有内核提交称1B已交付。
+- [x] **3. 故障与反向断言。** 对pending/global/正常完成审计分别注入数据库约束失败及吞COMMIT；assert.rejects且不能进入后继apply。对实际已提交但调用方未收到成功的状态，重开连接仍blocked，原回执保留；测试不能仅靠exit1证明无写。
+- [x] **4. 保留实际记录对照。** 记录0→真实pending/global→成功完成或受控结束→私有清理的可检测变化；稳定状态读取全表不变。只清本测试记录ID，验证旧邮件/活动/尝试/租约/预算不变。锁占用由pg_locks/pg_blocking_pids确认，不用sleep猜顺序。
+- [x] **5. 检查并提交。** `npm run check`及新控制组GREEN；任务完成命令`npm test`。此时未完成Task2，不提供运营生成入口、不把私有内核提交称1B已交付。
 
 ### Task 2: 旧运行拒绝、明确受控结束及真实入口验收
 
@@ -86,8 +86,8 @@
 - `session.resolve(expectedRevision:number,reason:string):Promise<{state:'resolved';outcome:'committed'|'closed-uncommitted';revision:number;scope:ReminderScope}>`：任一现职管理员、单实例锁、原三锁内核对版本及生成审计，reason trim后1–500字符；已有提交只核实，无提交追加作废＋idle。输出不含原历史数量/actor/run/digest/封套，结束不调用apply。
 - CLI：`scheduler-resolve --auth-file PATH --revision N --reason TEXT`；N为status实际状态版本，正整数，无pending/版本过期409。原管理员普通inspect的归属限制不改变；无原回执文件也只能控制核实结束，不能代执行。
 
-- [ ] **1. 写真实危险路径RED。** 原服务尚无防护时，把已结束但未过期的关联封套经手工apply实际得到held的负对照，期望409/全表不变应失败。旧进程失去单实例连接后被PG屏障延迟在内容锁前，另一进程resolve先提交；旧调用随后必须失败，不能仅由本地stopped标志通过测试。
-- [ ] **2. 接入锁内防护并GREEN。** 已提交历史分支仍在新写检查之前；所有未命中历史的新应用都经过关联/作废检查，之后才原提醒资格/时间/MAC复核及写入。状态变更同样先原三锁再认证，不能改员工原钩子、加大池或绕过原授权来通过。
+- [x] **1. 写真实危险路径RED。** 原服务尚无防护时，把已结束但未过期的关联封套经手工apply实际得到held的负对照，期望409/全表不变应失败。旧进程失去单实例连接后被PG屏障延迟在内容锁前，另一进程resolve先提交；旧调用随后必须失败，不能仅由本地stopped标志通过测试。
+- [x] **2. 接入锁内防护并GREEN。** 已提交历史分支仍在新写检查之前；所有未命中历史的新应用都经过关联/作废检查，之后才原提醒资格/时间/MAC复核及写入。状态变更同样先原三锁再认证，不能改员工原钩子、加大池或绕过原授权来通过。
 
   前一步用例`closed uncommitted receipt cannot write through the manual service`在原会话释放单实例锁、新管理员带原因resolve成功、封套仍未过期的夹具中包含：
 
@@ -97,10 +97,10 @@
   assert.deepEqual(await databaseFingerprints(p.db.pool), before);
   ```
 
-- [ ] **3. 两个先后顺序。** 生成先持原锁时，resolve等待生成提交/回滚后再核实；resolve先持锁时，旧写拒绝。实际两进程、多连接和锁观察证明；吞COMMIT时pending不能丢，恢复status/inspect前后全表不变。移除guard的隔离反例必须真实检出新增1条held。
-- [ ] **4. 受控结束与身份。** 相同expectedRevision并发resolve仅一次控制事件成功；过期版本不得结束新的pending。原账号撤权后另一现职管理员带原因可结束，但无历史计数、无待发增量；经理/运营/展会编辑/仅政策授权主管403，空/超长原因400。当前管理员在锁等待中撤权/登出仍拒绝，不能靠最初actor对象。
-- [ ] **5. CLI反例与资源。** 非local、清库开关、非法revision/未知参数、坏私有JWT在初始化前拒绝；正常help/inspect/status保持。真实scheduler-resolve仅追加预期审计，原回执不改，未提交旧封套不可复活，已提交旧密钥历史原管理员仍可查；EOF/异常/连接丢失finally只清自己资源，HTTP/fetch0。
-- [ ] **6. 全套交付。** 完整check、`npm run test:subscriptions`完整回归（1A44＋控制/竞争2组=46）、相关content/exhibitions/权限回归与生产build通过；原库不迁移，虚构库清理。更新交接/小结，写明持久门禁已交付但实际循环尚未实现；计实际源码≤400并提交，任务完成命令`npm test`。
+- [x] **3. 两个先后顺序。** 生成先持原锁时，resolve等待生成提交/回滚后再核实；resolve先持锁时，旧写拒绝。实际两进程、多连接和锁观察证明；吞COMMIT时pending不能丢，恢复status/inspect前后全表不变。移除guard的隔离反例必须真实检出新增1条held。
+- [x] **4. 受控结束与身份。** 相同expectedRevision并发resolve仅一次控制事件成功；过期版本不得结束新的pending。原账号撤权后另一现职管理员带原因可结束，但无历史计数、无待发增量；经理/运营/展会编辑/仅政策授权主管403，空/超长原因400。当前管理员在锁等待中撤权/登出仍拒绝，不能靠最初actor对象。
+- [x] **5. CLI反例与资源。** 非local、清库开关、非法revision/未知参数、坏私有JWT在初始化前拒绝；正常help/inspect/status保持。真实scheduler-resolve仅追加预期审计，原回执不改，未提交旧封套不可复活，已提交旧密钥历史原管理员仍可查；EOF/异常/连接丢失finally只清自己资源，HTTP/fetch0。
+- [x] **6. 全套交付。** 完整check、`npm run test:subscriptions`完整回归（1A44＋控制/竞争2组=46）、相关content/exhibitions/权限回归与生产build通过；原库不迁移，虚构库清理。更新交接/小结，写明持久门禁已交付但实际循环尚未实现；计实际源码≤400并提交，任务完成命令`npm test`。
 - [ ] **7. PR收尾。** 原生方式唯一末尾全PR独立复核，重要项一轮RED→GREEN及完整回归，轻微记录；精确HEAD两CI及关键日志、fetch远端一致，草稿不自动合并。合并前不开始实际循环增量。
 
 ## 自检、预算与后继
@@ -110,3 +110,19 @@
 本计划覆盖持久同库阻断、受控结束、撤权恢复、锁内旧进程防写、原普通手工与历史兼容，以及故障/竞争证据。60秒循环、5秒身份等待器、manifest/state-dir落盘、SIGINT/SIGTERM和真正调度多轮均留下一计划，1B不创建隐藏定时器或伪称自动调度可用。
 
 已自检Spec覆盖、步骤可判定性、1A类型/方法一致性、五项Review Focus及长度比例。当前只写计划，用户确认后仍须等待1A实际合并再执行本计划；沿已选原生方式。
+
+## 实施记录
+
+基于main40d9910，分支codex/exhibition-reminder-recovery-control，草稿PR127。业务源码当前393≤400；复用审计追加函数降低重复，保持鉴权/锁/回执/明确恢复。基线822，新增CLI校验单元后完整check823/823、lint0/445、885文件行长通过；真实旧封套RED及guard移除恰好新增1条held的负对照已观察。两进程/连接终止与原锁两先后顺序、跳过本地活性检查仍由DB拒旧写、控制约束/吞COMMIT/响应丢失与当前管理员CLI已验收。完整46组、content/exhibitions与生产build已通过；唯一末尾复核/精确CI仍为分支交付门禁。
+
+许可注册表和守卫收拢在control模块内，签发函数不导出；apply动态导入原生成服务，避免运行时循环。原文件地图中的独立guard模块由此替代。复核修正后完整823/823、46组、content/exhibitions及重新生产build通过；精确CI尚待核实。
+
+Ruling: preserve accepted native in-place workflow, isolate tests in a no-.env tracked-source copy and preserve five drafts — cost: shared checkout still needs coordination.
+Final: Ruling: combine private permit registry and guard in control module, with generation loaded dynamically only by apply — exported factories allowed a genuine bypass; no callable factory remains — cost: one runtime import and larger control module; native generation/runtime type cycles avoided.
+Final: Ruling: loop, private state directory, signals and real delivery remain later — this PR implements persistence/fencing/explicit resolve only — cost: no scheduling process is delivered yet.
+Final: Ruling: existing CMS audit-events administrator collection browsing remains unchanged — user explicitly retains current permissions; the new resolve service/CLI projects no historical counts — cost: administrators with existing collection access still have that original audit access.
+Final: minor (deferred): inherited authority/config dependency decoupling.
+Final: minor (deferred): inherited exclusion-reason taxonomy.
+Final: minor (deferred): inherited U+2028/U+2029 title cleanup.
+Final: fixed Critical backend ownership — independent random DB same-lock RED→GREEN; child PID+DB+key scoped termination; both process orders GREEN.
+Final: fixed five Important findings — factory/self-resolve/isolation/CLI independent RED→GREEN; stale-version comparison removed against real new pending RED→GREEN. Full suite823/823, subscription46/46, content/exhibitions/build0, source393<=400. No second review.
