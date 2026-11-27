@@ -185,6 +185,17 @@ export async function testExhibitionSchedulerReadBoundary(p: Payload) {
       await assert.rejects(status(p, f.admin.headers), { status: 503 });
     });
     await p.db.pool.query("DELETE FROM audit_events WHERE id=ANY($1::int[])", [controls]);
+    assert.equal((await p.db.pool.query("SELECT id FROM audit_events WHERE id=0")).rowCount, 0);
+    await p.db.pool.query(
+      `INSERT INTO audit_events(id,entity,record_id,action,actor_id,after,created_at,updated_at)
+       VALUES(0,'exhibition-reminder-scheduler','global','state-v1',$1,$2::jsonb,clock_timestamp(),clock_timestamp())`,
+      [f.admin.user.id, JSON.stringify(idle)],
+    );
+    f.audits.push(0);
+    await f.unchanged(async () => {
+      await assert.rejects(status(p, f.admin.headers), { status: 503 });
+    });
+    await p.db.pool.query("DELETE FROM audit_events WHERE id=0 AND actor_id=$1", [f.admin.user.id]);
     await p.db.pool.query("ALTER TABLE audit_events ADD COLUMN recovery_read_probe text");
     probe = true;
     assert.equal((await cli(["scheduler-status"], auth, { NODE_ENV: "development" })).status, 0);

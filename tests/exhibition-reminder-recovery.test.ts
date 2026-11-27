@@ -91,6 +91,17 @@ const dir = mkdtempSync(join(tmpdir(), "hua-recovery-unit-"));
 after(() => rmSync(dir, { recursive: true, force: true }));
 const bad = join(dir, "bad.jwt");
 writeFileSync(bad, "not-a-jwt", { mode: 0o600 });
+const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+const shapedAuth = join(dir, "structured.jwt");
+writeFileSync(
+  shapedAuth,
+  [
+    encode({ alg: "HS256", typ: "JWT" }),
+    encode({ id: 1, collection: "staff", sid: "fictional-unit", iat: 1, exp: 9999999999 }),
+    Buffer.alloc(32).toString("base64url"),
+  ].join("."),
+  { mode: 0o600 },
+);
 const entry = fileURLToPath(new URL("../scripts/exhibition-reminders.ts", import.meta.url));
 const run = (args: string[], env: Record<string, string | undefined> = {}) =>
   spawnSync(process.execPath, ["--import", "tsx", entry, ...args], {
@@ -118,6 +129,33 @@ for (const mode of ["inspect", "scheduler-status"])
     assert.equal(r.stdout, "");
     assert.doesNotMatch(r.stderr, /PAYLOAD_SECRET|Error:|not-a-jwt/);
   });
+test("real inspect rejects a malformed receipt after a structurally valid JWT before initialization", () => {
+  const r = run(["inspect", "--auth-file", shapedAuth, "--receipt-file", bad]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /0600常规文件/);
+  assert.doesNotMatch(r.stderr + r.stdout, /PAYLOAD_SECRET|DATABASE_URL|Error:|not-a-jwt/);
+});
+test("real inspect rejects a missing receipt argument before initialization", () => {
+  const r = run(["inspect", "--auth-file", shapedAuth]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /参数无效/);
+  assert.doesNotMatch(r.stderr + r.stdout, /PAYLOAD_SECRET|DATABASE_URL|Error:/);
+});
+test("real scheduler status rejects extraneous receipt arguments without echoing them", () => {
+  const r = run([
+    "scheduler-status",
+    "--auth-file",
+    shapedAuth,
+    "--receipt-file",
+    "private-argument-marker",
+  ]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /参数无效/);
+  assert.doesNotMatch(
+    r.stderr + r.stdout,
+    /private-argument-marker|PAYLOAD_SECRET|DATABASE_URL|Error:/,
+  );
+});
 test("new commands retain nonlocal and reset refusal and offer inert help", () => {
   for (const env of [{ APP_ENV: "production" }, { PAYLOAD_DROP_DATABASE: "true" }]) {
     const r = run(["scheduler-status", "--auth-file", bad], env);

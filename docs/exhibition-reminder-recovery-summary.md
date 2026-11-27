@@ -27,8 +27,8 @@ npm run --silent exhibition:reminders -- scheduler-status \
 
 ## 验收与后续
 
-验收覆盖真实JWT、原生只读事务拒写、有效未提交封套不执行、历史脱敏/损坏拒绝、十并发、新进程密钥轮换与旧日回执、快照释放后登出、原生撤权、真实命令与私有输入目录变化、开发模式不改schema/types及0对外HTTP/fetch调用。新增22项单元，完整check819/819、lint0错误/445既有警告、订阅44组、content/exhibitions及生产build通过；业务源码374≤400。最终独立复核和精确CI见PR126核实记录。
+验收覆盖真实JWT、原生只读事务拒写、有效未提交封套不执行、历史脱敏/损坏拒绝、十并发、新进程密钥轮换与旧日回执、快照释放后登出、原生撤权、真实命令与私有输入目录变化、开发模式不改schema/types及0对外HTTP/fetch调用。新增25项单元，完整check822/822、lint0错误/445既有警告、订阅44组、content/exhibitions及生产build通过；业务源码375≤400。一次独立复核0严重/3重要/1轻微；三重要项一轮RED→GREEN及全套回归通过，无二次复核。已拒绝计数不一致/blocked历史、实际id=0控制行，新增三个独立CLI启动边界与负向对照。精确最终CI见PR126核实记录。
 
-1A不会创建控制事件或执行调度。持久未决写入、跨目录启动阻断、带原因受控结束及旧运行/封套防写属于[1B计划](superpowers/plans/2026-11-27-exhibition-reminder-recovery-control.md)，等1A合并后实施；实际循环、系统驻留和真实发送仍后批。现有排除原因分类和U+2028/U+2029标题清理轻微项保持另批。
+1A不会创建控制事件或执行调度。持久未决写入、跨目录启动阻断、带原因受控结束及旧运行/封套防写属于[1B计划](superpowers/plans/2026-11-27-exhibition-reminder-recovery-control.md)，等1A合并后实施；实际循环、系统驻留和真实发送仍后批。配置依赖解耦、现有排除原因分类和U+2028/U+2029标题清理轻微项保持另批。
 
 无新依赖、字段、迁移或必需环境变量，未改.env；原库未升级，其他5份草稿保留。原始日志仅本机.local/exhibition-reminder-recovery-read，未上传；无新UI或真实送达声称。

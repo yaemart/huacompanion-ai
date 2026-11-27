@@ -116,7 +116,7 @@
 
 ## 实施结果与判断
 
-本地check819/819、lint0/445、880文件行长、订阅44组、content/exhibitions及生产build通过；实际业务源码374≤400，270为失准预算。原库/.env/依赖/迁移不变，最终复核/精确CI见PR126记录。
+本地check822/822、lint0/445、880文件行长、订阅44组、content/exhibitions及生产build通过；实际业务源码375≤400，270为失准预算。原库/.env/依赖/迁移不变，最终复核/精确CI见PR126记录。
 
 Ruling: preserve accepted in-place/native workflow and existing PR126 branch; use an isolated no-.env source copy for tests and preserve five unrelated drafts — cost: shared checkout still needs coordination; do not claim whole root clean.
 
@@ -127,3 +127,14 @@ Ruling: different-directory recovery means changing private input/state location
 Ruling: estimated270 source lines was low; actual374 remains below approved hard400. Retain strict validation instead of compressing statements — cost: larger review than estimate, no scope/cap increase.
 
 Ruling: task-done records implementation, tests and commit; independent full-PR review and exact-head CI remain final branch gates — cost: explicitly pending until verified, no premature completion claim.
+
+唯一复核0严重/3重要/1轻微，重要项单轮修正且各RED→GREEN及最终完整检查；无二次复核。
+Final: Ruling: 1B persistent pending/resolve/old-run fencing, scheduler loop and sending were set aside — this 1A deliberately supplies only read APIs, and docs/commands never advertise full startup blocking — cost: no durable recovery or scheduling until later merged increments.
+Final: Ruling: arbitrary process cwd was set aside — retain the documented existing project-root CLI contract and verify moved private inputs instead — cost: operators must cd to the project; existing Payload path behavior remains.
+Final: Ruling: prior exclusion-reason taxonomy and U+2028/U+2029 title cleanup were set aside — retain the accepted PR125 later-batch scope, no new display or sending behavior in 1A — cost: those two earlier minor presentation issues remain.
+Final: minor (deferred): authority imports still indirectly require payload.config; decouple later. Current real CLI validates before dynamic loading and all service acceptance uses real local configuration.
+Final: minor (deferred): inherited exclusion-reason taxonomy.
+Final: minor (deferred): inherited U+2028/U+2029 terminal-title cleanup.
+Final: fixed historical counts/blocked integrity — real committed audit RED→GREEN, suite822/822.
+Final: fixed persisted control revision0 ambiguity — real id=0 global row RED→GREEN, suite822/822.
+Final: fixed masked CLI startup acceptance — three independent negative controls RED→GREEN, suite822/822.

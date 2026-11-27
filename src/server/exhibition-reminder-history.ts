@@ -52,8 +52,9 @@ export async function findExhibitionReminderAudit(
       !Number.isFinite(Date.parse(r.asOf)) ||
       new Date(r.asOf).toISOString() !== r.asOf ||
       ![30, 7, null].includes(r.offset) ||
-      typeof r.blocked !== "boolean" ||
+      r.blocked !== false ||
       !c ||
+      c.eligible !== c.create + c.existing ||
       !c.excluded ||
       typeof c.excluded !== "object" ||
       Array.isArray(c.excluded)

@@ -81,6 +81,21 @@ export async function testExhibitionReminderInspection(p: Payload) {
           /private@example|private-receipt|private-hash/,
         );
       });
+      for (const broken of [
+        { ...committed, counts: { ...committed.counts, create: 2 } },
+        { ...committed, blocked: true },
+      ]) {
+        await p.db.pool.query("UPDATE audit_events SET after=$1::jsonb WHERE id=$2", [
+          JSON.stringify({ ...after, report: broken }),
+          audit.id,
+        ]);
+        await f.unchanged(async () => {
+          await assert.rejects(inspect(p, f.admin.headers, f.receipt), { status: 503 });
+          await assert.rejects(applyExhibitionReminders(p, f.admin.headers, f.receipt), {
+            status: 503,
+          });
+        });
+      }
       await p.db.pool.query("UPDATE audit_events SET after=$1::jsonb WHERE id=$2", [
         JSON.stringify({ ...after, scope: "wrong-scope" }),
         audit.id,

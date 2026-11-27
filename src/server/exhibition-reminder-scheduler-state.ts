@@ -17,7 +17,7 @@ export async function readSchedulerLedger(p: Payload, req: Partial<PayloadReques
     );
     const row = rows[0] as { id: number; action: string; after: unknown } | undefined;
     if (row) {
-      if (row.action !== "state-v1") throw Error();
+      if (row.action !== "state-v1" || !Number.isSafeInteger(row.id) || row.id < 1) throw Error();
       return parseSchedulerLedger({ revision: row.id, state: row.after });
     }
     const orphan = await executeSQL(
