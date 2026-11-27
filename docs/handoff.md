@@ -1,5 +1,9 @@
 # 当前开发交接
 
+## 受控单轮与信号停止实施中（2026-11-27）
+
+已实核PR128合并，origin/main351f7efdc4a66690d9f9af59f2d75baf29b9ab5e包含e9b91c3。从最新main建立codex/exhibition-reminder-single-round，沿已确认原生计划实施schedule --once及SIGINT/SIGTERM收尾，连续循环/真实发送后批，不自动合并。基线891/891，受控单轮缺API RED及正常/故障真实PG验收已观察；最终检查/范围完成后更新。五份其他草稿保留，原库/.env不动。
+
 ## 第一批固定清单与独占目录（2026-11-27）
 
 用户已确认原生实施第一批；PR128仍未合并，沿codex/exhibition-reminder-loop-design继续，基于main a193600，保留5份其他草稿。[一页小结](exhibition-reminder-run-directory-summary.md)、[实施计划](superpowers/plans/2026-11-27-exhibition-reminder-run-directory.md)。不自动合并。
