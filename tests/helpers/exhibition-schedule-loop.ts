@@ -15,9 +15,10 @@ import { parseScheduleManifest } from "../../scripts/lib/exhibition-schedule-inp
 import { scheduleStopFixture } from "./exhibition-schedule-once";
 import { transactionSession } from "../../src/server/db-types";
 import { inspectExhibitionReminder } from "../../src/server/exhibition-reminder-history";
+import { withExhibitionScheduler } from "../../src/server/exhibition-reminder-scheduler-control";
 
 type Fixture = Awaited<ReturnType<typeof recoveryFixture>>;
-type Phase = { phase?: string; at?: number; count?: number; forbidden?: boolean };
+type Phase = { phase?: string; at?: number; count?: number; forbidden?: boolean; pid?: number };
 function tree(path: string): unknown[] {
   return fs
     .readdirSync(path)
@@ -60,7 +61,7 @@ export async function testExhibitionScheduleLoop(p: Payload) {
   assert.equal(typeof api.runSchedule, "function", "continuous runner must exist");
   const selected = process.env.HUA_LOOP_ACCEPT_CASE;
   const cases: [string, () => Promise<void>][] = [["happy", () => happyCLI(p)]];
-  for (const kind of ["sigterm", "logout", "inactive", "role", "expiry"])
+  for (const kind of ["sigterm", "logout", "inactive", "role", "expiry", "lock-loss"])
     cases.push([kind, () => idleCLI(p, kind)]);
   for (const kind of ["prepare", "apply", "finish"])
     cases.push([kind, () => laterFailure(p, api.runSchedule, kind)]);
@@ -71,7 +72,7 @@ export async function testExhibitionScheduleLoop(p: Payload) {
     await work();
     executed++;
   }
-  assert.equal(executed, selected ? 1 : 10);
+  assert.equal(executed, selected ? 1 : 11);
 }
 function launchLoop(
   f: Fixture,
@@ -311,7 +312,19 @@ async function idleCLI(p: Payload, kind: string) {
             : []),
         ].includes(t.table),
     );
-    if (kind === "sigterm") {
+    if (kind === "lock-loss") {
+      const pids = run.phases.filter((m) => m.phase === "timeouts").map((m) => m.pid);
+      assert.ok(pids.length && pids.every((id) => Number.isSafeInteger(id) && id! > 0));
+      const killed = await p.db.pool.query(
+        `SELECT pg_terminate_backend(pid) AS stopped FROM pg_locks
+         WHERE pid=ANY($1::int[]) AND database=(SELECT oid FROM pg_database WHERE datname=current_database())
+         AND locktype='advisory' AND classid=0 AND objid=726291 AND objsubid=1 AND granted`,
+        [pids],
+      );
+      assert.equal(killed.rowCount, 1, "terminate only the actual child's singleton connection");
+      assert.equal(killed.rows[0].stopped, true);
+      await f.unchanged(() => withExhibitionScheduler(p, f.other.headers, (s) => s.check()));
+    } else if (kind === "sigterm") {
       run.child.kill("SIGTERM");
       run.child.kill("SIGTERM");
     } else if (kind === "logout")
@@ -326,7 +339,10 @@ async function idleCLI(p: Payload, kind: string) {
         req: await createLocalReq({ user: revoker }, p),
         data: kind === "inactive" ? { active: false } : { role: "operations" },
       });
-    const done = await deadline(run.completion, kind === "sigterm" ? 3500 : 30000);
+    const done = await deadline(
+      run.completion,
+      kind === "sigterm" ? 3500 : kind === "lock-loss" ? 12000 : 30000,
+    );
     assert.deepEqual(done, { code: kind === "sigterm" ? 143 : 1, signal: null }, run.stderr);
     const after = await readExhibitionSchedulerStatus(p, f.other.headers);
     assert.equal(after.status, kind === "sigterm" ? "idle" : "running");
@@ -336,11 +352,14 @@ async function idleCLI(p: Payload, kind: string) {
         before.revision,
         "invalid actor cannot append stop control audit",
       );
-      assert.equal(
-        (await p.auth({ headers: new Headers({ authorization: "JWT " + token }) })).user,
-        null,
-      );
-      assert.match(run.stderr, /管理员登录或权限无效/);
+      if (kind === "lock-loss") assert.match(run.stderr, /本地调度未完成.*scheduler-status/);
+      else {
+        assert.equal(
+          (await p.auth({ headers: new Headers({ authorization: "JWT " + token }) })).user,
+          null,
+        );
+        assert.match(run.stderr, /管理员登录或权限无效/);
+      }
     }
     assert.equal(fs.existsSync(join(run.state, "stopped.json")), kind === "sigterm");
     assert.equal(run.phases.filter((m) => m.phase === "loop-preview").length, 1);

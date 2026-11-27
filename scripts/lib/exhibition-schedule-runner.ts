@@ -83,6 +83,7 @@ export async function runSchedule(
       do {
         for (const scope of manifest.targets) {
           if (await halted()) break;
+          await session.check();
           await authenticateReminderAdmin(p, headers);
           if (await halted()) break;
           const preview = await previewExhibitionReminders(p, headers, scope);
@@ -111,6 +112,7 @@ export async function runSchedule(
         }
         if ((await halted()) || options.once) break;
         await waitScheduleCycle(stop, async () => {
+          await session.check();
           await authenticateReminderAdmin(p, headers);
         });
       } while (!(await halted()));

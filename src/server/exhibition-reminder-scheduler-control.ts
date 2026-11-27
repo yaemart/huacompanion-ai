@@ -88,6 +88,7 @@ export async function withExhibitionScheduler<T>(
         throw new ContentError("调度运行已变化。", 409);
     };
     const session: SchedulerSession = {
+      check,
       apply: async (run, receipt) => {
         if (busy || activeRun !== run) throw new ContentError("调度上下文已变化。", 409);
         busy = true;
@@ -213,6 +214,7 @@ export async function withExhibitionScheduler<T>(
   }
 }
 export type SchedulerSession = {
+  check: () => Promise<void>;
   apply: (run: string, receipt: string) => Promise<ReminderReport>;
   resolve: (
     revision: number,
