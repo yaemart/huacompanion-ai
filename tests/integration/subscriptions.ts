@@ -79,6 +79,7 @@ import { testSubscriptionDelivery } from "./subscription-delivery";
 import { testSubscriptionForm } from "./subscription-form";
 import { testExhibitionReminderCommand } from "../helpers/exhibition-reminder-command";
 import { testExhibitionReminderInspection } from "../helpers/exhibition-reminder-inspection";
+import { testExhibitionScheduleSignals } from "../helpers/exhibition-schedule-signals";
 import { testExhibitionScheduleOnce } from "../helpers/exhibition-schedule-once";
 import { testExhibitionSchedulerReview } from "../helpers/exhibition-reminder-review";
 import { testExhibitionSchedulerControl } from "../helpers/exhibition-reminder-scheduler-control";
@@ -463,6 +464,10 @@ try {
   await testExhibitionSchedulerRaces(payload);
   await testExhibitionSchedulerReview(payload);
   await testExhibitionScheduleOnce(payload);
+  await testExhibitionScheduleSignals(payload);
+  console.log(
+    "PASS actual schedule CLI signals: private initialization, native authority, snapshots and stop boundaries",
+  );
   console.log(
     "PASS controlled schedule once: durable evidence, native generation and commit uncertainty gates",
   );

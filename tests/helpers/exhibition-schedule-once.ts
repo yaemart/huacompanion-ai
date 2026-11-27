@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { join } from "node:path";
-import type { Payload } from "payload";
+import { createLocalReq, logoutOperation, type Payload } from "payload";
 import { transactionSession } from "../../src/server/db-types";
 import { inspectExhibitionReminder } from "../../src/server/exhibition-reminder-history";
 import type { runScheduleOnce, ScheduleStop } from "../../scripts/lib/exhibition-schedule-runner";
@@ -86,6 +86,7 @@ export async function testExhibitionScheduleOnce(p: Payload) {
     await f.cleanup();
   }
   await onceFailures(p, api.runScheduleOnce);
+  await onceAuthority(p, api.runScheduleOnce);
 }
 
 async function onceFailures(p: Payload, runOnce: typeof runScheduleOnce) {
@@ -219,6 +220,119 @@ async function onceFailures(p: Payload, runOnce: typeof runScheduleOnce) {
           );
         });
     } finally {
+      fs.rmSync(root, { recursive: true });
+      await f.cleanup();
+    }
+  }
+}
+
+async function onceAuthority(p: Payload, runOnce: typeof runScheduleOnce) {
+  const f = await recoveryFixture(p),
+    root = scheduleTestDirectory();
+  try {
+    const roles = [
+      f.manager,
+      await f.person("editor"),
+      await f.person("operations"),
+      await f.person("reviewer"),
+    ];
+    for (const [i, headers] of [new Headers(), ...roles.map((r) => r.headers)].entries()) {
+      const path = join(root, "denied-" + i);
+      await f.unchanged(async () => {
+        await assert.rejects(
+          runOnce(
+            p,
+            headers,
+            parseScheduleManifest({ version: 1, targets: [f.scope] }),
+            path,
+            scheduleStopFixture(),
+            () => {},
+          ),
+          { status: 403 },
+        );
+      });
+      assert.equal(fs.existsSync(path), false);
+    }
+    const { decodeJwt, decodeProtectedHeader, SignJWT } = await import("jose"),
+      raw = f.admin.headers.get("authorization")!.slice(4);
+    const token = await new SignJWT(decodeJwt(raw))
+      .setProtectedHeader({
+        alg: "HS256",
+        typ: "JWT",
+        authVersion: decodeProtectedHeader(raw).authVersion,
+      })
+      .setIssuedAt(Math.floor(Date.now() / 1000) - 8000)
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 1)
+      .sign(new TextEncoder().encode(p.secret));
+    await f.unchanged(async () => {
+      await assert.rejects(
+        runOnce(
+          p,
+          new Headers({ authorization: "JWT " + token }),
+          parseScheduleManifest({ version: 1, targets: [f.scope] }),
+          join(root, "expired"),
+          scheduleStopFixture(),
+          () => {},
+        ),
+        { status: 403 },
+      );
+    });
+  } finally {
+    fs.rmSync(root, { recursive: true });
+    await f.cleanup();
+  }
+  for (const kind of ["logout", "inactive"]) {
+    const f = await recoveryFixture(p),
+      root = scheduleTestDirectory(),
+      state = join(root, "run"),
+      auth = p.auth;
+    const actor = (await auth.call(p, { headers: f.admin.headers })).user,
+      revoker = (await auth.call(p, { headers: f.other.headers })).user;
+    assert.ok(actor && revoker);
+    let changed = false;
+    p.auth = async (args) => {
+      if (!changed && fs.existsSync(join(state, "operations", "000001", "planned.json"))) {
+        changed = true;
+        if (kind === "logout")
+          await logoutOperation({
+            collection: p.collections.staff,
+            req: await createLocalReq({ user: actor }, p),
+          });
+        else
+          await p.update({
+            collection: "staff",
+            id: f.admin.user.id,
+            req: await createLocalReq({ user: revoker }, p),
+            data: { active: false },
+          });
+      }
+      return auth.call(p, args);
+    };
+    try {
+      await assert.rejects(
+        runOnce(
+          p,
+          f.admin.headers,
+          parseScheduleManifest({ version: 1, targets: [f.scope] }),
+          state,
+          scheduleStopFixture(),
+          () => {},
+        ),
+        { status: 403 },
+      );
+      assert.ok(changed);
+      assert.equal(
+        (
+          await p.db.pool.query("SELECT id FROM exhibition_reminder_jobs WHERE scope=$1", [
+            JSON.stringify([f.scope.key, f.scope.locale]),
+          ])
+        ).rowCount,
+        0,
+      );
+      assert.equal((await readExhibitionSchedulerStatus(p, f.other.headers)).status, "running");
+      assert.equal(fs.existsSync(join(state, "stopped.json")), false);
+    } finally {
+      p.auth = auth;
       fs.rmSync(root, { recursive: true });
       await f.cleanup();
     }

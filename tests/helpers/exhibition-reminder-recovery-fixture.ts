@@ -40,7 +40,7 @@ export async function recoveryFixture(p: Payload) {
     outbound++;
     throw Error("No outbound in recovery acceptance");
   };
-  const person = async (role: "admin" | "manager" | "editor") => {
+  const person = async (role: "admin" | "manager" | "editor" | "operations" | "reviewer") => {
     const password = randomBytes(32).toString("hex");
     const user = await p.create({
       collection: "staff",

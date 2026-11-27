@@ -1,5 +1,13 @@
 # 本地模拟活动暂停与恢复（2026-11-21）
 
+## 受控单轮与信号停止（2026-11-27）
+
+已实核PR128合并，基于最新main351f7ef，分支`codex/exhibition-reminder-single-round`，[草稿PR129](https://github.com/yaemart/huacompanion-ai/pull/129)，不自动合并。[一页使用小结](exhibition-reminder-single-round-summary.md)、[实施计划](superpowers/plans/2026-11-27-exhibition-reminder-single-round.md)。
+新增`schedule --auth-file PATH --manifest-file PATH --state-dir NEW_PATH --once`；显式单轮实际生成/核实取消本地待发，不发送。JWT/固定清单在配置初始化前读入；每次新建独占私有目录，复用原回执/阶段协议与唯一原生session，prepare/apply/finish严格串行。所有输入、现职管理员、审核/精确30/7日期、原锁序、持久未决及H试发门禁保持。
+SIGINT/SIGTERM仅置闩；停止后不进入下一目标。已调用apply仍按原锁后批准完成当前操作，失效或未知不补审计；pending未apply保持blocked。finish已实际提交而响应/文件失败仍本进程退出1，DB可能无pending，不假报全库阻断，不重试或自resolve。新目录不绕未决，原状态/历史查询只读。
+完整check901/901、lint0错误/445既有警告、897文件行长通过；24个实际CLI场景加双进程拒绝、10种真实文件/提交故障、角色/过期/登出/停用及锁等待撤权均有验收。完整订阅48组、content/exhibitions、内容权限及生产build全部退出0；本次独立虚构库已清理。唯一末尾独立复核、精确最终HEAD两CI见本PR核实记录。
+业务源码增删225≤400；无新依赖/表/迁移/必需环境变量或.env变更，原运行库未动，独立虚构数据库使用后清理，五份其他草稿保留。原始日志仅本机`.local/exhibition-reminder-single-round`，未上传。当前无连续循环；本PR用户合并后再按loop计划实施，真实发送继续后批。
+
 ## 单展会30/7天提醒：设计阶段（2026-11-26）
 
 PR123合并后fetch核对main80dac92包含c2d4075，新分支`codex/exhibition-reminder-design`。用户选择管理员手动预检再生成待发，真实发送后批、原审核/锁/试发门禁保留。[正式设计](superpowers/specs/2026-11-26-exhibition-reminders-design.md)和[一页小结](exhibition-reminders-summary.md)已写，待审阅后进入计划和实现。
