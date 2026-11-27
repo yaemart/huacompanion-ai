@@ -1,5 +1,9 @@
 # 当前开发交接
 
+## 1A只读核实实施中（2026-11-27）
+
+用户确认原生执行1A，继续PR126分支codex/exhibition-reminder-scheduler-design。任务1原生只读权限/审计历史已实现，完整check797/797、lint0/445、订阅43组通过；有效未提交回执只返not-found，历史仅原计数且当前资格未检查，当前原管理员新会话可查旧密钥/旧日回执，登出/撤权拒绝。下一任务补严格状态读模型和inspect/scheduler-status入口；1B持久控制、实际循环及真实发送尚未实施。原库/.env/依赖/迁移不变，五份其他草稿保留。
+
 ## 受控本地展会提醒调度（2026-11-27，设计已接受、实施计划待审）
 
 PR125已核实合并；fetch后的origin/main为`80f14bfae60c47bcfa56524cddee72ceea6bc84d`，包含已推送最终命令提交`971db7898ae6d7beea6ca334cf3d1998147e5dd5`。新分支`codex/exhibition-reminder-scheduler-design`，[正式设计](superpowers/specs/2026-11-27-exhibition-reminder-scheduler-design.md)、[一页小结](exhibition-reminder-scheduler-design-summary.md)。本轮只完善设计，尚未实现或启动调度，不改.env或原库，不自动合并。

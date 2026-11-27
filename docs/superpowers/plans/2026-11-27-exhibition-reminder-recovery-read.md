@@ -55,8 +55,8 @@
 - `findExhibitionReminderAudit(p,req,actor:number,digest:string,scope:ReminderScope):Promise<ReminderReport|null>`：按entity=exhibition-reminder-jobs、action=generate-local、recordId=reminderHash(原封套字符串)、actor匹配，核对after.scope=JSON.stringify([key,locale])；损坏/不匹配报503，不冒称无提交。
 - `inspectExhibitionReminder(p,headers,receipt:unknown):Promise<{state:'committed';report:ReminderReport}|{state:'not-found';scope:ReminderScope;currentEligibility:'not-checked'}>`；Report为原报告的公开白名单，replayed=true/currentEligibility=not-checked，不含原封套。
 
-- [ ] **1. 写失败断言。** 在`tests/helpers/exhibition-reminder-inspection.ts`导入新API失败时明确assert；构造真实登录、审核展会及实际生成审计。断言`inspect(有效未提交封套).state==='not-found'`且全表不变；已提交返回原asOf/create/cancel和not-checked；另一个管理员、主管、JWT会话过期/原生登出/撤权均拒绝且不返回历史；已提交封套自身过期不妨碍原管理员用有效会话只读核实。
-- [ ] **2. 运行RED。** 运行`npm run test:subscriptions`（原驱动创建、迁移并清理随机库）验证新组，Expected：缺少inspect模块/函数断言失败，不接受数据库/夹具配置错误代替RED。
+- [x] **1. 写失败断言。** 在`tests/helpers/exhibition-reminder-inspection.ts`导入新API失败时明确assert；构造真实登录、审核展会及实际生成审计。断言`inspect(有效未提交封套).state==='not-found'`且全表不变；已提交返回原asOf/create/cancel和not-checked；另一个管理员、主管、JWT会话过期/原生登出/撤权均拒绝且不返回历史；已提交封套自身过期不妨碍原管理员用有效会话只读核实。
+- [x] **2. 运行RED。** 运行`npm run test:subscriptions`（原驱动创建、迁移并清理随机库）验证新组，Expected：缺少inspect模块/函数断言失败，不接受数据库/夹具配置错误代替RED。
 
   前一步用例名`valid uncommitted receipt inspection never applies`的关键断言如下；p/headers、receipt/scope均来自前一步真实登录和原生预检夹具：
 
@@ -70,10 +70,10 @@
   assert.deepEqual(await databaseFingerprints(p.db.pool), before);
   ```
 
-- [ ] **3. 实现上述接口。** 用原parseReminderEnvelope作结构解析；要求seal.actor为当前账号。查询已提交历史不验证当前MAC/十分钟/当天/总开关，不命中不尝试应用。投影只含原Report已定义的scope/snapshot/today/asOf/offset/counts/blocked及历史标签；excluded仅invalid/duplicate/unconfirmed/language/privacy/suppressed数值，未知私有字段不透传。原apply历史分支改用返回的Report本身，不再访问saved.after；其历史优先级、锁内授权与释放事务行为保持。
-- [ ] **4. 写并运行新进程及授权反例。** 同一账号新会话＋轮换密钥＋过期旧封套可查原提交；未提交旧封套仍not-found不写。真实PG只读事务中的写探针应拒绝；p.auth事务连接与快照释放后原生登出复核必须有效。沿用原池容量并发验收，不能加大池来通过。
-- [ ] **5. 运行GREEN和检查。** `npm run check`、`npm run test:subscriptions`；Expected：0失败，原42组及新inspection组PASS；原生成历史回归不变，旧表指纹不变。记录实际测试数量。
-- [ ] **6. 提交本任务。** 精确暂存本任务文件，`git diff --cached --check`后提交；执行task-done命令`npm test`。不提前声称1A交付完成。
+- [x] **3. 实现上述接口。** 用原parseReminderEnvelope作结构解析；要求seal.actor为当前账号。查询已提交历史不验证当前MAC/十分钟/当天/总开关，不命中不尝试应用。投影只含原Report已定义的scope/snapshot/today/asOf/offset/counts/blocked及历史标签；excluded仅invalid/duplicate/unconfirmed/language/privacy/suppressed数值，未知私有字段不透传。原apply历史分支改用返回的Report本身，不再访问saved.after；其历史优先级、锁内授权与释放事务行为保持。
+- [x] **4. 写并运行新进程及授权反例。** 同一账号新会话＋轮换密钥＋过期旧封套可查原提交；未提交旧封套仍not-found不写。真实PG只读事务中的写探针应拒绝；p.auth事务连接与快照释放后原生登出复核必须有效。沿用原池容量并发验收，不能加大池来通过。
+- [x] **5. 运行GREEN和检查。** `npm run check`、`npm run test:subscriptions`；Expected：0失败，原42组及新inspection组PASS；原生成历史回归不变，旧表指纹不变。记录实际测试数量。
+- [x] **6. 提交本任务。** 精确暂存本任务文件，`git diff --cached --check`后提交；执行task-done命令`npm test`。不提前声称1A交付完成。
 
 ### Task 2: 严格状态读模型与受控只读命令
 

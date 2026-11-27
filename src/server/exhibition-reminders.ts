@@ -17,6 +17,7 @@ import { ContentError } from "./content/error";
 import { executeSQL, transactionSession } from "./db-types";
 import { requireSubscriptionAdmin } from "./subscription-management";
 import { subscriptionLockKey } from "./subscriptions";
+import { findExhibitionReminderAudit } from "./exhibition-reminder-history";
 
 const collection = "exhibition-reminder-jobs";
 export const previewExhibitionReminders = (p: Payload, headers: Headers, input: unknown) =>
@@ -65,23 +66,6 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
     db = transactionSession(p, id).db;
   const rows = async <T>(query: ReturnType<typeof sql>) =>
     (await executeSQL(p, id, query)).rows as T[];
-  const history = async () =>
-    (
-      await p.find({
-        collection: "audit-events",
-        req,
-        depth: 0,
-        limit: 1,
-        where: {
-          and: [
-            { entity: { equals: collection } },
-            { action: { equals: "generate-local" } },
-            { recordId: { equals: digest } },
-            { actor: { equals: user.id } },
-          ],
-        },
-      })
-    ).docs[0];
   try {
     if (!write) await db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     else
@@ -89,12 +73,12 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
         await executeSQL(p, id, sql`SELECT pg_advisory_xact_lock(${lock})`);
     await requireSubscriptionAdmin(p, user, req);
     await currentSession(id);
-    const saved = write ? await history() : undefined;
+    const saved = write
+      ? await findExhibitionReminderAudit(p, req, user.id, digest, scope)
+      : undefined;
     if (saved) {
-      const after = saved.after as { scope: string; report: Record<string, unknown> };
-      if (after.scope !== scopeKey) throw new ContentError("预检范围不一致。", 409);
       await p.db.rollbackTransaction(id);
-      return { ...after.report, replayed: true, currentEligibility: "not-checked" } as Report;
+      return saved;
     }
     const read = async (): Promise<ReminderState> => ({
       source: (
@@ -271,3 +255,4 @@ type Report = {
   currentEligibility: string;
   receipt?: string;
 };
+export type ReminderReport = Report;
