@@ -55,7 +55,7 @@
 - `findExhibitionReminderAudit(p,req,actor:number,digest:string,scope:ReminderScope):Promise<ReminderReport|null>`：按entity=exhibition-reminder-jobs、action=generate-local、recordId=reminderHash(原封套字符串)、actor匹配，核对after.scope=JSON.stringify([key,locale])；损坏/不匹配报503，不冒称无提交。
 - `inspectExhibitionReminder(p,headers,receipt:unknown):Promise<{state:'committed';report:ReminderReport}|{state:'not-found';scope:ReminderScope;currentEligibility:'not-checked'}>`；Report为原报告的公开白名单，replayed=true/currentEligibility=not-checked，不含原封套。
 
-- [ ] **1. 写失败断言。** 在`tests/helpers/exhibition-reminder-inspection.ts`导入新API失败时明确assert；构造真实登录、审核展会及实际生成审计。断言`inspect(有效未提交封套).state==='not-found'`且全表不变；已提交返回原asOf/create/cancel和not-checked；另一个管理员、主管、过期/原生登出/撤权均拒绝且不返回历史。
+- [ ] **1. 写失败断言。** 在`tests/helpers/exhibition-reminder-inspection.ts`导入新API失败时明确assert；构造真实登录、审核展会及实际生成审计。断言`inspect(有效未提交封套).state==='not-found'`且全表不变；已提交返回原asOf/create/cancel和not-checked；另一个管理员、主管、JWT会话过期/原生登出/撤权均拒绝且不返回历史；已提交封套自身过期不妨碍原管理员用有效会话只读核实。
 - [ ] **2. 运行RED。** 运行`npm run test:subscriptions`（原驱动创建、迁移并清理随机库）验证新组，Expected：缺少inspect模块/函数断言失败，不接受数据库/夹具配置错误代替RED。
 
   前一步用例名`valid uncommitted receipt inspection never applies`的关键断言如下；p/headers、receipt/scope均来自前一步真实登录和原生预检夹具：
