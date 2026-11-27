@@ -1,6 +1,6 @@
 # Exhibition Reminder Exclusive Run Directory Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 交付固定清单与每次新建的私有运行目录协议，为下一批受控单轮提供可独立验收的持久文件能力；本批不公开schedule命令或启动循环。
 
@@ -39,7 +39,7 @@
 - `assertNewScheduleDirectory(path:string):string`：返回规范绝对候选路径；父目录必须已存在且当前uid拥有；规范祖先组件由root或当前uid拥有、无symlink/非目录、无组/其他用户写权限，叶路径必须不存在。仅预检，实际创建仍须重验，不能作为之后写入的授权。
 - `scheduleManifestDigest(manifest:ScheduleManifest):string`：SHA256(canonical JSON `{version:1,targets}` UTF-8)，64位小写hex，不混入原文件格式/JWT。
 
-- [ ] **1. 写RED。** 名称`fixed manifest is canonical and immutable`至少含：
+- [x] **1. 写RED。** 名称`fixed manifest is canonical and immutable`至少含：
 
   ```ts
   const parsed = parseScheduleManifest({
@@ -58,10 +58,10 @@
 
   同文件覆盖0/21/重复/额外字段/未来版本/坏key/语言，源对象和源文件变化后原摘要不变；真实0600正向及FIFO/link/uid/权限/大小/坏编码反向。
 
-- [ ] **2. 观察RED。** Run `node --experimental-strip-types --test tests/exhibition-schedule-input.test.ts`；Expected：缺API或目标断言失败，记录确切原因。
-- [ ] **3. 实现接口。** 复用原contentKey规则及文件安全手法；读取后比较fd与path的device/inode/大小等，不复制Payload或CLI初始化。只处理文件，不接调度授权。
-- [ ] **4. 验证GREEN。** 上述命令及`npm run check`；Expected：0失败，原823项也通过，实际计数写进交接，不预填新总数。
-- [ ] **5. 提交。** 仅暂存本任务文件，diff检查并提交；task-done命令`npm test`。
+- [x] **2. 观察RED。** Run `node --experimental-strip-types --test tests/exhibition-schedule-input.test.ts`；Expected：缺API或目标断言失败，记录确切原因。
+- [x] **3. 实现接口。** 复用原contentKey规则及文件安全手法；读取后比较fd与path的device/inode/大小等，不复制Payload或CLI初始化。只处理文件，不接调度授权。
+- [x] **4. 验证GREEN。** 上述命令及`npm run check`；Expected：0失败，原823项也通过，实际计数写进交接，不预填新总数。
+- [x] **5. 提交。** 仅暂存本任务文件，diff检查并提交；task-done命令`npm test`。
 
 ### Task 2: 不可覆盖的持久运行日志
 
@@ -77,8 +77,12 @@
 - `directory.stopped():void`追加`{version:1,localRunId}` stopped.json，仅调用方明确成功stop后使用；`directory.close():void`只关自己fd、幂等，不删除旧证据。所有json≤16KiB。
 - 写入顺序：私有临时文件O_EXCL/NOFOLLOW→写/fsync/关闭→独占发布→同步包含目录；新子目录条目同步其父。操作前后核对目录身份；失败不返回成功。可清自己未发布临时文件，任何可能关联DB写的已发布证据不自动删除。
 
-- [ ] **1. 写RED。** `existing run directory never becomes writable`和`directory fsync failure never returns a prepared receipt`；真实调用新工厂，重复新建必须拒绝且旧字节不变；缺API先失败。
-- [ ] **2. 观察RED并实现。** Run `node --experimental-strip-types --test tests/exhibition-schedule-directory.test.ts`；Expected：缺工厂/持久化断言失败；实现上述阶段与同步，不添加恢复写API。
-- [ ] **3. 故障与替换验收。** 真文件＋隔离子进程测试替换目录/symlink、已有目标、各写/fsync/close/独占发布/父目录同步失败、重复/倒序/未来版本/损坏值；以存储层故障注入，异常必须传到调用方。读取receipt经原readReminderFile返回精确原字符串，reminderHash与planned一致；未变化阶段目录字节不变。
-- [ ] **4. 全套与中文小结。** `npm run check`、上述真实文件测试；Expected：全绿，无新PG/生成能力。更新handoff/progress/一页小结，精确计源码≤400；现有46组未因库模块变更受影响的检查范围如实列明，不冒称新循环已测。
+- [x] **1. 写RED。** `existing run directory never becomes writable`和`directory fsync failure never returns a prepared receipt`；真实调用新工厂，重复新建必须拒绝且旧字节不变；缺API先失败。
+- [x] **2. 观察RED并实现。** Run `node --experimental-strip-types --test tests/exhibition-schedule-directory.test.ts`；Expected：缺工厂/持久化断言失败；实现上述阶段与同步，不添加恢复写API。
+- [x] **3. 故障与替换验收。** 真文件＋隔离子进程测试替换目录/symlink、已有目标、各写/fsync/close/独占发布/父目录同步失败、重复/倒序/未来版本/损坏值；以存储层故障注入，异常必须传到调用方。读取receipt经原readReminderFile返回精确原字符串，reminderHash与planned一致；未变化阶段目录字节不变。
+- [x] **4. 全套与中文小结。** `npm run check`、上述真实文件测试；Expected：全绿，无新PG/生成能力。更新handoff/progress/一页小结，精确计源码≤400；现有46组未因库模块变更受影响的检查范围如实列明，不冒称新循环已测。
 - [ ] **5. 提交/收尾。** task-done命令`npm test`。唯一全PR独立复核，严重/重要单轮RED→GREEN及完整回归；精确最终CI两作业、fetch推送一致，草稿不合并。原始日志只.local；用户合并后才进入single-round计划。
+
+## 实施记录
+
+Task1缺模块RED→18项GREEN，完整841/841；Task2真实文件/阶段/故障及变更反例后完整884/884，新61项。所有权元数据负向为故障注入，真实uid正向/权限/链接/FIFO/替换均实测；没有伪称切换OS账号。当前实际业务源码393≤400，360估算偏低。目录类复用readScheduleBytes有界读取，不导入Payload/config。未知存储结果不返回成功，不开放调度入口。末尾唯一复核和精确CI仍为分支交付门禁。

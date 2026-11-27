@@ -44,7 +44,7 @@ export function scheduleManifestDigest(manifest: ScheduleManifest) {
     .update(JSON.stringify(parseScheduleManifest(manifest)), "utf8")
     .digest("hex");
 }
-export function readScheduleManifest(path: string): ScheduleManifest {
+export function readScheduleBytes(path: string) {
   let fd: number | undefined;
   try {
     if (typeof process.getuid !== "function" || !constants.O_NOFOLLOW || !constants.O_NONBLOCK)
@@ -75,15 +75,24 @@ export function readScheduleManifest(path: string): ScheduleManifest {
     if (length !== before.size) throw Error();
     closeSync(fd);
     fd = undefined;
-    return parseScheduleManifest(
-      JSON.parse(
-        new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(data.subarray(0, length)),
-      ),
-    );
+    return { bytes: data.subarray(0, length), stat: after };
   } catch {
     throw scheduleFileError();
   } finally {
     if (fd !== undefined) closeSync(fd);
+  }
+}
+export function readScheduleManifest(path: string): ScheduleManifest {
+  try {
+    return parseScheduleManifest(
+      JSON.parse(
+        new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+          readScheduleBytes(path).bytes,
+        ),
+      ),
+    );
+  } catch {
+    throw scheduleFileError();
   }
 }
 export function assertNewScheduleDirectory(path: string): string {
