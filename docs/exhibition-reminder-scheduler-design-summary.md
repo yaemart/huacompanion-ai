@@ -1,5 +1,7 @@
 # 受控本地展会提醒调度：设计小结
 
+正式设计已接受，当前只编写实施计划，尚未实现或启动调度。第一批基础再切[1A只读核实](superpowers/plans/2026-11-27-exhibition-reminder-recovery-read.md)与[1B持久恢复门禁](superpowers/plans/2026-11-27-exhibition-reminder-recovery-control.md)两个顺序PR，沿原生方式，计划待审。
+
 [正式设计](superpowers/specs/2026-11-27-exhibition-reminder-scheduler-design.md)基于已合并PR125，本轮仅设计，尚未实现或启动调度，未改.env或原数据库。
 
 用户已确定：管理员指定“本届展会＋语言”清单，显式启动本地进程；会话到期、登出或撤权后停止。发生提交结果未知时，同一数据库所有后续自动调度都须受持久阻断，更换状态目录也不能绕过。只生成本地待发，保留审核、写锁和H真实试发门禁；真实发送留后批。
