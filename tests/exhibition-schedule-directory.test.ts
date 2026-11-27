@@ -262,3 +262,41 @@ test("caller mutations cannot expand the stored manifest or alter the native sta
     d.close();
   }
 });
+for (const mode of ["pin-swap", "input-close", "temporary-close", "operation-close"])
+  test("review protects " + mode + " before later cleanup", () => {
+    const child = spawnSync(
+      process.execPath,
+      ["--experimental-strip-types", "tests/helpers/exhibition-schedule-review.ts", next(), mode],
+      { encoding: "utf8", timeout: 5000 },
+    );
+    assert.equal(child.status, 0, child.stderr);
+  });
+for (const stage of ["applying", "finished"])
+  test("premature " + stage + " evidence blocks preparation", () => {
+    const path = next(),
+      d = createScheduleDirectory(path, manifest, "c".repeat(64));
+    try {
+      d.started(start);
+      const op = d.plan(scope, seal),
+        file = join(path, "operations", "000001", stage + ".json");
+      writeFileSync(file, '{"version":2}', { mode: 0o600 });
+      const before = snapshot(path);
+      assert.throws(() => op.prepared(10));
+      assert.deepEqual(snapshot(path), before);
+    } finally {
+      d.close();
+    }
+  });
+test("premature stopped marker blocks planning before any new operation", () => {
+  const path = next(),
+    d = createScheduleDirectory(path, manifest, "c".repeat(64));
+  try {
+    d.started(start);
+    writeFileSync(join(path, "stopped.json"), '{"version":2}', { mode: 0o600 });
+    const before = snapshot(path);
+    assert.throws(() => d.plan(scope, seal));
+    assert.deepEqual(snapshot(path), before);
+  } finally {
+    d.close();
+  }
+});

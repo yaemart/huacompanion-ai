@@ -4,7 +4,7 @@
 
 用户已确认原生实施第一批；PR128仍未合并，沿codex/exhibition-reminder-loop-design继续，基于main a193600，保留5份其他草稿。[一页小结](exhibition-reminder-run-directory-summary.md)、[实施计划](superpowers/plans/2026-11-27-exhibition-reminder-run-directory.md)。不自动合并。
 本批新增纯Node固定清单/有界私有输入及独占目录日志库；规范快照不可变，读前后身份校验，0700/0600、NOFOLLOW/单链接/可信父路径、文件及目录同步、只追加原回执/阶段、不覆盖/不续跑。活动证据坏版本/损坏/替换/权限异常拒绝，失败不继续后继阶段。目录不是DB权威或运行许可。
-新增61项，完整check884/884、lint0/445既有警告；真实文件与子进程故障验收通过。业务源码当前393≤400，原360估算偏低但未放宽。无新依赖/迁移/.env或原库操作；PG/调度/信号功能未新增，最终独立复核与精确CI见PR记录。日志仅.local/exhibition-reminder-run-directory未上传。
+新增68项，完整check891/891、lint0/445既有警告；真实文件与子进程故障验收通过。业务源码当前392≤400，原360估算偏低但未放宽。无新依赖/迁移/.env或原库操作；PG/调度/信号功能未新增，唯一复核0严重/3重要/1轻微，重要项已单轮RED→GREEN及全套回归，无二次复核；直接JS稀疏数组解析轻微项后批（文件JSON入口不受影响）。精确最终CI见PR记录。日志仅.local/exhibition-reminder-run-directory未上传。
 不开放schedule或生成待发；后续只有本PR用户合并后才做受控--once/信号，再做连续循环。保留原审核/写锁/持久恢复/H试发门禁，真实发送后批。
 
 ## 受控调度循环计划（2026-11-27，设计已接受、计划待审）

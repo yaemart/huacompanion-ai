@@ -1,18 +1,6 @@
 import { randomUUID } from "node:crypto";
-import {
-  constants,
-  closeSync,
-  fchmodSync,
-  fstatSync,
-  fsyncSync,
-  linkSync,
-  lstatSync,
-  mkdirSync,
-  openSync,
-  unlinkSync,
-  writeFileSync,
-  type Stats,
-} from "node:fs";
+import fs from "node:fs";
+import type { Stats } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   parseReminderEnvelope,
@@ -25,6 +13,7 @@ import {
   scheduleFileError,
   scheduleManifestDigest,
   readScheduleBytes,
+  sameScheduleStat,
   type ScheduleManifest,
 } from "./exhibition-schedule-input.ts";
 
@@ -41,7 +30,6 @@ export type RunDirectory = {
   close(): void;
 };
 const positive = (n: number) => Number.isSafeInteger(n) && n > 0;
-const same = (a: Stats, b: Stats, fields: (keyof Stats)[]) => fields.every((k) => a[k] === b[k]);
 export function createScheduleDirectory(
   path: string,
   manifest: ScheduleManifest,
@@ -59,45 +47,48 @@ export function createScheduleDirectory(
     created = false,
     run: RunStart | undefined,
     sequence = 0,
-    active = false;
+    active = false,
+    activeFolder: string | undefined;
   const pin = (name: string, privateDirectory: boolean) => {
-    if (!constants.O_DIRECTORY || !constants.O_NOFOLLOW) throw Error();
-    const fd = openSync(name, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-    const stat = fstatSync(fd);
+    if (!fs.constants.O_DIRECTORY || !fs.constants.O_NOFOLLOW) throw Error();
+    const observed = fs.lstatSync(name);
+    const fd = fs.openSync(
+      name,
+      fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW,
+    );
+    const stat = fs.fstatSync(fd);
     anchors.set(name, { fd, stat, private: privateDirectory });
+    if (!sameScheduleStat(observed, stat)) throw Error();
     return fd;
   };
   const check = () => {
     if (closed || broken || ended) throw Error();
     assertNewScheduleDirectory(created ? join(full, ".guard-" + localRunId) : full);
     for (const [name, a] of anchors) {
-      const s = lstatSync(name),
-        opened = fstatSync(a.fd);
+      const s = fs.lstatSync(name),
+        opened = fs.fstatSync(a.fd);
       if (
         !s.isDirectory() ||
         s.uid !== process.getuid!() ||
         (a.private && (s.mode & 0o7777) !== 0o700) ||
-        !same(s, a.stat, ["dev", "ino", "uid", "mode"]) ||
-        !same(opened, s, ["dev", "ino", "uid", "mode"])
+        !sameScheduleStat(s, a.stat) ||
+        !sameScheduleStat(opened, s)
       )
         throw Error();
     }
+    for (const folder of [full, ...(activeFolder ? [activeFolder] : [])]) {
+      const stages =
+        folder === full
+          ? ["run.json", "started.json", "stopped.json"]
+          : ["receipt", "planned.json", "prepared.json", "applying.json", "finished.json"];
+      for (const stage of stages) {
+        const name = join(folder, stage);
+        if (!files.has(name) && fs.lstatSync(name, { throwIfNoEntry: false })) throw Error();
+      }
+    }
     for (const [name, record] of files) {
       const { bytes, stat } = readScheduleBytes(name);
-      if (
-        !same(stat, record.stat, [
-          "dev",
-          "ino",
-          "uid",
-          "mode",
-          "nlink",
-          "size",
-          "mtimeMs",
-          "ctimeMs",
-        ]) ||
-        !bytes.equals(record.bytes)
-      )
-        throw Error();
+      if (!sameScheduleStat(stat, record.stat, true) || !bytes.equals(record.bytes)) throw Error();
     }
   };
   const perform = <T>(work: () => T): T => {
@@ -120,26 +111,30 @@ export function createScheduleDirectory(
       target = join(folder, name);
     let fd: number | undefined;
     try {
-      fd = openSync(
+      fd = fs.openSync(
         temporary,
-        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+        fs.constants.O_WRONLY |
+          fs.constants.O_CREAT |
+          fs.constants.O_EXCL |
+          fs.constants.O_NOFOLLOW,
         0o600,
       );
-      fchmodSync(fd, 0o600);
-      writeFileSync(fd, bytes);
-      fsyncSync(fd);
-      closeSync(fd);
+      fs.fchmodSync(fd, 0o600);
+      fs.writeFileSync(fd, bytes);
+      fs.fsyncSync(fd);
+      const closing = fd;
       fd = undefined;
+      fs.closeSync(closing);
       check();
-      linkSync(temporary, target);
-      unlinkSync(temporary);
-      fsyncSync(anchors.get(folder)!.fd);
-      files.set(target, { bytes, stat: lstatSync(target) });
+      fs.linkSync(temporary, target);
+      fs.unlinkSync(temporary);
+      fs.fsyncSync(anchors.get(folder)!.fd);
+      files.set(target, { bytes, stat: fs.lstatSync(target) });
       check();
     } finally {
       if (fd !== undefined) {
         try {
-          closeSync(fd);
+          fs.closeSync(fd);
         } catch {
           /* Preserve the save failure. */
         }
@@ -148,11 +143,11 @@ export function createScheduleDirectory(
   };
   const directory = (name: string, parent: string) => {
     check();
-    mkdirSync(name, { mode: 0o700 });
+    fs.mkdirSync(name, { mode: 0o700 });
     if (name === full) created = true;
     const fd = pin(name, true);
-    fsyncSync(fd);
-    fsyncSync(anchors.get(parent)!.fd);
+    fs.fsyncSync(fd);
+    fs.fsyncSync(anchors.get(parent)!.fd);
     check();
     return fd;
   };
@@ -162,7 +157,7 @@ export function createScheduleDirectory(
     let failed = false;
     for (const a of anchors.values()) {
       try {
-        closeSync(a.fd);
+        fs.closeSync(a.fd);
       } catch {
         failed = true;
       }
@@ -218,6 +213,7 @@ export function createScheduleDirectory(
             throw Error();
           const folder = join(operations, String(++sequence).padStart(6, "0"));
           directory(folder, operations);
+          activeFolder = folder;
           const digest = reminderHash(receipt),
             base = { version: 1, sequence, digest };
           save(folder, "receipt", receipt);
@@ -236,20 +232,23 @@ export function createScheduleDirectory(
               advance(0, "prepared.json", { revision });
             },
             applying: () => advance(1, "applying.json", {}),
-            finished: (revision, asOf) => {
-              if (
-                !positive(revision) ||
-                typeof asOf !== "string" ||
-                !Number.isFinite(Date.parse(asOf)) ||
-                new Date(asOf).toISOString() !== asOf
-              )
-                throw scheduleFileError();
-              advance(2, "finished.json", { revision, asOf });
-              closeSync(anchors.get(folder)!.fd);
-              anchors.delete(folder);
-              for (const name of files.keys()) if (dirname(name) === folder) files.delete(name);
-              active = false;
-            },
+            finished: (revision, asOf) =>
+              perform(() => {
+                if (
+                  !positive(revision) ||
+                  typeof asOf !== "string" ||
+                  !Number.isFinite(Date.parse(asOf)) ||
+                  new Date(asOf).toISOString() !== asOf
+                )
+                  throw scheduleFileError();
+                advance(2, "finished.json", { revision, asOf });
+                const closing = anchors.get(folder)!.fd;
+                anchors.delete(folder);
+                fs.closeSync(closing);
+                activeFolder = undefined;
+                for (const name of files.keys()) if (dirname(name) === folder) files.delete(name);
+                active = false;
+              }),
           };
         }),
       stopped: () =>

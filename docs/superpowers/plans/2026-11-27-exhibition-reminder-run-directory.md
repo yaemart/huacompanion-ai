@@ -86,3 +86,29 @@
 ## 实施记录
 
 Task1缺模块RED→18项GREEN，完整841/841；Task2真实文件/阶段/故障及变更反例后完整884/884，新61项。所有权元数据负向为故障注入，真实uid正向/权限/链接/FIFO/替换均实测；没有伪称切换OS账号。当前实际业务源码393≤400，360估算偏低。目录类复用readScheduleBytes有界读取，不导入Payload/config。未知存储结果不返回成功，不开放调度入口。末尾唯一复核和精确CI仍为分支交付门禁。
+
+## 最终复核记录
+
+唯一复核0严重/3重要/1轻微，重要项单轮RED→GREEN及完整891/891、0错误/445既有警告、891行长文件。最终源码392≤400，精确CI仍待实核。
+
+Ruling: preserve accepted native in-place workflow and PR128; isolate checks in no-.env tracked-source copy and preserve five drafts — cost: shared checkout still needs coordination.
+
+Ruling: initial source budget360 was low; current393 remains below approved hard400 — retain full path/identity/sync checks and share bounded reader — cost: larger review than estimate, no scope or cap increase.
+
+Final: Ruling: once, database commit orchestration, signals, continuous loop and real sending remain later — this PR is file protocol only — cost: no operational scheduling command yet.
+
+Final: Ruling: same-UID malicious repeated races and unreliable persistence remain outside the accepted local-filesystem boundary — keep trusted ancestry plus identity checks, not an OS openat/sandbox claim — cost: caller must use a trustworthy local filesystem; no guarantee against those excluded conditions.
+
+Final: Ruling: completed-operation full-history scans remain outside live write authority — only immutable header and current operation are trusted for the next write; old directories never resume — cost: later external corruption of completed history is not detected by this instance.
+
+Final: Ruling: main agent owns exact CI/full-suite verification the reviewer declined — no second reviewer or premature cloud claim — cost: wait for verified final head before handoff.
+
+Final: minor (deferred): sparse JavaScript target arrays can pass parseScheduleManifest; JSON file input cannot produce holes. Do not fix Minor in Important fix pass.
+
+Final: minor (deferred): inherited authority/config dependency decoupling.
+
+Final: minor (deferred): inherited exclusion-reason taxonomy.
+
+Final: minor (deferred): inherited U+2028/U+2029 title cleanup.
+
+Final: fixed all3 Important — real directory pin swap and 3 actual FD reuse RED→GREEN; premature run/operation markers RED→GREEN; full891/891, lint0/445, source392<=400. No second review.

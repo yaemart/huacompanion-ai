@@ -1,9 +1,14 @@
 import { createHash } from "node:crypto";
 import { constants, closeSync, fstatSync, lstatSync, openSync, readSync } from "node:fs";
+import type { Stats } from "node:fs";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { isContentIdentifier } from "../../src/lib/content-identifiers.ts";
 import type { ReminderScope } from "../../src/lib/exhibition-reminders.ts";
 
+export const sameScheduleStat = (a: Stats, b: Stats, file = false) =>
+  ["dev", "ino", "uid", "mode", ...(file ? ["nlink", "size", "mtimeMs", "ctimeMs"] : [])].every(
+    (k) => a[k as keyof Stats] === b[k as keyof Stats],
+  );
 export class ScheduleFileError extends Error {}
 export const scheduleFileError = () =>
   new ScheduleFileError("私有调度文件或目录无效，请保留原证据并核对权限与路径。");
@@ -64,17 +69,12 @@ export function readScheduleBytes(path: string) {
     const after = fstatSync(fd),
       named = lstatSync(path);
     for (const s of [after, named]) {
-      if (
-        !valid(s) ||
-        ["dev", "ino", "size", "mtimeMs", "ctimeMs"].some(
-          (k) => s[k as keyof typeof s] !== before[k as keyof typeof before],
-        )
-      )
-        throw Error();
+      if (!valid(s) || !sameScheduleStat(s, before, true)) throw Error();
     }
     if (length !== before.size) throw Error();
-    closeSync(fd);
+    const closing = fd;
     fd = undefined;
+    closeSync(closing);
     return { bytes: data.subarray(0, length), stat: after };
   } catch {
     throw scheduleFileError();
