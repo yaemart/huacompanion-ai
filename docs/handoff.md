@@ -1,8 +1,8 @@
 # 当前开发交接
 
-## 受控本地连续循环实施中（2026-11-27）
+## 受控本地连续循环（2026-11-27）
 
-已实核PR129合并，origin/main b8e5dea6c6d5e7054f86e63a87fa3cb87763d253包含最终3fb539d。从最新main建立codex/exhibition-reminder-local-loop，按已接受[loop计划](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)原生实施。单会话/目录立即一轮、完成后60秒、等待最长5秒发起现职核实；只生成本地待发，真实发送和系统驻留/自动续期后批。保留审核、写锁、持久恢复及试发门禁，不自动合并。当前实施中，不预称验收完成。
+已实核PR129合并，origin/main b8e5dea6c6d5e7054f86e63a87fa3cb87763d253包含最终3fb539d。从最新main建立codex/exhibition-reminder-local-loop，按已接受[loop计划](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)原生实施，[草稿PR130](https://github.com/yaemart/huacompanion-ai/pull/130)、[一页使用说明](exhibition-reminder-local-loop-summary.md)。单会话/目录立即一轮、完成后60秒、等待最长5秒发起现职核实；省略--once连续，保留--once兼容。只生成本地待发，真实发送和系统驻留/自动续期后批。保留审核、写锁、持久恢复及试发门禁，不自动合并。完整check913/913、0lint错误/445既有警告、900源码行长，完整订阅/H49组、内容/展会/权限5组及生产build均通过，10个真实连续场景与原30个实际CLI/信号场景保持。业务及CI配置增删169行≤400；数据库CI上限20→30分钟仅容纳真实等待，产品计时/会话/SQL不变。唯一末尾复核与精确HEAD两CI由PR最终记录实核。
 本机演示已在上一轮配套备份、恢复验证后完成56→59增量迁移，34草稿/32正式记录等保留；本批不操作演示库或更新3100运行副本，测试仅新随机虚构库。五份其他草稿保留，无.env或依赖变化。日志仅.local/exhibition-reminder-local-loop。
 
 ## 受控单轮与信号停止（2026-11-27）

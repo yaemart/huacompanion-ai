@@ -81,6 +81,7 @@ import { testExhibitionReminderCommand } from "../helpers/exhibition-reminder-co
 import { testExhibitionReminderInspection } from "../helpers/exhibition-reminder-inspection";
 import { testExhibitionScheduleSignals } from "../helpers/exhibition-schedule-signals";
 import { testExhibitionScheduleOnce } from "../helpers/exhibition-schedule-once";
+import { testExhibitionScheduleLoop } from "../helpers/exhibition-schedule-loop";
 import { testExhibitionSchedulerReview } from "../helpers/exhibition-reminder-review";
 import { testExhibitionSchedulerControl } from "../helpers/exhibition-reminder-scheduler-control";
 import { testExhibitionSchedulerRaces } from "../helpers/exhibition-reminder-scheduler-races";
@@ -465,6 +466,10 @@ try {
   await testExhibitionSchedulerReview(payload);
   await testExhibitionScheduleOnce(payload);
   await testExhibitionScheduleSignals(payload);
+  await testExhibitionScheduleLoop(payload);
+  console.log(
+    "PASS continuous scheduler: one native run, fixed inputs, real waits and persistent recovery gates",
+  );
   console.log(
     "PASS actual schedule CLI signals: private initialization, native authority, snapshots and stop boundaries",
   );
