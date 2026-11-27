@@ -22,16 +22,19 @@ import type { previewExhibitionReminders } from "../../src/server/exhibition-rem
 export class ReminderCommandError extends Error {}
 const invalid = () =>
   new ReminderCommandError(
-    "参数无效，请使用 preview/apply 和 --auth-file、--receipt-file；预检另需 --key、--locale。不支持发送、日期或强制重试参数。",
+    "参数无效，请使用 preview/apply/inspect 或 scheduler-status；均需 --auth-file，status不需回执，其他需 --receipt-file；预检另需 --key、--locale。不支持发送、日期或强制重试参数。",
   );
 export function parseReminderCommand(args: string[]) {
   const [mode, ...rest] = args;
-  if (!["preview", "apply"].includes(mode) || rest.length % 2) throw invalid();
+  if (!["preview", "apply", "inspect", "scheduler-status"].includes(mode) || rest.length % 2)
+    throw invalid();
   const fields: Record<string, string> = {};
   const allowed =
     mode === "preview"
       ? ["--key", "--locale", "--auth-file", "--receipt-file"]
-      : ["--auth-file", "--receipt-file"];
+      : mode === "scheduler-status"
+        ? ["--auth-file"]
+        : ["--auth-file", "--receipt-file"];
   for (let i = 0; i < rest.length; i += 2) {
     if (
       !allowed.includes(rest[i]) ||
@@ -44,7 +47,10 @@ export function parseReminderCommand(args: string[]) {
   }
   if (Object.keys(fields).length !== allowed.length) throw invalid();
   const files = { authFile: fields["--auth-file"], receiptFile: fields["--receipt-file"] };
+  if (mode === "scheduler-status")
+    return { mode: "scheduler-status" as const, authFile: files.authFile };
   if (mode === "apply") return { mode: "apply" as const, ...files };
+  if (mode === "inspect") return { mode: "inspect" as const, ...files };
   if (!isContentIdentifier(fields["--key"]) || !["zh", "en"].includes(fields["--locale"]))
     throw invalid();
   return {
