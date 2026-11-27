@@ -1,5 +1,9 @@
 # 当前开发交接
 
+## 1B持久恢复门禁实施中（2026-11-27）
+
+已核实PR126合并，最新origin/main为40d9910b5eb06a29ef1a510e43f3686d6e250359且包含1A最终ff3dea1。从该main建立codex/exhibition-reminder-recovery-control，按既有计划实施同库持久未决、明确带原因结束和旧运行/封套锁内拒绝；不实现实际循环或真实发送，不自动合并。沿原生就地方式、独立无.env源码副本及虚构库验收，保留五份其他草稿。基线822/822；控制API缺失RED已观察。最终范围/结果在完成后更新。
+
 ## 1A只读回执与状态查询（2026-11-27）
 
 继续`codex/exhibition-reminder-scheduler-design`、[草稿PR126](https://github.com/yaemart/huacompanion-ai/pull/126)，基于main80f14bf；[一页使用小结](exhibition-reminder-recovery-summary.md)、[已接受1A计划](superpowers/plans/2026-11-27-exhibition-reminder-recovery-read.md)。不自动合并。
