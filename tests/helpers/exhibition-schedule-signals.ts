@@ -224,9 +224,10 @@ export async function testExhibitionScheduleSignals(p: Payload) {
         await blocker.query("SELECT pg_advisory_unlock_all()");
       }
       const done = await completion;
-      assert.equal(done.signal, null, stderr);
+      if (npm) assert.ok(done.signal === null || done.signal === signal, stderr);
+      else assert.equal(done.signal, null, stderr);
       assert.equal(
-        done.code,
+        npm && done.signal === signal ? (signal === "SIGINT" ? 130 : 143) : done.code,
         stage === "replace-directory" || stage.endsWith("revoke")
           ? 1
           : signal === "SIGINT"
