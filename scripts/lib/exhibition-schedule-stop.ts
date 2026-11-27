@@ -1,4 +1,7 @@
 import type { ScheduleStop } from "./exhibition-schedule-runner";
+export async function drainScheduleSignals() {
+  await new Promise<void>((resolve) => setImmediate(() => setTimeout(resolve, 0)));
+}
 export function createScheduleStop(): ScheduleStop & { dispose(): void } {
   const stop: ScheduleStop & { dispose(): void } = {
     reason: null,

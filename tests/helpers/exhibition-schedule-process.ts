@@ -19,6 +19,8 @@ const state = process.env.HUA_SCHEDULE_TEST_DIR!,
   stage = process.env.HUA_SCHEDULE_TEST_STAGE,
   signal = process.env.HUA_SCHEDULE_TEST_SIGNAL as NodeJS.Signals;
 assert.ok(state.startsWith(join(fs.realpathSync(process.cwd()), ".local", "schedule-once-")));
+if (process.argv[1]?.endsWith("scripts/exhibition-reminders.ts"))
+  process.on("exit", (code) => fs.writeFileSync(state + ".exit", String(code), { mode: 0o600 }));
 let signaled = false;
 const trigger = (phase: string) => {
   if (stage === phase && !signaled) {
@@ -53,6 +55,29 @@ net.Socket.prototype.connect = function (this: net.Socket, ...args: unknown[]) {
 const link = fs.linkSync;
 fs.linkSync = ((from, to) => {
   link(from, to);
+  if (
+    (stage === "prepared-revoke" && String(to) === state + "/operations/000001/prepared.json") ||
+    (stage === "applying-revoke" && String(to) === state + "/operations/000001/applying.json")
+  ) {
+    process.send?.({ phase: "revoke-boundary" });
+    const deadline = Date.now() + 15000;
+    while (!fs.existsSync(state + ".release")) {
+      assert.ok(Date.now() < deadline);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+    }
+    process.send?.({ phase: "signal" });
+    process.kill(process.pid, signal);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 350);
+  }
+  if (stage === "npm-publication" && String(to) === state + "/operations/000001/applying.json") {
+    fs.writeFileSync(state + ".ready", "ready", { mode: 0o600 });
+    const deadline = Date.now() + 15000;
+    while (!fs.existsSync(state + ".signal-sent")) {
+      assert.ok(Date.now() < deadline);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+    }
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 350);
+  }
   if (String(to) === state + "/started.json" && stage === "replace-inputs") {
     const input = JSON.parse(fs.readFileSync(process.env.HUA_SCHEDULE_TEST_REPLACEMENT!, "utf8"));
     assert.ok(input.auth.startsWith(state.slice(0, state.lastIndexOf("/")) + "/"));
@@ -90,6 +115,7 @@ const verify = async (client: pg.PoolClient) => {
     const lock = (await client.query("SHOW lock_timeout")).rows[0].lock_timeout;
     assert.equal(statement, "10s");
     assert.equal(lock, "10s");
+    if (stage === "npm-publication") fs.writeFileSync(state + ".timeouts", "10s", { mode: 0o600 });
     const pid = Number((await client.query("SELECT pg_backend_pid() AS pid")).rows[0].pid);
     process.send?.({ phase: "timeouts", pid });
   }

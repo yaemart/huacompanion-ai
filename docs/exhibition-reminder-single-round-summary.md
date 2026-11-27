@@ -19,4 +19,4 @@ npm run --silent exhibition:reminders -- schedule \
 
 运行目录0700、文件0600，复用PR128独占与同步协议。非秘密DB绑定、原回执与阶段仅私有留证；目录替换拒写，不从旧JSON恢复写能力。退出时关闭自身目录、session并调用Payload.destroy，最后沿原独立CLI的process.exit关闭本进程连接；当前上游适配器保留初始化连接，不能把Pool.end等待作为收尾。没有终止网站、worker或其他数据库后端。
 
-验收：完整check901/901、lint0错误/445既有警告、897文件行长；完整订阅48组、content/exhibitions、内容权限及生产build均通过。24个真实CLI场景与双进程拒绝，10种实际文件/提交故障及原生身份失效已验证，旧邮件/额度/租约/尝试表指纹保持。唯一末尾独立复核及精确最终CI见PR记录。详见[进度](progress.md)及[交接](handoff.md)。原始日志仅本机`.local/exhibition-reminder-single-round`，未上传。无新依赖、表、迁移、必需环境变量或.env改动；原运行库未操作，五份其他草稿保留。真实试发、自动调度循环和送达仍后批，原H试发门禁保持。
+验收：完整check901/901、lint0错误/445既有警告、897文件行长；完整订阅48组、content/exhibitions、内容权限及生产build均通过。30个真实CLI场景与双进程拒绝，10种实际文件/提交故障及原生身份失效已验证，旧邮件/额度/租约/尝试表指纹保持。唯一末尾独立复核0严重/2重要/2轻微，重要项单轮RED→GREEN、无二次复核：实际npm组信号下必须有子进程finally证据，入口改为node --import tsx；已提交pending时原生撤权且真实信号已送达，停止路径只读核实当前身份，403优先且原控制版本/0held不变。收尾检查跨check及后继timer/poll周期，修复单timer偶现退出0。两轻微后批：--once错位仍可被解析；启动时尚未一次显示完整固定清单，实际范围仍被冻结。精确最终CI见PR记录。详见[进度](progress.md)及[交接](handoff.md)。原始日志仅本机`.local/exhibition-reminder-single-round`，未上传。无新依赖、表、迁移、必需环境变量或.env改动；原运行库未操作，五份其他草稿保留。真实试发、自动调度循环和送达仍后批，原H试发门禁保持。

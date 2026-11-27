@@ -3,6 +3,7 @@ import type { Payload } from "payload";
 import type { ReminderReport } from "../../src/server/exhibition-reminders";
 import { createScheduleDirectory, type RunDirectory } from "./exhibition-schedule-directory";
 import type { ScheduleManifest } from "./exhibition-schedule-input";
+import { drainScheduleSignals } from "./exhibition-schedule-stop";
 
 export type ScheduleStop = {
   reason: null | "sigint" | "sigterm";
@@ -18,7 +19,7 @@ export async function runScheduleOnce(
   onReport: (r: ScheduleReport) => void,
 ): Promise<{ exitCode: 0 | 130 | 143 }> {
   const halted = async () => {
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await drainScheduleSignals();
     return stop.reason !== null;
   };
   const result = () => ({
@@ -94,6 +95,7 @@ export async function runScheduleOnce(
         operation.finished(finished.revision, report.asOf);
         onReport({ mode: "apply", report });
       }
+      if (pending) await authenticateReminderAdmin(p, headers);
       if (!pending) {
         await session.stop(runId);
         directory.stopped();

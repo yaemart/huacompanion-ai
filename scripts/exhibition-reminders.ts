@@ -5,7 +5,7 @@ import {
   assertNewScheduleDirectory,
   ScheduleFileError,
 } from "./lib/exhibition-schedule-input";
-import { createScheduleStop } from "./lib/exhibition-schedule-stop";
+import { createScheduleStop, drainScheduleSignals } from "./lib/exhibition-schedule-stop";
 import type { Config, Payload } from "payload";
 import {
   ReminderCommandError,
@@ -189,7 +189,7 @@ try {
     exitCode = 1;
     console.error("本地提醒数据库连接关闭失败，请核对本地进程并保留原回执。");
   }
-  if (stop) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  if (stop) await drainScheduleSignals();
   if (exitCode === 0 && stop?.reason) exitCode = stop.reason === "sigint" ? 130 : 143;
   stop?.dispose();
 }

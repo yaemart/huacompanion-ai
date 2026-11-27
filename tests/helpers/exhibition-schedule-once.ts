@@ -10,6 +10,7 @@ import { readReminderFile } from "../../scripts/lib/exhibition-reminder-command"
 import { readExhibitionSchedulerStatus } from "../../src/server/exhibition-reminder-scheduler-state";
 import { recoveryFixture } from "./exhibition-reminder-recovery-fixture";
 import { databaseFingerprints } from "./database-fingerprints";
+import { createScheduleStop } from "../../scripts/lib/exhibition-schedule-stop";
 
 export const scheduleStopFixture = (): ScheduleStop => ({
   reason: null,
@@ -87,6 +88,82 @@ export async function testExhibitionScheduleOnce(p: Payload) {
   }
   await onceFailures(p, api.runScheduleOnce);
   await onceAuthority(p, api.runScheduleOnce);
+  await oncePendingStop(p, api.runScheduleOnce);
+}
+
+async function oncePendingStop(p: Payload, runOnce: typeof runScheduleOnce) {
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    const f = await recoveryFixture(p),
+      root = scheduleTestDirectory(),
+      state = join(root, "run");
+    const stop = createScheduleStop(),
+      commit = p.db.commitTransaction;
+    const revoker = (await p.auth({ headers: f.other.headers })).user;
+    assert.ok(revoker);
+    let injected = false,
+      preparedRevision = 0;
+    p.db.commitTransaction = async (incoming) => {
+      const id = await incoming;
+      assert.ok(id);
+      const row = (
+        await transactionSession(p, id).db.execute(
+          "SELECT id, after FROM audit_events WHERE entity='exhibition-reminder-scheduler' AND record_id='global' ORDER BY id DESC LIMIT 1",
+        )
+      ).rows[0] as { id: number; after: { pending: unknown } } | undefined;
+      await commit.call(p.db, id);
+      if (!injected && row?.after?.pending) {
+        injected = true;
+        preparedRevision = Number(row.id);
+        await p.update({
+          collection: "staff",
+          id: f.admin.user.id,
+          req: await createLocalReq({ user: revoker }, p),
+          data: { active: false },
+        });
+        await new Promise<void>((resolve) => {
+          process.once(signal, resolve);
+          process.kill(process.pid, signal);
+        });
+      }
+    };
+    try {
+      await assert.rejects(
+        runOnce(
+          p,
+          f.admin.headers,
+          parseScheduleManifest({ version: 1, targets: [f.scope] }),
+          state,
+          stop,
+          () => {},
+        ),
+        { status: 403 },
+      );
+      assert.ok(injected);
+      const status = await readExhibitionSchedulerStatus(p, f.other.headers);
+      assert.equal(status.status, "blocked");
+      assert.equal(
+        status.revision,
+        preparedRevision,
+        "no finish or stop control audit after revocation",
+      );
+      assert.equal(
+        (
+          await p.db.pool.query("SELECT id FROM exhibition_reminder_jobs WHERE scope=$1", [
+            JSON.stringify([f.scope.key, f.scope.locale]),
+          ])
+        ).rowCount,
+        0,
+      );
+      assert.equal(fs.existsSync(join(state, "stopped.json")), false);
+      assert.equal(fs.existsSync(join(state, "operations", "000001", "finished.json")), false);
+      console.log("VERIFIED pending native revocation with delivered " + signal);
+    } finally {
+      p.db.commitTransaction = commit;
+      stop.dispose();
+      fs.rmSync(root, { recursive: true });
+      await f.cleanup();
+    }
+  }
 }
 
 async function onceFailures(p: Payload, runOnce: typeof runScheduleOnce) {

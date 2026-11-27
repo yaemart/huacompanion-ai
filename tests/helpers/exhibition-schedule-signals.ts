@@ -29,6 +29,9 @@ export async function testExhibitionScheduleSignals(p: Payload) {
       "finished.json",
       "locked-begin",
       "locked-apply",
+      "prepared-revoke",
+      "applying-revoke",
+      "npm-publication",
     ])
       cases.push([stage, signal]);
   let executed = 0;
@@ -68,7 +71,7 @@ export async function testExhibitionScheduleSignals(p: Payload) {
         ![
           "audit_events",
           "exhibition_reminder_jobs",
-          ...(stage === "lock-revoke" ? ["staff", "staff_sessions"] : []),
+          ...(stage.endsWith("revoke") ? ["staff", "staff_sessions"] : []),
         ].includes(t.table),
     );
     const blocker = await p.db.pool.connect(),
@@ -91,14 +94,25 @@ export async function testExhibitionScheduleSignals(p: Payload) {
         trigger = true;
       }
       const messages: { phase?: string; forbidden?: boolean; pid?: number }[] = [];
+      const npm = stage === "npm-publication";
       child = spawn(
         process.execPath,
         [
-          "--import",
-          "tsx",
-          "--import",
-          "./tests/helpers/exhibition-schedule-process.ts",
-          "scripts/exhibition-reminders.ts",
+          ...(npm
+            ? [
+                resolve(process.execPath, "../../lib/node_modules/npm/bin/npm-cli.js"),
+                "run",
+                "--silent",
+                "exhibition:reminders",
+                "--",
+              ]
+            : [
+                "--import",
+                "tsx",
+                "--import",
+                "./tests/helpers/exhibition-schedule-process.ts",
+                "scripts/exhibition-reminders.ts",
+              ]),
           "schedule",
           "--auth-file",
           auth,
@@ -109,6 +123,7 @@ export async function testExhibitionScheduleSignals(p: Payload) {
           "--once",
         ],
         {
+          detached: npm,
           stdio: ["ignore", "pipe", "pipe", "ipc"],
           env: {
             ...process.env,
@@ -117,6 +132,12 @@ export async function testExhibitionScheduleSignals(p: Payload) {
             HUA_SCHEDULE_TEST_STAGE: stage,
             HUA_SCHEDULE_TEST_SIGNAL: signal ?? "",
             HUA_SCHEDULE_TEST_REPLACEMENT: replacement,
+            ...(npm
+              ? {
+                  NODE_OPTIONS:
+                    "--import tsx --import ./tests/helpers/exhibition-schedule-process.ts",
+                }
+              : {}),
           },
         },
       );
@@ -145,6 +166,31 @@ export async function testExhibitionScheduleSignals(p: Payload) {
           });
         },
       );
+      if (npm || stage === "prepared-revoke" || stage === "applying-revoke") {
+        const deadline = Date.now() + 15000;
+        while (
+          npm
+            ? !fs.existsSync(state + ".ready")
+            : !messages.some((m) => m.phase === "revoke-boundary")
+        ) {
+          assert.ok(Date.now() < deadline, "actual publication barrier: " + stderr);
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        if (npm) {
+          process.kill(-child.pid!, signal!);
+          fs.writeFileSync(state + ".signal-sent", "sent", { mode: 0o600 });
+        } else {
+          const revoker = (await p.auth({ headers: f.other.headers })).user;
+          assert.ok(revoker);
+          await p.update({
+            collection: "staff",
+            id: f.admin.user.id,
+            req: await createLocalReq({ user: revoker }, p),
+            data: { active: false },
+          });
+          fs.writeFileSync(state + ".release", "release", { mode: 0o600 });
+        }
+      }
       if (stage === "locked-begin" || stage === "locked-apply" || stage === "lock-revoke") {
         const lock = stage === "locked-begin" || stage === "lock-revoke" ? 726271 : barrier,
           deadline = Date.now() + 15000;
@@ -181,7 +227,7 @@ export async function testExhibitionScheduleSignals(p: Payload) {
       assert.equal(done.signal, null, stderr);
       assert.equal(
         done.code,
-        ["replace-directory", "lock-revoke"].includes(stage)
+        stage === "replace-directory" || stage.endsWith("revoke")
           ? 1
           : signal === "SIGINT"
             ? 130
@@ -191,7 +237,9 @@ export async function testExhibitionScheduleSignals(p: Payload) {
         stage + ": " + stderr + JSON.stringify(messages),
       );
       assert.ok(
-        messages.some((m) => m.phase === "timeouts"),
+        npm
+          ? fs.readFileSync(state + ".timeouts", "utf8") === "10s"
+          : messages.some((m) => m.phase === "timeouts"),
         stage,
       );
       assert.equal(
@@ -199,13 +247,25 @@ export async function testExhibitionScheduleSignals(p: Payload) {
         false,
       );
       assert.equal(fs.existsSync(state + ".network"), false);
-      if (signal && !stage.startsWith("locked-"))
+      if (npm)
+        assert.equal(
+          fs.readFileSync(state + ".exit", "utf8"),
+          signal === "SIGINT" ? "130" : "143",
+          "actual CLI completed finally; launcher exit alone is insufficient",
+        );
+      if (signal && !npm && !stage.startsWith("locked-"))
         assert.ok(
           messages.some((m) => m.phase === "signal"),
           "real signal must fire at requested boundary",
         );
       const after = (await readExhibitionSchedulerStatus(p, f.other.headers)).status;
-      const blocked = ["prepared.json", "applying.json"].includes(stage),
+      const blocked = [
+          "prepared.json",
+          "applying.json",
+          "prepared-revoke",
+          "applying-revoke",
+          "npm-publication",
+        ].includes(stage),
         notBegun = ["connect", "run.json", "lock-revoke"].includes(stage);
       const held = [
         "normal",
@@ -256,7 +316,7 @@ export async function testExhibitionScheduleSignals(p: Payload) {
           ).rowCount,
           1,
         );
-      if (stage === "lock-revoke")
+      if (stage.endsWith("revoke"))
         assert.equal(
           (
             await p.db.pool.query(
@@ -270,6 +330,13 @@ export async function testExhibitionScheduleSignals(p: Payload) {
       executed++;
       console.log("VERIFIED actual schedule process: " + stage + " " + (signal ?? "no-signal"));
     } finally {
+      if (stage === "npm-publication" && child?.pid) {
+        try {
+          process.kill(-child.pid, "SIGKILL");
+        } catch (error) {
+          assert.equal((error as NodeJS.ErrnoException).code, "ESRCH");
+        }
+      }
       if (child && child.exitCode === null && child.signalCode === null) {
         child.kill("SIGKILL");
         await new Promise((r) => child!.once("exit", r));
