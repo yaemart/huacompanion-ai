@@ -1,8 +1,12 @@
 # 当前开发交接
 
-## 1B持久恢复门禁实施中（2026-11-27）
+## 1B持久恢复门禁（2026-11-27）
 
-已核实PR126合并，最新origin/main为40d9910b5eb06a29ef1a510e43f3686d6e250359且包含1A最终ff3dea1。从该main建立codex/exhibition-reminder-recovery-control，按既有计划实施同库持久未决、明确带原因结束和旧运行/封套锁内拒绝；不实现实际循环或真实发送，不自动合并。沿原生就地方式、独立无.env源码副本及虚构库验收，保留五份其他草稿。基线822/822；控制API缺失RED已观察。最终范围/结果在完成后更新。
+已核实PR126合并，最新origin/main40d9910包含1A最终ff3dea1。从该main建立codex/exhibition-reminder-recovery-control，[草稿PR127](https://github.com/yaemart/huacompanion-ai/pull/127)，不自动合并。[使用小结](exhibition-reminder-control-summary.md)。
+控制内核使用既有audit-events追加持久global/pending/结束事件；单实例726291，原三锁内容726271→业务726281→权限726272内重新原生授权。无未决时可明确新建运行；未决同库阻断后续begin，不因目录/清单/进程改变而解除。持久提交核实失败停止该会话，不用失效凭证补停止审计。
+新增scheduler-resolve --auth-file PATH --revision N --reason TEXT；必须停止原进程、取得单实例锁、核对实际状态版本和原因。另一现职管理员可在原账号撤权/回执文件遗失时仅核实结束，不返回他人历史数量、不代执行。无匹配生成审计则作废旧未提交封套；生成先持锁则恢复等待核实，恢复先持锁则旧写拒绝。普通新手工回执及原已提交历史保持，关联调度封套无有效许可不可新写。
+真实控制约束/吞COMMIT/响应丢失、两进程/连接失效/两先后顺序、跳过本地活性检查仍被DB拒旧写、移除guard反例恰好新增1条held、原账号停用后的实际CLI、锁等待撤权与同版本并发结束已覆盖。完整check823/823、lint0/445、885文件行长；完整订阅46组、content/exhibitions及生产build通过。最终唯一独立复核/精确提交两CI以PR127核实记录为准，尚不提前声称云端通过。
+业务源码当前385≤400。无新依赖/迁移/必需环境变量/.env，原库未动，随机虚构库清理，5份其他草稿保留。原始日志仅.local/exhibition-reminder-control，未上传。实际循环/manifest与state-dir持久文件/信号停止/真实发送均未实施；不开放begin/prepare/apply/finish命令，不宣称自动调度已启用。1B合并后才开始下一批。
 
 ## 1A只读回执与状态查询（2026-11-27）
 

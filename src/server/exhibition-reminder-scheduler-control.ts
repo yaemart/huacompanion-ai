@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { AuditEvent } from "../../payload-types";
 import type { Payload } from "payload";
 import {
   parseReminderEnvelope,
@@ -12,6 +13,8 @@ import {
 } from "./exhibition-reminder-authority";
 import { readSchedulerLedger } from "./exhibition-reminder-scheduler-state";
 import { findExhibitionReminderAudit } from "./exhibition-reminder-history";
+import { schedulerPermit } from "./exhibition-reminder-scheduler-guard";
+import { applyExhibitionReminders, type ReminderReport } from "./exhibition-reminders";
 import { ContentError } from "./content/error";
 
 export async function withExhibitionScheduler<T>(
@@ -38,10 +41,22 @@ export async function withExhibitionScheduler<T>(
     await client.query("SET statement_timeout='10s'");
     if (!(await client.query("SELECT pg_try_advisory_lock(726291) AS held")).rows[0].held)
       throw new ContentError("调度或恢复正在运行，请先停止原进程。", 409);
+    const audit = (
+      req: Parameters<typeof findExhibitionReminderAudit>[1],
+      action: string,
+      recordId: string,
+      after: AuditEvent["after"],
+    ) =>
+      p.create({
+        collection: "audit-events",
+        req,
+        data: { entity: "exhibition-reminder-scheduler", action, recordId, actor: owner, after },
+      });
     const change = async (
       operation: (
         state: Awaited<ReturnType<typeof readSchedulerLedger>>["state"],
         req: Parameters<typeof findExhibitionReminderAudit>[1],
+        revision: number,
       ) => Promise<void>,
     ) => {
       if (busy) throw new ContentError("本次调度操作尚未结束。", 409);
@@ -51,20 +66,10 @@ export async function withExhibitionScheduler<T>(
         const result = await withLockedReminderAuthority(p, headers, async ({ req, user }) => {
           await check();
           if (user.id !== owner) throw new ContentError("登录会话已变化。", 403);
-          const { state } = await readSchedulerLedger(p, req);
-          await operation(state, req);
+          const { state, revision } = await readSchedulerLedger(p, req);
+          await operation(state, req, revision);
           const valid = parseSchedulerLedger({ revision: 1, state }).state;
-          return p.create({
-            collection: "audit-events",
-            req,
-            data: {
-              entity: "exhibition-reminder-scheduler",
-              recordId: "global",
-              action: "state-v1",
-              actor: user.id,
-              after: valid,
-            },
-          });
+          return audit(req, "state-v1", "global", valid);
         });
         if (!(await p.findByID({ collection: "audit-events", id: result.id, disableErrors: true })))
           throw new ContentError("控制提交结果待核实，请保留原回执并查询状态。", 409);
@@ -84,6 +89,57 @@ export async function withExhibitionScheduler<T>(
         throw new ContentError("调度运行已变化。", 409);
     };
     const session: SchedulerSession = {
+      apply: async (run, receipt) => {
+        if (busy || activeRun !== run) throw new ContentError("调度上下文已变化。", 409);
+        busy = true;
+        try {
+          await check();
+          return await applyExhibitionReminders(
+            p,
+            headers,
+            receipt,
+            schedulerPermit(p, run, check),
+          );
+        } catch (error) {
+          live = false;
+          throw error;
+        } finally {
+          busy = false;
+        }
+      },
+      resolve: async (expected, reason) => {
+        if (
+          !Number.isSafeInteger(expected) ||
+          expected < 1 ||
+          typeof reason !== "string" ||
+          !reason.trim() ||
+          reason.trim().length > 500
+        )
+          throw new ContentError("请提供有效状态版本和1至500字符的核实原因。", 400);
+        let outcome: "committed" | "closed-uncommitted" = "closed-uncommitted";
+        let scope: ReminderScope;
+        const result = await change(async (state, req, revision) => {
+          if (revision !== expected || !state.pending)
+            throw new ContentError("未决状态已变化，请重新查询。", 409);
+          scope = state.pending.scope;
+          if (await findExhibitionReminderAudit(p, req, state.owner!, state.pending.digest, scope))
+            outcome = "committed";
+          await audit(
+            req,
+            outcome === "committed" ? "verified-committed-v1" : "closed-uncommitted-v1",
+            state.pending.digest,
+            {
+              version: 1,
+              runId: state.runId,
+              originalActor: state.owner,
+              scope,
+              reason: reason.trim(),
+            },
+          );
+          Object.assign(state, { runId: null, owner: null, targets: [], pending: null });
+        });
+        return { state: "resolved", outcome, ...result, scope: scope! };
+      },
       begin: async (targets) => {
         const runId = randomUUID();
         const result = await change(async (state) => {
@@ -121,17 +177,7 @@ export async function withExhibitionScheduler<T>(
             (await findExhibitionReminderAudit(p, req, owner, digest, scope))
           )
             throw new ContentError("回执已有记录，请先核实。", 409);
-          await p.create({
-            collection: "audit-events",
-            req,
-            data: {
-              entity: "exhibition-reminder-scheduler",
-              recordId: digest,
-              action: "pending-v1",
-              actor: owner,
-              after: { version: 1, runId: run, scope },
-            },
-          });
+          await audit(req, "pending-v1", digest, { version: 1, runId: run, scope });
           state.pending = { digest, scope };
         }),
       finish: async (run, receipt) =>
@@ -166,6 +212,16 @@ export async function withExhibitionScheduler<T>(
   }
 }
 export type SchedulerSession = {
+  apply: (run: string, receipt: string) => Promise<ReminderReport>;
+  resolve: (
+    revision: number,
+    reason: string,
+  ) => Promise<{
+    state: "resolved";
+    outcome: "committed" | "closed-uncommitted";
+    revision: number;
+    scope: ReminderScope;
+  }>;
   begin: (targets: ReminderScope[]) => Promise<{ runId: string; revision: number }>;
   prepare: (run: string, receipt: string) => Promise<{ revision: number }>;
   finish: (run: string, receipt: string) => Promise<{ revision: number }>;

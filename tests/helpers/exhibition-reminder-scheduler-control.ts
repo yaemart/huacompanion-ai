@@ -3,7 +3,6 @@ import type { Payload } from "payload";
 import type { SchedulerSession } from "../../src/server/exhibition-reminder-scheduler-control";
 import { recoveryFixture } from "./exhibition-reminder-recovery-fixture";
 import { readExhibitionSchedulerStatus } from "../../src/server/exhibition-reminder-scheduler-state";
-import { applyExhibitionReminders } from "../../src/server/exhibition-reminders";
 
 export async function testExhibitionSchedulerControl(p: Payload) {
   const path = "../../src/server/exhibition-reminder-scheduler-control";
@@ -75,7 +74,7 @@ export async function testExhibitionSchedulerControl(p: Payload) {
   for (const mode of ["normal", "constraint", "swallow", "lost-response"] as const) {
     await scenario(async (f, s, run) => {
       await s.prepare(run, f.receipt);
-      const report = await applyExhibitionReminders(p, f.admin.headers, f.receipt);
+      const report = await s.apply(run, f.receipt);
       assert.equal(report.counts.create, 1);
       const commit = p.db.commitTransaction;
       try {

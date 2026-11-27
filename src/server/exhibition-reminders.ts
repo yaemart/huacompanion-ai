@@ -19,17 +19,32 @@ import { requireSubscriptionAdmin } from "./subscription-management";
 import { subscriptionLockKey } from "./subscriptions";
 import { findExhibitionReminderAudit } from "./exhibition-reminder-history";
 
+import {
+  assertSchedulerReceiptWritable,
+  type SchedulerWritePermit,
+} from "./exhibition-reminder-scheduler-guard";
+
 const collection = "exhibition-reminder-jobs";
 export const previewExhibitionReminders = (p: Payload, headers: Headers, input: unknown) =>
   operate(p, headers, input, false);
-export const applyExhibitionReminders = (p: Payload, headers: Headers, receipt: unknown) =>
-  operate(p, headers, receipt, true);
+export const applyExhibitionReminders = (
+  p: Payload,
+  headers: Headers,
+  receipt: unknown,
+  permit?: SchedulerWritePermit,
+) => operate(p, headers, receipt, true, permit);
 const mac = (value: string) =>
   createHmac("sha256", process.env.PAYLOAD_SECRET!)
     .update("exhibition-reminder-v1:" + value)
     .digest("hex");
 
-async function operate(p: Payload, headers: Headers, value: unknown, write: boolean) {
+async function operate(
+  p: Payload,
+  headers: Headers,
+  value: unknown,
+  write: boolean,
+  permit?: SchedulerWritePermit,
+) {
   if (process.env.APP_ENV !== "local") throw new ContentError("仅支持本地提醒模拟。", 403);
   const { user } = await p.auth({ headers });
   if (user?.collection !== "staff") throw new ContentError("请使用管理员账号登录。", 403);
@@ -67,6 +82,7 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
   const rows = async <T>(query: ReturnType<typeof sql>) =>
     (await executeSQL(p, id, query)).rows as T[];
   try {
+    if (permit) await db.execute("SET LOCAL statement_timeout='10s'");
     if (!write) await db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     else
       for (const lock of [726271, 726281, 726272])
@@ -80,6 +96,7 @@ async function operate(p: Payload, headers: Headers, value: unknown, write: bool
       await p.db.rollbackTransaction(id);
       return saved;
     }
+    if (write) await assertSchedulerReceiptWritable(p, req, user, value as string, permit);
     const read = async (): Promise<ReminderState> => ({
       source: (
         await rows<
