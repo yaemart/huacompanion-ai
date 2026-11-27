@@ -1,11 +1,11 @@
 # 当前开发交接
 
-## 受控调度循环设计（2026-11-27，待审）
+## 受控调度循环计划（2026-11-27，设计已接受、计划待审）
 
 已核实PR127合并，fetch后origin/main a19360055cea5231f24f11e14a7581c36c368bff包含1B最终16ae13a。从该main创建codex/exhibition-reminder-loop-design；[正式设计](superpowers/specs/2026-11-27-exhibition-reminder-loop-design.md)、[一页小结](exhibition-reminder-loop-summary.md)。本批仅设计，未写业务代码或启动调度，不自动合并。
 用户明确选择每次启动新建独占私有目录，旧目录仅核实/留存。沿已接受原生前台串行、固定清单1–20/16KiB、立即一轮/完成后60秒、等待最长5秒发起身份复查；原审核/日期/写锁/持久恢复/H试发门禁保持。只生成本地待发/核实取消，真实发送后批。
 设计补齐目录/文件独占与同步、不可覆盖阶段文件、原prepare/apply/finish串行、信号停止及提交未知边界。finish已实际提交但本地保存/响应丢失时本进程停止，DB可能无pending，不假报全库仍阻断；不自动续跑或隐式resolve。仅现职管理员明确新恢复会话核实，旧目录不续跑。
-唯一独立可实施性检查无重要未决问题；设计待用户审批后才写实施计划。拟沿已有入口增加schedule及--once，无隐藏定时器/公开API/真实投递。无新依赖/迁移/.env/原库操作，五份其他草稿保留。新循环/目录/信号PG验收尚未实施，不能用已有检查冒称通过；日志仅.local/exhibition-reminder-loop-design。
+唯一独立可实施性检查无重要未决问题；用户已接受设计并选择原生方式。三份顺序计划：[私有目录](superpowers/plans/2026-11-27-exhibition-reminder-run-directory.md)→合并后[受控单轮/信号](superpowers/plans/2026-11-27-exhibition-reminder-single-round.md)→合并后[连续循环](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)，保守预算360/350/280，实际每PR硬≤400。计划待用户审阅，未开始业务实施。拟沿已有入口增加schedule及--once，无隐藏定时器/公开API/真实投递。无新依赖/迁移/.env/原库操作，五份其他草稿保留。新循环/目录/信号PG验收尚未实施，不能用已有检查冒称通过；日志仅.local/exhibition-reminder-loop-design。
 
 ## 1B持久恢复门禁（2026-11-27）
 

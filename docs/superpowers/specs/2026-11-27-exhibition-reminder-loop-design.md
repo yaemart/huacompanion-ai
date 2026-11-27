@@ -1,6 +1,6 @@
 # 展会提醒：受控本地循环、独占运行目录与信号停止
 
-状态：设计待审，尚未编写实施计划或业务代码。PR127已核实合并，origin/main为a19360055cea5231f24f11e14a7581c36c368bff，包含最终16ae13a。设计分支codex/exhibition-reminder-loop-design。
+状态：用户已于2026-11-27接受设计并选择原生方式；三份顺序实施计划已编写待审，尚未写业务代码。PR127已核实合并，origin/main为a19360055cea5231f24f11e14a7581c36c368bff，包含最终16ae13a。设计分支codex/exhibition-reminder-loop-design。
 
 ## 目标与已确认边界
 
