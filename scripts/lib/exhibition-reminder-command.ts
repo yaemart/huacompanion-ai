@@ -22,19 +22,15 @@ import type { previewExhibitionReminders } from "../../src/server/exhibition-rem
 export class ReminderCommandError extends Error {}
 const invalid = () =>
   new ReminderCommandError(
-    "参数无效，请使用 --help 核对本地命令。schedule 必须显式 --once，不支持发送、日期、连续运行或强制重试参数。",
+    "参数无效，请使用 --help 核对本地命令。schedule 可加 --once 仅跑一轮；不支持发送、日期、后台化或强制重试参数。",
   );
 export function parseReminderCommand(args: string[]) {
   const [mode, ...rest] = args;
-  if (mode === "schedule") {
-    if (rest.filter((v) => v === "--once").length !== 1) throw invalid();
-    rest.splice(rest.indexOf("--once"), 1);
-  }
+  let once = false;
   if (
     !["preview", "apply", "inspect", "scheduler-status", "scheduler-resolve", "schedule"].includes(
       mode,
-    ) ||
-    rest.length % 2
+    )
   )
     throw invalid();
   const fields: Record<string, string> = {};
@@ -48,7 +44,13 @@ export function parseReminderCommand(args: string[]) {
           : mode === "scheduler-status"
             ? ["--auth-file"]
             : ["--auth-file", "--receipt-file"];
-  for (let i = 0; i < rest.length; i += 2) {
+  for (let i = 0; i < rest.length;) {
+    if (mode === "schedule" && rest[i] === "--once") {
+      if (once) throw invalid();
+      once = true;
+      i++;
+      continue;
+    }
     if (
       !allowed.includes(rest[i]) ||
       fields[rest[i]] !== undefined ||
@@ -57,6 +59,7 @@ export function parseReminderCommand(args: string[]) {
     )
       throw invalid();
     fields[rest[i]] = rest[i + 1];
+    i += 2;
   }
   if (Object.keys(fields).length !== allowed.length) throw invalid();
   const files = { authFile: fields["--auth-file"], receiptFile: fields["--receipt-file"] };
@@ -66,7 +69,7 @@ export function parseReminderCommand(args: string[]) {
       authFile: files.authFile,
       manifestFile: fields["--manifest-file"],
       stateDir: fields["--state-dir"],
-      once: true as const,
+      once,
     };
   if (mode === "scheduler-resolve") {
     const revision = Number(fields["--revision"]),

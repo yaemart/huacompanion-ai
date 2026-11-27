@@ -1,5 +1,12 @@
 # 当前开发交接
 
+## 受控本地连续循环（2026-11-27）
+
+已实核PR129合并，origin/main b8e5dea6c6d5e7054f86e63a87fa3cb87763d253包含最终3fb539d。从最新main建立codex/exhibition-reminder-local-loop，按已接受[loop计划](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)原生实施，[草稿PR130](https://github.com/yaemart/huacompanion-ai/pull/130)、[一页使用说明](exhibition-reminder-local-loop-summary.md)。单会话/目录立即一轮、完成后60秒、等待最长5秒发起现职核实；省略--once连续，保留--once兼容。只生成本地待发，真实发送和系统驻留/自动续期后批。保留审核、写锁、持久恢复及试发门禁，不自动合并。完整check913/913、0lint错误/445既有警告、900源码行长，完整订阅/H49组、内容/展会/权限5组及生产build均通过，10个真实连续场景与原30个实际CLI/信号场景保持。业务及CI配置增删173行≤400；数据库CI上限20→30分钟仅容纳真实等待，产品计时/会话/SQL不变。唯一末尾复核与精确HEAD两CI由PR最终记录实核。
+本机演示已在上一轮配套备份、恢复验证后完成56→59增量迁移，34草稿/32正式记录等保留；本批不操作演示库或更新3100运行副本，测试仅新随机虚构库。五份其他草稿保留，无.env或依赖变化。日志仅.local/exhibition-reminder-local-loop。
+
+唯一末尾独立复核 0 严重/1 重要/2 轻微；重要项已单轮修正：原生 session 增加只读持锁连接存活核实，每个目标预检前及每段空闲复查调用。实际 CLI 中仅终止子进程当前数据库、精确 PID 和 726291 键的持锁连接，旧进程不能及时退出先 RED；修复后 GREEN，控制版本/目录/旧表不变、没有第二轮预检或 stop 审计，新会话可取锁且只读 check 全表不变。新增第 11 个连续场景；修正后全套回归及精确 HEAD 两 CI 由 PR 最终记录实核，无二次复核。两个轻微延期：真实 60 秒测试若跨北京时间午夜可能因档位变化失败；连续终端未显式标轮次，管理员需按目标/时间辨认。生产日期与等待未改。
+
 ## 受控单轮与信号停止（2026-11-27）
 
 已实核PR128合并，基于最新main351f7ef，分支`codex/exhibition-reminder-single-round`，[草稿PR129](https://github.com/yaemart/huacompanion-ai/pull/129)，不自动合并。[一页使用小结](exhibition-reminder-single-round-summary.md)、[实施计划](superpowers/plans/2026-11-27-exhibition-reminder-single-round.md)。

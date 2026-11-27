@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-27-exhibition-reminder-loop-design.md`；Consumes前两计划run-directory、single-round的已合并接口。
 
+**执行记录（2026-11-27）：** PR128/129 已顺序合并，当前从最新 main b8e5dea 实施于 `codex/exhibition-reminder-local-loop`、草稿 PR130。Task 1/2 实施已完成，完整 check 913/913、订阅/H 49 组、内容/展会/权限及生产 build 通过；唯一末尾复核与精确 CI 按第 6 步收尾；结果见 [进度](../../progress.md)。业务及 CI 配置增删 173 行，未超过 400 行；数据库 CI 上限 20→30 分钟仅容纳真实等待，不改变产品时限。
+
 ## Global Constraints
 
 - 仅single-round用户合并后从最新origin/main创建codex/exhibition-reminder-local-loop。计划编写时先前能力尚未实施，不能把依赖写成现成产品；接手先核对实际合并/接口，保留5份草稿，不强推/硬重置。
@@ -37,9 +39,9 @@
 - `waitScheduleCycle(stop:ScheduleStop,checkIdentity:()=>Promise<void>,clock?:ScheduleWaitClock):Promise<void>`：真实默认performance.now单调计时，60000ms完成后等待，片段≤5000ms；每片正常到期后在进入下一片/返回前发起checkIdentity；信号到来优先返回，不再开始身份检查或新轮。检查已经开始可完成/按10秒SQL限制失败；不是承诺5秒内完成所有SQL。
 - `ScheduleWaitClock={now:()=>number;sleep:(ms:number,stop:ScheduleStop)=>Promise<void>}`只用于纯等待算法替换；生产runner不接受它、CLI无日期/间隔/clock参数。默认sleep用onRequest可取消订阅，信号/计时器任一路完成都清timer及另一订阅，不留下计时器/回调。outer先await当前等待退出再dispose；异常finally也取消该等待资源。
 
-- [ ] **1. 写RED。** `next round waits sixty seconds after completion`使用可控单调等待器：开始值0→59999时未返回→60000后返回；每sleep参数≤5000；加入check耗时后不补连续短tick。`signal wins a due timer`请求停止后无新check；身份check拒绝应传播而不是当正常到期。
-- [ ] **2. 观察RED并实现。** Run `node --experimental-strip-types --test tests/exhibition-schedule-wait.test.ts`；Expected：缺API/时序目标失败。无setInterval、无生产日期覆盖参数；默认sleep的真实timer/信号清理另用实际子进程证明不挂住。
-- [ ] **3. GREEN与提交。** 聚焦测试及完整`npm run check`；Expected：0失败，原--once/信号功能保持；提交并task-done `npm test`。
+- [x] **1. 写RED。** `next round waits sixty seconds after completion`使用可控单调等待器：开始值0→59999时未返回→60000后返回；每sleep参数≤5000；加入check耗时后不补连续短tick。`signal wins a due timer`请求停止后无新check；身份check拒绝应传播而不是当正常到期。
+- [x] **2. 观察RED并实现。** Run `node --experimental-strip-types --test tests/exhibition-schedule-wait.test.ts`；Expected：缺API/时序目标失败。无setInterval、无生产日期覆盖参数；默认sleep的真实timer/信号清理另用实际子进程证明不挂住。
+- [x] **3. GREEN与提交。** 聚焦测试及完整`npm run check`；Expected：0失败，原--once/信号功能保持；提交并task-done `npm test`。
 
 ### Task 2: 同一生命周期多轮与真实验收
 
@@ -52,12 +54,14 @@
 - schedule参数现在--once可选，返回`once:boolean`；缺--once表示连续，其他参数/拒绝/安全初始化不变。--once与循环使用同一单轮代码，不允许定时器调用另一个弱化应用入口。
 - onReport的apply成功汇总必须在finish/finished都成功后发出；preview是明确预检信息，不是完成宣告。每轮只必要中文汇总；日志不打印owner/runId、digest、JWT、原回执或私有元数据。
 
-- [ ] **1. 写真实循环RED。** 新组`continuous scheduler keeps one run and sees same-day new consent`：真实两轮，第一轮后新增同日合资格虚构订阅；第二轮新增恰好对应held，原held无重复。第二轮不得早于上一轮完成后真实60秒；用报告观测和实际DB时间/文件结果，测试超时允许完整一轮等待及SQL，生产等待/会话不改。初始CLI无--once会拒绝，应先观察RED。
-- [ ] **2. 实现循环并GREEN。** 只扩展outer生命周期，不按轮重复调用会新建目录的runScheduleOnce。纯等待器测试可注入clock；这个真实PG/子进程多轮验收不跳过60秒或加隐藏加速参数。
-- [ ] **3. 空闲/停止/失败。** 已begin下稳定无变化轮全表/目录指纹不变；实际等待中原生logout/撤权/停用/过期后不下一轮且无失效凭证补写；运行中替换auth/清单不换人或范围。SIGINT/SIGTERM唤醒真实等待，重复信号退出130/143且无活timer；另测身份check已开始再信号，异常优先退出1。第二轮prepare/apply/finish故障或未知时全次停止，之前结果保留、DB pending规则准确；新目录仍不能绕过未决。
-- [ ] **4. 资格与边界。** 原服务真实30/7、不补档、非窗口只原失效取消、改期/撤下/退订/拒发/已审核修订变化及终态不复活回归；两进程单实例及旧运行拒写、普通手工/历史/H旧边界保持。测试锁和终止仍以子进程精确PID/当前DB/键限定，0外部调用和旧预算/尝试/租约表不变。
-- [ ] **5. 全套与文档。** 完整check、全部订阅（预计前批48＋loop1=49组，实际为准）、content/exhibitions/权限、生产build。中文小结/handoff/progress明确本地循环已交付但真实发送未启用；每台电脑自己的账号/测试库及全新目录，旧目录留证不网盘同步运行中数据；实际源码≤400。提交/task-done `npm test`。
+- [x] **1. 写真实循环RED。** 新组`continuous scheduler keeps one run and sees same-day new consent`：真实两轮，第一轮后新增同日合资格虚构订阅；第二轮新增恰好对应held，原held无重复。第二轮不得早于上一轮完成后真实60秒；用报告观测和实际DB时间/文件结果，测试超时允许完整一轮等待及SQL，生产等待/会话不改。初始CLI无--once会拒绝，应先观察RED。
+- [x] **2. 实现循环并GREEN。** 只扩展outer生命周期，不按轮重复调用会新建目录的runScheduleOnce。纯等待器测试可注入clock；这个真实PG/子进程多轮验收不跳过60秒或加隐藏加速参数。
+- [x] **3. 空闲/停止/失败。** 已begin下稳定无变化轮全表/目录指纹不变；实际等待中原生logout/撤权/停用/过期后不下一轮且无失效凭证补写；运行中替换auth/清单不换人或范围。SIGINT/SIGTERM唤醒真实等待，重复信号退出130/143且无活timer；另测身份check已开始再信号，异常优先退出1。第二轮prepare/apply/finish故障或未知时全次停止，之前结果保留、DB pending规则准确；新目录仍不能绕过未决。
+- [x] **4. 资格与边界。** 原服务真实30/7、不补档、非窗口只原失效取消、改期/撤下/退订/拒发/已审核修订变化及终态不复活回归；两进程单实例及旧运行拒写、普通手工/历史/H旧边界保持。测试锁和终止仍以子进程精确PID/当前DB/键限定，0外部调用和旧预算/尝试/租约表不变。
+- [x] **5. 全套与文档。** 完整check、全部订阅（预计前批48＋loop1=49组，实际为准）、content/exhibitions/权限、生产build。中文小结/handoff/progress明确本地循环已交付但真实发送未启用；每台电脑自己的账号/测试库及全新目录，旧目录留证不网盘同步运行中数据；实际源码≤400。提交/task-done `npm test`。
 - [ ] **6. 最终收尾。** 唯一全PR独立复核，严重/重要单轮RED→GREEN及整套回归；精确HEAD两CI/关键日志和fetch一致。草稿不自动合并，不延伸为系统驻留、自动续期或真实发送。
+
+唯一末尾独立复核 0 严重/1 重要/2 轻微；重要项已单轮修正：原生 session 增加只读持锁连接存活核实，每个目标预检前及每段空闲复查调用。实际 CLI 中仅终止子进程当前数据库、精确 PID 和 726291 键的持锁连接，旧进程不能及时退出先 RED；修复后 GREEN，控制版本/目录/旧表不变、没有第二轮预检或 stop 审计，新会话可取锁且只读 check 全表不变。新增第 11 个连续场景；修正后全套回归及精确 HEAD 两 CI 由 PR 最终记录实核，无二次复核。两个轻微延期：真实 60 秒测试若跨北京时间午夜可能因档位变化失败；连续终端未显式标轮次，管理员需按目标/时间辨认。生产日期与等待未改。
 
 ## 计划自检（覆盖三份计划）
 

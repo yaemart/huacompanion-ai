@@ -4,10 +4,12 @@ import type { ReminderReport } from "../../src/server/exhibition-reminders";
 import { createScheduleDirectory, type RunDirectory } from "./exhibition-schedule-directory";
 import type { ScheduleManifest } from "./exhibition-schedule-input";
 import { drainScheduleSignals } from "./exhibition-schedule-stop";
+import { waitScheduleCycle } from "./exhibition-schedule-wait";
 
 export type ScheduleStop = {
   reason: null | "sigint" | "sigterm";
   request(reason: "sigint" | "sigterm"): void;
+  onRequest(listener: () => void): () => void;
 };
 export type ScheduleReport = { mode: "preview" | "apply"; report: ReminderReport };
 export async function runScheduleOnce(
@@ -17,6 +19,17 @@ export async function runScheduleOnce(
   stateDir: string,
   stop: ScheduleStop,
   onReport: (r: ScheduleReport) => void,
+): Promise<{ exitCode: 0 | 130 | 143 }> {
+  return runSchedule(p, headers, manifest, stateDir, stop, onReport, { once: true });
+}
+export async function runSchedule(
+  p: Payload,
+  headers: Headers,
+  manifest: ScheduleManifest,
+  stateDir: string,
+  stop: ScheduleStop,
+  onReport: (r: ScheduleReport) => void,
+  options: { once: boolean },
 ): Promise<{ exitCode: 0 | 130 | 143 }> {
   const halted = async () => {
     await drainScheduleSignals();
@@ -67,34 +80,42 @@ export async function runScheduleOnce(
         throw error;
       }
       let pending = false;
-      for (const scope of manifest.targets) {
-        if (await halted()) break;
-        await authenticateReminderAdmin(p, headers);
-        if (await halted()) break;
-        const preview = await previewExhibitionReminders(p, headers, scope);
-        onReport({ mode: "preview", report: preview });
-        if (preview.blocked) throw new ContentError("本地生成门禁未通过。", 409);
-        if (await halted()) break;
-        if (!preview.counts.create && !preview.counts.cancel) continue;
-        if (!preview.receipt) throw Error("Missing receipt");
-        const operation = directory.plan(scope, preview.receipt);
-        await authenticateReminderAdmin(p, headers);
-        if (await halted()) break;
-        pending = true;
-        const prepared = await session.prepare(runId, preview.receipt);
-        operation.prepared(prepared.revision);
-        if (await halted()) break;
-        await authenticateReminderAdmin(p, headers);
-        if (await halted()) break;
-        operation.applying();
-        if (await halted()) break;
-        const report = await session.apply(runId, preview.receipt);
-        await authenticateReminderAdmin(p, headers);
-        const finished = await session.finish(runId, preview.receipt);
-        pending = false;
-        operation.finished(finished.revision, report.asOf);
-        onReport({ mode: "apply", report });
-      }
+      do {
+        for (const scope of manifest.targets) {
+          if (await halted()) break;
+          await session.check();
+          await authenticateReminderAdmin(p, headers);
+          if (await halted()) break;
+          const preview = await previewExhibitionReminders(p, headers, scope);
+          onReport({ mode: "preview", report: preview });
+          if (preview.blocked) throw new ContentError("本地生成门禁未通过。", 409);
+          if (await halted()) break;
+          if (!preview.counts.create && !preview.counts.cancel) continue;
+          if (!preview.receipt) throw Error("Missing receipt");
+          const operation = directory.plan(scope, preview.receipt);
+          await authenticateReminderAdmin(p, headers);
+          if (await halted()) break;
+          pending = true;
+          const prepared = await session.prepare(runId, preview.receipt);
+          operation.prepared(prepared.revision);
+          if (await halted()) break;
+          await authenticateReminderAdmin(p, headers);
+          if (await halted()) break;
+          operation.applying();
+          if (await halted()) break;
+          const report = await session.apply(runId, preview.receipt);
+          await authenticateReminderAdmin(p, headers);
+          const finished = await session.finish(runId, preview.receipt);
+          pending = false;
+          operation.finished(finished.revision, report.asOf);
+          onReport({ mode: "apply", report });
+        }
+        if ((await halted()) || options.once) break;
+        await waitScheduleCycle(stop, async () => {
+          await session.check();
+          await authenticateReminderAdmin(p, headers);
+        });
+      } while (!(await halted()));
       if (pending) await authenticateReminderAdmin(p, headers);
       if (!pending) {
         await session.stop(runId);

@@ -55,7 +55,7 @@ const run = (values: string[], env: Record<string, string> = {}) =>
       },
     },
   );
-test("schedule parser requires a single explicit once and only the three private inputs", () => {
+test("schedule parser supports continuous mode or one bare once and only the three private inputs", () => {
   assert.deepEqual(parseReminderCommand(args), {
     mode: "schedule",
     authFile: auth,
@@ -63,8 +63,15 @@ test("schedule parser requires a single explicit once and only the three private
     stateDir: state,
     once: true,
   });
+  assert.deepEqual(parseReminderCommand(args.slice(0, -1)), {
+    mode: "schedule",
+    authFile: auth,
+    manifestFile: manifest,
+    stateDir: state,
+    once: false,
+  });
   for (const values of [
-    args.slice(0, -1),
+    ["schedule", "--auth-file", "--once", auth, "--manifest-file", manifest, "--state-dir", state],
     [...args, "--once"],
     [...args, "true"],
     [...args, "--force", "true"],
@@ -74,11 +81,11 @@ test("schedule parser requires a single explicit once and only the three private
   ])
     assert.throws(() => parseReminderCommand(values));
 });
-for (const kind of ["once", "auth", "manifest", "existing", "parent", "production", "reset"])
+for (const kind of ["missing", "auth", "manifest", "existing", "parent", "production", "reset"])
   test("real schedule rejects " + kind + " before config initialization", () => {
     let values = [...args],
       env: Record<string, string> = {};
-    if (kind === "once") values = values.slice(0, -1);
+    if (kind === "missing") values = ["schedule", "--auth-file", auth];
     if (kind === "auth") values[2] = bad;
     if (kind === "manifest") values[4] = bad;
     if (kind === "existing") values[6] = dir;
@@ -89,7 +96,7 @@ for (const kind of ["once", "auth", "manifest", "existing", "parent", "productio
     assert.equal(r.status, 1);
     assert.equal(r.stdout, "");
     const pattern =
-      kind === "once"
+      kind === "missing"
         ? /参数无效/
         : kind === "auth"
           ? /0600/
@@ -101,11 +108,18 @@ for (const kind of ["once", "auth", "manifest", "existing", "parent", "productio
     assert.match(r.stderr, pattern);
     assert.doesNotMatch(r.stderr, /private-marker|PAYLOAD_SECRET|DATABASE_URL|Error:/);
   });
-test("help shows explicit once without loading Payload", () => {
+test("help explains optional once without loading Payload", () => {
   const r = run(["--help"], { APP_ENV: "production" });
   assert.equal(r.status, 0);
   assert.match(r.stdout, /schedule.*--once/);
   assert.equal(r.stderr, "");
+});
+test("continuous CLI reaches missing config only after valid private inputs", () => {
+  const r = run(args.slice(0, -1));
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, /本地.*未完成.*scheduler-status/);
+  assert.doesNotMatch(r.stderr, /PAYLOAD_SECRET|DATABASE_URL|Error:|参数无效/);
 });
 test("signal stop keeps first reason and disposes only its own listeners", async () => {
   const path = "../scripts/lib/exhibition-schedule-stop.ts";

@@ -95,11 +95,29 @@ syncBuiltinESMExports();
 const require = createRequire(import.meta.url),
   dependency = createRequire(require.resolve("@payloadcms/db-postgres"));
 const driver = dependency("pg") as typeof import("pg");
+let loopPreviews = 0,
+  loopApplies = 0;
 const log = console.log;
 console.log = (...args: unknown[]) => {
   log(...args);
+  if (stage?.startsWith("loop-") && typeof args[0] === "string") {
+    if (args[0].startsWith("本地预检（"))
+      process.send?.({ phase: "loop-preview", count: ++loopPreviews, at: performance.now() });
+    if (args[0].startsWith("本地核实结果（"))
+      process.send?.({ phase: "loop-apply", count: ++loopApplies, at: performance.now() });
+  }
   if (args[0] === "本轮本地处理完成，未发送邮件。") trigger("shutdown");
 };
+const nativeTimeout = globalThis.setTimeout;
+globalThis.setTimeout = ((
+  handler: (...args: unknown[]) => void,
+  ms?: number,
+  ...args: unknown[]
+) => {
+  if (stage?.startsWith("loop-") && ms === 5000 && loopApplies)
+    process.send?.({ phase: "loop-wait", count: loopApplies, at: performance.now() });
+  return nativeTimeout(handler, ms, ...args);
+}) as typeof setTimeout;
 type Callback = (
   err: Error | null,
   client: pg.PoolClient | undefined,

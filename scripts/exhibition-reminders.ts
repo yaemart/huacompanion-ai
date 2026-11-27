@@ -23,13 +23,13 @@ try {
   if (args.length === 1 && args[0] === "--help") {
     console.log(
       [
-        "管理员本地提醒：只预检或核实本地待发，未发送邮件。",
+        "管理员本地提醒：预检、核实或受控生成本地待发，未发送邮件。",
         "preview --key KEY --locale zh|en --auth-file PATH --receipt-file NEW_PATH",
         "apply --auth-file PATH --receipt-file PATH",
         "inspect --auth-file PATH --receipt-file PATH（真正只读核实）",
         "scheduler-resolve --auth-file PATH --revision N --reason TEXT（仅核实结束，不代执行）",
         "scheduler-status --auth-file PATH（只读持久状态，不启动调度）",
-        "schedule --auth-file PATH --manifest-file PATH --state-dir NEW_PATH --once（实际单轮生成/核实取消；未发送邮件）",
+        "schedule --auth-file PATH --manifest-file PATH --state-dir NEW_PATH [--once]（省略为连续本地调度，完成后60秒再跑；未发送邮件）",
         "文件须为当前用户私有0600常规文件；认证文件只含现有管理员JWT。",
         "使用 npm run --silent exhibition:reminders -- 加上述参数。应用保留原回执，结果未知先核实。",
       ].join("\n"),
@@ -86,14 +86,15 @@ try {
     payload = await getPayload({ config: localConfig });
     if (stop?.reason) throw stop;
     if (options.mode === "schedule") {
-      const { runScheduleOnce } = await import("./lib/exhibition-schedule-runner");
-      const r = await runScheduleOnce(
+      const { runSchedule } = await import("./lib/exhibition-schedule-runner");
+      const r = await runSchedule(
         payload,
         headers,
         schedule!.manifest,
         schedule!.stateDir,
         stop!,
         (r) => console.log(formatReminderReport(r.report, r.mode)),
+        { once: options.once },
       );
       exitCode = r.exitCode;
       console.log(
@@ -161,7 +162,7 @@ try {
     !(error instanceof ReminderCommandError)
   )
     console.error(
-      "本地单轮未完成，请保留目录证据并用 scheduler-status/inspect 核实；有未决时用独立 scheduler-resolve 结束，不重新应用原操作。",
+      "本地调度未完成，请保留目录证据并用 scheduler-status/inspect 核实；有未决时用独立 scheduler-resolve 结束，不重新应用原操作。",
     );
   else if (
     process.argv[2] === "scheduler-resolve" &&
