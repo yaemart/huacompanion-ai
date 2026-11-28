@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { createWriteStream, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { once } from "node:events";
 import { resolve } from "node:path";
@@ -189,6 +189,11 @@ try {
       process.once("SIGINT", r);
     });
   } else {
+    execFileSync(process.execPath, ["scripts/check-routes.mjs"], {
+      env: { ...process.env, APP_URL: base },
+      stdio: "inherit",
+      timeout: 120000,
+    });
     const login = async (who: string) => {
       const r = await fetch(base + "/api/staff/login", {
         method: "POST",

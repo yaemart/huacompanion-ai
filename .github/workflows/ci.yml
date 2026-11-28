@@ -55,6 +55,7 @@ jobs:
       - run: node --import tsx tests/integration/quote-margin-render.tsx
       - run: node --import tsx tests/integration/crm-overview-render.tsx
       - run: node --import tsx tests/integration/crm-transfer-render.tsx
+      - run: node --import tsx tests/integration/immigration-policy-list-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:
@@ -263,3 +264,5 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run test:crm
+      - name: Verify additional core modules in a fresh isolated database
+        run: npm run test:modules

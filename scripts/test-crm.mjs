@@ -18,6 +18,7 @@ if (
     "preview",
     "overview",
     "assignments",
+    "modules",
   ].includes(mode)
 )
   throw Error("Unknown CRM test mode");
@@ -61,6 +62,7 @@ try {
     NEXT_TELEMETRY_DISABLED: "1",
     PAYLOAD_DISABLE_TELEMETRY: "true",
     WORKFLOW_MAIL_ENABLED: "false",
+    BUSINESS_AI_ENABLED: "false",
     INTAKE_ENABLED: "false",
     HUA_CRM_ISOLATED: "true",
     CRM_CLUSTER_ROOT: row.directory,
@@ -88,7 +90,24 @@ try {
       run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
     else if (mode === "overview") run(["--import", "tsx", "tests/integration/crm-overview.ts"]);
     else if (mode === "links") run(["--import", "tsx", "tests/integration/crm-links.ts"]);
-    else {
+    else if (mode === "modules") {
+      run(["--import", "tsx", "tests/helpers/isolated-module-bootstrap.ts"]);
+      for (const suite of [
+        "permissions-content",
+        "catalog",
+        "institutions",
+        "lifestyle",
+        "housekeeping",
+        "content-agent",
+        "support-agent",
+        "support-voice",
+        "calls",
+        "support-operations",
+        "support-operations-db",
+        "workflow-customer",
+      ])
+        run(["--import", "tsx", `tests/integration/${suite}.ts`]);
+    } else {
       run(["--import", "tsx", "tests/integration/crm.ts"]);
       run(["--import", "tsx", "tests/integration/crm-links.ts"]);
       run(["--import", "tsx", "tests/integration/crm-session.ts"]);

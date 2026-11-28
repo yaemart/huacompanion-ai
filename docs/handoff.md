@@ -1,5 +1,35 @@
 # 当前开发交接
 
+## 全程序体检整改（2026-11-28）
+
+用户明确批准三项整改，阶段C后续另做。PR137实核合并20a90191c1e2daf8b54db69cde5a8f591947eb64包含988af05；
+从最新origin/main建立codex/health-remediation，复用现有独立CRM worktree。
+[一页中文小结](health-remediation-summary.md)、[短设计](superpowers/specs/2026-11-28-health-remediation-design.md)、
+[实施计划](superpowers/plans/2026-11-28-health-remediation.md)。本批[草稿PR138](https://github.com/yaemart/huacompanion-ai/pull/138)已建立，不自动合并。
+
+Next精确16.4.5，Payload3.92.0 peer兼容；锁版本仅Next及配套SWC/@next/env变化，npm ci完成。
+实际审计Next已不再命中原7公告；全树14/prod5 moderate节点、0high/critical，残余根源esbuild/minimatch。
+不升级Payload/React、不使用force/override隐藏告警。当前审计更新trial-deployment，保留旧快照标历史。
+路由CLI使用APP_URL回环origin，修正精确/llms.txt中立路径；发布URL/sitemap禁跳转，其他逐跳校验。
+原CLI已进入CRM真实生产HTTP夹具3201，不再临时替换端口。保留启用/停用语言、404及根跳转检查。
+新增test:modules：原CRM身份/PG15/随机库守卫下新库迁移→专用虚构管理员→12套串行数据库/服务层回归；
+unit job补政策列表render；原CRM job随后新库跑modules，原全站/订阅/展会测试不裁减。
+内容权限/生活/家政AUTHZ_HTTP_URL可选HTTP断言未开启，不能声称这些HTTP分支已覆盖。
+
+基线928项通过。边界与bootstrap缺模块RED→GREEN；实际CLI双HTTP夹具重定向发布URL原退出0 RED，
+手动逐跳验证/禁发布跳转后GREEN；停用语言首页尾斜杠反例RED→请求规范首页URL后GREEN。
+首轮格式/测试env缺NODE_ENV类型及AbortSignal全局lint分别修正，最终check933/933、lint0/445既有警告、
+960源码行长无例外，25render通过。最终完整test:crm退出0，原CRM13＋关联12＋B1十＋B2十二组、
+原JWT/业务/客户/权限8项、Next16.4.5生产build与实际HTTP通过，原路由CLI154项通过；
+随后串行test:modules退出0，12套均通过，各用自有随机库。以最终串行回执为准。
+
+唯一独立gpt-6.2-astra复核0严重/1重要/1轻微；重要跳转项单轮真实RED→GREEN，无二次复核。
+延期轻微项：URL解析器接受空?/#及origin/path/..的规范化，不访问额外目的地；严格原始拼写后续。
+本轮具体决定：沿已批准三项范围直接实施；模块CI复用独立新库，未扩入可选HTTP夹具（HTTP专属缺陷仍需后续覆盖）。
+无权限/旧对外授权/审核/写锁/恢复/真实发送变更，无schema迁移或产品环境变量/.env；原演示/归档不操作。
+原始报告.local/health-remediation未上传Git，无新UI/截图验收声称。自有随机库已核对0、CRM专用集群正常停止/目录保留，3100/3201/55442/55443无监听。
+最终推送SHA与云端CI仍以PR对应提交实核回执为准，不自动合并。
+
 ## CRM B3客户总览与转交员工界面（2026-11-28）
 
 PR136实核合并d4731ef18aca45cd733fa25f3f1405e98fda571e包含6608ff4；从最新main建立codex/crm-phase-b-ui。

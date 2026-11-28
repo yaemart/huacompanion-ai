@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { locales } from "../src/lib/locales.ts";
 import { parseSiteLocales } from "../src/lib/site-locales.ts";
+import { routeCheckOrigin, sitemapCheckURL, fetchRouteDocument } from "./lib/route-checks.mjs";
+const origin = routeCheckOrigin(process.env.APP_URL || "http://127.0.0.1:3000");
 const activeLocales = parseSiteLocales(process.env.SITE_LOCALES);
 const pages = [
   "",
@@ -24,8 +26,8 @@ const pages = [
 let count = 0;
 for (const locale of locales)
   for (const page of pages) {
-    const url = `http://127.0.0.1:3000/${locale}/${page}`;
-    const res = await fetch(url);
+    const url = `${origin}/${locale}${page ? "/" + page : ""}`;
+    const res = await fetchRouteDocument(url, origin, activeLocales);
     const html = await res.text();
     if (!activeLocales.includes(locale)) {
       if (res.status !== 404 || !html.includes("<html") || !html.includes("<body>"))
@@ -44,26 +46,28 @@ for (const locale of locales)
     count++;
   }
 // Published URLs come from the actual public sitemap; unpublished seed slugs are not pages.
-const sitemapResponse = await fetch("http://127.0.0.1:3000/sitemap.xml");
+const sitemapResponse = await fetchRouteDocument(
+  origin + "/sitemap.xml",
+  origin,
+  activeLocales,
+  false,
+);
 if (!sitemapResponse.ok) throw Error("Sitemap unavailable");
 const sitemap = await sitemapResponse.text();
 for (const match of sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)) {
-  const url = new URL(match[1].replaceAll("&amp;", "&"));
-  if (url.origin !== "http://127.0.0.1:3000") throw Error("Unexpected sitemap origin");
-  const locale = url.pathname.split("/")[1];
-  if (!activeLocales.includes(locale)) throw Error(`Inactive locale in sitemap: ${url.pathname}`);
-  const res = await fetch(url);
+  const url = sitemapCheckURL(match[1].replaceAll("&amp;", "&"), origin, activeLocales);
+  const res = await fetchRouteDocument(url, origin, activeLocales, false);
   if (res.status !== 200) throw Error(`Published URL unavailable: ${url.pathname} ${res.status}`);
   count++;
 }
 for (const path of ["/en/not-real", "/zh/services/fake", "/xx", "/en/request/extra"]) {
-  const res = await fetch("http://127.0.0.1:3000" + path);
+  const res = await fetchRouteDocument(origin + path, origin, activeLocales);
   const html = await res.text();
   if (res.status !== 404 || !html.includes("<html") || !html.includes("<body>"))
     throw Error(`Invalid 404: ${path} ${res.status}`);
   count++;
 }
-const root = await fetch("http://127.0.0.1:3000/", { redirect: "manual" });
+const root = await fetch(origin + "/", { redirect: "manual" });
 if (root.status !== 307 || root.headers.get("location") !== "/en")
   throw Error("Root redirect failed");
 console.log(`${count} page/404 checks passed; root redirects to /en.`);
