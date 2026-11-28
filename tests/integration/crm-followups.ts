@@ -1,3 +1,4 @@
+import { followupList } from "../../src/server/crm/followup-read";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { PostgresAdapter } from "@payloadcms/db-postgres";
@@ -117,6 +118,108 @@ try {
     { status: 403 },
   );
   pass("database constraints and private access preserve history");
+
+  const req = { user };
+  const makeStaff = (
+    name: string,
+    role: "operations" | "manager" | "editor" | "reviewer",
+    teamID = team.id,
+  ) =>
+    p.create({
+      collection: "staff",
+      req,
+      data: {
+        name,
+        email: `c1-${name}@example.invalid`,
+        password: key(),
+        role,
+        active: true,
+        team: teamID,
+      },
+    });
+  const op = await makeStaff("op", "operations");
+  const other = await makeStaff("other", "operations");
+  const manager = await makeStaff("manager", "manager");
+  const editor = await makeStaff("editor", "editor");
+  const reviewer = await makeStaff("reviewer", "reviewer");
+  const foreignTeam = await p.create({ collection: "teams", data: { name: "C1 foreign" } });
+  const foreign = await makeStaff("foreign", "manager", foreignTeam.id);
+  const asUser = (s: typeof op) => ({ ...s, collection: "staff" as const });
+  await p.update({ collection: "crm-clients", id: client.id, data: { owner: op.id } });
+  const firstPage = await followupList(p, asUser(op), { kind: "client", id: client.id });
+  assert.equal(firstPage.total, 1);
+  assert.equal(firstPage.items[0].needsAssignment, true);
+  assert.equal(firstPage.items[0].anchorID, client.id);
+  for (const denied of [other, foreign])
+    await assert.rejects(() => followupList(p, asUser(denied), { kind: "client", id: client.id }), {
+      status: 404,
+    });
+  for (const denied of [editor, reviewer])
+    await assert.rejects(() => followupList(p, asUser(denied), { kind: "client", id: client.id }), {
+      status: 403,
+    });
+  assert.equal(
+    (await followupList(p, asUser(manager), { kind: "client", id: client.id })).total,
+    1,
+  );
+  const inquiry = await p.create({
+    collection: "inquiries",
+    req,
+    data: {
+      reference: key(),
+      requestKey: key(),
+      contentHash: key(),
+      categories: ["business"],
+      city: "Shanghai",
+      name: "C1 fictional inquiry",
+      email: "c1-inquiry@example.invalid",
+
+      team: team.id,
+      owner: other.id,
+      status: "new",
+    },
+  });
+  const hidden = await p.create({
+    collection: "crm-followups",
+    data: {
+      reference: key(),
+      anchorKind: "inquiry",
+      inquiry: inquiry.id,
+      type: "adhoc",
+      title: "Hidden",
+      dueAt: "2026-11-28T01:00:00Z",
+      state: "pending",
+      revision: 1,
+      needsReview: false,
+      createdBy: admin.id,
+      assignee: other.id,
+    },
+  });
+  await p.create({
+    collection: "crm-inquiry-links",
+    data: {
+      client: client.id,
+      inquiry: inquiry.id,
+      active: true,
+      revision: 1,
+      linkedBy: admin.id,
+      linkedAt: new Date().toISOString(),
+      reason: "Fictional association",
+    },
+  });
+  const visible = await followupList(p, asUser(op), { kind: "client", id: client.id });
+  await p.update({
+    collection: "crm-followups",
+    id: hidden.id,
+    data: { title: "Changed invisible item" },
+  });
+  const afterHidden = await followupList(p, asUser(op), { kind: "client", id: client.id });
+  assert.deepEqual({ ...afterHidden, asOf: visible.asOf }, visible);
+  assert.equal(
+    (await followupList(p, asUser(other), { kind: "inquiry", id: inquiry.id })).total,
+    1,
+  );
+  pass("current roles, dual scopes and hidden-object read isolation");
 } finally {
   await p.destroy();
 }
