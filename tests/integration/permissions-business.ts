@@ -1,3 +1,4 @@
+import { assertCrmTarget } from "../../scripts/lib/crm-test-target.mjs";
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID, randomBytes } from "node:crypto";
@@ -5,7 +6,9 @@ import { getPayload } from "payload";
 import config from "../../src/payload.config";
 import type { Staff } from "../../payload-types";
 
-if (
+if (process.env.HUA_CRM_ISOLATED === "true") {
+  assertCrmTarget(process.env.DATABASE_URL ?? "");
+} else if (
   process.env.APP_ENV !== "local" ||
   !process.env.DATABASE_URL?.includes("@127.0.0.1:55438/hua_companion")
 )

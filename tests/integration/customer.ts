@@ -1,3 +1,4 @@
+import { assertCrmTarget } from "../../scripts/lib/crm-test-target.mjs";
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID, randomBytes } from "node:crypto";
@@ -17,7 +18,9 @@ import {
 import { customerCookie, customerHash } from "../../src/lib/customer";
 // Serial local PostgreSQL integration. A rollback-only outer transaction keeps fixtures/settings isolated.
 // Every email call receives an in-memory adapter; network sends are never used.
-if (
+if (process.env.HUA_CRM_ISOLATED === "true") {
+  assertCrmTarget(process.env.DATABASE_URL ?? "");
+} else if (
   process.env.APP_ENV !== "local" ||
   !process.env.DATABASE_URL?.includes("@127.0.0.1:55438/hua_companion")
 )

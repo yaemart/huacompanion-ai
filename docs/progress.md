@@ -1,5 +1,43 @@
 # 本地模拟活动暂停与恢复（2026-11-21）
 
+## CRM A1a：私有客户档案与联系人（2026-11-28）
+
+用户批准A1a→A1b顺序，PR130已合并于main 4be15c1。原生worktree：
+`/Users/gaoyuehebabadiannao/.codex/worktrees/crm-phase-a-core/huacompanion`，分支`codex/crm-phase-a-core`。
+[草稿PR131](https://github.com/yaemart/huacompanion-ai/pull/131)，不自动合并；
+[中文小结](crm-phase-a1a-summary.md)、[本批计划](superpowers/plans/2026-11-28-crm-phase-a1a.md)。
+
+五份草稿复制后哈希核对，原目录原件和私有暂停归档不改；统一A1a三私表、关联留A1b，
+有旧外部授权阻断关联撤销的边界。固定admin/manager/operations，运营仅同团本人，
+负责人沿validOwner必须同团现职operations，内容角色与外部身份无CRM能力。
+新crm-clients/contacts/operations通用CRUD与GraphQL关闭，无HTTP/UI/导出。
+严格输入、手工DTO、READ ONLY查询，业务726281→客户726283锁后重读权限；
+子项同步父revision、主联系人部分唯一、存档只读；actor+UUID幂等优先版本，
+当前权限检查不可跳过，HMAC epoch轮换使旧键409，实际COMMIT响应丢失可用原键找回。
+审计与操作／回执同事务，不复制联系方式，存档理由仅管理员审计；旧授权、报价、咨询及任务不改。
+
+迁移20261128_090000_crm_core只新增三表及原生枚举、索引、RESTRICT外键，无回填。
+空表down/up保留含虚构员工／咨询／独立授权的旧表指纹；任意新数据拒绝down，
+另测只有operation历史的保护；不对原库执行任何迁移或reset。
+独立PG15.20集群55443/CRM worktree .local/crm/pgdata，运行器先验目标及集群身份，
+随机测试库仅本次创建／删除，禁schema push及dotenv继承。CI新增独立PG15服务同样守卫。
+旧customer/permissions测试只新增显式CRM隔离目标选项，原入口不改；不伪装CI或启动demo。
+
+TDD：validator/隔离守卫/内部服务/只读入口分别缺失先RED后GREEN。
+初始化locale无效先失败后显式C/UTF8；Node strip参数属性、Field联合与false字面量类型已修。
+通用读取测试最初误将403当空列表，改夹具，不放宽默认拒绝。
+本次本地check916/916、lint0错误/445既有警告、911源码文件行长通过；
+CRM真实PG13组、business/customer及业务权限8项全通过，生产build通过（既有编译警告保留）。
+实际覆盖主联系人索引／父ID／精确DTO／只读全表指纹／并发重放／审计回滚／
+真实PG等待中停职／提交后丢响应／旧授权指纹／存档与迁移保护。
+A1a无界面，不虚构截图或HTTP/真人验收；A2才接入口，服务暂限可信内部员工调用。
+
+唯一末尾整分支复核0严重/0重要/2轻微，无修复或二次复核。两轻微为测试覆盖后补：主管建档/管理员无负责人组合，以及员工转团队后幂等重放与跨范围写入。现实现守卫顺序正确；最终SHA/CI以PR131实核记录为准，不能拿设计提交CI当实现通过。
+原演示网站和数据库保持停止，暂停备份未恢复／上传；本批无产品环境变量、依赖或实际.env变化。
+本批私有测试密码／集群只在独立worktree忽略目录，日志.local/crm不上传，不复制原账号或数据库目录。
+收尾已核实CRM随机测试库为0，正常停止本批PG集群，数据目录保留；原演示3100/55442仍无监听。
+下一步必须先用户合并A1a，再从最新main开A1b；咨询关联、撤销保护／派生业务及A2等均未实现。
+
 ## 受控本地连续调度（2026-11-27）
 
 PR129 已实核合并为 `b8e5dea6c6d5e7054f86e63a87fa3cb87763d253`，包含最终 `3fb539d`。从最新 main 建立 `codex/exhibition-reminder-local-loop`，[草稿 PR130](https://github.com/yaemart/huacompanion-ai/pull/130)，按已接受 [loop 计划](superpowers/plans/2026-11-27-exhibition-reminder-loop.md)原生实施，不自动合并。[一页使用小结](exhibition-reminder-local-loop-summary.md)。
