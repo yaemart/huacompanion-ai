@@ -49,3 +49,10 @@ A2 PR133已合并。用户确认B1只读总览→B2同团队责任转交→B3员
 本批正式设计及三份计划见`docs/superpowers/specs/2026-11-28-crm-phase-b-design.md`和
 `docs/superpowers/plans/2026-11-28-crm-phase-b1.md`至`b3.md`；待审，尚未实施B。
 客户主负责人独立；咨询与派生服务单共用责任单位，旧客户对外授权不变。
+
+## 2026-11-28 B1实施更新（优先于历史停点）
+
+阶段B设计PR134已合并，用户批准B1，独立分支codex/crm-phase-b-overview及草稿PR135。
+只读总览/权限聚合/动态待分派、真实PG与HTTP已实施；无转交或新界面，B2/B3仍后置。
+本批实际结果见`docs/crm-phase-b1-summary.md`、最新handoff/progress和PR135，不把历史清单当验收。
+无新增迁移/依赖/产品环境变量，旧外部授权及原演示保持。

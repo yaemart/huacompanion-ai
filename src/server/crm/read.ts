@@ -1,3 +1,5 @@
+import { overviewActions, type OverviewQuery, type OverviewResult } from "../../lib/crm-overview";
+import { crmOverview } from "./overview";
 import { isAdmin, isManager, relationID as staffRelationID } from "../../cms/access";
 import { readInquiryLinks } from "./link-read";
 import type { Payload, PayloadRequest, Where } from "payload";
@@ -6,7 +8,18 @@ import { CrmError, crmID } from "../../lib/crm";
 import { transactionSession } from "../db-types";
 import { clientScope, currentActor, requireClient, type CrmActor } from "./access";
 
+export function crmRead(
+  p: Payload,
+  user: CrmActor,
+  raw: Pick<OverviewQuery, "action"> & Record<string, unknown>,
+): Promise<OverviewResult>;
+export function crmRead(p: Payload, user: CrmActor, raw: unknown): ReturnType<typeof legacyCrmRead>;
 export async function crmRead(p: Payload, user: CrmActor, raw: unknown) {
+  if (raw && typeof raw === "object" && overviewActions.includes((raw as OverviewQuery).action))
+    return crmOverview(p, user, raw);
+  return legacyCrmRead(p, user, raw);
+}
+async function legacyCrmRead(p: Payload, user: CrmActor, raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new CrmError("查询无效");
   const input = raw as Record<string, unknown>;
   const action = input.action;

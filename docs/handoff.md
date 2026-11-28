@@ -1,5 +1,28 @@
 # 当前开发交接
 
+## CRM B1只读客户总览与动态待分派（2026-11-28）
+
+用户批准实施，PR134合并87d892c1d6b09851a0d34d1ff4075f8e886d87dc包含95aa7cb。
+从最新main建立codex/crm-phase-b-overview，复用独立CRM worktree；
+[草稿PR135](https://github.com/yaemart/huacompanion-ai/pull/135)、[一页小结](crm-phase-b1-summary.md)、
+[本批计划](superpowers/plans/2026-11-28-crm-phase-b1.md)。
+新增overviewList/overview/assignmentQueue服务及GET分派，原A动作保持；
+原生会话在业务726281→客户726283锁后核实、READ ONLY、SQL绑定、先双范围后聚合/筛选/分页。
+安全负责人状态/姓名、可见业务量、现有日期/北京时间筛选、20项最近更新及动态待分派。
+服务单/报价只状态DTO，错父/多主联系人/坏日期503；不返成本/金额/内部安排/原始审计。
+队列不改owner或接管未关联旧咨询；B2转交/B3界面不实施，原授权/审核/锁/恢复/发送门禁不变。
+
+TDD：query/day缺模块RED→GREEN，SQL缺服务RED；详情夹具linked_by误名修正linked_by_id后，
+恢复未实现stub观察真实目标RED再GREEN；HTTP原构建400!=200先RED再接入口；
+直接枚举数组反例Missing expected exception先RED后严格string。类型桥修正不放宽权限。
+CRM启动首次遗漏端口导致5432绑定失败，未连接其他实例；随后显式55443/127.0.0.1启动专用集群。
+初轮完整check922/922、0lint错误/445既有警告、934源码行长；完整test:crm中B1真实PG10组、
+原13＋关联12组、JWT会话、business/customer/业务权限8项、build和实际Next HTTP均退出0。
+覆盖201条深/空页、SQL与原Payload范围等价、动态owner失效/恢复、异常关系、READ ONLY25006及全表指纹、
+实际JWT等锁撤权零写；20k异团咨询EXPLAIN使用inquiries_owner_idx，已有team_idx/client scope索引，无新增迁移。
+唯一全分支复核0严重/0重要/2轻微，均为计划验收覆盖不足，实施者升重要并在单轮补齐，最终证据后补。
+无新依赖/产品环境变量/.env/原演示变化；日志.local/crm-b1未上传，无UI不虚构浏览器/真人验收。
+
 ## CRM阶段B设计与分批计划（2026-11-28）
 
 用户确认B1→B2→B3、首期同团队、跨团队后置；本轮仅文档，不实施。
@@ -1729,3 +1752,10 @@ PR／对应head的CI状态：
 本批随机测试库已核对为0，CRM专用集群正常停止并保留目录；3100/3201/55442/55443无监听。
 
 本轮纯文档npm run check通过920/920，lint0错误/445既有警告、928源码行长合格；无B实现，未运行B数据库/迁移/HTTP或浏览器测试，不能据此称B已验收。日志仅本机临时文件，未上传。
+
+最终复核覆盖修正后check922/922、0lint错误/445既有警告、934源码行长，完整test:crm再次退出0；
+B1十组/原25组/会话/客户/报价/业务权限8项/生产build/实际HTTP均通过。
+负对照一轮：去掉recent service范围时详情深等RED；去掉锁后会话核实并真实build后HTTP200!=401 RED；
+恢复原生产源码并核对git diff无临时绕过，再完整GREEN，无二次复核、无延期轻微项。
+本批随机库已核对为0，CRM专用集群正常停止/目录保留；3100/3201/55442/55443无监听。
+精确最终提交与对应云端CI由PR135最终实核，不自动合并。

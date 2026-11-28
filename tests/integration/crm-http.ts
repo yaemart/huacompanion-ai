@@ -8,6 +8,7 @@ import { createServer } from "node:net";
 import type { PostgresAdapter } from "@payloadcms/db-postgres";
 import { assertCrmTarget } from "../../scripts/lib/crm-test-target.mjs";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
+import { transactionSession } from "../../src/server/db-types";
 import { crmAction } from "../../src/server/crm/service";
 assertCrmTarget(process.env.DATABASE_URL ?? "");
 const preview = process.argv.includes("--preview"),
@@ -61,6 +62,17 @@ try {
       email: `${randomUUID()}@example.invalid`,
       password,
       role: "editor",
+    },
+  });
+  const manager = await p.create({
+    collection: "staff",
+    req: { ...req },
+    data: {
+      name: "Virtual manager",
+      email: `${randomUUID()}@example.invalid`,
+      password,
+      role: "manager",
+      team: team.id,
     },
   });
   const client = await crmAction(p, user, {
@@ -185,7 +197,8 @@ try {
     };
     const adminHeaders = await login(email),
       opHeaders = await login(operator.email),
-      editorHeaders = await login(editor.email);
+      editorHeaders = await login(editor.email),
+      managerHeaders = await login(manager.email);
     const get = (query: string, h: Record<string, string> = {}) =>
       fetch(base + "/api/crm?" + query, { headers: h });
     const post = (body: unknown, h = adminHeaders, origin = base) =>
@@ -203,6 +216,33 @@ try {
     );
     assert.equal((await get("action=get&clientID=01", adminHeaders)).status, 400);
     assert.equal((await get("action=get&clientID=1&clientID=2", adminHeaders)).status, 400);
+    assert.equal((await get("action=overviewList")).status, 401);
+    assert.equal((await get("action=overviewList", editorHeaders)).status, 403);
+    const ov = await get("action=overviewList", opHeaders);
+    assert.equal(ov.status, 200);
+    assert.equal(ov.headers.get("cache-control"), "no-store");
+    assert.match(ov.headers.get("vary") ?? "", /Authorization/);
+    assert.equal(ov.headers.get("x-content-type-options"), "nosniff");
+    const ovData = await ov.json();
+    assert.equal(ovData.timeZone, "Asia/Shanghai");
+    assert.ok(ovData.items.some((c: { id: number }) => c.id === client.clientID));
+    assert.equal(JSON.stringify(ovData).includes("@example.invalid"), false);
+    assert.equal(
+      (await get(`action=overview&clientID=${client.clientID}`, managerHeaders)).status,
+      200,
+    );
+    assert.equal((await get(`action=overview&clientID=999999999`, opHeaders)).status, 404);
+    assert.equal((await get("action=assignmentQueue&target=client", opHeaders)).status, 403);
+    assert.equal((await get("action=assignmentQueue&target=client", managerHeaders)).status, 200);
+    for (const query of [
+      "action=overviewList&limit=51",
+      "action=overviewList&kind=all",
+      "action=overviewList&page=01",
+      "action=overviewList&page=1&page=2",
+      "action=overview&clientID=1&owner=mine",
+    ])
+      assert.equal((await get(query, adminHeaders)).status, 400);
+    assert.equal((await get(`action=overviewList&teamID=${team.id}`, opHeaders)).status, 403);
     const options = await get("action=options", opHeaders);
     assert.equal(options.status, 200);
     const opts = await options.json();
@@ -236,6 +276,38 @@ try {
     });
     assert.equal(huge.status, 413);
     assert.deepEqual(await databaseFingerprints(pool), before);
+    const lock = await p.db.beginTransaction();
+    assert.ok(lock);
+    await transactionSession(p, lock).db.execute("SELECT pg_advisory_xact_lock(726281)");
+    const waitingRead = get("action=overviewList", opHeaders);
+    const waitUntil = Date.now() + 10000;
+    while (
+      !(
+        await pool.query(
+          "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+        )
+      ).rowCount
+    ) {
+      assert.ok(Date.now() < waitUntil, "HTTP request waits for actual business lock");
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await p.update({
+      collection: "staff",
+      id: operator.id,
+      data: { sessions: [] },
+      req: { user, transactionID: lock },
+    });
+    await p.db.commitTransaction(lock);
+    const afterRevoke = await databaseFingerprints(pool);
+    assert.equal(
+      (await waitingRead).status,
+      401,
+      "HTTP waiting overview must recheck native session",
+    );
+    assert.deepEqual(await databaseFingerprints(pool), afterRevoke);
+    Object.assign(opHeaders, await login(operator.email));
+    console.log("PASS CRM overview HTTP lock wait: native session revoked,401 and zero writes");
+
     const saved = await post(body);
     assert.equal(saved.status, 200);
     const receipt = await saved.json();
@@ -316,6 +388,7 @@ try {
     });
     assert.equal(logout.status, 200);
     assert.equal((await get("action=list", adminHeaders)).status, 401);
+    assert.equal((await get("action=overviewList", adminHeaders)).status, 401);
     console.log(
       "PASS CRM actual Next HTTP: native login/logout, roles, SSR, strict parameters/origin/16KiB, no-store, zero-write reads and committed response loss",
     );
