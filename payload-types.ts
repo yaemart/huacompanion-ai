@@ -622,6 +622,7 @@ export interface CrmFollowupEvent {
  */
 export interface CrmFollowupSlot {
   id: number;
+  cutoverState: 'managed' | 'blocked';
   inquiry: number | Inquiry;
   sourceKey: string;
   generation: number;
@@ -2602,6 +2603,7 @@ export interface CrmFollowupEventsSelect<T extends boolean = true> {
  * via the `definition` "crm-followup-slots_select".
  */
 export interface CrmFollowupSlotsSelect<T extends boolean = true> {
+  cutoverState?: T;
   inquiry?: T;
   sourceKey?: T;
   generation?: T;

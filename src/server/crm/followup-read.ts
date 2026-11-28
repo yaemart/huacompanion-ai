@@ -1,3 +1,4 @@
+import { followupEventDetails } from "../../lib/crm-followup-events";
 import type { Payload, PayloadRequest } from "payload";
 import { relationID } from "../../cms/access";
 import { CrmError } from "../../lib/crm";
@@ -119,7 +120,7 @@ export async function followupEvents(
         action: e.action,
         actorID: relationID(e.actor),
         at: e.serverTime,
-        details: e.details,
+        details: followupEventDetails(e.details),
       })),
       total: result.totalDocs,
       page,

@@ -1,4 +1,8 @@
 import {
+  up as upCutover,
+  down as downCutover,
+} from "../../src/migrations/20261128_190000_crm_followup_cutover";
+import {
   up as upFollowups,
   down as downFollowups,
 } from "../../src/migrations/20261128_170000_crm_followups";
@@ -36,6 +40,10 @@ async function migrate(fn: typeof up, rollback = false) {
   try {
     await db.query("BEGIN");
     if (fn === down)
+      await downCutover({
+        db: { execute: (sql: string) => db.query(sql) },
+      } as unknown as Parameters<typeof downCutover>[0]);
+    if (fn === down)
       await downFollowups({
         db: { execute: (sql: string) => db.query(sql) },
       } as unknown as Parameters<typeof downFollowups>[0]);
@@ -54,6 +62,10 @@ async function migrate(fn: typeof up, rollback = false) {
       await upFollowups({
         db: { execute: (sql: string) => db.query(sql) },
       } as unknown as Parameters<typeof upFollowups>[0]);
+    if (fn === up)
+      await upCutover({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
+        typeof upCutover
+      >[0]);
     await db.query(rollback ? "ROLLBACK" : "COMMIT");
   } catch (e) {
     await db.query("ROLLBACK");

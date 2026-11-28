@@ -21,6 +21,7 @@ if (
     "modules",
     "followups",
     "status",
+    "followup-migration",
   ].includes(mode)
 )
   throw Error("Unknown CRM test mode");
@@ -88,6 +89,8 @@ try {
         ...(mode === "preview" ? ["--preview"] : []),
       ]);
     else if (mode === "followups") run(["--import", "tsx", "tests/integration/crm-followups.ts"]);
+    else if (mode === "followup-migration")
+      run(["--import", "tsx", "tests/integration/crm-followup-migration.ts"]);
     else if (mode === "status") {
       run(["--import", "tsx", "tests/helpers/isolated-module-bootstrap.ts"]);
       run(["--import", "tsx", "tests/integration/inquiry-status.ts"]);
