@@ -8,6 +8,7 @@ import { createServer } from "node:net";
 import type { PostgresAdapter } from "@payloadcms/db-postgres";
 import { assertCrmTarget } from "../../scripts/lib/crm-test-target.mjs";
 import { databaseFingerprints } from "../helpers/database-fingerprints";
+import { transactionSession } from "../../src/server/db-types";
 import { crmAction } from "../../src/server/crm/service";
 assertCrmTarget(process.env.DATABASE_URL ?? "");
 const preview = process.argv.includes("--preview"),
@@ -275,6 +276,38 @@ try {
     });
     assert.equal(huge.status, 413);
     assert.deepEqual(await databaseFingerprints(pool), before);
+    const lock = await p.db.beginTransaction();
+    assert.ok(lock);
+    await transactionSession(p, lock).db.execute("SELECT pg_advisory_xact_lock(726281)");
+    const waitingRead = get("action=overviewList", opHeaders);
+    const waitUntil = Date.now() + 10000;
+    while (
+      !(
+        await pool.query(
+          "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+        )
+      ).rowCount
+    ) {
+      assert.ok(Date.now() < waitUntil, "HTTP request waits for actual business lock");
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await p.update({
+      collection: "staff",
+      id: operator.id,
+      data: { sessions: [] },
+      req: { user, transactionID: lock },
+    });
+    await p.db.commitTransaction(lock);
+    const afterRevoke = await databaseFingerprints(pool);
+    assert.equal(
+      (await waitingRead).status,
+      401,
+      "HTTP waiting overview must recheck native session",
+    );
+    assert.deepEqual(await databaseFingerprints(pool), afterRevoke);
+    Object.assign(opHeaders, await login(operator.email));
+    console.log("PASS CRM overview HTTP lock wait: native session revoked,401 and zero writes");
+
     const saved = await post(body);
     assert.equal(saved.status, 200);
     const receipt = await saved.json();

@@ -174,8 +174,13 @@ try {
   const withoutClock = (value: unknown) =>
     JSON.parse(JSON.stringify(value, (k, v) => (k === "asOf" ? undefined : v)));
   const visibleBefore = withoutClock(await list(op));
+  const detailBefore = withoutClock(await detail(op));
+  const workFilters = ["active", "dueToday", "overdue"];
+  const filteredBefore = await Promise.all(
+    workFilters.map((work) => list(op, { work }).then(withoutClock)),
+  );
   await pool.query(
-    "UPDATE inquiries SET next_follow_up='infinity',updated_at='2090-01-01',name='HIDDEN-CANARY' WHERE id=$1",
+    "UPDATE inquiries SET next_follow_up=now()-interval '1 second',updated_at='2090-01-01',name='HIDDEN-CANARY' WHERE id=$1",
     [hidden.id],
   );
   await pool.query(
@@ -183,6 +188,12 @@ try {
     [hiddenCase.id],
   );
   assert.deepEqual(withoutClock(await list(op)), visibleBefore);
+  assert.deepEqual(withoutClock(await detail(op)), detailBefore);
+  assert.deepEqual(
+    await Promise.all(workFilters.map((work) => list(op, { work }).then(withoutClock))),
+    filteredBefore,
+  );
+  await pool.query("UPDATE inquiries SET next_follow_up='infinity' WHERE id=$1", [hidden.id]);
   await reject(() => list(manager), 503);
   await pool.query("UPDATE inquiries SET next_follow_up=NULL,updated_at=now() WHERE id=$1", [
     hidden.id,
