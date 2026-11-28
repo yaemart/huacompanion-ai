@@ -1,3 +1,4 @@
+import { crmQuery } from "../src/lib/crm-http-query.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseFollowupCommand, parseFollowupQuery } from "../src/lib/crm-followups.ts";
@@ -79,4 +80,15 @@ test("assignment selection rejects duplicates and oversized batches; query rejec
   assert.throws(() =>
     parseFollowupQuery("http://local/api/crm?action=followupList&kind=client&id=3&id=4"),
   );
+});
+
+test("shared CRM query router accepts followup context and preserves strict duplicate rejection", () => {
+  const url = "http://local/api/crm?action=followupList&kind=client&id=3";
+  assert.deepEqual(crmQuery(url), {
+    action: "followupList",
+    context: { kind: "client", id: 3 },
+    page: 1,
+    limit: 20,
+  });
+  assert.throws(() => crmQuery(url + "&kind=inquiry"), { status: 400 });
 });

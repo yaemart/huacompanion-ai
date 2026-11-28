@@ -4,13 +4,7 @@ import { CrmError } from "../../lib/crm";
 import type { FollowupPage, FollowupReadContext, FollowupItem } from "../../lib/crm-followups";
 import { transactionSession } from "../db-types";
 import { currentActor, type CrmActor } from "./access";
-import {
-  followupAnchor,
-  followupScope,
-  followupTask,
-  effectiveAssignee,
-  taskContext,
-} from "./followup-access";
+import { followupAnchor, followupScope, followupTask, effectiveAssignee } from "./followup-access";
 export async function followupReadTransaction<T>(
   p: Payload,
   user: CrmActor,
@@ -68,7 +62,7 @@ export async function followupList(
     });
     const items: FollowupItem[] = [];
     for (const task of result.docs) {
-      const own = await followupAnchor(p, actor, taskContext(task), req);
+      const { anchor: own, linkRevision } = await followupTask(p, actor, context, task.id, req);
       const effective = await effectiveAssignee(p, own, req);
       const needsAssignment = effective === null || effective !== relationID(task.assignee);
       const suspended = anchor.suspended || own.suspended;
@@ -80,6 +74,8 @@ export async function followupList(
         reference: task.reference,
         anchorKind: task.anchorKind,
         anchorID: own.id,
+        parentVersion: own.version,
+        ...(linkRevision === undefined ? {} : { linkRevision }),
         title: task.title,
         description: task.description ?? "",
         assigneeID: Number(relationID(task.assignee)) || null,

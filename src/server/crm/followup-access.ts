@@ -62,6 +62,7 @@ export async function followupTask(
   ).docs[0];
   if (!task) throw unavailable();
   const c = taskContext(task);
+  let linkRevision: number | undefined;
   if (context.kind === "inquiry") {
     if (c.kind !== "inquiry" || c.id !== context.id) throw unavailable();
   } else if (c.kind === "client") {
@@ -83,9 +84,10 @@ export async function followupTask(
       })
     ).docs[0];
     if (!link) throw unavailable();
+    linkRevision = link.revision;
   }
   const anchor = await followupAnchor(p, actor, c, req);
-  return { task, anchor };
+  return { task, anchor, linkRevision };
 }
 export function taskContext(task: CrmFollowup): FollowupReadContext {
   const client = relationID(task.client),

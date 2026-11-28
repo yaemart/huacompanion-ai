@@ -11,10 +11,15 @@ export interface FollowupDraft {
 }
 export type Continuation =
   | { kind: "end"; reason: string }
-  | { kind: "existing"; taskID: number; expectedRevision: number }
+  | ({ kind: "existing" } & Target)
   | ({ kind: "create" } & FollowupDraft);
 type Base = { operationKey: string; context: FollowupContext };
-type Target = { taskID: number; expectedRevision: number };
+export type Target = {
+  taskID: number;
+  expectedRevision: number;
+  expectedInquiryUpdatedAt?: string;
+  expectedLinkRevision?: number;
+};
 export type FollowupCommand = Base &
   (
     | ({ action: "createFollowup" } & FollowupDraft)
@@ -37,6 +42,8 @@ export interface FollowupItem {
   reference: string;
   anchorKind: "client" | "inquiry";
   anchorID: number;
+  parentVersion: FollowupContext;
+  linkRevision?: number;
   title: string;
   description: string;
   assigneeID: number | null;
@@ -98,7 +105,16 @@ function draft(o: Record<string, unknown>): FollowupDraft {
   };
 }
 function target(o: Record<string, unknown>): Target {
-  return { taskID: id(o.taskID), expectedRevision: id(o.expectedRevision) };
+  return {
+    taskID: id(o.taskID),
+    expectedRevision: id(o.expectedRevision),
+    ...(o.expectedInquiryUpdatedAt === undefined
+      ? {}
+      : { expectedInquiryUpdatedAt: date(o.expectedInquiryUpdatedAt) }),
+    ...(o.expectedLinkRevision === undefined
+      ? {}
+      : { expectedLinkRevision: id(o.expectedLinkRevision) }),
+  };
 }
 export function parseFollowupCommand(value: unknown): FollowupCommand {
   const o = object(value),
@@ -118,7 +134,7 @@ export function parseFollowupCommand(value: unknown): FollowupCommand {
   const base = { context, operationKey },
     action = o.action;
   const common = ["action", "context", "operationKey"],
-    t = ["taskID", "expectedRevision"];
+    t = ["taskID", "expectedRevision", "expectedInquiryUpdatedAt", "expectedLinkRevision"];
   if (action === "createFollowup") {
     keys(o, [...common, "title", "description", "dueAt", "assigneeID"]);
     return { ...base, action, ...draft(o) };
@@ -196,3 +212,13 @@ export function parseFollowupQuery(url: string) {
     ...(o.action === "followupEvents" ? { taskID: num(o.taskID) } : {}),
   };
 }
+
+export const followupActions = [
+  "createFollowup",
+  "appendFollowupNote",
+  "completeFollowup",
+  "postponeFollowup",
+  "cancelFollowup",
+  "assignFollowups",
+  "confirmFollowupReview",
+] as const;

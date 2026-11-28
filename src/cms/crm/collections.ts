@@ -1,3 +1,4 @@
+import { followupLifecycle } from "../../server/crm/followup-lifecycle";
 import { followupCollections } from "./followups";
 import type { CollectionConfig, Field } from "payload";
 const deny = () => false;
@@ -51,6 +52,7 @@ export const crmCollections: CollectionConfig[] = [
   {
     ...base,
     slug: "crm-clients",
+    hooks: { afterChange: [followupLifecycle("client")] },
     fields: [
       { ...text("reference", 40), required: true, unique: true },
       { name: "kind", type: "select", options: ["individual", "company"], required: true },
