@@ -1,5 +1,20 @@
 # 本地模拟活动暂停与恢复（2026-11-21）
 
+## CRM阶段C正式设计与计划（2026-11-28，待审）
+
+PR138已合并，实核origin/main c191181c43e6ec6948b5b9ef9e28dadd7a6662ad包含768c997；
+现有独立CRM worktree新建codex/crm-phase-c-design，无业务代码/迁移/依赖/环境变量变更。
+[一页中文小结](crm-phase-c-summary.md)、[正式设计](superpowers/specs/2026-11-28-crm-phase-c-design.md)、
+[C1计划](superpowers/plans/2026-11-28-crm-phase-c1.md)、[C2计划](superpowers/plans/2026-11-28-crm-phase-c2.md)、
+[C3计划](superpowers/plans/2026-11-28-crm-phase-c3.md)。用户确认独立跟进事项＋现有工作流投影；其余详细政策待整体审阅。
+C1通用生命周期/确认与附加事项内核→C2主来源导入/旧CMS及最小今日替代→C3完整员工体验。
+旧对外授权不变，不因事项指派扩权；管理取消不代完成；真实主结果与旧指标兼容；B2和事项明确分两次转交。
+一次独立builder检查提出三项重要分期/语义缺口，已在文档修正，无二次检查。
+本轮未启动数据库/Next网站、未迁移，原演示/备份保持；check仅临时回环单测，不是启动演示。
+初次check受沙箱限制，两项HTTP单测listen EPERM；授权环境重跑npm run check退出0：lint/typecheck通过、933/933单测通过；文档Prettier与git diff --check通过。
+未运行数据库/应用集成测试，本阶段未实现，PR138的933项不作为C交付证明。
+设计批准后仍需单独授权实施；不自动合并。设计主提交70b7424已推送并fetch核对一致；[草稿PR139](https://github.com/yaemart/huacompanion-ai/pull/139)，未合并。云端CI未核验。
+
 ## CRM A1b：咨询唯一关联与撤销保护（2026-11-28）
 
 实核PR131已合并，最新main fe449d5cde77f502ca7de3b773a3d92b36ade6b4包含8ac2855。
