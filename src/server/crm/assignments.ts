@@ -105,14 +105,22 @@ export async function applyTransfer(
     changedClient = i.transferClient && relationID(client.owner) !== i.recipientID;
   const changed = ctx.items.filter((x) => relationID(x.inquiry.owner) !== i.recipientID);
   if (!changedClient && !changed.length) throw conflict();
-  for (const { inquiry } of changed)
-    await p.update({
+  const inquiryVersions: Record<string, unknown>[] = [];
+  for (const { inquiry, service } of changed) {
+    const saved = await p.update({
       collection: "inquiries",
       id: inquiry.id,
       data: { owner: i.recipientID },
       req,
     });
-  await p.update({
+    inquiryVersions.push({
+      inquiryID: saved.id,
+      ownerID: relationID(saved.owner) ?? null,
+      updatedAt: saved.updatedAt,
+      caseRevision: service?.revision ?? null,
+    });
+  }
+  const savedClient = await p.update({
     collection: "crm-clients",
     id: client.id,
     data: { ...(changedClient ? { owner: i.recipientID } : {}), revision: client.revision + 1 },
@@ -136,6 +144,13 @@ export async function applyTransfer(
         caseRevision: service?.revision ?? null,
       })),
     },
-    after: { schema: 1, ...result, recipientID: i.recipientID, reason: i.reason },
+    after: {
+      schema: 1,
+      ...result,
+      recipientID: i.recipientID,
+      reason: i.reason,
+      client: { ownerID: relationID(savedClient.owner) ?? null, revision: savedClient.revision },
+      inquiries: inquiryVersions,
+    },
   };
 }

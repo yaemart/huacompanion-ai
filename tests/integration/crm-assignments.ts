@@ -243,6 +243,27 @@ try {
     "only selected inquiry transfers through original business hooks; client owner stays unchanged",
   );
 
+  const transferAudit = await p.findByID({
+    collection: "audit-events",
+    id: transferred.transferID,
+  });
+  const afterAudit = transferAudit.after as {
+    client?: { ownerID: number; revision: number };
+    inquiries?: unknown[];
+  };
+  assert.deepEqual(
+    afterAudit.inquiries,
+    [
+      {
+        inquiryID: a.id,
+        ownerID: next.id,
+        updatedAt: (await p.findByID({ collection: "inquiries", id: a.id, depth: 0 })).updatedAt,
+        caseRevision: service.revision,
+      },
+    ],
+    "transfer audit must retain the committed inquiry version",
+  );
+  assert.deepEqual(afterAudit.client, { ownerID: op.id, revision: (await client()).revision });
   const history = (await read(manager, { action: "assignmentHistory", clientID })) as Exclude<
     AssignmentRead,
     TransferPreview

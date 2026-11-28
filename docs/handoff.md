@@ -1,5 +1,35 @@
 # 当前开发交接
 
+## CRM B2同团队逐项责任转交（2026-11-28）
+
+PR135实核合并686e2c304c14ba97f06f1e38ee36e321e3f0063a包含c011b22；用户批准B2。
+从最新main建立codex/crm-phase-b-transfers，复用独立CRM worktree/PG15.20/55443；
+[草稿PR136](https://github.com/yaemart/huacompanion-ai/pull/136)、[一页小结](crm-phase-b2-summary.md)、
+[本批计划](superpowers/plans/2026-11-28-crm-phase-b2.md)。
+严格transferAssignments、管理角色只读transferPreview/assignmentHistory。20条上限、UUIDv4、ISO原样版本、
+明确选择/原因、现职同团队validOwner；咨询+派生服务单为一个责任单位，不另建serviceCase.owner。
+客户主负责人可独立转交，未选咨询不改；混合中已是接收人的项不改，回执仅实际变更，全无变化409。
+业务726281→客户726283锁后原生会话/当前管理权限/双范围/活动关联/接收人/版本复读，
+B2显式RC（共享customerTransaction仅新动作opt-in，旧调用保持）；预览/历史显式RC+READ ONLY。
+客户revision加1，原咨询p.update/hooks/新负责人工作流、脱敏审计与actor+key/HMAC回执同事务。
+历史先过滤当前可见目标再计数分页，原因与原/新版本仍限原管理员审计；旧外部授权不写。
+
+TDD：输入/查询缺模块RED→GREEN；公开动作原不支持RED；预览缺模块RED；
+转交原误走联系人404 RED→正确事务；历史空实现0!=1 RED→安全投影。
+运营403反例原404，管理门禁前置后GREEN；坏持久回执零ID/版本/重复空结果Missing expected rejection RED后严格拒绝。
+RR默认注入反例repeatable read!=read committed，B2读/写显式RC后GREEN，实际READ ONLY25006拒写。
+真实HTTP旧构建预览400!=200 RED，生产构建后管理转交/历史、403/409、HTTP丢响应原键恢复、
+等锁会话被撤销401/零写、旧外部授权指纹保持均通过。
+初轮完整check925/925、0lint错误/445既有警告、939源码行长；B2真实PG12组、原CRM13＋关联12＋B1十组、
+原JWT/业务/客户/权限8项、生产build和实际HTTP全部退出0。
+包括客户单独/咨询单独/混合/同键排序/无变化、预览后新case/改case版/旧owner时间变化、
+实际锁中接收人失活/操作者撤权/咨询转团、同版本竞争只一成功、关联撤销重绑后原键404、
+历史部分/全部隐藏过滤、末项写/第二条workflow/CRM审计/receipt失败全表回滚及真正COMMIT后丢回执找回。
+唯一末尾复核0严重/0重要/1轻微，咨询转交新版本审计遗漏由实施者升重要；
+实际断言undefined!=预期新updatedAt先RED，再收集p.update实际返回值及客户新owner/revision写私有审计。
+安全历史字段不扩大，无二次复核；最终复验及清理状态后补，精确提交CI由PR136实核。
+无迁移/依赖/产品环境变量/.env/原演示变化；日志.local/crm-b2未上传，无B3界面/浏览器或真人验收。
+
 ## CRM B1只读客户总览与动态待分派（2026-11-28）
 
 用户批准实施，PR134合并87d892c1d6b09851a0d34d1ff4075f8e886d87dc包含95aa7cb。
@@ -1759,3 +1789,9 @@ B1十组/原25组/会话/客户/报价/业务权限8项/生产build/实际HTTP�
 恢复原生产源码并核对git diff无临时绕过，再完整GREEN，无二次复核、无延期轻微项。
 本批随机库已核对为0，CRM专用集群正常停止/目录保留；3100/3201/55442/55443无监听。
 精确最终提交与对应云端CI由PR135最终实核，不自动合并。
+
+最终审计修正后check925/925、0lint错误/445既有警告、939源码行长；完整test:crm再次退出0，
+B2十二组、原CRM35组、原会话/业务/客户/权限8项、生产build、实际HTTP全部通过。
+审计实际新版本断言RED→GREEN，无二次复核或延期项；未对安全历史扩大字段。
+本批随机库已核对为0，CRM专用集群正常停止/目录保留，3100/3201/55442/55443无监听。
+精确最终SHA/对应云端CI由PR136最终实核；不自动合并，B3须合并后另开分支。
