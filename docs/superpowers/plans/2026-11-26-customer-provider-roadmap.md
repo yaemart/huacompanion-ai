@@ -1,5 +1,8 @@
 # 客户管理与双侧门户分阶段开发计划
 
+2026-11-28最新状态：A/B及PR138整改已合并；阶段C仅正式设计/计划待审，采用独立事项，尚未实施。
+[阶段C一页小结](../../crm-phase-c-summary.md)。下文较早状态按历史保留，以最新handoff为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 分批交付客户总览、责任跟进、客户登录完善和服务商入驻协作。
