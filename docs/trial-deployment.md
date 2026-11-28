@@ -28,7 +28,23 @@
 
 网关实际环境必须逐项验证：有效网关提交成功、伪造秘密／地址不能替换网关值、直接访问源站失败、缺失或多值 IP 返回 503、一个客户端被限流不影响另一个。当前单元测试验证应用判断，不能代替网关、防火墙验收。
 
-## 依赖审计（2026-11-01）
+## 依赖审计（2026-11-28，优先于历史快照）
+
+体检整改将Next从16.4.3精确升级到16.4.5，锁文件仅Next及配套SWC/@next/env版本变化。
+当前Payload/@payloadcms/next3.92.0 peer允许该版本；Node24.22.1下npm ci验证锁定安装。
+升级后实际npm audit：全树14 moderate、0 high/critical；生产树5 moderate、0 high/critical。
+Next已不在告警节点中，原7份Next根公告不再命中；剩余14是父依赖传播节点，不是14个独立漏洞。
+剩余根公告为esbuild（db-postgres→drizzle-kit迁移工具链，仍属于生产依赖树）和minimatch（开发工具链）。
+没有跨大版本强制修复、修改Payload/React或通过override/忽略审计隐藏结果；仍不在外网启动迁移或开发serve服务。
+依赖审计不等于完整渗透测试；实际结果与回归证据见本批health-remediation-summary及progress。
+
+官方Next修复公告：[SVG优化器](https://github.com/vercel/next.js/security/advisories/GHSA-7qx7-33qx-rqx2)、
+[Edge Cookie](https://github.com/vercel/next.js/security/advisories/GHSA-f3mh-rxg3-f5g2)、
+[转发响应](https://github.com/vercel/next.js/security/advisories/GHSA-pc58-hwjq-p385)。
+原始报告仅本机忽略目录.local/health-remediation/audit-all.json与audit-prod.json，未上传Git。
+本轮不扩入其他工具链升级；剩余公告须继续跟踪。
+
+### 历史审计快照（2026-11-01，不代表当前结果）
 
 实际执行无 `--force` 的 `npm audit fix`：没有可兼容更新，未修改依赖版本。移除 npm `node` 包后再次审计：全树 23 项（6 low、17 moderate、0 high、0 critical）；`npm audit --omit=dev` 仍有 11 项（6 low、5 moderate）。这些是包含父包的依赖树告警，根源为下面三项，不是 23 个互不相关的漏洞，也不能说只存在于开发依赖。
 

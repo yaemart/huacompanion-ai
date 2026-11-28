@@ -108,7 +108,8 @@
     "test:policies:notes:editor:http": "node --import tsx tests/integration/policy-note-editor-http.ts",
     "subscriptions:mock-worker": "tsx scripts/subscription-mock-worker.ts",
     "exhibition:reminders": "node --import tsx scripts/exhibition-reminders.ts",
-    "test:crm": "node scripts/test-crm.mjs"
+    "test:crm": "node scripts/test-crm.mjs",
+    "test:modules": "node scripts/test-crm.mjs modules"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.92.0",
@@ -116,7 +117,7 @@
     "@payloadcms/translations": "^3.92.0",
     "dotenv": "^18.0.9",
     "graphql": "^16.14.2",
-    "next": "^16.4.3",
+    "next": "16.4.5",
     "payload": "^3.92.0",
     "pg": "^8.23.1",
     "react": "19.2.8",
