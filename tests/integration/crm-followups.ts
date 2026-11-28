@@ -1,3 +1,7 @@
+import {
+  up as upCutover,
+  down as downCutover,
+} from "../../src/migrations/20261128_190000_crm_followup_cutover";
 import { authenticateCrm } from "../../src/server/crm/access";
 import { crmAction } from "../../src/server/crm/service";
 import { transactionSession } from "../../src/server/db-types";
@@ -22,9 +26,17 @@ async function migration(fn: typeof up, rollback = false) {
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
+    if (fn === down)
+      await downCutover({
+        db: { execute: (sql: string) => db.query(sql) },
+      } as unknown as Parameters<typeof downCutover>[0]);
     await fn({ db: { execute: (s: string) => db.query(s) } } as unknown as Parameters<
       typeof up
     >[0]);
+    if (fn === up)
+      await upCutover({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
+        typeof upCutover
+      >[0]);
     await db.query(rollback ? "ROLLBACK" : "COMMIT");
   } catch (e) {
     await db.query("ROLLBACK");

@@ -1,3 +1,4 @@
+import * as migration_20261128_190000_crm_followup_cutover from "./20261128_190000_crm_followup_cutover";
 import * as migration_20261128_170000_crm_followups from "./20261128_170000_crm_followups";
 import * as migration_20261128_130000_crm_inquiry_links from "./20261128_130000_crm_inquiry_links";
 import * as migration_20261128_090000_crm_core from "./20261128_090000_crm_core";
@@ -369,6 +370,11 @@ export const migrations = [
     up: migration_20261128_170000_crm_followups.up,
     down: migration_20261128_170000_crm_followups.down,
     name: "20261128_170000_crm_followups",
+  },
+  {
+    up: migration_20261128_190000_crm_followup_cutover.up,
+    down: migration_20261128_190000_crm_followup_cutover.down,
+    name: "20261128_190000_crm_followup_cutover",
   },
 ];
 import * as migration_20261120_110000_subscription_campaign_drafts from "./20261120_110000_subscription_campaign_drafts";

@@ -71,6 +71,13 @@ export const followupCollections: CollectionConfig[] = [
     ...base,
     slug: "crm-followup-slots",
     fields: [
+      {
+        name: "cutoverState",
+        type: "select",
+        options: ["managed", "blocked"],
+        required: true,
+        defaultValue: "blocked",
+      },
       { ...relation("inquiry", "inquiries"), unique: true },
       { ...text("sourceKey", 80), unique: true },
       num("generation"),
