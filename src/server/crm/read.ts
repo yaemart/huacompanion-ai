@@ -1,3 +1,4 @@
+import { isAdmin, isManager, relationID as staffRelationID } from "../../cms/access";
 import { readInquiryLinks } from "./link-read";
 import type { Payload, PayloadRequest, Where } from "payload";
 import { relationID } from "../../cms/access";
@@ -9,21 +10,27 @@ export async function crmRead(p: Payload, user: CrmActor, raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new CrmError("查询无效");
   const input = raw as Record<string, unknown>;
   const action = input.action;
-  if (!["list", "get", "contacts", "linkedInquiries", "inquiryCandidates"].includes(String(action)))
+  if (
+    !["list", "get", "contacts", "linkedInquiries", "inquiryCandidates", "options"].includes(
+      String(action),
+    )
+  )
     throw new CrmError("查询操作无效");
   const allowed =
-    action === "linkedInquiries"
-      ? ["action", "clientID", "page", "limit"]
-      : action === "inquiryCandidates"
-        ? ["action", "clientID", "page", "limit", "q"]
-        : action === "get"
-          ? ["action", "clientID"]
-          : action === "contacts"
-            ? ["action", "clientID", "status", "page", "limit"]
-            : ["action", "q", "status", "page", "limit"];
+    action === "options"
+      ? ["action"]
+      : action === "linkedInquiries"
+        ? ["action", "clientID", "page", "limit"]
+        : action === "inquiryCandidates"
+          ? ["action", "clientID", "page", "limit", "q"]
+          : action === "get"
+            ? ["action", "clientID"]
+            : action === "contacts"
+              ? ["action", "clientID", "status", "page", "limit"]
+              : ["action", "q", "status", "page", "limit"];
   if (Object.keys(input).some((key) => !allowed.includes(key)))
     throw new CrmError("查询包含未允许字段");
-  const clientID = action === "list" ? undefined : crmID(input.clientID);
+  const clientID = action === "list" || action === "options" ? undefined : crmID(input.clientID);
   const page = input.page === undefined ? 1 : crmID(input.page);
   const limit = input.limit === undefined ? 20 : crmID(input.limit);
   if (limit > 50 || page > 100000) throw new CrmError("分页超出范围");
@@ -40,6 +47,49 @@ export async function crmRead(p: Payload, user: CrmActor, raw: unknown) {
     await db.execute("SELECT pg_advisory_xact_lock(726283)");
     const req: Partial<PayloadRequest> = { transactionID: id };
     const actor = await currentActor(p, user, req);
+    if (action === "options") {
+      const admin = isAdmin(actor),
+        manager = isManager(actor),
+        teamID = staffRelationID(actor.team);
+      const teams = await p.find({
+        collection: "teams",
+        where: admin ? {} : { id: { equals: teamID ?? -1 } },
+        pagination: false,
+        depth: 0,
+        select: { name: true },
+        req,
+      });
+      const owners = await p.find({
+        collection: "staff",
+        where: {
+          and: [
+            { active: { not_equals: false } },
+            {
+              or: [
+                { role: { equals: "operations" } },
+                { additionalRoles: { contains: "operations" } },
+              ],
+            },
+            { team: { in: teams.docs.map((t) => t.id) } },
+          ],
+        },
+        pagination: false,
+        depth: 0,
+        select: { name: true, team: true },
+        req,
+      });
+      await p.db.commitTransaction(id);
+      return {
+        role: admin ? ("admin" as const) : manager ? ("manager" as const) : ("operations" as const),
+        teamID: teamID ?? null,
+        teams: teams.docs.map((t) => ({ id: t.id, name: t.name })),
+        owners: (admin || manager ? owners.docs : []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          teamID: staffRelationID(s.team),
+        })),
+      };
+    }
     if (action === "linkedInquiries" || action === "inquiryCandidates") {
       const result = await readInquiryLinks(
         p,

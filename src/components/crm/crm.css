@@ -1,0 +1,127 @@
+.crm-center {
+  max-width: 1240px;
+  margin: 32px auto;
+  padding: 0 20px 60px;
+  color: #18283a;
+}
+.crm-center * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.crm-center h1 {
+  font-size: 32px;
+  margin: 8px 0;
+}
+.crm-eyebrow {
+  color: #496681;
+  letter-spacing: 0.08em;
+}
+.crm-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.7fr);
+  gap: 20px;
+  align-items: start;
+}
+.crm-panel {
+  border: 1px solid #c9d5df;
+  border-radius: 12px;
+  padding: 22px;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+.crm-toolbar,
+.crm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 14px 0;
+}
+.crm-center button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #496681;
+  border-radius: 6px;
+  background: #f3f7fa;
+  color: #183b59;
+  cursor: pointer;
+  font: inherit;
+}
+.crm-center button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.crm-center :focus-visible {
+  outline: 3px solid #125fad;
+  outline-offset: 3px;
+}
+.crm-center label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.crm-center input,
+.crm-center select,
+.crm-center textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px;
+  border: 1px solid #7a8fa1;
+  border-radius: 5px;
+  font: inherit;
+  color: #18283a;
+  background: white;
+}
+.crm-center textarea {
+  min-height: 100px;
+}
+.crm-center fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.crm-cards {
+  list-style: none;
+  padding: 0;
+}
+.crm-cards li {
+  border-top: 1px solid #dbe3ea;
+  padding: 16px 0;
+  display: grid;
+  gap: 6px;
+}
+.crm-cards small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.crm-cards p {
+  margin: 4px 0;
+}
+.crm-open {
+  text-align: left;
+  font-weight: 600 !important;
+}
+.crm-edit {
+  margin-top: 24px;
+  max-width: 760px;
+}
+.crm-message {
+  min-height: 24px;
+  color: #81391f;
+  overflow-wrap: anywhere;
+}
+.crm-center a {
+  color: #12548b;
+}
+@media (max-width: 700px) {
+  .crm-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .crm-center {
+    padding: 0 12px 40px;
+    margin-top: 20px;
+  }
+  .crm-panel {
+    padding: 16px;
+  }
+}
