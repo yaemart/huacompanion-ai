@@ -273,7 +273,7 @@ try {
       }),
     });
     assert.equal(bypass.status, 409);
-    assert.equal((await send(nextClose, "")).status, 403);
+    assert.equal((await send(nextClose, "")).status, 401);
     assert.equal((await send(nextClose, outside)).status, 403);
     assert.equal((await send(nextClose, token, "https://example.invalid")).status, 403);
     assert.equal((await send({ ...nextClose, reason: " " })).status, 400);

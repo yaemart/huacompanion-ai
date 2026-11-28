@@ -194,6 +194,15 @@ try {
       stdio: "inherit",
       timeout: 120000,
     });
+    execFileSync(
+      process.execPath,
+      ["--import", "tsx", "tests/integration/inquiry-status.ts", "--http"],
+      {
+        env: { ...process.env, APP_URL: base },
+        stdio: "inherit",
+        timeout: 120000,
+      },
+    );
     const login = async (who: string) => {
       const r = await fetch(base + "/api/staff/login", {
         method: "POST",

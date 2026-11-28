@@ -1,5 +1,19 @@
 # 当前开发交接
 
+## PR140 CI旧关闭重开HTTP断言修复（2026-11-28）
+
+用户报告PR140的CI653（pull_request，job140973443265）及CI652（push，job140973423576）失败。
+已实核两份日志同因：tests/integration/inquiry-status.ts旧--http分支仍断言未登录403，实际为C1原生认证合同401；
+迁移、生产构建、串行数据库套件均已成功，失败在Verify production policy pages with feature off and on，后续步骤被跳过。
+此前本地定向旧套件只跑服务分支，遗漏旧--http分支；不得把此前本地通过写为云端CI已通过。
+
+同一codex/crm-phase-c1-core修复，无业务代码/权限/schema/.env/依赖变化：将该条精确未登录断言改401，
+跨范围/Origin仍403、无效输入400、REST旁路409、写锁423及最小返回保持；CRM生产HTTP夹具新增执行旧inquiry-status.ts --http，
+纳入已有test:crm/http及CRM CI，不跳过或删除旧CI测试。
+独立PG15/55443随机虚构库＋3201生产HTTP先真实复现401≠403 RED，再相同完整HTTP套件GREEN；
+覆盖关闭重开成功、强制理由、审计/范围/写锁/REST旁路、过期表单和C1等锁注销零写；npm run check退出0：937/937，lint0错误/445既有警告、typecheck及970源码行长检查通过。
+原演示/备份/图片不操作，不真实发送/驻留/部署，不自动合并；最终提交及新CI结果见最新交付回执。
+
 ## CRM C1跟进事项内核（2026-11-28）
 
 PR139已由用户审阅确认并合并c4781da0e3b61bd76701fab07489d0073574fb1e，随后明确授权“推进”。
