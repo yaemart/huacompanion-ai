@@ -1,3 +1,4 @@
+import { prepareInquiryLink, applyInquiryLink, assertNoActiveLinks } from "./links";
 import { createHmac, randomUUID } from "node:crypto";
 import type { Payload, PayloadRequest } from "payload";
 import type { CrmClient, CrmContact } from "../../../payload-types";
@@ -11,6 +12,8 @@ export interface CrmReceipt {
   clientID: number;
   revision: number;
   contactID?: number;
+  linkID?: number;
+  inquiryID?: number;
   clientRevision?: number;
   reference?: string;
 }
@@ -164,8 +167,13 @@ export async function crmAction(p: Payload, user: CrmActor, raw: unknown): Promi
       })
     ).docs[0];
     const c = i.clientID ? await requireClient(p, actor, i.clientID, req) : undefined;
+    const linkContext =
+      ["linkInquiry", "revokeInquiryLink"].includes(i.action) && c
+        ? await prepareInquiryLink(p, actor, c, i, req)
+        : undefined;
     const signature = proof(p, i);
     if (old) {
+      if (linkContext && relationID(linkContext.link?.client) !== c?.id) throw unavailable();
       const r = old.result as unknown as CrmReceipt;
       if (!r || !Number.isSafeInteger(r.clientID) || !Number.isSafeInteger(r.revision))
         throw new CrmError("操作回执不可用", 503);
@@ -175,6 +183,7 @@ export async function crmAction(p: Payload, user: CrmActor, raw: unknown): Promi
       return r;
     }
     let result: CrmReceipt;
+    let auditDetails: Awaited<ReturnType<typeof applyInquiryLink>> | undefined;
     if (i.action === "createClient") {
       const created = await createClient(p, actor, i, req);
       result = { clientID: created.id, revision: 1, reference: created.reference };
@@ -187,7 +196,11 @@ export async function crmAction(p: Payload, user: CrmActor, raw: unknown): Promi
           ? i.expectedRevision
           : i.expectedClientRevision,
       );
-      if (i.action === "updateClient" || i.action === "archiveClient") {
+      if (linkContext) {
+        auditDetails = await applyInquiryLink(p, actor, c, i, linkContext, req);
+        result = auditDetails.result;
+      } else if (i.action === "updateClient" || i.action === "archiveClient") {
+        if (i.action === "archiveClient") await assertNoActiveLinks(p, c.id, req);
         const changes =
           i.action === "archiveClient"
             ? { status: "archived" as const }
@@ -226,8 +239,10 @@ export async function crmAction(p: Payload, user: CrmActor, raw: unknown): Promi
         fields: Object.keys(i)
           .filter((k) => !["operationKey", "reason"].includes(k))
           .join(","),
-        before: { revision: i.expectedClientRevision ?? i.expectedRevision ?? null },
-        after: { ...result, reason: i.reason ?? null },
+        before: auditDetails?.before ?? {
+          revision: i.expectedClientRevision ?? i.expectedRevision ?? null,
+        },
+        after: { ...result, ...auditDetails?.after, reason: i.reason ?? null },
       },
     });
     await p.create({

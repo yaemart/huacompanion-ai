@@ -1,3 +1,4 @@
+import { readInquiryLinks } from "./link-read";
 import type { Payload, PayloadRequest, Where } from "payload";
 import { relationID } from "../../cms/access";
 import { CrmError, crmID } from "../../lib/crm";
@@ -8,13 +9,18 @@ export async function crmRead(p: Payload, user: CrmActor, raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new CrmError("查询无效");
   const input = raw as Record<string, unknown>;
   const action = input.action;
-  if (!["list", "get", "contacts"].includes(String(action))) throw new CrmError("查询操作无效");
+  if (!["list", "get", "contacts", "linkedInquiries", "inquiryCandidates"].includes(String(action)))
+    throw new CrmError("查询操作无效");
   const allowed =
-    action === "get"
-      ? ["action", "clientID"]
-      : action === "contacts"
-        ? ["action", "clientID", "status", "page", "limit"]
-        : ["action", "q", "status", "page", "limit"];
+    action === "linkedInquiries"
+      ? ["action", "clientID", "page", "limit"]
+      : action === "inquiryCandidates"
+        ? ["action", "clientID", "page", "limit", "q"]
+        : action === "get"
+          ? ["action", "clientID"]
+          : action === "contacts"
+            ? ["action", "clientID", "status", "page", "limit"]
+            : ["action", "q", "status", "page", "limit"];
   if (Object.keys(input).some((key) => !allowed.includes(key)))
     throw new CrmError("查询包含未允许字段");
   const clientID = action === "list" ? undefined : crmID(input.clientID);
@@ -34,6 +40,22 @@ export async function crmRead(p: Payload, user: CrmActor, raw: unknown) {
     await db.execute("SELECT pg_advisory_xact_lock(726283)");
     const req: Partial<PayloadRequest> = { transactionID: id };
     const actor = await currentActor(p, user, req);
+    if (action === "linkedInquiries" || action === "inquiryCandidates") {
+      const result = await readInquiryLinks(
+        p,
+        actor,
+        {
+          action,
+          clientID: clientID!,
+          page,
+          limit,
+          q: typeof input.q === "string" ? input.q.trim() : undefined,
+        },
+        req,
+      );
+      await p.db.commitTransaction(id);
+      return result;
+    }
     if (action === "get") {
       const doc = await requireClient(p, actor, clientID!, req);
       await p.db.commitTransaction(id);

@@ -7,7 +7,7 @@ import { assertCrmTarget } from "./lib/crm-test-target.mjs";
 
 if (process.version !== "v24.22.1") throw Error("Node24.22.1 required");
 const mode = process.argv[2] ?? "test";
-if (!["test", "types", "build"].includes(mode)) throw Error("Unknown CRM test mode");
+if (!["test", "types", "build", "links"].includes(mode)) throw Error("Unknown CRM test mode");
 const ci = process.env.GITHUB_ACTIONS === "true";
 const name = "hua_crm_test_" + randomUUID().replaceAll("-", "");
 const target = new URL("postgresql://crm_owner@127.0.0.1:55443/" + name);
@@ -63,8 +63,10 @@ try {
   else {
     run(["node_modules/payload/bin.js", "migrate"], { APP_ENV: "migration-test" });
     if (mode === "build") run(["node_modules/next/dist/bin/next", "build", "--webpack"]);
+    else if (mode === "links") run(["--import", "tsx", "tests/integration/crm-links.ts"]);
     else {
       run(["--import", "tsx", "tests/integration/crm.ts"]);
+      run(["--import", "tsx", "tests/integration/crm-links.ts"]);
       for (const suite of ["business", "customer", "permissions-business"])
         run(["--import", "tsx", `tests/integration/${suite}.ts`]);
     }
