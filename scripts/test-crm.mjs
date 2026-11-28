@@ -19,6 +19,8 @@ if (
     "overview",
     "assignments",
     "modules",
+    "followups",
+    "status",
   ].includes(mode)
 )
   throw Error("Unknown CRM test mode");
@@ -85,7 +87,11 @@ try {
         "tests/integration/crm-http.ts",
         ...(mode === "preview" ? ["--preview"] : []),
       ]);
-    else if (mode === "session") run(["--import", "tsx", "tests/integration/crm-session.ts"]);
+    else if (mode === "followups") run(["--import", "tsx", "tests/integration/crm-followups.ts"]);
+    else if (mode === "status") {
+      run(["--import", "tsx", "tests/helpers/isolated-module-bootstrap.ts"]);
+      run(["--import", "tsx", "tests/integration/inquiry-status.ts"]);
+    } else if (mode === "session") run(["--import", "tsx", "tests/integration/crm-session.ts"]);
     else if (mode === "assignments")
       run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
     else if (mode === "overview") run(["--import", "tsx", "tests/integration/crm-overview.ts"]);
@@ -113,7 +119,8 @@ try {
       run(["--import", "tsx", "tests/integration/crm-session.ts"]);
       run(["--import", "tsx", "tests/integration/crm-overview.ts"]);
       run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
-      for (const suite of ["business", "customer", "permissions-business"])
+      run(["--import", "tsx", "tests/integration/crm-followups.ts"]);
+      for (const suite of ["inquiry-status", "business", "customer", "permissions-business"])
         run(["--import", "tsx", `tests/integration/${suite}.ts`]);
       run(["node_modules/next/dist/bin/next", "build", "--webpack"]);
       run(["--import", "tsx", "tests/integration/crm-http.ts"]);

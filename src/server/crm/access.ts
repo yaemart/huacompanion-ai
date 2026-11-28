@@ -1,3 +1,4 @@
+import { createLocalReq } from "payload";
 import type { Payload, PayloadRequest, Where } from "payload";
 import { isAdmin, isManager, isOperator, relationID, type Staff } from "../../cms/access";
 import { CrmError } from "../../lib/crm";
@@ -15,7 +16,7 @@ export const unavailable = () => new CrmError("客户或资料不可用", 404);
 export async function currentActor(p: Payload, user: CrmActor, req: Partial<PayloadRequest>) {
   const headers = sessions.get(user);
   if (headers) {
-    const fresh = await p.auth({ headers });
+    const fresh = await p.auth({ headers, req: await createLocalReq({ req }, p) });
     if (
       !fresh.user ||
       fresh.user.collection !== "staff" ||

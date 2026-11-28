@@ -8,7 +8,10 @@ import {
   isInquiryClosed,
   type InquiryPair,
 } from "../lib/inquiry-status";
-import { businessInquiry, businessTransaction } from "./business/service";
+import { businessInquiry } from "./business/service";
+import { customerTransaction } from "./customer/service";
+import { currentActor } from "./crm/access";
+import { CrmError } from "../lib/crm";
 import { ContentError } from "./content/error";
 
 function openOption<T extends string>(labels: Record<T, string>, value: unknown): value is T {
@@ -45,72 +48,80 @@ function state({ status, coordinationStage, updatedAt }: InquiryPair & { updated
 
 export async function changeInquiryStatus(p: Payload, user: NonNullable<Staff>, input: unknown) {
   const { id, action: operation, key, updatedAt: base, reason, next } = readCommand(input);
-  return businessTransaction(p, async (req) => {
-    const actor = await p.findByID({ collection: "staff", id: user.id, depth: 0, req });
-    const current = await businessInquiry(p, actor, id, req).catch((error: unknown) => {
-      if ([403, 404].includes((error as { status: number }).status))
-        throw new ContentError("无权处理这条咨询，或咨询不存在", 403);
-      throw error;
-    });
-    const action = `inquiry-state:${key}`;
-    const details = { reason, operation, base };
-    const prior = (
-      await p.find({
-        collection: "audit-events",
-        depth: 0,
-        limit: 1,
-        req,
-        where: {
-          entity: { equals: "inquiries" },
-          recordId: { equals: String(current.id) },
-          action: { equals: action },
-        },
-      })
-    ).docs[0];
-    if (prior) {
-      const after = prior.after as Record<string, unknown> | null;
+  return customerTransaction(
+    p,
+    async (req) => {
+      const identity = user.collection ? user : { ...user, collection: "staff" };
+      const actor = await currentActor(p, identity, req).catch((e: unknown) => {
+        if (e instanceof CrmError) throw new ContentError(e.message, e.status);
+        throw e;
+      });
+      const current = await businessInquiry(p, actor, id, req).catch((error: unknown) => {
+        if ([403, 404].includes((error as { status: number }).status))
+          throw new ContentError("无权处理这条咨询，或咨询不存在", 403);
+        throw error;
+      });
+      const action = `inquiry-state:${key}`;
+      const details = { reason, operation, base };
+      const prior = (
+        await p.find({
+          collection: "audit-events",
+          depth: 0,
+          limit: 1,
+          req,
+          where: {
+            entity: { equals: "inquiries" },
+            recordId: { equals: String(current.id) },
+            action: { equals: action },
+          },
+        })
+      ).docs[0];
+      if (prior) {
+        const after = prior.after as Record<string, unknown> | null;
+        if (
+          relationID(prior.actor) !== actor.id ||
+          !after ||
+          Object.entries({ ...details, ...next }).some(([field, value]) => after[field] !== value)
+        )
+          throw new ContentError("该操作编号已使用，请刷新后重新填写", 409);
+        if (Object.entries(state(current)).some(([field, value]) => after[field] !== value))
+          throw new ContentError("原操作已记录，咨询之后又有修改，请刷新后核对", 409);
+        return { ...state(current), duplicate: true };
+      }
+      if (current.updatedAt !== base) throw new ContentError("咨询已被修改，请刷新后重新操作", 409);
       if (
-        relationID(prior.actor) !== actor.id ||
-        !after ||
-        Object.entries({ ...details, ...next }).some(([field, value]) => after[field] !== value)
+        operation === "close"
+          ? current.status === "closed" && current.coordinationStage === "closed"
+          : !isInquiryClosed(current)
       )
-        throw new ContentError("该操作编号已使用，请刷新后重新填写", 409);
-      if (Object.entries(state(current)).some(([field, value]) => after[field] !== value))
-        throw new ContentError("原操作已记录，咨询之后又有修改，请刷新后核对", 409);
-      return { ...state(current), duplicate: true };
-    }
-    if (current.updatedAt !== base) throw new ContentError("咨询已被修改，请刷新后重新操作", 409);
-    if (
-      operation === "close"
-        ? current.status === "closed" && current.coordinationStage === "closed"
-        : !isInquiryClosed(current)
-    )
-      throw new ContentError("咨询已处于目标状态，请刷新后核对", 409);
-    const saved = await p.update({
-      collection: "inquiries",
-      id: current.id,
-      user: actor,
-      req,
-      overrideAccess: false,
-      overrideLock: false,
-      context: { inquiryStatusTransition: inquiryStatusToken, skipAudit: true },
-      data: next,
-    });
-    const result = state(saved);
-    await p.create({
-      collection: "audit-events",
-      user: actor,
-      req,
-      data: {
-        entity: "inquiries",
-        recordId: String(current.id),
-        action,
-        actor: actor.id,
-        fields: "status, coordinationStage",
-        before: { status: current.status, coordinationStage: current.coordinationStage ?? null },
-        after: { ...result, ...details },
-      },
-    });
-    return { ...result, duplicate: false };
-  });
+        throw new ContentError("咨询已处于目标状态，请刷新后核对", 409);
+      const saved = await p.update({
+        collection: "inquiries",
+        id: current.id,
+        user: actor,
+        req,
+        overrideAccess: false,
+        overrideLock: false,
+        context: { inquiryStatusTransition: inquiryStatusToken, skipAudit: true },
+        data: next,
+      });
+      const result = state(saved);
+      await p.create({
+        collection: "audit-events",
+        user: actor,
+        req,
+        data: {
+          entity: "inquiries",
+          recordId: String(current.id),
+          action,
+          actor: actor.id,
+          fields: "status, coordinationStage",
+          before: { status: current.status, coordinationStage: current.coordinationStage ?? null },
+          after: { ...result, ...details },
+        },
+      });
+      return { ...result, duplicate: false };
+    },
+    { readCommitted: true },
+  );
 }

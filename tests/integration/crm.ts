@@ -1,4 +1,8 @@
 import {
+  up as upFollowups,
+  down as downFollowups,
+} from "../../src/migrations/20261128_170000_crm_followups";
+import {
   up as upLinks,
   down as downLinks,
 } from "../../src/migrations/20261128_130000_crm_inquiry_links";
@@ -32,6 +36,10 @@ async function migrate(fn: typeof up, rollback = false) {
   try {
     await db.query("BEGIN");
     if (fn === down)
+      await downFollowups({
+        db: { execute: (sql: string) => db.query(sql) },
+      } as unknown as Parameters<typeof downFollowups>[0]);
+    if (fn === down)
       await downLinks({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
         typeof downLinks
       >[0]);
@@ -42,6 +50,10 @@ async function migrate(fn: typeof up, rollback = false) {
       await upLinks({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
         typeof upLinks
       >[0]);
+    if (fn === up)
+      await upFollowups({
+        db: { execute: (sql: string) => db.query(sql) },
+      } as unknown as Parameters<typeof upFollowups>[0]);
     await db.query(rollback ? "ROLLBACK" : "COMMIT");
   } catch (e) {
     await db.query("ROLLBACK");

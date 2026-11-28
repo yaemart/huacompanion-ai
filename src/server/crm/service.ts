@@ -186,6 +186,7 @@ export async function crmAction(p: Payload, user: CrmActor, raw: unknown): Promi
           : undefined;
       const signature = proof(p, i);
       if (old) {
+        if (old.action !== i.action) throw conflict();
         if (linkContext && relationID(linkContext.link?.client) !== c?.id) throw unavailable();
         const r = old.result as unknown as CrmReceipt;
         if (!r || !Number.isSafeInteger(r.clientID) || !Number.isSafeInteger(r.revision))

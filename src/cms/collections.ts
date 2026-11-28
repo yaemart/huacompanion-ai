@@ -1,3 +1,4 @@
+import { followupLifecycle } from "../server/crm/followup-lifecycle";
 import { serviceCategoryOptions } from "../lib/routes";
 import { followupField, guardIntakeFollowups } from "./intake-followups";
 import { guardProviderReview } from "./provider-review";
@@ -433,7 +434,7 @@ export const Inquiries: CollectionConfig = {
       guardBusinessAssignment,
       guardHomeWorkflow,
     ],
-    afterChange: [audit, inquiryWorkflowHook],
+    afterChange: [audit, inquiryWorkflowHook, followupLifecycle("inquiry")],
   },
 };
 Inquiries.fields = intakeEditorFields(Inquiries.fields, "inquiry");

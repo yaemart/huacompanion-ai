@@ -74,6 +74,9 @@ export interface Config {
     notifications: Notification;
     'audit-events': AuditEvent;
     'intake-limits': IntakeLimit;
+    'crm-followups': CrmFollowup;
+    'crm-followup-events': CrmFollowupEvent;
+    'crm-followup-slots': CrmFollowupSlot;
     'crm-inquiry-links': CrmInquiryLink;
     'crm-clients': CrmClient;
     'crm-contacts': CrmContact;
@@ -152,6 +155,9 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'audit-events': AuditEventsSelect<false> | AuditEventsSelect<true>;
     'intake-limits': IntakeLimitsSelect<false> | IntakeLimitsSelect<true>;
+    'crm-followups': CrmFollowupsSelect<false> | CrmFollowupsSelect<true>;
+    'crm-followup-events': CrmFollowupEventsSelect<false> | CrmFollowupEventsSelect<true>;
+    'crm-followup-slots': CrmFollowupSlotsSelect<false> | CrmFollowupSlotsSelect<true>;
     'crm-inquiry-links': CrmInquiryLinksSelect<false> | CrmInquiryLinksSelect<true>;
     'crm-clients': CrmClientsSelect<false> | CrmClientsSelect<true>;
     'crm-contacts': CrmContactsSelect<false> | CrmContactsSelect<true>;
@@ -547,20 +553,25 @@ export interface IntakeLimit {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "crm-inquiry-links".
+ * via the `definition` "crm-followups".
  */
-export interface CrmInquiryLink {
+export interface CrmFollowup {
   id: number;
-  client: number | CrmClient;
-  inquiry: number | Inquiry;
-  active: boolean;
+  reference: string;
+  anchorKind: 'client' | 'inquiry';
+  client?: (number | null) | CrmClient;
+  inquiry?: (number | null) | Inquiry;
+  type: 'primary' | 'adhoc';
+  title: string;
+  description?: string | null;
+  assignee?: (number | null) | Staff;
+  dueAt: string;
+  state: 'pending' | 'completed' | 'canceled';
+  needsReview: boolean;
   revision: number;
-  linkedBy: number | Staff;
-  linkedAt: string;
-  reason: string;
-  revokedBy?: (number | null) | Staff;
-  revokedAt?: string | null;
-  revocationReason?: string | null;
+  createdBy: number | Staff;
+  terminalBy?: (number | null) | Staff;
+  terminalAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -579,6 +590,71 @@ export interface CrmClient {
   owner?: (number | null) | Staff;
   status: 'active' | 'archived';
   revision: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-followup-events".
+ */
+export interface CrmFollowupEvent {
+  id: number;
+  task: number | CrmFollowup;
+  seq: number;
+  action: string;
+  actor: number | Staff;
+  serverTime: string;
+  details:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-followup-slots".
+ */
+export interface CrmFollowupSlot {
+  id: number;
+  inquiry: number | Inquiry;
+  sourceKey: string;
+  generation: number;
+  revision: number;
+  currentTask?: (number | null) | CrmFollowup;
+  provenance:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-inquiry-links".
+ */
+export interface CrmInquiryLink {
+  id: number;
+  client: number | CrmClient;
+  inquiry: number | Inquiry;
+  active: boolean;
+  revision: number;
+  linkedBy: number | Staff;
+  linkedAt: string;
+  reason: string;
+  revokedBy?: (number | null) | Staff;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2481,6 +2557,57 @@ export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
   clientKey?: T;
   count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-followups_select".
+ */
+export interface CrmFollowupsSelect<T extends boolean = true> {
+  reference?: T;
+  anchorKind?: T;
+  client?: T;
+  inquiry?: T;
+  type?: T;
+  title?: T;
+  description?: T;
+  assignee?: T;
+  dueAt?: T;
+  state?: T;
+  needsReview?: T;
+  revision?: T;
+  createdBy?: T;
+  terminalBy?: T;
+  terminalAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-followup-events_select".
+ */
+export interface CrmFollowupEventsSelect<T extends boolean = true> {
+  task?: T;
+  seq?: T;
+  action?: T;
+  actor?: T;
+  serverTime?: T;
+  details?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-followup-slots_select".
+ */
+export interface CrmFollowupSlotsSelect<T extends boolean = true> {
+  inquiry?: T;
+  sourceKey?: T;
+  generation?: T;
+  revision?: T;
+  currentTask?: T;
+  provenance?: T;
   updatedAt?: T;
   createdAt?: T;
 }

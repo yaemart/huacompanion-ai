@@ -194,6 +194,15 @@ try {
       stdio: "inherit",
       timeout: 120000,
     });
+    execFileSync(
+      process.execPath,
+      ["--import", "tsx", "tests/integration/inquiry-status.ts", "--http"],
+      {
+        env: { ...process.env, APP_URL: base },
+        stdio: "inherit",
+        timeout: 120000,
+      },
+    );
     const login = async (who: string) => {
       const r = await fetch(base + "/api/staff/login", {
         method: "POST",
@@ -558,6 +567,215 @@ try {
       "PASS CRM B2 actual HTTP: manager transfer/preview/history,403 roles,409 versions, original-key response recovery, " +
         "native session revoked while waiting401/zero writes and unchanged external grants",
     );
+
+    const c1Client = await crmAction(p, user, {
+      action: "createClient",
+      operationKey: randomUUID(),
+      kind: "individual",
+      displayName: "C1 HTTP fictional",
+      language: "zh",
+      teamID: team.id,
+      ownerID: operator.id,
+    });
+    const c1Body = {
+      action: "createFollowup",
+      operationKey: randomUUID(),
+      context: { kind: "client", id: c1Client.clientID, revision: 1 },
+      title: "C1 native HTTP",
+      dueAt: "2026-12-01T01:00:00.000Z",
+      assigneeID: operator.id,
+    };
+    const c1Query = `action=followupList&kind=client&id=${c1Client.clientID}`;
+    const c1Before = await databaseFingerprints(pool);
+    assert.equal((await get(c1Query)).status, 401);
+    assert.equal((await get(c1Query, editorHeaders)).status, 403);
+    assert.equal((await get(c1Query + "&id=1", opHeaders)).status, 400);
+    assert.equal((await post({ ...c1Body, actor: admin.id }, opHeaders)).status, 400);
+    assert.equal((await post({ ...c1Body, type: "primary" }, opHeaders)).status, 400);
+    assert.equal((await post(c1Body, opHeaders, "https://invalid.example")).status, 403);
+    assert.deepEqual(await databaseFingerprints(pool), c1Before);
+    const c1CreateResponse = await post(c1Body, opHeaders);
+    assert.equal(c1CreateResponse.status, 200);
+    assert.equal(c1CreateResponse.headers.get("cache-control"), "no-store");
+    const c1Receipt = await c1CreateResponse.json();
+    assert.equal(c1Receipt.changedCount, 1);
+    assert.deepEqual(await (await post(c1Body, opHeaders)).json(), c1Receipt);
+    assert.equal((await post({ ...c1Body, title: "Mismatched retry" }, opHeaders)).status, 409);
+    const c1Read = await get(c1Query, opHeaders);
+    assert.equal(c1Read.status, 200);
+    const c1Page = await c1Read.json();
+    assert.equal(c1Page.total, 1);
+    assert.equal(c1Page.items[0].title, "C1 native HTTP");
+    const c1Task = c1Receipt.tasks[0].taskID;
+    assert.equal(
+      (
+        await post(
+          {
+            action: "completeFollowup",
+            context: c1Body.context,
+            taskID: c1Task,
+            expectedRevision: 1,
+            operationKey: randomUUID(),
+            body: "Cannot perform for another",
+            continuation: { kind: "end", reason: "This is prohibited" },
+          },
+          managerHeaders,
+        )
+      ).status,
+      403,
+    );
+    const events = await get(
+      `action=followupEvents&kind=client&id=${c1Client.clientID}&taskID=${c1Task}`,
+      opHeaders,
+    );
+    assert.equal(events.status, 200);
+    assert.equal((await events.json()).total, 1);
+    for (const collection of ["crm-followups", "crm-followup-events", "crm-followup-slots"]) {
+      const direct = await fetch(base + "/api/" + collection, { headers: adminHeaders });
+      assert.equal(direct.status, 501, "Payload endpoints:false returns NOT_IMPLEMENTED");
+      assert.ok(!(await direct.text()).includes("C1 native HTTP"));
+    }
+    writeFileSync(".local/crm-a2/drop-next-response", "fixture", { mode: 0o600 });
+    const c1Unknown = { ...c1Body, operationKey: randomUUID() };
+    await assert.rejects(async () => {
+      const r = await post(c1Unknown, opHeaders);
+      await r.json();
+    });
+    const c1Recovered = await post(c1Unknown, opHeaders);
+    assert.equal(c1Recovered.status, 200);
+    assert.equal((await c1Recovered.json()).changedCount, 1);
+    assert.equal(
+      (
+        await pool.query("SELECT count(*) FROM crm_operations WHERE operation_key=$1", [
+          c1Unknown.operationKey,
+        ])
+      ).rows[0].count,
+      "1",
+    );
+
+    const statusInquiry = await p.create({
+      collection: "inquiries",
+      req: { user },
+      data: {
+        reference: "C1-STATUS-" + randomUUID(),
+        requestKey: randomUUID(),
+        contentHash: randomUUID(),
+        name: "C1 status revocation",
+        email: "c1-status@example.invalid",
+        categories: ["business"],
+        city: "Shanghai",
+        status: "new",
+        owner: operator.id,
+        team: team.id,
+      },
+    });
+    assert.equal(
+      (
+        await post(
+          {
+            ...c1Body,
+            operationKey: randomUUID(),
+            context: { kind: "inquiry", id: statusInquiry.id, updatedAt: statusInquiry.updatedAt },
+          },
+          opHeaders,
+        )
+      ).status,
+      200,
+    );
+    for (const statusAction of ["close", "reopen"]) {
+      if (statusAction === "reopen") {
+        const q = await p.findByID({ collection: "inquiries", id: statusInquiry.id });
+        const closeResponse = await fetch(base + "/api/inquiry-status", {
+          method: "POST",
+          headers: { ...adminHeaders, origin: base, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: q.id,
+            action: "close",
+            key: randomUUID(),
+            updatedAt: q.updatedAt,
+            reason: "Prepare reopen revocation fixture",
+          }),
+        });
+        assert.equal(closeResponse.status, 200);
+      }
+      const q = await p.findByID({ collection: "inquiries", id: statusInquiry.id });
+      const block = await p.db.beginTransaction();
+      assert.ok(block);
+      await transactionSession(p, block).db.execute("SELECT pg_advisory_xact_lock(726281)");
+      const waiting = fetch(base + "/api/inquiry-status", {
+        method: "POST",
+        headers: { ...opHeaders, origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: q.id,
+          action: statusAction,
+          key: randomUUID(),
+          updatedAt: q.updatedAt,
+          reason: "Revoke login while waiting",
+          status: "new",
+          coordinationStage: "received",
+        }),
+      });
+      const deadline = Date.now() + 10000;
+      while (
+        !(
+          await pool.query(
+            "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+          )
+        ).rowCount
+      ) {
+        assert.ok(Date.now() < deadline);
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      await p.update({
+        collection: "staff",
+        id: operator.id,
+        data: { sessions: [] },
+        req: { user, transactionID: block },
+      });
+      await p.db.commitTransaction(block);
+      const fingerprint = await databaseFingerprints(pool);
+      assert.equal(
+        (await waiting).status,
+        401,
+        "native status transition must reject revoked session after lock wait",
+      );
+      assert.deepEqual(await databaseFingerprints(pool), fingerprint);
+      Object.assign(opHeaders, await login(operator.email));
+    }
+    console.log(
+      "PASS C1 native close/reopen HTTP lock wait revokes session with parent/task/event/audit zero writes",
+    );
+
+    const c1Lock = await p.db.beginTransaction();
+    assert.ok(c1Lock);
+    await transactionSession(p, c1Lock).db.execute("SELECT pg_advisory_xact_lock(726281)");
+    const c1Waiting = post({ ...c1Body, operationKey: randomUUID() }, opHeaders);
+    const c1Deadline = Date.now() + 10000;
+    while (
+      !(
+        await pool.query(
+          "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+        )
+      ).rowCount
+    ) {
+      assert.ok(Date.now() < c1Deadline);
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await p.update({
+      collection: "staff",
+      id: operator.id,
+      data: { sessions: [] },
+      req: { user, transactionID: c1Lock },
+    });
+    await p.db.commitTransaction(c1Lock);
+    const c1Revoked = await databaseFingerprints(pool);
+    assert.equal((await c1Waiting).status, 401);
+    assert.deepEqual(await databaseFingerprints(pool), c1Revoked);
+    assert.deepEqual(await externalFingerprint(), b2Protected);
+    console.log(
+      "PASS C1 actual Next HTTP: strict commands, current scopes, private collections, original-key lost response recovery and native session lock-wait revocation",
+    );
+
     const logout = await fetch(base + "/api/staff/logout", {
       method: "POST",
       headers: { ...adminHeaders, origin: base },
