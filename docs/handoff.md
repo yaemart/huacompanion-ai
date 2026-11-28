@@ -13,7 +13,9 @@ TDD helpers缺模块RED→GREEN；render缺组件RED→GREEN；case链接inquiry
 浏览器失权404持续加载RED→显式清理失效请求loading/editorLoading→原场景GREEN。
 唯一末尾独立复核0严重/0重要/1轻微，跨页摘要缺原负责人按设计升重要；
 offpage渲染先RED再显示冻结ownerDisplay后GREEN，单轮修正，无二次复核或延期项。
-最终check928/928、lint0错误/445既有警告；完整test:crm最终结果待补。
+最终check928/928、lint0错误/445既有警告、955源码行长无例外；两组CRM渲染测试通过。
+完整npm run test:crm退出0：原CRM13＋关联12组、原JWT会话、B1十组、B2十二组、
+business/customer/业务权限8项、生产build及实际Next HTTP均通过。
 普通沙箱check既有回环测试EPERM，授权放开本机监听后全部通过；直接build无secret失败，
 改用带集群身份校验的CRM随机库build成功，不创建.env、不连接原演示库。
 
@@ -22,7 +24,8 @@ offpage渲染先RED再显示冻结ownerDisplay后GREEN，单轮修正，无二�
 运营无管理转交/历史/队列，客户主负责人转出后旧列表404不泄露详情。桌面clientWidth=scrollWidth=1265，
 无控制台error，键盘录入/Tab及未保存提醒已观察；390视口set两次及reset工具超时，未观察到尺寸变化，
 窄屏及真人一分钟验收待完成，不声称通过。账号已登出；截图/日志仅.local/crm-b3未上传Git或附件。
-独立CRM worktree/PG55443/测试3201，原演示3100/55442、备份/原草稿不操作。最终清理/PR/CI状态后补。
+独立CRM worktree/PG55443/测试3201，原演示3100/55442、备份/原草稿不操作。本批随机库核对0；CRM专用集群正常停止、目录保留；3100/3201/55442/55443无监听。
+[草稿PR137](https://github.com/yaemart/huacompanion-ai/pull/137)，未自动合并。最终SHA与对应云端CI由PR回执实核，未声称CI通过。
 
 
 ## CRM B2同团队逐项责任转交（2026-11-28）
