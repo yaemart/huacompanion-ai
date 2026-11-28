@@ -1,3 +1,4 @@
+import { crmAction } from "../../src/server/crm/service";
 import { transactionSession } from "../../src/server/db-types";
 import { executeFollowup } from "../../src/server/crm/followups";
 import { changeInquiryStatus } from "../../src/server/inquiry-status";
@@ -619,6 +620,154 @@ try {
   assert.deepEqual(await databaseFingerprints(pool), revoked);
   await p.update({ collection: "staff", id: other.id, req, data: { active: true } });
   pass("actual business-lock wait rechecks current actor with zero side effects");
+
+  await noWrite(
+    () =>
+      crmAction(p, asUser(manager), {
+        action: "updateClient",
+        operationKey: otherCreated.operationKey,
+        clientID: client.id,
+        expectedRevision: 2,
+        displayName: "Cross-domain key reuse",
+      }),
+    409,
+  );
+  pass("shared CRM operation key collision has consistent conflict across action families");
+
+  const indexDb = await pool.connect();
+  try {
+    await indexDb.query("BEGIN");
+    await indexDb.query("SET LOCAL enable_seqscan=off");
+    const plan = await indexDb.query(
+      "EXPLAIN SELECT id FROM crm_followups WHERE client_id=$1 AND state='pending' ORDER BY due_at,id LIMIT 20",
+      [cap.id],
+    );
+    assert.ok(plan.rows.some((r) => String(r["QUERY PLAN"]).includes("Index")));
+    console.log("C1 pending EXPLAIN:", plan.rows.map((r) => r["QUERY PLAN"]).join(" | "));
+    await indexDb.query(
+      "INSERT INTO crm_followup_slots(inquiry_id,source_key,generation,revision,current_task_id,provenance) VALUES ($1,$2,1,1,$3,'{}')",
+      [inquiry.id, `legacy-inquiry:${inquiry.id}`, iqID],
+    );
+    await indexDb.query("SAVEPOINT slot_duplicate");
+    await assert.rejects(
+      () =>
+        indexDb.query(
+          "INSERT INTO crm_followup_slots(inquiry_id,source_key,generation,revision,provenance) VALUES ($1,$2,2,1,'{}')",
+          [inquiry.id, `legacy-inquiry:${inquiry.id}`],
+        ),
+      { code: "23505" },
+    );
+    await indexDb.query("ROLLBACK TO SAVEPOINT slot_duplicate");
+    await indexDb.query("ROLLBACK");
+  } finally {
+    indexDb.release();
+  }
+  await p.update({
+    collection: "staff",
+    id: manager.id,
+    req,
+    data: { additionalRoles: ["operations"] },
+  });
+  const multi = await p.findByID({ collection: "staff", id: manager.id });
+  const dualClient = await p.create({
+    collection: "crm-clients",
+    data: {
+      reference: key(),
+      kind: "company",
+      displayName: "C1 dual role",
+      language: "en",
+      team: team.id,
+      owner: manager.id,
+      status: "active",
+      revision: 1,
+    },
+  });
+  const dual = await executeFollowup(p, asUser(multi), {
+    ...create,
+    operationKey: key(),
+    context: { kind: "client", id: dualClient.id, revision: 1 },
+    assigneeID: manager.id,
+  });
+  assert.equal(dual.changedCount, 1);
+  for (const collection of ["customer-accounts", "providers"])
+    await noWrite(
+      () =>
+        executeFollowup(p, { ...asUser(other), collection }, { ...uncertain, operationKey: key() }),
+      403,
+    );
+  pass(
+    "pending index and unique slots; additional operations role honored; external identity denied",
+  );
+
+  await p.update({
+    collection: "crm-clients",
+    id: client.id,
+    req,
+    data: { status: "archived", revision: 3 },
+  });
+  const archivedPage = await followupList(p, asUser(other), { kind: "client", id: client.id });
+  assert.ok(archivedPage.items.every((t) => t.suspended));
+  await noWrite(
+    () =>
+      executeFollowup(p, asUser(manager), {
+        action: "cancelFollowup",
+        context: { ...context, revision: 3 },
+        operationKey: key(),
+        taskID: noOpID,
+        expectedRevision: 2,
+        management: true,
+        reason: "No writes while parent archived",
+      }),
+    409,
+  );
+  // Trusted fixture restoration tests the hook, not a newly exposed restore command.
+  await p.update({
+    collection: "crm-clients",
+    id: client.id,
+    req,
+    data: { status: "active", revision: 4 },
+  });
+  assert.equal((await p.findByID({ collection: "crm-followups", id })).state, "completed");
+  const restoredTask = await p.findByID({ collection: "crm-followups", id: noOpID });
+  assert.equal(restoredTask.state, "pending");
+  assert.equal(restoredTask.needsReview, true);
+  assert.equal(restoredTask.revision, 3);
+  pass("client archive/restoration marks pending review without reviving terminal tasks");
+  const linkLock = await p.db.beginTransaction();
+  assert.ok(linkLock);
+  await transactionSession(p, linkLock).db.execute("SELECT pg_advisory_xact_lock(726281)");
+  const currentIq = await p.findByID({ collection: "crm-followups", id: iqID });
+  const waitingLink = executeFollowup(p, asUser(manager), {
+    action: "cancelFollowup",
+    management: true,
+    context: { ...context, revision: 4 },
+    operationKey: key(),
+    taskID: iqID,
+    expectedRevision: currentIq.revision,
+    expectedInquiryUpdatedAt: reopened.updatedAt,
+    expectedLinkRevision: 1,
+    reason: "Association must be rechecked after waiting",
+  });
+  const linkDenied = assert.rejects(waitingLink, { status: 404 });
+  const linkDeadline = Date.now() + 10000;
+  while (
+    !(
+      await pool.query(
+        "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+      )
+    ).rowCount
+  ) {
+    assert.ok(Date.now() < linkDeadline);
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  await pool.query("UPDATE crm_inquiry_links SET active=false,revision=2 WHERE inquiry_id=$1", [
+    inquiry.id,
+  ]);
+  await p.db.commitTransaction(linkLock);
+  const linkChanged = await databaseFingerprints(pool);
+  await linkDenied;
+  assert.deepEqual(await databaseFingerprints(pool), linkChanged);
+  pass("actual waiting child write rechecks revoked association without side effects");
 } finally {
   await p.destroy();
 }

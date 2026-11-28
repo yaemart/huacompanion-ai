@@ -115,6 +115,7 @@ try {
       run(["--import", "tsx", "tests/integration/crm-session.ts"]);
       run(["--import", "tsx", "tests/integration/crm-overview.ts"]);
       run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
+      run(["--import", "tsx", "tests/integration/crm-followups.ts"]);
       for (const suite of ["business", "customer", "permissions-business"])
         run(["--import", "tsx", `tests/integration/${suite}.ts`]);
       run(["node_modules/next/dist/bin/next", "build", "--webpack"]);

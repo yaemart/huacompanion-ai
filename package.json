@@ -109,6 +109,7 @@
     "subscriptions:mock-worker": "tsx scripts/subscription-mock-worker.ts",
     "exhibition:reminders": "node --import tsx scripts/exhibition-reminders.ts",
     "test:crm": "node scripts/test-crm.mjs",
+    "test:crm:followups": "node scripts/test-crm.mjs followups",
     "test:modules": "node scripts/test-crm.mjs modules"
   },
   "dependencies": {
