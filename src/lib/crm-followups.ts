@@ -27,6 +27,7 @@ export type FollowupCommand = Base &
     | ({ action: "postponeFollowup"; dueAt: string; reason: string } & Target)
     | ({ action: "cancelFollowup"; reason: string; management: boolean } & Target)
     | ({ action: "appendFollowupNote"; body: string; management: boolean } & Target)
+    | ({ action: "correctFollowup"; body: string; reason: string; management: boolean } & Target)
     | ({ action: "confirmFollowupReview" } & Target)
     | { action: "assignFollowups"; assigneeID: number; tasks: Target[] }
   );
@@ -128,7 +129,7 @@ export function parseFollowupCommand(value: unknown): FollowupCommand {
         : (() => {
             throw bad();
           })();
-  const operationKey = text(o.operationKey, 36, 36);
+  const operationKey = text(o.operationKey, 36, 36).toLowerCase();
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationKey))
     throw bad();
   const base = { context, operationKey },
@@ -158,6 +159,17 @@ export function parseFollowupCommand(value: unknown): FollowupCommand {
   if (action === "postponeFollowup") {
     keys(o, [...common, ...t, "dueAt", "reason"]);
     return { ...base, action, ...dest, dueAt: date(o.dueAt), reason: text(o.reason, 10, 2000) };
+  }
+  if (action === "correctFollowup") {
+    keys(o, [...common, ...t, "body", "reason", "management"]);
+    return {
+      ...base,
+      ...dest,
+      action,
+      body: text(o.body, 1, 2000),
+      reason: text(o.reason, 1, 2000),
+      management: bool(o.management),
+    };
   }
   if (action === "cancelFollowup" || action === "appendFollowupNote") {
     const field = action === "cancelFollowup" ? "reason" : "body";
@@ -221,4 +233,5 @@ export const followupActions = [
   "cancelFollowup",
   "assignFollowups",
   "confirmFollowupReview",
+  "correctFollowup",
 ] as const;

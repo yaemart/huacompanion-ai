@@ -154,7 +154,9 @@ export async function executeFollowup(
       const anchor = await followupAnchor(p, actor, input.context, req);
       if (
         input.action === "assignFollowups" ||
-        ((input.action === "cancelFollowup" || input.action === "appendFollowupNote") &&
+        ((input.action === "cancelFollowup" ||
+          input.action === "appendFollowupNote" ||
+          input.action === "correctFollowup") &&
           input.management)
       )
         manageable(actor);
@@ -225,17 +227,33 @@ export async function executeFollowup(
         const resolved = await followupTask(p, actor, input.context, input.taskID, req);
         childVersion(input.context, input, resolved);
         const { task, anchor: own } = resolved;
-        if (task.type !== "adhoc" || own.suspended || task.state !== "pending")
+        if (
+          task.type !== "adhoc" ||
+          own.suspended ||
+          (input.action === "correctFollowup" ? task.state === "pending" : task.state !== "pending")
+        )
           throw followupConflict();
         version(task.revision, input.expectedRevision);
         const management =
-          (input.action === "cancelFollowup" || input.action === "appendFollowupNote") &&
+          (input.action === "cancelFollowup" ||
+            input.action === "appendFollowupNote" ||
+            input.action === "correctFollowup") &&
           input.management;
         if (!management)
-          await executable(p, actor, own, task, req, input.action === "confirmFollowupReview");
+          await executable(
+            p,
+            actor,
+            own,
+            task,
+            req,
+            input.action === "confirmFollowupReview" || input.action === "correctFollowup",
+          );
         const changes: Partial<CrmFollowup> = { revision: task.revision + 1 };
         const details: Record<string, unknown> = { before: followupState(task) };
-        if (input.action === "confirmFollowupReview") {
+        if (input.action === "correctFollowup") {
+          details.body = input.body;
+          details.reason = input.reason;
+        } else if (input.action === "confirmFollowupReview") {
           if (!task.needsReview) throw followupConflict();
           changes.needsReview = false;
         } else if (input.action === "postponeFollowup") {
@@ -281,17 +299,20 @@ export async function executeFollowup(
           req,
           data: changes,
         });
-        await record(
-          saved,
-          management
-            ? `management-${input.action === "cancelFollowup" ? "canceled" : "note"}`
-            : input.action,
-          details,
-        );
+        let successor: CrmFollowup | undefined;
         if (input.action === "completeFollowup" && input.continuation.kind === "create") {
-          const next = await createTask(p, actor, own, input.continuation, req);
-          await record(next, "created", { previousTaskID: task.id });
+          successor = await createTask(p, actor, own, input.continuation, req);
+          details.continuationTaskID = successor.id;
         }
+        const eventAction = management
+          ? input.action === "cancelFollowup"
+            ? "management-canceled"
+            : input.action === "correctFollowup"
+              ? "management-correction"
+              : "management-note"
+          : input.action;
+        await record(saved, eventAction, details);
+        if (successor) await record(successor, "created", { previousTaskID: task.id });
       }
       await p.create({
         collection: "crm-operations",

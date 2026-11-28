@@ -1,3 +1,4 @@
+import { assertCrmTarget } from "../../scripts/lib/crm-test-target.mjs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
@@ -12,10 +13,12 @@ import { changeInquiryStatus } from "../../src/server/inquiry-status";
 const url = new URL(process.env.DATABASE_URL || "");
 assert.equal(process.env.APP_ENV, "local");
 assert.equal(url.hostname, "127.0.0.1");
-assert.ok(
-  (url.port === "55442" && /^\/hua_inquiry_status_[a-f0-9]{32}$/.test(url.pathname)) ||
-    (url.port === "55438" && url.pathname === "/hua_companion" && process.env.CI === "true"),
-);
+if (process.env.HUA_CRM_ISOLATED === "true") assertCrmTarget(url.toString());
+else
+  assert.ok(
+    (url.port === "55442" && /^\/hua_inquiry_status_[a-f0-9]{32}$/.test(url.pathname)) ||
+      (url.port === "55438" && url.pathname === "/hua_companion" && process.env.CI === "true"),
+  );
 const p = await getPayload({ config });
 const key = `inquiry-status-${randomUUID()}`;
 const password = randomUUID();

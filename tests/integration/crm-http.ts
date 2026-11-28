@@ -643,6 +643,100 @@ try {
       ).rows[0].count,
       "1",
     );
+
+    const statusInquiry = await p.create({
+      collection: "inquiries",
+      req: { user },
+      data: {
+        reference: "C1-STATUS-" + randomUUID(),
+        requestKey: randomUUID(),
+        contentHash: randomUUID(),
+        name: "C1 status revocation",
+        email: "c1-status@example.invalid",
+        categories: ["business"],
+        city: "Shanghai",
+        status: "new",
+        owner: operator.id,
+        team: team.id,
+      },
+    });
+    assert.equal(
+      (
+        await post(
+          {
+            ...c1Body,
+            operationKey: randomUUID(),
+            context: { kind: "inquiry", id: statusInquiry.id, updatedAt: statusInquiry.updatedAt },
+          },
+          opHeaders,
+        )
+      ).status,
+      200,
+    );
+    for (const statusAction of ["close", "reopen"]) {
+      if (statusAction === "reopen") {
+        const q = await p.findByID({ collection: "inquiries", id: statusInquiry.id });
+        const closeResponse = await fetch(base + "/api/inquiry-status", {
+          method: "POST",
+          headers: { ...adminHeaders, origin: base, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: q.id,
+            action: "close",
+            key: randomUUID(),
+            updatedAt: q.updatedAt,
+            reason: "Prepare reopen revocation fixture",
+          }),
+        });
+        assert.equal(closeResponse.status, 200);
+      }
+      const q = await p.findByID({ collection: "inquiries", id: statusInquiry.id });
+      const block = await p.db.beginTransaction();
+      assert.ok(block);
+      await transactionSession(p, block).db.execute("SELECT pg_advisory_xact_lock(726281)");
+      const waiting = fetch(base + "/api/inquiry-status", {
+        method: "POST",
+        headers: { ...opHeaders, origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: q.id,
+          action: statusAction,
+          key: randomUUID(),
+          updatedAt: q.updatedAt,
+          reason: "Revoke login while waiting",
+          status: "new",
+          coordinationStage: "received",
+        }),
+      });
+      const deadline = Date.now() + 10000;
+      while (
+        !(
+          await pool.query(
+            "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+          )
+        ).rowCount
+      ) {
+        assert.ok(Date.now() < deadline);
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      await p.update({
+        collection: "staff",
+        id: operator.id,
+        data: { sessions: [] },
+        req: { user, transactionID: block },
+      });
+      await p.db.commitTransaction(block);
+      const fingerprint = await databaseFingerprints(pool);
+      assert.equal(
+        (await waiting).status,
+        401,
+        "native status transition must reject revoked session after lock wait",
+      );
+      assert.deepEqual(await databaseFingerprints(pool), fingerprint);
+      Object.assign(opHeaders, await login(operator.email));
+    }
+    console.log(
+      "PASS C1 native close/reopen HTTP lock wait revokes session with parent/task/event/audit zero writes",
+    );
+
     const c1Lock = await p.db.beginTransaction();
     assert.ok(c1Lock);
     await transactionSession(p, c1Lock).db.execute("SELECT pg_advisory_xact_lock(726281)");

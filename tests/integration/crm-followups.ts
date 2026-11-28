@@ -1,3 +1,4 @@
+import { authenticateCrm } from "../../src/server/crm/access";
 import { crmAction } from "../../src/server/crm/service";
 import { transactionSession } from "../../src/server/db-types";
 import { executeFollowup } from "../../src/server/crm/followups";
@@ -768,6 +769,127 @@ try {
   await linkDenied;
   assert.deepEqual(await databaseFingerprints(pool), linkChanged);
   pass("actual waiting child write rechecks revoked association without side effects");
+
+  const regressions: unknown[] = [];
+  const regression = async (name: string, fn: () => Promise<void>) => {
+    try {
+      await fn();
+      pass(name);
+    } catch (error) {
+      console.error("C1 REVIEW REGRESSION FAILED:", name, error);
+      regressions.push(error);
+    }
+  };
+  await regression("UUID case-normalized replay and cross-action conflict", async () => {
+    const fresh = await p.findByID({ collection: "crm-clients", id: client.id });
+    const canonical = {
+      ...create,
+      context: { ...context, revision: fresh.revision },
+      assigneeID: other.id,
+      operationKey: "ABCDABCD-ABCD-4ABC-8ABC-ABCDABCDABCD",
+    };
+    const upper = await executeFollowup(p, asUser(other), canonical);
+    const state = await databaseFingerprints(pool);
+    assert.deepEqual(
+      await executeFollowup(p, asUser(other), {
+        ...canonical,
+        operationKey: canonical.operationKey.toLowerCase(),
+      }),
+      upper,
+    );
+    assert.deepEqual(await databaseFingerprints(pool), state);
+    const onlyUpper = "EEEEEEEE-EEEE-4EEE-8EEE-EEEEEEEEEEEE";
+    await executeFollowup(p, asUser(other), { ...canonical, operationKey: onlyUpper });
+    await noWrite(
+      () =>
+        crmAction(p, asUser(other), {
+          action: "updateClient",
+          operationKey: onlyUpper.toLowerCase(),
+          clientID: client.id,
+          expectedRevision: fresh.revision,
+          displayName: "Must conflict",
+        }),
+      409,
+    );
+  });
+  await regression(
+    "terminal corrections append without overwriting outcome or terminal metadata",
+    async () => {
+      const fresh = await p.findByID({ collection: "crm-clients", id: client.id });
+      const terminal = await p.findByID({ collection: "crm-followups", id });
+      const correction = {
+        action: "correctFollowup",
+        context: { ...context, revision: fresh.revision },
+        taskID: id,
+        expectedRevision: terminal.revision,
+        operationKey: key(),
+        management: true,
+        body: "Correction: call was on Tuesday",
+        reason: "Correct factual typo without rewriting original",
+      };
+      const oldEvent = (
+        await p.find({
+          collection: "crm-followup-events",
+          depth: 0,
+          where: { and: [{ task: { equals: id } }, { seq: { equals: 2 } }] },
+        })
+      ).docs[0];
+      const done = await executeFollowup(p, asUser(manager), correction);
+      const corrected = await p.findByID({ collection: "crm-followups", id });
+      assert.equal(corrected.state, terminal.state);
+      assert.equal(corrected.dueAt, terminal.dueAt);
+      assert.equal(corrected.terminalAt, terminal.terminalAt);
+      assert.deepEqual(corrected.terminalBy, terminal.terminalBy);
+      assert.equal(corrected.revision, terminal.revision + 1);
+      assert.equal(done.changedCount, 1);
+      assert.deepEqual(
+        await p.findByID({ collection: "crm-followup-events", id: oldEvent.id, depth: 0 }),
+        oldEvent,
+      );
+      await noWrite(
+        () =>
+          executeFollowup(p, asUser(manager), {
+            ...correction,
+            operationKey: key(),
+            expectedRevision: corrected.revision,
+            management: false,
+          }),
+        403,
+      );
+    },
+  );
+  await regression("completed task records created continuation identity", async () => {
+    const completedEvent = (
+      await p.find({
+        collection: "crm-followup-events",
+        where: { and: [{ task: { equals: id } }, { seq: { equals: 2 } }] },
+      })
+    ).docs[0];
+    assert.equal((completedEvent.details as Record<string, unknown>).continuationTaskID, nextID);
+  });
+  await regression(
+    "lock-held native reauthentication shares transaction connection under pool saturation",
+    async () => {
+      const password = key();
+      await p.update({ collection: "staff", id: other.id, req, data: { password } });
+      const login = await p.login({ collection: "staff", data: { email: other.email, password } });
+      const authed = await authenticateCrm(p, new Headers({ authorization: `JWT ${login.token}` }));
+      const holders: { release: () => void }[] = [];
+      const timeout = pool.options.connectionTimeoutMillis;
+      pool.options.connectionTimeoutMillis = 1000;
+      try {
+        const occupied = pool.totalCount - pool.idleCount;
+        const reserve = (pool.options.max ?? 10) - occupied - 1;
+        assert.ok(reserve > 0);
+        for (let i = 0; i < reserve; i++) holders.push(await pool.connect());
+        assert.ok((await followupList(p, authed, { kind: "client", id: client.id })).total > 0);
+      } finally {
+        holders.forEach((c) => c.release());
+        pool.options.connectionTimeoutMillis = timeout;
+      }
+    },
+  );
+  if (regressions.length) throw new AggregateError(regressions, "C1 review regressions");
 } finally {
   await p.destroy();
 }

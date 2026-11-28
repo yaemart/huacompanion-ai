@@ -90,7 +90,7 @@ needsReview包括旧导入、父重开、时间/关系异常；有权负责人�
 ## 5. 命令、事务、并发与回执
 
 建议接口沿/api/crm并使用authenticateCrm/currentActor；不新增另一套员工认证。
-createFollowup、appendFollowupNote、confirmFollowupReview（通用重开）/confirmLegacyFollowup（导入）、completeFollowup、postponeFollowup、cancelFollowup、assignFollowups。
+createFollowup、appendFollowupNote、correctFollowup（终态追加更正，正文及原因必填，原状态/截止/结果不覆盖）、confirmFollowupReview（通用重开）/confirmLegacyFollowup（导入）、completeFollowup、postponeFollowup、cancelFollowup、assignFollowups。
 每个命令有context（客户或咨询入口）、operationKey、当前task/slot revision；父客户版本/咨询updatedAt按预览捕获，
 目标ID/来源/操作者/时间不由客户端覆盖。输入严格白名单、未知/重复query拒绝，JSON限16KiB，分页20/max50。
 
@@ -195,3 +195,12 @@ C3：CRM多事项员工界面、客户下一步/管理队列、今日待办投�
 父关闭挂起/重开核对、旧指标保持记录口径、B2与事项两次明确转交、50项/20项上限。
 一次独立可实施性检查发现三项分期/语义缺口，已由设计作者澄清：C1通用生命周期确认、C2最小今日替代与核对入口、引用附加事项不晋升。
 用户确认并合并本设计PR后，才另批从最新main实施C1。
+
+## C1独立复核后的实施澄清
+
+原咨询关闭/重开API沿authenticateCrm注册原生会话，事务锁后重查，READ COMMITTED及业务→客户锁不变；
+currentActor的p.auth使用createLocalReq传入同一事务连接，避免池满时持锁者再等待连接。
+事项UUIDv4先统一小写再入键/HMAC。complete新建续办时原事件存continuationTaskID，新事件存previousTaskID。
+终态原字段只读；correctFollowup只追加正文＋原因事件并提升revision，有权的当前有效负责人或明确管理更正可执行，
+原结果、状态、截止、终态时间/操作者不覆盖；父挂起时仍禁止写，不能用更正代替复活/改期。
+C2扩展事件详情前须收紧动作字段白名单；同页咨询/负责人读取批量优化后续完成，当前权限交集与先过滤后分页不放宽。
