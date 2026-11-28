@@ -1,73 +1,113 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useUnsavedDraft } from "../admin/useDraftProtection";
+import { beginCrmWrite, settleCrmWrite, type CrmWriteState } from "../../lib/crm-client";
 import {
-  beginCrmWrite,
-  settleCrmWrite,
-  crmOwnerLabel,
-  type CrmWriteState,
-} from "../../lib/crm-client";
-import type { Client, Contact, Link, Candidate, Page, Options, View, Draft } from "./types";
+  newTransferDraft,
+  mergeTransferPage,
+  toggleTransferInquiry,
+  captureTransferDraft,
+  confirmedTransfer,
+  transferResultLabel,
+  type TransferDraft,
+  type TransferDraftInput,
+} from "../../lib/crm-transfer-draft";
+import { ownerLabel, followUpLabel } from "../../lib/crm-overview-view";
+import type { ClientRow, OverviewDetail, OverviewPage, QueueItem } from "../../lib/crm-overview";
+import type { TransferPreview, AssignmentEvent } from "../../lib/crm-assignments";
+import type {
+  Contact,
+  Link,
+  Candidate,
+  Page,
+  Options,
+  View,
+  Draft,
+  OpenClientAction,
+} from "./types";
+import { read, ReadError } from "./api";
+import { ClientRecords } from "./ClientRecords";
+import { ClientActionForm } from "./ClientActionForm";
+import { CustomerOverview } from "./CustomerOverview";
+import { AssignmentQueue } from "./AssignmentQueue";
+import { TransferAssignments } from "./TransferAssignments";
+import { clientActionPayload } from "./actions";
+import { Pager } from "./Pager";
 import "./crm.css";
-class ReadError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
-async function read<T>(action: string, extra: Record<string, string | number> = {}): Promise<T> {
-  const q = new URLSearchParams({ action });
-  for (const [key, value] of Object.entries(extra)) q.set(key, String(value));
-  const r = await fetch(`/api/crm?${q}`, { cache: "no-store" });
-  const d = await r.json().catch(() => null);
-  if (!r.ok || !d)
-    throw new ReadError(r.status, d?.error || "读取失败，请重试。当前填写不会被覆盖。");
-  return d as T;
-}
 const emptyValues = { name: "", email: "", phone: "", jobTitle: "", reason: "" };
+const initialFilters = { q: "", status: "active", kind: "", owner: "", teamID: "", work: "" };
+const firstPages = { contacts: 1, links: 1, candidates: 1, overview: 1, history: 1 };
 export default function ClientDirectory() {
   const [options, setOptions] = useState<Options>();
-  const [list, setList] = useState<Page<Client>>();
+  const [list, setList] = useState<OverviewPage<ClientRow>>();
   const [view, setView] = useState<View>();
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("active");
+  const [pages, setPages] = useState(firstPages);
+  const [filters, setFilters] = useState(initialFilters),
+    applied = useRef(initialFilters);
   const [draft, setDraft] = useState<Draft>();
-  const [message, setMessage] = useState("");
-  const [denied, setDenied] = useState(false);
-  const [pending, setPending] = useState<CrmWriteState>();
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [transfer, setTransfer] = useState<TransferDraft>();
+  const [queue, setQueue] = useState<OverviewPage<QueueItem>>();
+  const [queueTarget, setQueueTarget] = useState<"client" | "inquiry">("client"),
+    [showQueue, setShowQueue] = useState(false);
+  const [message, setMessage] = useState(""),
+    [denied, setDenied] = useState(false);
+  const [pending, setPending] = useState<CrmWriteState>(),
+    [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(false);
+  const [editorLoading, setEditorLoading] = useState(false),
+    [queueLoading, setQueueLoading] = useState(false);
   const writeRef = useRef<CrmWriteState | undefined>(undefined),
     sending = useRef(false);
-  const editRef = useRef<HTMLElement>(null);
+  const editRef = useRef<HTMLElement>(null),
+    detailRef = useRef<HTMLElement>(null);
   const sequence = useRef(0),
-    listSequence = useRef(0);
-  const { confirmDiscard } = useUnsavedDraft(Boolean(draft) || Boolean(pending));
-  const locked = busy || Boolean(pending);
-  function failed(error: unknown) {
+    listSequence = useRef(0),
+    editorSequence = useRef(0),
+    queueSequence = useRef(0);
+  const { confirmDiscard } = useUnsavedDraft(
+    Boolean(draft) || Boolean(transfer) || Boolean(pending),
+  );
+  const locked = busy || Boolean(pending) || editorLoading;
+  const manager = options?.role === "admin" || options?.role === "manager";
+  function failed(error: unknown, resource = false) {
     setMessage(error instanceof Error ? error.message : "读取失败，请重试。");
     if (error instanceof ReadError && [401, 403].includes(error.status)) {
       sequence.current++;
       listSequence.current++;
+      editorSequence.current++;
+      queueSequence.current++;
+      setLoading(false);
+      setEditorLoading(false);
+      setQueueLoading(false);
       setDenied(true);
       setView(undefined);
       setList(undefined);
       setOptions(undefined);
+      setQueue(undefined);
+      setDraft(undefined);
+      setTransfer(undefined);
+    } else if (resource && error instanceof ReadError && error.status === 404) {
+      sequence.current++;
+      editorSequence.current++;
+      setLoading(false);
+      setEditorLoading(false);
+      setView(undefined);
+      setDraft(undefined);
+      setTransfer(undefined);
     }
   }
   useEffect(() => {
     let active = true;
-    const initialSequence = ++listSequence.current;
-    Promise.all([read<Options>("options"), read<Page<Client>>("list")])
+    const seq = ++listSequence.current;
+    Promise.all([read<Options>("options"), read<OverviewPage<ClientRow>>("overviewList")])
       .then(([o, l]) => {
-        if (active && initialSequence === listSequence.current) {
+        if (active && seq === listSequence.current) {
           setOptions(o);
           setList(l);
         }
       })
       .catch((e) => {
-        if (active && initialSequence === listSequence.current) failed(e);
+        if (active && seq === listSequence.current) failed(e);
       });
     return () => {
       active = false;
@@ -76,17 +116,26 @@ export default function ClientDirectory() {
   useEffect(() => {
     editRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     editRef.current
-      ?.querySelector<HTMLElement>("input, select, textarea, button")
+      ?.querySelector<HTMLElement>("input,select,textarea,button")
       ?.focus({ preventScroll: true });
-  }, [draft?.action, draft?.base]);
-  async function loadList(page = 1) {
+  }, [draft?.action, draft?.base, transfer?.base]);
+  const openedID = view?.client.id;
+  useEffect(() => {
+    if (openedID) {
+      detailRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      detailRef.current?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+    }
+  }, [openedID]);
+  async function loadList(page = 1, next = applied.current) {
     const seq = ++listSequence.current;
+    const query = Object.fromEntries(Object.entries(next).filter(([, value]) => value !== ""));
     try {
       const [o, l] = await Promise.all([
         read<Options>("options"),
-        read<Page<Client>>("list", { q: query, status, page }),
+        read<OverviewPage<ClientRow>>("overviewList", { ...query, page }),
       ]);
       if (seq === listSequence.current) {
+        applied.current = { ...next };
         setOptions(o);
         setList(l);
       }
@@ -94,85 +143,122 @@ export default function ClientDirectory() {
       if (seq === listSequence.current) failed(e);
     }
   }
-  async function loadView(id: number, pages = { contacts: 1, links: 1, candidates: 1 }) {
-    const seq = ++sequence.current;
+  async function loadView(id: number, next: Partial<typeof firstPages> = {}) {
+    const seq = ++sequence.current,
+      requested = { ...(view?.client.id === id ? pages : firstPages), ...next };
     setLoading(true);
     setView(undefined);
     try {
-      const [client, contacts, links, candidates] = await Promise.all([
-        read<Client>("get", { clientID: id }),
-        read<Page<Contact>>("contacts", { clientID: id, page: pages.contacts }),
-        read<Page<Link>>("linkedInquiries", { clientID: id, page: pages.links }),
-        read<Page<Candidate>>("inquiryCandidates", { clientID: id, page: pages.candidates }),
+      const [overview, contacts, links, candidates, history] = await Promise.all([
+        read<OverviewDetail>("overview", { clientID: id, page: requested.overview, limit: 5 }),
+        read<Page<Contact>>("contacts", { clientID: id, page: requested.contacts }),
+        read<Page<Link>>("linkedInquiries", { clientID: id, page: requested.links }),
+        read<Page<Candidate>>("inquiryCandidates", { clientID: id, page: requested.candidates }),
+        manager
+          ? read<OverviewPage<AssignmentEvent>>("assignmentHistory", {
+              clientID: id,
+              page: requested.history,
+            })
+          : Promise.resolve(undefined),
       ]);
-      if (seq === sequence.current) setView({ client, contacts, links, candidates });
+      if (seq === sequence.current) {
+        setView({ client: overview.client, overview, contacts, links, candidates, history });
+        setPages(requested);
+      }
     } catch (e) {
-      if (seq === sequence.current) failed(e);
+      if (seq === sequence.current) failed(e, true);
     } finally {
       if (seq === sequence.current) setLoading(false);
     }
   }
   function discard() {
-    if (locked || !confirmDiscard()) return false;
+    if (locked || sending.current || writeRef.current || !confirmDiscard()) return false;
+    editorSequence.current++;
     setDraft(undefined);
+    setTransfer(undefined);
     return true;
   }
-  function open(
-    action: string,
-    title: string,
-    base: Record<string, unknown>,
-    values: Record<string, string> = {},
-  ) {
+  const open: OpenClientAction = (action, title, base, values = {}) => {
     if (!discard()) return;
     setMessage("");
     setDraft({ action, title, base, values: { ...emptyValues, ...values } });
+  };
+  async function openTransfer() {
+    if (!view || !discard()) return;
+    const id = view.client.id,
+      seq = ++editorSequence.current;
+    setEditorLoading(true);
+    setMessage("");
+    try {
+      const preview = await read<TransferPreview>("transferPreview", { clientID: id });
+      if (seq === editorSequence.current) setTransfer(newTransferDraft(preview));
+    } catch (e) {
+      if (seq === editorSequence.current) failed(e, true);
+    } finally {
+      if (seq === editorSequence.current) setEditorLoading(false);
+    }
   }
-  function base() {
-    return { clientID: view!.client.id, expectedClientRevision: view!.client.revision };
-  }
-  function values(key: string) {
-    return draft?.values[key] ?? "";
-  }
-  function setValue(key: string, value: string) {
-    setDraft((d) => (d ? { ...d, values: { ...d.values, [key]: value } } : d));
-  }
-  function payload(d: Draft) {
-    const v = d.values,
-      body: Record<string, unknown> = { action: d.action, ...d.base };
-    if (["createClient", "updateClient"].includes(d.action)) {
-      Object.assign(body, {
-        displayName: v.displayName,
-        language: v.language,
-        countryCode: v.countryCode || null,
+  async function transferPage(page: number) {
+    if (!transfer || locked) return;
+    const snapshot = transfer,
+      seq = ++editorSequence.current;
+    setEditorLoading(true);
+    try {
+      const data = await read<TransferPreview>("transferPreview", {
+        clientID: snapshot.base.clientID,
+        page,
       });
-      if (d.action === "createClient") {
-        body.kind = v.kind;
-        if (options?.role === "admin") body.teamID = Number(v.teamID);
-        if (options?.role !== "operations") body.ownerID = v.ownerID ? Number(v.ownerID) : null;
-      }
-    } else if (d.action === "saveContact") {
-      Object.assign(body, {
-        name: v.name,
-        email: v.email || null,
-        phone: v.phone || null,
-        jobTitle: v.jobTitle || null,
-      });
-    } else if (d.action !== "setPrimaryContact") body.reason = v.reason;
-    return body;
+      const merged = mergeTransferPage(snapshot, data);
+      if (seq === editorSequence.current)
+        setTransfer((current) =>
+          current?.base === snapshot.base ? { ...current, current: merged.current } : current,
+        );
+    } catch (e) {
+      if (seq === editorSequence.current) failed(e, true);
+    } finally {
+      if (seq === editorSequence.current) setEditorLoading(false);
+    }
   }
-  async function submit(event?: FormEvent) {
+  async function loadQueue(target = queueTarget, page = 1) {
+    const seq = ++queueSequence.current;
+    setQueueTarget(target);
+    setQueue(undefined);
+    setQueueLoading(true);
+    try {
+      const data = await read<OverviewPage<QueueItem>>("assignmentQueue", { target, page });
+      if (seq === queueSequence.current) setQueue(data);
+    } catch (e) {
+      if (seq === queueSequence.current) failed(e);
+    } finally {
+      if (seq === queueSequence.current) setQueueLoading(false);
+    }
+  }
+  function reviewTransfer() {
+    if (!transfer) return;
+    try {
+      captureTransferDraft(transfer, Number(transfer.recipientID), transfer.reason);
+      setTransfer({ ...transfer, review: true });
+      setMessage("");
+    } catch (e) {
+      failed(e);
+    }
+  }
+  async function submit(event?: FormEvent, supplied?: TransferDraftInput) {
     event?.preventDefault();
-    if (sending.current || (!draft && !writeRef.current)) return;
+    if (sending.current || (!draft && !supplied && !writeRef.current) || !options) return;
     if (
       !writeRef.current &&
+      !supplied &&
       draft?.action === "saveContact" &&
-      !values("email") &&
-      !values("phone")
+      !draft.values.email &&
+      !draft.values.phone
     ) {
       setMessage("至少填写邮箱或电话。");
       return;
     }
-    const operation = writeRef.current ?? beginCrmWrite(payload(draft!), crypto.randomUUID());
+    const operation =
+      writeRef.current ??
+      beginCrmWrite(supplied ?? clientActionPayload(draft!, options), crypto.randomUUID());
     writeRef.current = operation;
     setPending(operation);
     sending.current = true;
@@ -185,29 +271,43 @@ export default function ClientDirectory() {
         body: operation.payload,
       });
       code = response.status;
-      const data = await response.json().catch(() => null);
-      const original = JSON.parse(operation.payload) as Record<string, unknown>;
+      const data = await response.json().catch(() => null),
+        original = JSON.parse(operation.payload);
       const confirmed =
         response.ok &&
-        Number.isSafeInteger(data?.clientID) &&
-        data.clientID > 0 &&
-        Number.isSafeInteger(data?.revision) &&
-        data.revision > 0 &&
-        (original.action === "createClient" || data.clientID === original.clientID);
+        (original.action === "transferAssignments"
+          ? confirmedTransfer(data, original)
+          : Number.isSafeInteger(data?.clientID) &&
+            data.clientID > 0 &&
+            Number.isSafeInteger(data?.revision) &&
+            data.revision > 0 &&
+            (original.action === "createClient" || data.clientID === original.clientID));
       const next = settleCrmWrite(operation, code, confirmed);
       writeRef.current = next;
       setPending(next);
       if (confirmed) {
         setDraft(undefined);
-        setMessage("操作已确认。以下为重新读取的资料。");
-        await Promise.all([loadList(list?.page ?? 1), loadView(data.clientID)]);
-      } else {
-        if ([401, 403].includes(code))
-          failed(new ReadError(code, "员工登录或权限已变化，请重新登录核对。"));
+        setTransfer(undefined);
+        setMessage(
+          original.action === "transferAssignments"
+            ? transferResultLabel(data) + " 回执已确认，以下为重读的当前资料。"
+            : "操作已确认。以下为重新读取的资料。",
+        );
+        await Promise.all([loadList(list?.page ?? 1), loadView(data.clientID, firstPages)]);
+        if (showQueue) await loadQueue();
+      } else if ([401, 403].includes(code))
+        failed(new ReadError(code, "员工登录或权限已变化，请重新登录核对。"));
+      else {
+        if (code === 404)
+          failed(
+            new ReadError(code, "客户或所选咨询已不可用，已隐藏原资料；请由有权员工核对原操作。"),
+            true,
+          );
         else
           setMessage(
-            `${data?.error || "未收到有效操作回执。"}${next ? " 原操作仍未确认，请重试原操作；不要新建或离开本页。" : " 当前输入已保留；如需更新版本，请先复制填写，取消表单、刷新详情后重新打开。"}`,
+            `${typeof data?.error === "string" ? data.error : "未收到有效操作回执。"}${next ? " 原操作仍未确认，请重试原操作；不要新建或离开本页。" : " 当前输入已保留；请先复制原因，取消表单、刷新后重新打开核对版本。"}`,
           );
+        if (!next) setTransfer((d) => (d ? { ...d, review: false } : d));
       }
     } catch {
       const next = settleCrmWrite(operation, code, false);
@@ -219,26 +319,26 @@ export default function ClientDirectory() {
       setBusy(false);
     }
   }
-  const active = view?.client.status === "active";
-  const field = (name: string, label: string, required = false, type = "text", maxLength = 200) => (
-    <label>
-      {label}
-      <input
-        name={name}
-        type={type}
-        required={required}
-        maxLength={maxLength}
-        value={values(name)}
-        onChange={(e) => setValue(name, e.target.value)}
-      />
-    </label>
-  );
+  function submitTransfer() {
+    if (!transfer || locked) return;
+    try {
+      void submit(
+        undefined,
+        captureTransferDraft(transfer, Number(transfer.recipientID), transfer.reason),
+      );
+    } catch (e) {
+      failed(e);
+    }
+  }
+  const editing = Boolean(draft) || Boolean(transfer),
+    filter = (key: keyof typeof initialFilters, value: string) =>
+      setFilters((f) => ({ ...f, [key]: value }));
   return (
     <main className="crm-center">
       <header>
         <p className="crm-eyebrow">华伴 · 员工工作台</p>
-        <h1>客户档案</h1>
-        <p>管理客户资料与咨询归属。内部归档不会授予或收回客户登录访问权。</p>
+        <h1>客户总览</h1>
+        <p>管理客户档案与咨询归属。只聚合当前有权业务；内部转交不改变旧客户对外授权。</p>
         <a href="/admin">返回管理后台</a>
       </header>
       <p role="status" aria-live="polite" className="crm-message">
@@ -271,30 +371,115 @@ export default function ClientDirectory() {
             >
               新建客户
             </button>
-            <button disabled={busy} onClick={() => void loadList(list?.page ?? 1)}>
+            <button disabled={locked} onClick={() => void loadList(list?.page ?? 1)}>
               重新载入列表
             </button>
+            {manager && (
+              <button
+                disabled={locked || queueLoading}
+                onClick={() => {
+                  if (discard()) {
+                    setShowQueue(!showQueue);
+                    if (!showQueue) void loadQueue();
+                  }
+                }}
+              >
+                {showQueue ? "收起待分派" : "待分派"}
+              </button>
+            )}
           </div>
+          {manager && showQueue && (
+            <>
+              <AssignmentQueue
+                target={queueTarget}
+                data={queue}
+                disabled={locked || queueLoading}
+                onTarget={(target) => {
+                  if (discard()) void loadQueue(target);
+                }}
+                onPage={(page) => {
+                  if (discard()) void loadQueue(queueTarget, page);
+                }}
+                onOpenClient={(id) => {
+                  if (discard()) {
+                    setShowQueue(false);
+                    void loadView(id);
+                  }
+                }}
+              />
+              {queueLoading && <p role="status">正在读取待分派…</p>}
+            </>
+          )}
           <div className="crm-layout">
             <section aria-label="客户列表" className="crm-panel">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (discard()) void loadList();
+                  if (discard()) void loadList(1, filters);
                 }}
               >
-                <label>
-                  搜索客户
-                  <input maxLength={100} value={query} onChange={(e) => setQuery(e.target.value)} />
-                </label>
-                <label>
-                  档案状态
-                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="active">使用中</option>
-                    <option value="archived">已存档</option>
-                  </select>
-                </label>
-                <button disabled={locked}>查询</button>
+                <fieldset disabled={locked}>
+                  <label>
+                    搜索客户
+                    <input
+                      maxLength={100}
+                      value={filters.q}
+                      onChange={(e) => filter("q", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    档案状态
+                    <select
+                      value={filters.status}
+                      onChange={(e) => filter("status", e.target.value)}
+                    >
+                      <option value="active">使用中</option>
+                      <option value="archived">已存档</option>
+                    </select>
+                  </label>
+                  <label>
+                    客户类型筛选
+                    <select value={filters.kind} onChange={(e) => filter("kind", e.target.value)}>
+                      <option value="">全部类型</option>
+                      <option value="individual">个人客户</option>
+                      <option value="company">企业客户</option>
+                    </select>
+                  </label>
+                  <label>
+                    主负责人范围
+                    <select value={filters.owner} onChange={(e) => filter("owner", e.target.value)}>
+                      <option value="">当前授权范围</option>
+                      <option value="mine">本人负责</option>
+                      {manager && <option value="unassigned">待分派</option>}
+                    </select>
+                  </label>
+                  {options?.role === "admin" && (
+                    <label>
+                      团队筛选
+                      <select
+                        value={filters.teamID}
+                        onChange={(e) => filter("teamID", e.target.value)}
+                      >
+                        <option value="">全部授权团队</option>
+                        {options.teams.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label>
+                    可见业务筛选
+                    <select value={filters.work} onChange={(e) => filter("work", e.target.value)}>
+                      <option value="">全部</option>
+                      <option value="active">进行中业务</option>
+                      <option value="dueToday">今日到期（北京时间）</option>
+                      <option value="overdue">已逾期</option>
+                    </select>
+                  </label>
+                  <button>查询</button>
+                </fieldset>
               </form>
               {!list ? (
                 <p>尚未读取客户列表。可重新载入。</p>
@@ -316,348 +501,98 @@ export default function ClientDirectory() {
                         <small>
                           {c.kind === "company" ? "企业" : "个人"} · {c.reference}
                         </small>
+                        <p>{ownerLabel(c.ownerDisplay)}</p>
+                        <small>
+                          可见进行中咨询 {c.visibleInquiryCount} · 服务单 {c.visibleCaseCount}
+                        </small>
+                        <small>最早现有跟进：{followUpLabel(c.nextFollowUp)}</small>
                       </li>
                     ))}
                   </ul>
-                  {!list.items.length && <p>当前条件下没有客户。</p>}
+                  {!list.items.length && <p>当前条件下没有可见客户。</p>}
                   <Pager
                     label="客户"
                     data={list}
-                    disabled={locked || Boolean(draft)}
-                    onPage={(n) => void loadList(n)}
+                    disabled={locked || editing}
+                    onPage={(page) => void loadList(page)}
                   />
                 </>
               )}
             </section>
-            <section className="crm-panel" aria-label="客户详情">
+            <section
+              ref={detailRef}
+              className="crm-panel"
+              aria-label="客户详情"
+              aria-busy={loading}
+            >
               {loading && <p>正在读取客户资料…</p>}
-              {!loading && !view && <p>从左侧打开客户，或新建客户档案。</p>}
+              {!loading && !view && <p>从客户列表或待分派打开客户，或新建客户档案。</p>}
               {view && (
                 <>
-                  <h2>{view.client.displayName}</h2>
-                  <p>
-                    {view.client.reference} · 第 {view.client.revision} 版 ·{" "}
-                    {active ? "使用中" : "已存档（只读）"}
-                  </p>
-                  <p>
-                    语言：{view.client.language === "zh" ? "中文" : "英文"} · 国家／地区代码：
-                    {view.client.countryCode || "未填写"}
-                  </p>
-                  <p>
-                    所属团队：
-                    {options?.teams.find((t) => t.id === view.client.teamID)?.name || "当前团队"} ·
-                    负责人：
-                    {crmOwnerLabel(
-                      options?.role ?? "",
-                      view.client.ownerID,
-                      options?.owners.find((s) => s.id === view.client.ownerID)?.name,
-                    )}
-                  </p>
-                  <div className="crm-actions">
-                    <button disabled={locked} onClick={() => void loadView(view.client.id)}>
-                      刷新详情
+                  {manager && view.client.status === "active" && (
+                    <button disabled={locked} onClick={() => void openTransfer()}>
+                      转交责任
                     </button>
-                    <button
-                      disabled={locked || !active}
-                      onClick={() =>
-                        open(
-                          "updateClient",
-                          "修改客户资料",
-                          { clientID: view.client.id, expectedRevision: view.client.revision },
-                          {
-                            displayName: view.client.displayName,
-                            language: view.client.language,
-                            countryCode: view.client.countryCode || "",
-                          },
-                        )
-                      }
-                    >
-                      修改资料
-                    </button>
-                    <button
-                      disabled={locked || !active}
-                      onClick={() =>
-                        open("archiveClient", "存档客户", {
-                          clientID: view.client.id,
-                          expectedRevision: view.client.revision,
-                        })
-                      }
-                    >
-                      存档客户
-                    </button>
-                  </div>
-                  <h3>联系人</h3>
-                  <button
-                    disabled={locked || !active}
-                    onClick={() => open("saveContact", "新增联系人", base())}
-                  >
-                    新增联系人
-                  </button>
-                  <ul className="crm-cards">
-                    {view.contacts.items.map((c) => (
-                      <li key={c.id}>
-                        <strong>
-                          {c.name}
-                          {c.isPrimary ? " · 主联系人" : ""}
-                        </strong>
-                        <p>
-                          {c.email || "未填邮箱"} · {c.phone || "未填电话"}
-                        </p>
-                        <p>{c.jobTitle}</p>
-                        <div className="crm-actions">
-                          <button
-                            disabled={locked || !active}
-                            onClick={() =>
-                              open(
-                                "saveContact",
-                                "修改联系人",
-                                { ...base(), contactID: c.id, expectedRevision: c.revision },
-                                {
-                                  name: c.name,
-                                  email: c.email || "",
-                                  phone: c.phone || "",
-                                  jobTitle: c.jobTitle || "",
-                                },
-                              )
-                            }
-                          >
-                            修改联系人
-                          </button>
-                          <button
-                            disabled={locked || !active || c.isPrimary}
-                            onClick={() =>
-                              open("setPrimaryContact", "设为主联系人", {
-                                ...base(),
-                                contactID: c.id,
-                              })
-                            }
-                          >
-                            设为主联系人
-                          </button>
-                          <button
-                            disabled={locked || !active}
-                            onClick={() =>
-                              open("archiveContact", "存档联系人", {
-                                ...base(),
-                                contactID: c.id,
-                                expectedRevision: c.revision,
-                              })
-                            }
-                          >
-                            存档联系人
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  <Pager
-                    label="联系人"
-                    data={view.contacts}
-                    disabled={locked || Boolean(draft)}
-                    onPage={(n) =>
-                      void loadView(view.client.id, {
-                        contacts: n,
-                        links: view.links.page,
-                        candidates: view.candidates.page,
-                      })
-                    }
+                  )}
+                  <CustomerOverview
+                    data={view.overview}
+                    history={view.history}
+                    disabled={locked || editing}
+                    onPage={(page) => void loadView(view.client.id, { overview: page })}
+                    onHistoryPage={(page) => void loadView(view.client.id, { history: page })}
                   />
-                  <h3>关联咨询</h3>
-                  <p>有旧客户访问授权时，撤销会被阻止；请先由有权员工核对。</p>
-                  <ul className="crm-cards">
-                    {view.links.items.map((l) => (
-                      <li key={l.linkID}>
-                        <strong>
-                          {l.name} · {l.reference}
-                        </strong>
-                        {l.serviceCase && (
-                          <p>
-                            <a
-                              href={`/business-center?id=${l.serviceCase.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              打开服务单：{l.serviceCase.title}
-                            </a>
-                          </p>
-                        )}
-                        <button
-                          disabled={locked || !active}
-                          onClick={() =>
-                            open("revokeInquiryLink", "撤销内部关联", {
-                              ...base(),
-                              linkID: l.linkID,
-                              expectedRevision: l.linkRevision,
-                            })
-                          }
-                        >
-                          撤销关联
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <Pager
-                    label="关联咨询"
-                    data={view.links}
-                    disabled={locked || Boolean(draft)}
-                    onPage={(n) =>
-                      void loadView(view.client.id, {
-                        contacts: view.contacts.page,
-                        links: n,
-                        candidates: view.candidates.page,
-                      })
-                    }
-                  />
-                  <h3>可关联咨询</h3>
-                  <ul className="crm-cards">
-                    {view.candidates.items.map((c) => (
-                      <li key={c.inquiryID}>
-                        <strong>
-                          {c.name} · {c.reference}
-                        </strong>
-                        <button
-                          disabled={locked || !active}
-                          onClick={() =>
-                            open("linkInquiry", "关联咨询", {
-                              ...base(),
-                              inquiryID: c.inquiryID,
-                              expectedLinkRevision: c.expectedLinkRevision,
-                            })
-                          }
-                        >
-                          关联此咨询
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <Pager
-                    label="可关联咨询"
-                    data={view.candidates}
-                    disabled={locked || Boolean(draft)}
-                    onPage={(n) =>
-                      void loadView(view.client.id, {
-                        contacts: view.contacts.page,
-                        links: view.links.page,
-                        candidates: n,
-                      })
-                    }
-                  />
+
+                  <details>
+                    <summary>管理联系人与咨询关联（原档案操作）</summary>
+                    <ClientRecords
+                      view={view}
+                      locked={locked}
+                      editing={editing}
+                      onOpen={open}
+                      onRefresh={() => void loadView(view.client.id)}
+                      onPage={(next) => void loadView(view.client.id, next)}
+                    />
+                  </details>
                 </>
               )}
             </section>
           </div>
           {draft && options && (
-            <section ref={editRef} className="crm-panel crm-edit" aria-label="操作表单">
-              <h2>{draft.title}</h2>
-              <p>提交将按打开表单时的版本核对；刷新不会覆盖当前填写。</p>
-              <form onSubmit={(e) => void submit(e)}>
-                <fieldset disabled={locked}>
-                  {draft.action === "createClient" && (
-                    <label>
-                      客户类型
-                      <select
-                        value={values("kind")}
-                        onChange={(e) => setValue("kind", e.target.value)}
-                      >
-                        <option value="individual">个人客户</option>
-                        <option value="company">企业客户</option>
-                      </select>
-                    </label>
-                  )}
-                  {["createClient", "updateClient"].includes(draft.action) && (
-                    <>
-                      {field("displayName", "客户名称", true)}
-                      <label>
-                        沟通语言
-                        <select
-                          value={values("language")}
-                          onChange={(e) => setValue("language", e.target.value)}
-                        >
-                          <option value="en">英文</option>
-                          <option value="zh">中文</option>
-                        </select>
-                      </label>
-                      {field("countryCode", "国家／地区代码（可选，如 CN、JP）", false, "text", 2)}
-                    </>
-                  )}
-                  {draft.action === "createClient" && options.role === "admin" && (
-                    <label>
-                      所属团队
-                      <select
-                        required
-                        value={values("teamID")}
-                        onChange={(e) => {
-                          setValue("teamID", e.target.value);
-                          setValue("ownerID", "");
-                        }}
-                      >
-                        {options.teams.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  {draft.action === "createClient" && options.role !== "operations" && (
-                    <label>
-                      负责人
-                      <select
-                        required={options.role === "manager"}
-                        value={values("ownerID")}
-                        onChange={(e) => setValue("ownerID", e.target.value)}
-                      >
-                        <option value="">
-                          {options.role === "admin" ? "暂不分派" : "请选择负责人"}
-                        </option>
-                        {options.owners
-                          .filter(
-                            (s) =>
-                              s.teamID ===
-                              Number(options.role === "admin" ? values("teamID") : options.teamID),
-                          )
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                  )}
-                  {draft.action === "saveContact" && (
-                    <>
-                      {field("name", "联系人姓名", true)}
-                      {field("email", "邮箱", false, "email", 254)}
-                      {field("phone", "电话", false, "tel", 100)}
-                      {field("jobTitle", "职务（可选）", false, "text", 100)}
-                    </>
-                  )}
-                  {["linkInquiry", "revokeInquiryLink", "archiveClient", "archiveContact"].includes(
-                    draft.action,
-                  ) && (
-                    <label>
-                      核对依据或原因（10–2000字）
-                      <textarea
-                        required
-                        minLength={10}
-                        maxLength={2000}
-                        value={values("reason")}
-                        onChange={(e) => setValue("reason", e.target.value)}
-                      />
-                    </label>
-                  )}
-                  <button type="submit">确认{draft.title}</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (discard()) setDraft(undefined);
-                    }}
-                  >
-                    取消
-                  </button>
-                </fieldset>
-              </form>
-            </section>
+            <ClientActionForm
+              draft={draft}
+              options={options}
+              locked={locked}
+              sectionRef={editRef}
+              onChange={(key, value) =>
+                setDraft((d) => (d ? { ...d, values: { ...d.values, [key]: value } } : d))
+              }
+              onSubmit={(e) => void submit(e)}
+              onCancel={() => {
+                discard();
+              }}
+            />
+          )}
+          {transfer && (
+            <TransferAssignments
+              draft={transfer}
+              locked={locked}
+              paging={editorLoading}
+              sectionRef={editRef}
+              onChange={setTransfer}
+              onToggle={(id) => {
+                try {
+                  setTransfer(toggleTransferInquiry(transfer, id));
+                } catch (e) {
+                  failed(e);
+                }
+              }}
+              onPage={(page) => void transferPage(page)}
+              onReview={reviewTransfer}
+              onSubmit={submitTransfer}
+              onCancel={() => {
+                discard();
+              }}
+            />
           )}
           {pending && (
             <section className="crm-panel" aria-label="原操作核实">
@@ -674,33 +609,5 @@ export default function ClientDirectory() {
         </>
       )}
     </main>
-  );
-}
-function Pager({
-  label,
-  data,
-  disabled,
-  onPage,
-}: {
-  label: string;
-  data: Page<unknown>;
-  disabled: boolean;
-  onPage: (page: number) => void;
-}) {
-  return (
-    <nav aria-label={`${label}分页`} className="crm-actions">
-      <button disabled={disabled || data.page <= 1} onClick={() => onPage(data.page - 1)}>
-        上一页
-      </button>
-      <span>
-        第 {data.page} 页 · {data.total} 项
-      </span>
-      <button
-        disabled={disabled || data.page * data.limit >= data.total}
-        onClick={() => onPage(data.page + 1)}
-      >
-        下一页
-      </button>
-    </nav>
   );
 }
