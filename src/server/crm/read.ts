@@ -1,3 +1,9 @@
+import {
+  assignmentActions,
+  type AssignmentQuery,
+  type AssignmentRead,
+} from "../../lib/crm-assignments";
+import { crmAssignmentsRead } from "./assignment-read";
 import { overviewActions, type OverviewQuery, type OverviewResult } from "../../lib/crm-overview";
 import { crmOverview } from "./overview";
 import { isAdmin, isManager, relationID as staffRelationID } from "../../cms/access";
@@ -11,10 +17,17 @@ import { clientScope, currentActor, requireClient, type CrmActor } from "./acces
 export function crmRead(
   p: Payload,
   user: CrmActor,
+  raw: Pick<AssignmentQuery, "action"> & Record<string, unknown>,
+): Promise<AssignmentRead>;
+export function crmRead(
+  p: Payload,
+  user: CrmActor,
   raw: Pick<OverviewQuery, "action"> & Record<string, unknown>,
 ): Promise<OverviewResult>;
 export function crmRead(p: Payload, user: CrmActor, raw: unknown): ReturnType<typeof legacyCrmRead>;
 export async function crmRead(p: Payload, user: CrmActor, raw: unknown) {
+  if (raw && typeof raw === "object" && assignmentActions.includes((raw as AssignmentQuery).action))
+    return crmAssignmentsRead(p, user, raw);
   if (raw && typeof raw === "object" && overviewActions.includes((raw as OverviewQuery).action))
     return crmOverview(p, user, raw);
   return legacyCrmRead(p, user, raw);

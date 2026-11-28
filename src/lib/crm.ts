@@ -1,3 +1,4 @@
+import { parseTransferInput, type TransferSelection } from "./crm-assignments.ts";
 import { customerEmail } from "./customer.ts";
 
 export class CrmError extends Error {
@@ -16,6 +17,7 @@ export const crmActions = [
   "archiveClient",
   "linkInquiry",
   "revokeInquiryLink",
+  "transferAssignments",
 ] as const;
 export type CrmAction = (typeof crmActions)[number];
 export interface CrmInput {
@@ -39,8 +41,12 @@ export interface CrmInput {
   phone?: string | null;
   jobTitle?: string | null;
   reason?: string;
+  recipientID?: number;
+  transferClient?: boolean;
+  inquiries?: TransferSelection[];
 }
 const fields: Record<CrmAction, string[]> = {
+  transferAssignments: [],
   createClient: ["kind", "displayName", "language", "countryCode", "teamID", "ownerID"],
   updateClient: ["clientID", "expectedRevision", "displayName", "language", "countryCode"],
   saveContact: [
@@ -74,6 +80,7 @@ export function parseCrmAction(raw: unknown): CrmInput {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new CrmError("无效请求");
   const data = raw as Record<string, unknown>;
   const action = data.action as CrmAction;
+  if (action === "transferAssignments") return parseTransferInput(raw);
   if (!crmActions.includes(action)) throw new CrmError("不支持的操作");
   for (const key of Object.keys(data))
     if (!["action", "operationKey", ...fields[action]].includes(key))

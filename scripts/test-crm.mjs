@@ -7,7 +7,19 @@ import { assertCrmTarget } from "./lib/crm-test-target.mjs";
 
 if (process.version !== "v24.22.1") throw Error("Node24.22.1 required");
 const mode = process.argv[2] ?? "test";
-if (!["test", "types", "build", "links", "session", "http", "preview", "overview"].includes(mode))
+if (
+  ![
+    "test",
+    "types",
+    "build",
+    "links",
+    "session",
+    "http",
+    "preview",
+    "overview",
+    "assignments",
+  ].includes(mode)
+)
   throw Error("Unknown CRM test mode");
 const ci = process.env.GITHUB_ACTIONS === "true";
 const name = "hua_crm_test_" + randomUUID().replaceAll("-", "");
@@ -72,6 +84,8 @@ try {
         ...(mode === "preview" ? ["--preview"] : []),
       ]);
     else if (mode === "session") run(["--import", "tsx", "tests/integration/crm-session.ts"]);
+    else if (mode === "assignments")
+      run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
     else if (mode === "overview") run(["--import", "tsx", "tests/integration/crm-overview.ts"]);
     else if (mode === "links") run(["--import", "tsx", "tests/integration/crm-links.ts"]);
     else {
@@ -79,6 +93,7 @@ try {
       run(["--import", "tsx", "tests/integration/crm-links.ts"]);
       run(["--import", "tsx", "tests/integration/crm-session.ts"]);
       run(["--import", "tsx", "tests/integration/crm-overview.ts"]);
+      run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
       for (const suite of ["business", "customer", "permissions-business"])
         run(["--import", "tsx", `tests/integration/${suite}.ts`]);
       run(["node_modules/next/dist/bin/next", "build", "--webpack"]);
