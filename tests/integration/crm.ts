@@ -382,7 +382,7 @@ try {
     status: "archived",
   });
   assert.ok(
-    "items" in contacts && contacts.items.some((c) => "id" in c && c.id === second.contactID),
+    "items" in contacts && contacts.items?.some((c) => "id" in c && c.id === second.contactID),
   );
   pass("contact archive clears primary flag, remains readable and cannot be reactivated");
   const commit = p.db.commitTransaction;

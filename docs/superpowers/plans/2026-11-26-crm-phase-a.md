@@ -13,7 +13,7 @@
 
 ## Global Constraints
 
-- 仅计划，尚未执行任何复选框；2026-11-28用户仅批准A1a实施，其余按合并顺序后置。
+- 原始总体清单保留；A1a/A1b已合并，A2获准实施，实际逐项结果见三份2026-11-28分批计划。
 - 不切换或提交当前展会任务，不编辑其交接与源码；实施时从最新origin/main建立codex/crm-phase-a-core。
 - A1合并后才从最新main建立codex/crm-phase-a-ui，不叠加PR；均早建草稿PR，不自动合并。
 - 实施前读AGENTS、handoff、多电脑指南及node_modules/next/dist/docs的路由／缓存／认证相关文档。
@@ -131,3 +131,11 @@ A1/A2均无实际.env／外部账号变化；若实施发现必须变化，先�
 用户批准A1a→A1b→A2顺序。以2026-11-28-crm-phase-a1a.md为本次实施范围；
 A1a不建关联表、不实现咨询关联或HTTP/UI，不操作原演示集群。
 负责人沿用validOwner：同团队现职且具operations能力。旧外部授权全程不改。
+
+## 2026-11-28 A2执行状态（优先于历史停点）
+
+A1a PR131、A1b PR132已合并，基线main885a7db。用户已批准A2最小员工界面，
+按本批实施计划实施；路径以仓库
+`docs/superpowers/plans/2026-11-28-crm-phase-a2.md`为准。
+A2不新增迁移或对外授权，不含B总览／转交、C跟进、D登录完善及E/F服务商门户。
+旧稿复选框保留为历史规划，不能作为测试或已交付证据；本批结果见最新handoff/progress与PR133。
