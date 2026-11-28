@@ -1,6 +1,7 @@
 # 体检整改一页小结
 
 2026-11-28；基线PR137合并20a9019，分支codex/health-remediation；阶段C不在本批。
+[草稿PR138](https://github.com/yaemart/huacompanion-ai/pull/138)，不自动合并。
 
 Next.js精确升级16.4.5；当前Payload3.92.0 peer兼容，锁文件仅Next/SWC/@next/env版本变化。
 Node24.22.1下npm ci完成；原7份Next根公告已不再命中。审计仍有全树14、生产树5个moderate节点，

@@ -47,7 +47,7 @@ tests/integration/crm-http.ts、.github/workflows/ci.yml；交接与一页中文
 - [x] 新mode保持原守卫，新库迁移→专用虚构管理员→12套串行；每套非零中止并finally仅清自有库。
 - [x] CI原CRM job新增modules步骤、unit job补政策列表render；不扩大产品开关或环境凭据。
 - [x] check、25render、完整test:crm（含原路由CLI真实HTTP）、test:modules、审计结果全部核实。
-- [ ] 唯一全分支独立复核与修复、中文交接已完成；草稿PR及最终fetch回执待补。
+- [x] 唯一全分支独立复核与修复、中文交接已完成；草稿PR138已建立，首批fetch回执一致；最终SHA/CI由PR实核回执记录。
 - [x] 自有随机库0，专用PG正常停止保留，原演示不操作；对应最终SHA的CI准确报告，不自动合并。
 
 ## 唯一末尾复核与修正

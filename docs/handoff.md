@@ -5,7 +5,7 @@
 用户明确批准三项整改，阶段C后续另做。PR137实核合并20a90191c1e2daf8b54db69cde5a8f591947eb64包含988af05；
 从最新origin/main建立codex/health-remediation，复用现有独立CRM worktree。
 [一页中文小结](health-remediation-summary.md)、[短设计](superpowers/specs/2026-11-28-health-remediation-design.md)、
-[实施计划](superpowers/plans/2026-11-28-health-remediation.md)。本批草稿PR回执将在推送后补充，不自动合并。
+[实施计划](superpowers/plans/2026-11-28-health-remediation.md)。本批[草稿PR138](https://github.com/yaemart/huacompanion-ai/pull/138)已建立，不自动合并。
 
 Next精确16.4.5，Payload3.92.0 peer兼容；锁版本仅Next及配套SWC/@next/env变化，npm ci完成。
 实际审计Next已不再命中原7公告；全树14/prod5 moderate节点、0high/critical，残余根源esbuild/minimatch。
