@@ -1,3 +1,7 @@
+import {
+  up as upLinks,
+  down as downLinks,
+} from "../../src/migrations/20261128_130000_crm_inquiry_links";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { PostgresAdapter } from "@payloadcms/db-postgres";
@@ -27,9 +31,17 @@ async function migrate(fn: typeof up, rollback = false) {
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
+    if (fn === down)
+      await downLinks({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
+        typeof downLinks
+      >[0]);
     await fn({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
       typeof up
     >[0]);
+    if (fn === up)
+      await upLinks({ db: { execute: (sql: string) => db.query(sql) } } as unknown as Parameters<
+        typeof upLinks
+      >[0]);
     await db.query(rollback ? "ROLLBACK" : "COMMIT");
   } catch (e) {
     await db.query("ROLLBACK");
@@ -369,7 +381,9 @@ try {
     clientID: a.clientID,
     status: "archived",
   });
-  assert.ok("items" in contacts && contacts.items.some((c) => c.id === second.contactID));
+  assert.ok(
+    "items" in contacts && contacts.items.some((c) => "id" in c && c.id === second.contactID),
+  );
   pass("contact archive clears primary flag, remains readable and cannot be reactivated");
   const commit = p.db.commitTransaction;
   let lost = false;

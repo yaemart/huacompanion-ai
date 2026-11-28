@@ -90,3 +90,36 @@ test("CRM mutation whitelist and nullable contact rules", async () => {
   for (const action of ["archiveContact", "archiveClient", "setPrimaryContact"])
     assert.throws(() => parseCrmAction({ action, operationKey }));
 });
+
+test("CRM inquiry links require strict revisions and reject external authorization controls", async () => {
+  const { parseCrmAction } = await import("../src/lib/crm.ts");
+  const v = {
+    action: "linkInquiry",
+    operationKey: "11b31e1a-a145-4dd9-a48f-05946a18ff98",
+    clientID: 1,
+    inquiryID: 2,
+    expectedClientRevision: 1,
+    expectedLinkRevision: 0,
+    reason: "Verified business association",
+  };
+  assert.equal(parseCrmAction(v).expectedLinkRevision, 0);
+  for (const extra of [
+    { expectedLinkRevision: -1 },
+    { expectedLinkRevision: 0.5 },
+    { inquiryID: "2" },
+    { grantAccess: true },
+    { revokeLegacyAccess: true },
+    { reason: "short" },
+  ])
+    assert.throws(() => parseCrmAction({ ...v, ...extra }));
+  assert.throws(() =>
+    parseCrmAction({
+      action: "revokeInquiryLink",
+      operationKey: v.operationKey,
+      clientID: 1,
+      linkID: 2,
+      expectedClientRevision: 1,
+      reason: v.reason,
+    }),
+  );
+});

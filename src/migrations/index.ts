@@ -1,3 +1,4 @@
+import * as migration_20261128_130000_crm_inquiry_links from "./20261128_130000_crm_inquiry_links";
 import * as migration_20261128_090000_crm_core from "./20261128_090000_crm_core";
 import * as migration_20261126_090000_subscription_signed_feedback from "./20261126_090000_subscription_signed_feedback";
 import * as migration_20261126_130000_exhibition_reminders from "./20261126_130000_exhibition_reminders";
@@ -357,6 +358,11 @@ export const migrations = [
     up: migration_20261128_090000_crm_core.up,
     down: migration_20261128_090000_crm_core.down,
     name: "20261128_090000_crm_core",
+  },
+  {
+    up: migration_20261128_130000_crm_inquiry_links.up,
+    down: migration_20261128_130000_crm_inquiry_links.down,
+    name: "20261128_130000_crm_inquiry_links",
   },
 ];
 import * as migration_20261120_110000_subscription_campaign_drafts from "./20261120_110000_subscription_campaign_drafts";

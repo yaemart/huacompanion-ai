@@ -74,6 +74,7 @@ export interface Config {
     notifications: Notification;
     'audit-events': AuditEvent;
     'intake-limits': IntakeLimit;
+    'crm-inquiry-links': CrmInquiryLink;
     'crm-clients': CrmClient;
     'crm-contacts': CrmContact;
     'crm-operations': CrmOperation;
@@ -151,6 +152,7 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'audit-events': AuditEventsSelect<false> | AuditEventsSelect<true>;
     'intake-limits': IntakeLimitsSelect<false> | IntakeLimitsSelect<true>;
+    'crm-inquiry-links': CrmInquiryLinksSelect<false> | CrmInquiryLinksSelect<true>;
     'crm-clients': CrmClientsSelect<false> | CrmClientsSelect<true>;
     'crm-contacts': CrmContactsSelect<false> | CrmContactsSelect<true>;
     'crm-operations': CrmOperationsSelect<false> | CrmOperationsSelect<true>;
@@ -540,6 +542,25 @@ export interface IntakeLimit {
   bucket: number;
   clientKey: string;
   count: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-inquiry-links".
+ */
+export interface CrmInquiryLink {
+  id: number;
+  client: number | CrmClient;
+  inquiry: number | Inquiry;
+  active: boolean;
+  revision: number;
+  linkedBy: number | Staff;
+  linkedAt: string;
+  reason: string;
+  revokedBy?: (number | null) | Staff;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2460,6 +2481,24 @@ export interface IntakeLimitsSelect<T extends boolean = true> {
   bucket?: T;
   clientKey?: T;
   count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-inquiry-links_select".
+ */
+export interface CrmInquiryLinksSelect<T extends boolean = true> {
+  client?: T;
+  inquiry?: T;
+  active?: T;
+  revision?: T;
+  linkedBy?: T;
+  linkedAt?: T;
+  reason?: T;
+  revokedBy?: T;
+  revokedAt?: T;
+  revocationReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }

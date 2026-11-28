@@ -8,9 +8,14 @@ const text = (name: string, maxLength = 200): Extract<Field, { type: "text" }> =
 const number = (name: string): Field => ({ name, type: "number", required: true, min: 1 });
 const relation = (
   name: string,
-  relationTo: "staff" | "teams" | "crm-clients",
+  relationTo: "staff" | "teams" | "crm-clients" | "inquiries",
   required = true,
-): Field => ({ name, type: "relationship", relationTo, required });
+): Extract<Field, { type: "relationship" }> => ({
+  name,
+  type: "relationship",
+  relationTo,
+  required,
+});
 const state: Field = {
   name: "status",
   type: "select",
@@ -25,6 +30,22 @@ const base = {
   lockDocuments: false as const,
 };
 export const crmCollections: CollectionConfig[] = [
+  {
+    ...base,
+    slug: "crm-inquiry-links",
+    fields: [
+      relation("client", "crm-clients"),
+      { ...relation("inquiry", "inquiries"), unique: true },
+      { name: "active", type: "checkbox", required: true },
+      number("revision"),
+      relation("linkedBy", "staff"),
+      { name: "linkedAt", type: "date", required: true },
+      { ...text("reason", 2000), required: true },
+      relation("revokedBy", "staff", false),
+      { name: "revokedAt", type: "date" },
+      text("revocationReason", 2000),
+    ],
+  },
   {
     ...base,
     slug: "crm-clients",

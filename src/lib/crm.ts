@@ -14,6 +14,8 @@ export const crmActions = [
   "setPrimaryContact",
   "archiveContact",
   "archiveClient",
+  "linkInquiry",
+  "revokeInquiryLink",
 ] as const;
 export type CrmAction = (typeof crmActions)[number];
 export interface CrmInput {
@@ -23,6 +25,9 @@ export interface CrmInput {
   expectedRevision?: number;
   expectedClientRevision?: number;
   contactID?: number;
+  inquiryID?: number;
+  linkID?: number;
+  expectedLinkRevision?: number;
   teamID?: number;
   ownerID?: number | null;
   kind?: "individual" | "company";
@@ -51,6 +56,14 @@ const fields: Record<CrmAction, string[]> = {
   setPrimaryContact: ["clientID", "expectedClientRevision", "contactID"],
   archiveContact: ["clientID", "expectedClientRevision", "contactID", "expectedRevision", "reason"],
   archiveClient: ["clientID", "expectedRevision", "reason"],
+  linkInquiry: [
+    "clientID",
+    "inquiryID",
+    "expectedClientRevision",
+    "expectedLinkRevision",
+    "reason",
+  ],
+  revokeInquiryLink: ["clientID", "linkID", "expectedClientRevision", "expectedRevision", "reason"],
 };
 export function crmID(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1)
@@ -76,8 +89,14 @@ export function parseCrmAction(raw: unknown): CrmInput {
   for (const key of fields[action]) {
     if (!(key in data)) continue;
     const v = data[key];
-    if (
+    if (key === "expectedLinkRevision") {
+      if (typeof v !== "number" || !Number.isSafeInteger(v) || v < 0)
+        throw new CrmError("关联版本无效");
+      result[key] = v;
+    } else if (
       [
+        "inquiryID",
+        "linkID",
         "clientID",
         "expectedRevision",
         "expectedClientRevision",
@@ -131,6 +150,8 @@ export function parseCrmAction(raw: unknown): CrmInput {
   if (["setPrimaryContact", "archiveContact"].includes(action)) required.push("contactID");
   if (action === "archiveContact" || (action === "saveContact" && data.contactID))
     required.push("expectedRevision");
+  if (action === "linkInquiry") required.push("inquiryID", "expectedLinkRevision", "reason");
+  if (action === "revokeInquiryLink") required.push("linkID", "expectedRevision", "reason");
   for (const key of required) if (result[key] === undefined) throw new CrmError("缺少必要资料");
   if (action === "saveContact" && !data.contactID && !result.email && !result.phone)
     throw new CrmError("至少提供邮箱或电话");
