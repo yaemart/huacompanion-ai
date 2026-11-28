@@ -1,3 +1,4 @@
+import { followupCollections } from "./followups";
 import type { CollectionConfig, Field } from "payload";
 const deny = () => false;
 const text = (name: string, maxLength = 200): Extract<Field, { type: "text" }> => ({
@@ -30,6 +31,7 @@ const base = {
   lockDocuments: false as const,
 };
 export const crmCollections: CollectionConfig[] = [
+  ...followupCollections,
   {
     ...base,
     slug: "crm-inquiry-links",

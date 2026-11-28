@@ -19,6 +19,7 @@ if (
     "overview",
     "assignments",
     "modules",
+    "followups",
   ].includes(mode)
 )
   throw Error("Unknown CRM test mode");
@@ -85,6 +86,7 @@ try {
         "tests/integration/crm-http.ts",
         ...(mode === "preview" ? ["--preview"] : []),
       ]);
+    else if (mode === "followups") run(["--import", "tsx", "tests/integration/crm-followups.ts"]);
     else if (mode === "session") run(["--import", "tsx", "tests/integration/crm-session.ts"]);
     else if (mode === "assignments")
       run(["--import", "tsx", "tests/integration/crm-assignments.ts"]);
