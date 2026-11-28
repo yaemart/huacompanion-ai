@@ -13,7 +13,7 @@ C1通用生命周期/确认与附加事项内核→C2主来源导入/旧CMS及�
 本轮未启动数据库/Next网站、未迁移，原演示/备份保持；check仅临时回环单测，不是启动演示。
 初次check受沙箱限制，两项HTTP单测listen EPERM；授权环境重跑npm run check退出0：lint/typecheck通过、933/933单测通过；文档Prettier与git diff --check通过。
 未运行数据库/应用集成测试，本阶段未实现，PR138的933项不作为C交付证明。
-设计批准后仍需单独授权实施；不自动合并。最终推送/PR见交付回执。
+设计批准后仍需单独授权实施；不自动合并。设计主提交70b7424已推送并fetch核对一致；[草稿PR139](https://github.com/yaemart/huacompanion-ai/pull/139)，未合并。云端CI未核验。
 
 ## CRM A1b：咨询唯一关联与撤销保护（2026-11-28）
 
