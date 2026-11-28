@@ -26,6 +26,7 @@ const pool = (p.db as unknown as PostgresAdapter).pool;
 mkdirSync(".local/crm-a2", { recursive: true });
 const log = createWriteStream(".local/crm-a2/next-http.log", { flags: "w", mode: 0o600 });
 let child: ReturnType<typeof spawn> | undefined;
+let stopBrowserFixture: (() => Promise<void>) | undefined;
 try {
   const email = preview ? "crm-preview@example.invalid" : `${randomUUID()}@example.invalid`;
   const password = preview ? "Fictional-preview-only!2026" : randomUUID();
@@ -48,7 +49,7 @@ try {
     req: { ...req },
     data: {
       name: "Virtual operator",
-      email: `${randomUUID()}@example.invalid`,
+      email: preview ? "crm-operator-preview@example.invalid" : `${randomUUID()}@example.invalid`,
       password,
       role: "operations",
       team: team.id,
@@ -69,7 +70,7 @@ try {
     req: { ...req },
     data: {
       name: "Virtual manager",
-      email: `${randomUUID()}@example.invalid`,
+      email: preview ? "crm-manager-preview@example.invalid" : `${randomUUID()}@example.invalid`,
       password,
       role: "manager",
       team: team.id,
@@ -145,6 +146,10 @@ try {
       verificationReason: "Virtual independent identity evidence",
     },
   });
+  if (preview)
+    stopBrowserFixture = await (
+      await import("../helpers/crm-browser-fixture")
+    ).seedCrmBrowser(p, admin, team.id, operator, manager, client.clientID);
   child = spawn(
     process.execPath,
     [
@@ -255,7 +260,10 @@ try {
     assert.equal(read.headers.get("x-content-type-options"), "nosniff");
     const html = await fetch(base + "/crm-center", { headers: adminHeaders });
     assert.equal(html.status, 200);
-    assert.match(await html.text(), /客户档案/);
+    const shell = await html.text();
+    assert.match(shell, /客户档案/);
+    assert.match(shell, /客户总览/);
+    assert.match(shell, /客户类型筛选/);
     const anonymous = await fetch(base + "/crm-center", { redirect: "manual" });
     assert.equal(anonymous.status, 307);
     assert.match(anonymous.headers.get("location") ?? "", /admin\/login/);
@@ -557,6 +565,7 @@ try {
     );
   }
 } finally {
+  await stopBrowserFixture?.();
   if (child && child.exitCode === null) {
     const closed = once(child, "exit");
     child.kill("SIGTERM");

@@ -125,3 +125,43 @@
     padding: 16px;
   }
 }
+.crm-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #f3f7fa;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.crm-metrics p {
+  margin: 4px 0;
+}
+.crm-check {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px !important;
+}
+.crm-check input[type="checkbox"] {
+  width: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  margin: 2px 0;
+  flex: none;
+}
+.crm-review {
+  border-left: 4px solid #496681;
+  background: #f3f7fa;
+  padding: 14px;
+}
+.crm-warning {
+  color: #81391f;
+}
+.crm-queue {
+  margin-bottom: 20px;
+}
+.crm-updates {
+  padding-left: 20px;
+}
+.crm-updates li {
+  margin: 8px 0;
+}

@@ -2476,3 +2476,28 @@ B2十二组、原CRM35组、原会话/业务/客户/权限8项、生产build、�
 审计实际新版本断言RED→GREEN，无二次复核或延期项；未对安全历史扩大字段。
 本批随机库已核对为0，CRM专用集群正常停止/目录保留，3100/3201/55442/55443无监听。
 精确最终SHA/对应云端CI由PR136最终实核；不自动合并，B3须合并后另开分支。
+
+## CRM B3客户总览与转交员工界面（2026-11-28）
+
+PR136实核合并d4731ef18aca45cd733fa25f3f1405e98fda571e包含6608ff4；从最新main建立codex/crm-phase-b-ui。
+[一页小结](crm-phase-b3-summary.md)、[实施计划](superpowers/plans/2026-11-28-crm-phase-b3.md)。
+/crm-center接B1总览/筛选/分页/最近更新/动态队列、B2同团队预览/逐项转交/安全历史；
+客户主负责人与咨询责任分开，服务单沿咨询，回执实际子集计数。默认零选中、跨页原版本/原负责人、最多20咨询；
+原A档案/联系人/关联操作抽组件保留。唯一父层写锁，未知原键正文冻结重试，401/403清资料，409保留输入。
+前端只消费现有服务，无后端权限、旧外部授权或schema/依赖/产品环境变量变化，无.env。
+
+TDD helpers缺模块RED→GREEN；render缺组件RED→GREEN；case链接inquiry5/case8反例RED→实际case8。
+浏览器失权404持续加载RED→显式清理失效请求loading/editorLoading→原场景GREEN。
+唯一末尾独立复核0严重/0重要/1轻微，跨页摘要缺原负责人按设计升重要；
+offpage渲染先RED再显示冻结ownerDisplay后GREEN，单轮修正，无二次复核或延期项。
+最终check928/928、lint0错误/445既有警告；完整test:crm最终结果待补。
+普通沙箱check既有回环测试EPERM，授权放开本机监听后全部通过；直接build无secret失败，
+改用带集群身份校验的CRM随机库build成功，不创建.env、不连接原演示库。
+
+浏览器虚构admin/manager/operations：类型筛选/队列、客户单独actual1/0、跨页混合selected1/2→actual0/2、
+409保留原因、丢回执冻结与原键恢复、等锁撤会话401隐藏全部资料且业务/旧授权指纹unchanged=true。
+运营无管理转交/历史/队列，客户主负责人转出后旧列表404不泄露详情。桌面clientWidth=scrollWidth=1265，
+无控制台error，键盘录入/Tab及未保存提醒已观察；390视口set两次及reset工具超时，未观察到尺寸变化，
+窄屏及真人一分钟验收待完成，不声称通过。账号已登出；截图/日志仅.local/crm-b3未上传Git或附件。
+独立CRM worktree/PG55443/测试3201，原演示3100/55442、备份/原草稿不操作。最终清理/PR/CI状态后补。
+

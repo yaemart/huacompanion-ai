@@ -53,6 +53,8 @@ jobs:
       - run: node --import tsx tests/integration/provider-options-render.tsx
       - run: node --import tsx tests/integration/provider-review-render.tsx
       - run: node --import tsx tests/integration/quote-margin-render.tsx
+      - run: node --import tsx tests/integration/crm-overview-render.tsx
+      - run: node --import tsx tests/integration/crm-transfer-render.tsx
       - run: npm run test:policies:notes:editor:render
 
   database:

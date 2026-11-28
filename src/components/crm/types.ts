@@ -47,6 +47,10 @@ export interface Options {
   owners: { id: number; name: string; teamID: number }[];
 }
 export interface View {
+  overview: import("../../lib/crm-overview").OverviewDetail;
+  history?: import("../../lib/crm-overview").OverviewPage<
+    import("../../lib/crm-assignments").AssignmentEvent
+  >;
   client: Client;
   contacts: Page<Contact>;
   links: Page<Link>;
@@ -58,3 +62,10 @@ export interface Draft {
   base: Record<string, unknown>;
   values: Record<string, string>;
 }
+
+export type OpenClientAction = (
+  action: string,
+  title: string,
+  base: Record<string, unknown>,
+  values?: Record<string, string>,
+) => void;
