@@ -382,6 +382,169 @@ try {
     assert.equal(deniedRevoke.status, 409);
     assert.deepEqual(await databaseFingerprints(pool), protectedBefore);
     assert.equal((await get(`action=get&clientID=${receipt.clientID}`, opHeaders)).status, 404);
+
+    const b2Client = await mutate({
+      action: "createClient",
+      kind: "company",
+      displayName: "HTTP B2 fictional",
+      language: "en",
+      teamID: team.id,
+      ownerID: operator.id,
+    });
+    const b2Inquiry = await p.create({
+      collection: "inquiries",
+      req: { user },
+      data: {
+        reference: "HTTP-B2-" + randomUUID(),
+        requestKey: randomUUID(),
+        contentHash: randomUUID(),
+        name: "HTTP fictional B2 inquiry",
+        email: "b2-private@example.invalid",
+        categories: ["business"],
+        city: "Shanghai",
+        status: "new",
+        team: team.id,
+        owner: operator.id,
+      },
+    });
+    await mutate({
+      action: "linkInquiry",
+      clientID: b2Client.clientID,
+      inquiryID: b2Inquiry.id,
+      expectedClientRevision: 1,
+      expectedLinkRevision: 0,
+      reason: "HTTP reviewed B2 association",
+    });
+    const b2Recipient = await p.create({
+      collection: "staff",
+      req: { user },
+      data: {
+        name: "HTTP B2 recipient",
+        email: randomUUID() + "@example.invalid",
+        password,
+        role: "operations",
+        team: team.id,
+        active: true,
+      },
+    });
+    await p.create({
+      collection: "customer-inquiry-links",
+      data: {
+        customer: account.id,
+        inquiry: b2Inquiry.id,
+        active: true,
+        dedupe: `${account.id}:${b2Inquiry.id}`,
+        verifiedBy: admin.id,
+        verifiedAt: new Date().toISOString(),
+        verificationReason: "Independent B2 HTTP authorization",
+      },
+    });
+    const b2Preview = async () => {
+      const r = await get(`action=transferPreview&clientID=${b2Client.clientID}`, managerHeaders);
+      assert.equal(r.status, 200);
+      assert.equal(r.headers.get("cache-control"), "no-store");
+      return r.json();
+    };
+    const b2Body = async (recipientID: number, includeInquiry = true) => {
+      const preview = await b2Preview();
+      const selected = preview.inquiries.find(
+        (q: { inquiryID: number }) => q.inquiryID === b2Inquiry.id,
+      );
+      return {
+        action: "transferAssignments",
+        operationKey: randomUUID(),
+        clientID: b2Client.clientID,
+        expectedClientRevision: preview.expectedClientRevision,
+        recipientID,
+        transferClient: true,
+        reason: "HTTP explicit reviewed responsibility transfer",
+        inquiries: includeInquiry
+          ? [
+              {
+                inquiryID: selected.inquiryID,
+                expectedUpdatedAt: selected.expectedUpdatedAt,
+                expectedOwnerID: selected.expectedOwnerID,
+                expectedCaseRevision: selected.expectedCaseRevision,
+              },
+            ]
+          : [],
+      };
+    };
+    const b2First = await b2Body(b2Recipient.id);
+    assert.equal(
+      (await get(`action=transferPreview&clientID=${b2Client.clientID}`, opHeaders)).status,
+      403,
+    );
+    assert.equal((await post(b2First, opHeaders)).status, 403);
+    assert.equal((await post({ ...b2First, force: true }, managerHeaders)).status, 400);
+    const externalFingerprint = async () =>
+      (await databaseFingerprints(pool)).filter((t) => t.table.startsWith("customer_"));
+    const b2Protected = await externalFingerprint();
+    const b2Saved = await post(b2First, managerHeaders);
+    assert.equal(b2Saved.status, 200);
+    const b2Receipt = await b2Saved.json();
+    assert.ok(b2Receipt.transferID > 0);
+    assert.deepEqual(b2Receipt.inquiryIDs, [b2Inquiry.id]);
+    assert.deepEqual(await (await post(b2First, managerHeaders)).json(), b2Receipt);
+    assert.equal((await get(`action=get&clientID=${b2Client.clientID}`, opHeaders)).status, 404);
+    const b2History = await get(
+      `action=assignmentHistory&clientID=${b2Client.clientID}`,
+      managerHeaders,
+    );
+    assert.equal(b2History.status, 200);
+    assert.equal((await b2History.json()).total, 1);
+    const staleTransfer = { ...b2First, operationKey: randomUUID() };
+    assert.equal((await post(staleTransfer, managerHeaders)).status, 409);
+    const b2Unknown = await b2Body(operator.id);
+    writeFileSync(".local/crm-a2/drop-next-response", "B2 fixture", { mode: 0o600 });
+    await assert.rejects(async () => {
+      const r = await post(b2Unknown, managerHeaders);
+      await r.json();
+    });
+    const b2Recovered = await post(b2Unknown, managerHeaders);
+    assert.equal(b2Recovered.status, 200);
+    assert.equal(
+      (
+        await pool.query("SELECT count(*) FROM crm_operations WHERE operation_key=$1", [
+          b2Unknown.operationKey,
+        ])
+      ).rows[0].count,
+      "1",
+    );
+    assert.deepEqual(await externalFingerprint(), b2Protected);
+    const waitingTransfer = await b2Body(b2Recipient.id, false);
+    const b2Lock = await p.db.beginTransaction();
+    assert.ok(b2Lock);
+    await transactionSession(p, b2Lock).db.execute("SELECT pg_advisory_xact_lock(726281)");
+    const b2Waiting = post(waitingTransfer, managerHeaders);
+    const b2Until = Date.now() + 10000;
+    while (
+      !(
+        await pool.query(
+          "SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=726281 AND NOT granted AND database=(SELECT oid FROM pg_database WHERE datname=current_database())",
+        )
+      ).rowCount
+    ) {
+      assert.ok(Date.now() < b2Until);
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await p.update({
+      collection: "staff",
+      id: manager.id,
+      data: { sessions: [] },
+      req: { user, transactionID: b2Lock },
+    });
+    await p.db.commitTransaction(b2Lock);
+    const b2AfterRevocation = await databaseFingerprints(pool);
+    assert.equal((await b2Waiting).status, 401);
+    assert.deepEqual(await databaseFingerprints(pool), b2AfterRevocation);
+    Object.assign(managerHeaders, await login(manager.email));
+    assert.equal((await post(waitingTransfer, managerHeaders)).status, 200);
+    assert.deepEqual(await externalFingerprint(), b2Protected);
+    console.log(
+      "PASS CRM B2 actual HTTP: manager transfer/preview/history,403 roles,409 versions, original-key response recovery, " +
+        "native session revoked while waiting401/zero writes and unchanged external grants",
+    );
     const logout = await fetch(base + "/api/staff/logout", {
       method: "POST",
       headers: { ...adminHeaders, origin: base },

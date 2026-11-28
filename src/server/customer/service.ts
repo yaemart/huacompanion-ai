@@ -41,10 +41,13 @@ const now = () => new Date().toISOString();
 export async function customerTransaction<T>(
   p: Payload,
   fn: (req: Partial<PayloadRequest>) => Promise<T>,
+  options?: { readCommitted: true },
 ): Promise<T> {
   const id = await p.db.beginTransaction();
   if (!id) throw Error("Transaction required");
   try {
+    if (options?.readCommitted)
+      await transactionSession(p, id).db.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
     await transactionSession(p, id).db.execute("SELECT pg_advisory_xact_lock(726281)");
     await transactionSession(p, id).db.execute("SELECT pg_advisory_xact_lock(726283)");
     const result = await fn({ transactionID: id });

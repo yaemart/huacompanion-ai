@@ -1,8 +1,10 @@
+import { prepareTransfer, applyTransfer, type TransferMutation } from "./assignments";
+import type { TransferInput } from "../../lib/crm-assignments";
 import { prepareInquiryLink, applyInquiryLink, assertNoActiveLinks } from "./links";
 import { createHmac, randomUUID } from "node:crypto";
 import type { Payload, PayloadRequest } from "payload";
 import type { CrmClient, CrmContact } from "../../../payload-types";
-import { hasRole, isAdmin, relationID } from "../../cms/access";
+import { hasRole, isAdmin, isManager, relationID } from "../../cms/access";
 import { validOwner } from "../../cms/staff-guards";
 import { CrmError, parseCrmAction, type CrmInput } from "../../lib/crm";
 import { customerTransaction } from "../customer/service";
@@ -16,6 +18,9 @@ export interface CrmReceipt {
   inquiryID?: number;
   clientRevision?: number;
   reference?: string;
+  transferID?: number;
+  transferredClient?: boolean;
+  inquiryIDs?: number[];
 }
 const conflict = () => new CrmError("资料或操作版本已变化，请核对后重试", 409);
 const pick = (i: CrmInput, keys: (keyof CrmInput)[]) =>
@@ -153,110 +158,146 @@ async function saveContact(p: Payload, c: CrmClient, i: CrmInput, req: Partial<P
 }
 export async function crmAction(p: Payload, user: CrmActor, raw: unknown): Promise<CrmReceipt> {
   const i = parseCrmAction(raw);
-  return customerTransaction(p, async (req) => {
-    const actor = await currentActor(p, user, req);
-    req.user = { ...actor, collection: "staff" };
-    const key = `${actor.id}:${i.operationKey}`;
-    const old = (
-      await p.find({
-        collection: "crm-operations",
-        where: { key: { equals: key } },
-        limit: 1,
-        depth: 0,
-        req,
-      })
-    ).docs[0];
-    const c = i.clientID ? await requireClient(p, actor, i.clientID, req) : undefined;
-    const linkContext =
-      ["linkInquiry", "revokeInquiryLink"].includes(i.action) && c
-        ? await prepareInquiryLink(p, actor, c, i, req)
-        : undefined;
-    const signature = proof(p, i);
-    if (old) {
-      if (linkContext && relationID(linkContext.link?.client) !== c?.id) throw unavailable();
-      const r = old.result as unknown as CrmReceipt;
-      if (!r || !Number.isSafeInteger(r.clientID) || !Number.isSafeInteger(r.revision))
-        throw new CrmError("操作回执不可用", 503);
-      await requireClient(p, actor, r.clientID, req);
-      if (old.epoch !== signature.epoch || old.inputDigest !== signature.inputDigest)
-        throw conflict();
-      return r;
-    }
-    let result: CrmReceipt;
-    let auditDetails: Awaited<ReturnType<typeof applyInquiryLink>> | undefined;
-    if (i.action === "createClient") {
-      const created = await createClient(p, actor, i, req);
-      result = { clientID: created.id, revision: 1, reference: created.reference };
-    } else {
-      if (!c) throw unavailable();
-      if (c.status !== "active") throw conflict();
-      version(
-        c.revision,
-        ["updateClient", "archiveClient"].includes(i.action)
-          ? i.expectedRevision
-          : i.expectedClientRevision,
-      );
-      if (linkContext) {
-        auditDetails = await applyInquiryLink(p, actor, c, i, linkContext, req);
-        result = auditDetails.result;
-      } else if (i.action === "updateClient" || i.action === "archiveClient") {
-        if (i.action === "archiveClient") await assertNoActiveLinks(p, c.id, req);
-        const changes =
-          i.action === "archiveClient"
-            ? { status: "archived" as const }
-            : pick(i, ["displayName", "language", "countryCode"]);
-        await p.update({
-          collection: "crm-clients",
-          id: c.id,
-          data: { ...changes, revision: c.revision + 1 },
+  return customerTransaction(
+    p,
+    async (req) => {
+      const actor = await currentActor(p, user, req);
+      req.user = { ...actor, collection: "staff" };
+      if (i.action === "transferAssignments" && !isManager(actor))
+        throw new CrmError("需要客户转交管理权限", 403);
+      const key = `${actor.id}:${i.operationKey}`;
+      const old = (
+        await p.find({
+          collection: "crm-operations",
+          where: { key: { equals: key } },
+          limit: 1,
+          depth: 0,
           req,
-        });
-        result = { clientID: c.id, revision: c.revision + 1 };
-      } else {
-        const saved = await saveContact(p, c, i, req);
-        await p.update({
-          collection: "crm-clients",
-          id: c.id,
-          data: { revision: c.revision + 1 },
-          req,
-        });
-        result = {
-          clientID: c.id,
-          contactID: saved.id,
-          revision: saved.revision,
-          clientRevision: c.revision + 1,
-        };
+        })
+      ).docs[0];
+      const c = i.clientID ? await requireClient(p, actor, i.clientID, req) : undefined;
+      const linkContext =
+        ["linkInquiry", "revokeInquiryLink"].includes(i.action) && c
+          ? await prepareInquiryLink(p, actor, c, i, req)
+          : undefined;
+      const transferContext =
+        i.action === "transferAssignments"
+          ? await prepareTransfer(p, actor, i as TransferInput, req, Boolean(old))
+          : undefined;
+      const signature = proof(p, i);
+      if (old) {
+        if (linkContext && relationID(linkContext.link?.client) !== c?.id) throw unavailable();
+        const r = old.result as unknown as CrmReceipt;
+        if (!r || !Number.isSafeInteger(r.clientID) || !Number.isSafeInteger(r.revision))
+          throw new CrmError("操作回执不可用", 503);
+        await requireClient(p, actor, r.clientID, req);
+        if (old.epoch !== signature.epoch || old.inputDigest !== signature.inputDigest)
+          throw conflict();
+        if (
+          i.action === "transferAssignments" &&
+          (r.clientID !== i.clientID ||
+            !Number.isSafeInteger(r.transferID) ||
+            r.transferID! < 1 ||
+            r.revision < 1 ||
+            typeof r.transferredClient !== "boolean" ||
+            !Array.isArray(r.inquiryIDs) ||
+            new Set(r.inquiryIDs).size !== r.inquiryIDs.length ||
+            (!r.transferredClient && r.inquiryIDs.length === 0) ||
+            (r.transferredClient && !i.transferClient) ||
+            r.inquiryIDs.some(
+              (id) => !Number.isSafeInteger(id) || !i.inquiries!.some((q) => q.inquiryID === id),
+            ))
+        )
+          throw new CrmError("转交回执不可用", 503);
+        return r;
       }
-    }
-    await p.create({
-      collection: "audit-events",
-      req,
-      data: {
-        entity: "crm",
-        recordId: String(result.clientID),
-        action: i.action,
-        actor: actor.id,
-        fields: Object.keys(i)
-          .filter((k) => !["operationKey", "reason"].includes(k))
-          .join(","),
-        before: auditDetails?.before ?? {
-          revision: i.expectedClientRevision ?? i.expectedRevision ?? null,
+      let result: CrmReceipt;
+      let transferDetails: TransferMutation | undefined;
+      let auditDetails: Awaited<ReturnType<typeof applyInquiryLink>> | undefined;
+      if (i.action === "createClient") {
+        const created = await createClient(p, actor, i, req);
+        result = { clientID: created.id, revision: 1, reference: created.reference };
+      } else {
+        if (!c) throw unavailable();
+        if (c.status !== "active") throw conflict();
+        version(
+          c.revision,
+          ["updateClient", "archiveClient"].includes(i.action)
+            ? i.expectedRevision
+            : i.expectedClientRevision,
+        );
+        if (transferContext) {
+          transferDetails = await applyTransfer(p, actor, i as TransferInput, transferContext, req);
+          result = transferDetails.result;
+        } else if (linkContext) {
+          auditDetails = await applyInquiryLink(p, actor, c, i, linkContext, req);
+          result = auditDetails.result;
+        } else if (i.action === "updateClient" || i.action === "archiveClient") {
+          if (i.action === "archiveClient") await assertNoActiveLinks(p, c.id, req);
+          const changes =
+            i.action === "archiveClient"
+              ? { status: "archived" as const }
+              : pick(i, ["displayName", "language", "countryCode"]);
+          await p.update({
+            collection: "crm-clients",
+            id: c.id,
+            data: { ...changes, revision: c.revision + 1 },
+            req,
+          });
+          result = { clientID: c.id, revision: c.revision + 1 };
+        } else {
+          const saved = await saveContact(p, c, i, req);
+          await p.update({
+            collection: "crm-clients",
+            id: c.id,
+            data: { revision: c.revision + 1 },
+            req,
+          });
+          result = {
+            clientID: c.id,
+            contactID: saved.id,
+            revision: saved.revision,
+            clientRevision: c.revision + 1,
+          };
+        }
+      }
+      const audit = await p.create({
+        collection: "audit-events",
+        req,
+        data: {
+          entity: "crm",
+          recordId: String(result.clientID),
+          action: i.action,
+          actor: actor.id,
+          fields: Object.keys(i)
+            .filter((k) => !["operationKey", "reason"].includes(k))
+            .join(","),
+          before: transferDetails?.before ??
+            auditDetails?.before ?? {
+              revision: i.expectedClientRevision ?? i.expectedRevision ?? null,
+            },
+          after: transferDetails?.after ?? {
+            ...result,
+            ...auditDetails?.after,
+            reason: i.reason ?? null,
+          },
         },
-        after: { ...result, ...auditDetails?.after, reason: i.reason ?? null },
-      },
-    });
-    await p.create({
-      collection: "crm-operations",
-      req,
-      data: {
-        actor: actor.id,
-        key,
-        operationKey: i.operationKey,
-        action: i.action,
-        ...signature,
-        result: { ...result },
-      },
-    });
-    return result;
-  });
+      });
+      if (transferDetails) result.transferID = audit.id;
+      await p.create({
+        collection: "crm-operations",
+        req,
+        data: {
+          actor: actor.id,
+          key,
+          operationKey: i.operationKey,
+          action: i.action,
+          ...signature,
+          result: { ...result },
+        },
+      });
+      return result;
+    },
+    i.action === "transferAssignments" ? { readCommitted: true } : undefined,
+  );
 }

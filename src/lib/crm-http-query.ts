@@ -1,7 +1,10 @@
+import { assignmentActions, parseAssignmentURL, type AssignmentQuery } from "./crm-assignments.ts";
 import { overviewActions, parseCrmOverviewQuery, type OverviewQuery } from "./crm-overview.ts";
 import { CrmError } from "./crm.ts";
 export function crmQuery(url: string) {
   const q = new URL(url).searchParams;
+  if (assignmentActions.includes(q.get("action") as AssignmentQuery["action"]))
+    return parseAssignmentURL(url);
   if (overviewActions.includes(q.get("action") as OverviewQuery["action"]))
     return parseCrmOverviewQuery(url);
   const result: Record<string, unknown> = {};
