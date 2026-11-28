@@ -272,3 +272,10 @@ A1a PR131、A1b PR132已合并，基线main885a7db。用户已批准A2最小员�
 `docs/superpowers/plans/2026-11-28-crm-phase-a2.md`为准。
 A2不新增迁移或对外授权，不含B总览／转交、C跟进、D登录完善及E/F服务商门户。
 旧稿复选框保留为历史规划，不能作为测试或已交付证据；本批结果见最新handoff/progress与PR133。
+
+## 2026-11-28阶段B细化状态
+
+A2 PR133已合并。用户确认B1只读总览→B2同团队责任转交→B3员工界面，跨团队迁移后置。
+本批正式设计及三份计划见`docs/superpowers/specs/2026-11-28-crm-phase-b-design.md`和
+`docs/superpowers/plans/2026-11-28-crm-phase-b1.md`至`b3.md`；待审，尚未实施B。
+客户主负责人独立；咨询与派生服务单共用责任单位，旧客户对外授权不变。
